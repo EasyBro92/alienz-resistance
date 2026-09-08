@@ -1,0 +1,49 @@
+# Publica el juego en GitHub Pages en cada empujón a `main`.
+#
+# Se construye aquí y se sube solo `dist/`: el repositorio no lleva la carpeta
+# construida, que son setecientos kilobytes que cambian en cada commit y
+# ensucian el historial sin aportar nada.
+name: Desplegar
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Los permisos que pide `deploy-pages`. Sin `id-token` el despliegue falla con
+# un error de credenciales que no dice qué falta.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Un despliegue a la vez. Si se empuja dos veces seguidas, la segunda cancela a
+# la primera en vez de pelearse por publicar.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  construir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  desplegar:
+    needs: construir
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - id: despliegue
+        uses: actions/deploy-pages@v4

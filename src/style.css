@@ -1,0 +1,733 @@
+:root {
+  --ink: #10141a;
+  --panel: rgba(14, 19, 26, 0.86);
+  --gold: #ffc93c;
+  --green: #5fd97a;
+  --red: #e8523f;
+  --stroke: rgba(255, 255, 255, 0.14);
+  /* Alto de la barra de armería. Solo es el valor del primer fotograma: ui.js
+     lo mide y lo recalcula, porque el contenido de las fichas cambia su altura
+     y todo lo que se ancla a la barra se descuadraba en silencio. */
+  --armory-h: 104px;
+  /* Valor de reserva del tinte: cada ficha lo sobrescribe con el color de su
+     unidad, y de ahí lo hereda el contenido del <use>. */
+  --u-tint: #8fbf5a;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #0d1117;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #fff;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+#app { position: fixed; inset: 0; }
+#scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* ---------- HUD superior ---------- */
+#hud {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: calc(env(safe-area-inset-top) + 10px) 12px 10px;
+  pointer-events: none;
+}
+
+.coins {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--panel);
+  border: 2px solid var(--stroke);
+  border-radius: 999px;
+  padding: 7px 16px 7px 10px;
+  font-weight: 900;
+  font-size: 20px;
+  letter-spacing: 0.5px;
+  text-shadow: 0 2px 0 rgba(0,0,0,0.5);
+}
+.coin-dot {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffe89a, var(--gold) 60%, #c98b13);
+  box-shadow: inset 0 -2px 3px rgba(0,0,0,0.35);
+}
+.coins.flash { animation: pop 0.25s ease; }
+@keyframes pop { 50% { transform: scale(1.14); } }
+
+.wave-box { flex: 1; min-width: 0; }
+.wave-label {
+  font-size: 12px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 1.2px; opacity: 0.85; text-align: center;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.7);
+}
+.base-bar {
+  height: 12px; margin-top: 4px;
+  background: var(--panel);
+  border: 2px solid var(--stroke);
+  border-radius: 999px; overflow: hidden;
+}
+.base-fill {
+  height: 100%; width: 100%;
+  background: linear-gradient(90deg, #4ad07a, #8ee87f);
+  transition: width 0.25s ease, background 0.25s ease;
+}
+
+.icon-btn {
+  pointer-events: auto;
+  display: grid; place-items: center;
+  background: var(--panel);
+  border: 2px solid var(--stroke);
+  border-radius: 999px;
+  width: 42px; height: 42px;
+  padding: 0;
+  color: #fff; cursor: pointer;
+}
+.icon-btn .ic { width: 22px; height: 22px; --u-tint: #6fe39a; }
+
+/* ---------- avisos ---------- */
+.banner {
+  position: absolute; top: 22%; left: 0; right: 0;
+  text-align: center;
+  font-size: clamp(28px, 9vw, 56px);
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-shadow: 0 4px 0 rgba(0,0,0,0.55), 0 0 26px rgba(255,80,60,0.5);
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.86);
+}
+.banner.show { animation: banner 2.1s ease forwards; }
+@keyframes banner {
+  12% { opacity: 1; transform: scale(1.04); }
+  72% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.1); }
+}
+
+/* ---------- armería ---------- */
+/* El carril no se desplaza: lleva el fondo, la cinta y la máscara de los bordes.
+   Solo se desplaza el <nav> de dentro. */
+.armory-rail {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: linear-gradient(transparent, rgba(6, 9, 13, 0.92) 42%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 26px), transparent 100%);
+          mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 26px), transparent 100%);
+}
+/* Cinta de peligro y halo: convierten la barra en el borde de una caja de
+   munición, con el mismo verde de contención de la pantalla de inicio. */
+.armory-rail::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: repeating-linear-gradient(115deg,
+    rgba(95, 217, 122, 0.5) 0 9px, rgba(8, 12, 10, 0.6) 9px 18px);
+  opacity: 0.55;
+}
+.armory-rail::after {
+  content: ''; position: absolute; top: 3px; left: 0; right: 0; height: 14px;
+  background: linear-gradient(180deg, rgba(95, 217, 122, 0.13), transparent);
+  pointer-events: none;
+}
+
+.armory {
+  display: flex;
+  gap: 6px;
+  padding: 10px 10px 12px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 10px;
+  scroll-behavior: smooth;
+  touch-action: pan-x;
+}
+.armory::-webkit-scrollbar { display: none; }
+
+/* Separador por familia: TROPA · BARRERAS · APOYO · MANDO. Con doce fichas en
+   una pantalla de móvil, sin esto el Mortero y el Ametrallador quedan fuera y
+   nada indica que existan. */
+.armory-sep { flex: 0 0 auto; align-self: stretch; width: 13px; position: relative; }
+.armory-sep::before {
+  content: ''; position: absolute; left: 6px; top: 8px; bottom: 8px; width: 1px;
+  background: linear-gradient(180deg, transparent, rgba(95,217,122,0.4), transparent);
+}
+.armory-sep::after {
+  content: attr(data-label); position: absolute; left: -1px; bottom: 6px;
+  writing-mode: vertical-rl;
+  font-size: 7px; font-weight: 900; letter-spacing: 1.4px;
+  text-transform: uppercase; color: #6fe39a; opacity: 0.55;
+}
+
+.card {
+  flex: 0 0 auto;
+  position: relative;
+  overflow: hidden;
+  width: 76px;
+  scroll-snap-align: center;
+  border-radius: 13px;
+  padding: 8px 5px 6px;
+  text-align: center;
+  cursor: pointer;
+  color: #fff;
+  font: inherit;                 /* los <button> no heredan la tipografía */
+  touch-action: manipulation;
+  /* Placa con canto: el brillo interior de arriba y la sombra interior de abajo
+     son lo que separa una chapa de un rectángulo pintado. */
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0) 42%),
+    linear-gradient(180deg, #141b21, #0a0f14);
+  border: 1px solid rgba(255,255,255,0.09);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.07),
+              inset 0 -14px 20px rgba(0,0,0,0.35),
+              0 5px 12px rgba(0,0,0,0.45);
+  transition: transform 0.24s cubic-bezier(.2,.9,.28,1.3),
+              border-color 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  animation: cardIn 0.34s cubic-bezier(.2,.9,.3,1.2) backwards;
+  animation-delay: calc(var(--i, 0) * 34ms);
+}
+@keyframes cardIn { from { opacity: 0; transform: translateY(16px) scale(0.88); } }
+
+/* Hundir deprisa, levantar con rebote: la asimetría es lo que se siente. */
+.card:active { transform: scale(0.92); transition-duration: 0.04s; }
+.card[aria-pressed="true"] { transform: translateY(-7px); border-color: var(--u-tint); }
+.card[aria-pressed="true"]:active { transform: translateY(-7px) scale(0.94); }
+.card[aria-pressed="true"] {
+  box-shadow: 0 0 0 2px var(--u-glow), 0 10px 22px rgba(0,0,0,0.5);
+}
+.card[aria-pressed="true"] .ic { filter: drop-shadow(0 0 6px var(--u-glow)); }
+.card:focus-visible { outline: 2px solid #6fe39a; outline-offset: 2px; }
+
+/* Franja de color de la unidad: el vínculo con la figura del tablero. */
+.card-rail {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: linear-gradient(180deg, var(--u-tint), var(--u-ink));
+}
+.card-serial {
+  position: absolute; top: 4px; right: 5px;
+  font-size: 7px; font-weight: 800; letter-spacing: 0.5px;
+  opacity: 0.28; font-variant-numeric: tabular-nums;
+}
+
+.card-art { position: relative; height: 36px; display: grid; place-items: center; }
+
+/* Retrato de la figura real. Sale del propio modelo 3D, así que no puede
+   desincronizarse con lo que compras. */
+.card.has-face .card-art { height: 54px; }
+.card-face {
+  position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%);
+  height: 62px; width: auto;
+  image-rendering: auto;
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,0.55));
+}
+/* Con retrato, el arma pasa a insignia de esquina: sigue diciendo el rol. */
+.card.has-face .ic {
+  position: absolute; right: -2px; bottom: -4px;
+  width: 19px; height: 19px;
+  opacity: 0.92;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.8));
+}
+.card.has-face[aria-pressed="true"] .card-face { filter: drop-shadow(0 0 7px var(--u-glow)); }
+/* `color` y `--u-tint` son heredables, que es la única vía para pintar dentro
+   de un <use>. Trazo de 2 a propósito: por debajo, a 34 px en un móvil, el
+   icono se deshace y la ficha vuelve a ser un rectángulo con letras. */
+.ic {
+  width: 34px; height: 34px; display: block; overflow: visible;
+  color: #e4ecf4;
+}
+
+.card-name {
+  display: block;
+  /* 8,5 px con menos espaciado sube el hueco de ~10 a ~12 caracteres, que es
+     lo que hace entrar ESCOPETERO, RECOLECTOR y ALAMBRADA enteros. */
+  font-size: 8.5px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.3px; color: #aebbc8;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.card-cost {
+  display: flex; align-items: center; justify-content: center; gap: 3px;
+  margin-top: 3px;
+  font-size: 14px; font-weight: 900; color: var(--gold);
+  /* Sin cifras de ancho fijo, 25 y 320 bailan al cambiar de estado. */
+  font-variant-numeric: tabular-nums; letter-spacing: -0.2px;
+}
+.coin-dot.xs { width: 9px; height: 9px; box-shadow: none; }
+
+/* Sin biomasa: se apaga el icono, no la ficha entera, y una barra dice cuánto
+   falta. #ff8f7d da 7:1 sobre el fondo; el rojo de la interfaz se queda justo
+   en el filo de lo legible a este tamaño. */
+.card[data-state="broke"] { opacity: 0.72; }
+.card[data-state="broke"] .ic { opacity: 0.45; }
+.card[data-state="broke"] .card-cost { color: #ff8f7d; }
+.card[data-state="broke"] .card-rail { opacity: 0.3; }
+.card-meter {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+  background: rgba(255,255,255,0.07);
+  opacity: 0; transition: opacity 0.2s;
+}
+.card-meter::before {
+  content: ''; display: block; height: 100%;
+  width: calc(var(--afford, 1) * 100%);
+  background: linear-gradient(90deg, #c98b13, var(--gold));
+  transition: width 0.35s ease;
+}
+.card[data-state="broke"] .card-meter { opacity: 1; }
+
+@keyframes nope {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  45% { transform: translateX(4px); }
+  70% { transform: translateX(-2px); }
+}
+.card.nope { animation: nope 0.28s ease; border-color: #ff8f7d; }
+
+/* ---------- franja de "lo que llevas en la mano" ---------- */
+.armed {
+  position: absolute;
+  left: 10px; right: 10px;
+  bottom: calc(env(safe-area-inset-bottom) + var(--armory-h));
+  z-index: 2;
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 7px 10px;
+  border-radius: 12px 12px 4px 4px;
+  background: linear-gradient(180deg, rgba(16,24,20,0.94), rgba(9,14,11,0.94));
+  border: 1px solid var(--u-tint, #6fe39a); border-bottom: none;
+  box-shadow: 0 -6px 18px rgba(0,0,0,0.45);
+  animation: armedIn 0.18s ease;
+  pointer-events: none;          /* no debe robar el toque que coloca la unidad */
+}
+@keyframes armedIn { from { opacity: 0; transform: translateY(8px); } }
+.armed[hidden] { display: none; }
+.armed-dot {
+  width: 8px; height: 8px; margin-top: 4px; border-radius: 50%; flex: 0 0 auto;
+  background: var(--u-tint, #6fe39a); box-shadow: 0 0 8px var(--u-tint, #6fe39a);
+  animation: pulseDot 1.1s ease-in-out infinite;
+}
+@keyframes pulseDot { 50% { opacity: 0.35; } }
+.armed-head { display: flex; flex-direction: column; }
+.armed-head b { font-size: 11px; font-weight: 900; letter-spacing: 1.2px; }
+.armed-head em { font-style: normal; font-size: 9px; letter-spacing: 0.4px; color: #6fe39a; opacity: 0.85; }
+.armed-blurb {
+  flex: 1; font-size: 10px; line-height: 1.35; color: #aebbc8; opacity: 0.9;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card, .armed, .card.nope { animation: none !important; }
+  .card { transition-duration: 0.08s; }
+}
+
+/* ---------- inspector de unidad ---------- */
+.inspector {
+  position: absolute;
+  left: 50%; transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom) + var(--armory-h) + 52px);
+  background: var(--panel);
+  border: 2px solid var(--stroke);
+  border-radius: 18px;
+  padding: 10px 12px;
+  min-width: 230px;
+  text-align: center;
+  backdrop-filter: blur(6px);
+}
+.inspector.hidden { display: none; }
+.inspector-title { font-size: 13px; font-weight: 800; margin-bottom: 8px; }
+.inspector-actions { display: flex; gap: 6px; justify-content: center; }
+.chip {
+  border: 2px solid var(--stroke);
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12px; font-weight: 800;
+  cursor: pointer;
+}
+.chip-up { background: rgba(95, 217, 122, 0.2); border-color: rgba(95,217,122,0.5); }
+.chip-up:disabled { opacity: 0.4; }
+.chip-ghost { background: transparent; opacity: 0.7; }
+
+/* ---------- pantallas ---------- */
+.overlay {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  padding: 24px;
+  background: radial-gradient(circle at 50% 30%, rgba(20,28,38,0.82), rgba(6,9,13,0.96));
+  backdrop-filter: blur(3px);
+  z-index: 5;
+}
+.overlay.hidden { display: none; }
+
+.panel { max-width: 420px; text-align: center; }
+.panel h1 {
+  margin: 0;
+  font-size: clamp(38px, 12vw, 62px);
+  font-weight: 900;
+  letter-spacing: 3px;
+  background: linear-gradient(180deg, #eafff0, var(--green));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 4px 0 rgba(0,0,0,0.55));
+}
+.tagline { margin: 6px 0 18px; opacity: 0.82; font-size: 14px; }
+.rules {
+  text-align: left; margin: 0 auto 22px; padding-left: 20px;
+  font-size: 13px; line-height: 1.65; opacity: 0.85; max-width: 320px;
+}
+.big-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 15px 44px;
+  font-size: 17px; font-weight: 900; letter-spacing: 1.5px;
+  color: #08160c;
+  background: linear-gradient(180deg, #8ff0a5, #3fbf62);
+  box-shadow: 0 5px 0 #2a7d41, 0 10px 22px rgba(0,0,0,0.45);
+  cursor: pointer;
+}
+.big-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #2a7d41; }
+
+.panel h1.lost {
+  background: linear-gradient(180deg, #ffd9d3, var(--red));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* ---------- pantalla de inicio: informe de contención ---------- */
+.overlay { overflow-y: auto; align-items: start; padding-top: 6vh; padding-bottom: 6vh; }
+.panel { max-width: 460px; }
+
+.eyebrow {
+  margin: 0 0 6px;
+  font-size: 10px; font-weight: 800; letter-spacing: 2.4px; text-transform: uppercase;
+  color: #6fe39a; opacity: 0.75;
+}
+
+.panel h1 { letter-spacing: 4px; }
+
+/* ---------- logotipo AlienZ Resistance ---------- */
+/* El h1 base recorta un degradado sobre el texto (background-clip), y eso pinta
+   TODO el título del mismo color. Aquí el recorte baja a cada palabra para que
+   la Z pueda ir en verde espora por su cuenta. */
+.panel h1.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: none;
+  color: #fff;
+  filter: none;
+  letter-spacing: 0;
+  line-height: 1;
+}
+.logo-mark {
+  width: clamp(42px, 13vw, 58px);
+  height: auto;
+  flex: none;
+  filter: drop-shadow(0 0 10px rgba(111, 227, 154, 0.45));
+}
+.logo-words { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.logo-main {
+  font-size: clamp(34px, 11vw, 54px);
+  letter-spacing: 2px;
+  background: linear-gradient(180deg, #eafff0, #b6c8bd);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.55));
+}
+/* La Z es la marca: verde espora, con el mismo halo que el emblema. */
+.logo-z {
+  background: linear-gradient(180deg, #b8ffcf, var(--green));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 12px rgba(95, 217, 122, 0.6));
+}
+.logo-sub {
+  font-size: clamp(12px, 3.9vw, 18px);
+  font-weight: 800;
+  letter-spacing: clamp(4px, 1.9vw, 9px);
+  color: rgba(255, 255, 255, 0.62);
+  /* El espaciado de la última letra empuja el bloque a la izquierda; se
+     compensa para que RESISTANCE quede a ras de ALIENZ. */
+  margin-left: 2px;
+  text-indent: 1px;
+}
+
+.tagline { font-style: italic; letter-spacing: 0.3px; }
+
+/* El informe en párrafos se sustituyó por `.relato`: tres viñetas dibujadas. */
+
+/* Ficha de amenaza: se lee como un parte, no como una lista de enemigos. */
+.dossier {
+  text-align: left;
+  margin: 0 auto 18px;
+  max-width: 380px;
+  background: rgba(10, 16, 13, 0.6);
+  border: 1px solid rgba(95, 217, 122, 0.22);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.dossier-title {
+  font-size: 10px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;
+  color: #6fe39a; margin-bottom: 8px; opacity: 0.8;
+}
+.dossier-row {
+  font-size: 12px; line-height: 1.5; opacity: 0.8;
+  padding: 3px 0;
+}
+.tag {
+  display: inline-block;
+  min-width: 84px;
+  margin-right: 6px;
+  padding: 1px 6px;
+  border-radius: 5px;
+  font-size: 10px; font-weight: 900; letter-spacing: 0.6px;
+  text-align: center;
+  color: #08120c;
+}
+.tag-a { background: #8fbf5a; }
+.tag-b { background: #cfe05a; }
+.tag-c { background: #93a3af; }
+.tag-d { background: #c07ad8; }
+.tag-e { background: #e0a397; }
+.tag-f { background: #4fb8c4; }
+.tag-g { background: #d8b04a; }
+.tag-h { background: #e86fa8; }
+.tag-i { background: #8a6a4a; color: #fff; }
+
+/* El informe no cabía en una pantalla de móvil y el botón quedaba fuera:
+   tipografías más apretadas y el botón anclado al fondo del panel. */
+.overlay { padding-top: 3vh; padding-bottom: 0; }
+.panel h1 { font-size: clamp(28px, 8.5vw, 44px); letter-spacing: 3px; }
+.tagline { margin: 4px 0 12px; font-size: 13px; }
+.eyebrow { font-size: 9px; letter-spacing: 2px; }
+
+.briefing { margin-bottom: 12px; padding-left: 10px; }
+.briefing p { font-size: 12px; line-height: 1.5; margin-bottom: 6px; }
+
+.dossier { padding: 8px 10px; margin-bottom: 12px; }
+.dossier-title { font-size: 9px; margin-bottom: 5px; }
+.dossier-row { font-size: 11px; line-height: 1.35; padding: 2px 0; }
+.tag { min-width: 72px; font-size: 9px; padding: 1px 4px; margin-right: 4px; }
+
+.rules { font-size: 11.5px; line-height: 1.5; margin-bottom: 12px; padding-left: 16px; }
+
+/* ---------- la historia en tres viñetas ---------- */
+/* Cada momento es un dibujo, una fecha y una línea. En una pantalla de móvil
+   caben los tres en fila; por debajo de 380 px se apilan, porque un dibujo de
+   90 px de ancho ya no cuenta nada. */
+.relato {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  list-style: none;
+  margin: 0 auto 14px;
+  padding: 0;
+  max-width: 400px;
+}
+.relato li {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 9px 6px 10px;
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.03);
+  text-align: center;
+}
+.relato svg { width: 100%; max-width: 74px; height: auto; }
+.relato b {
+  font-size: 9px; font-weight: 800; letter-spacing: 1.6px; text-transform: uppercase;
+  color: var(--green);
+}
+.relato em {
+  font-style: normal;
+  font-size: 10.5px; line-height: 1.35;
+  opacity: 0.78;
+  text-wrap: balance;
+}
+/* "no se quemó": el tachado hace el trabajo de una frase entera. */
+.relato s { text-decoration-color: var(--red); text-decoration-thickness: 2px; }
+
+.relato .r-suelo, .relato .r-linea {
+  fill: none; stroke: rgba(255,255,255,0.22); stroke-width: 2; stroke-linecap: round;
+}
+.relato .r-tenue {
+  fill: none; stroke: rgba(125,255,158,0.3); stroke-width: 1.6; stroke-dasharray: 3 4;
+}
+.relato .r-estela {
+  fill: none; stroke: #ffb03a; stroke-width: 2.6; stroke-linecap: round; opacity: 0.85;
+}
+.relato .r-brillo { fill: none; stroke: #fff0c0; stroke-width: 3.4; stroke-linecap: round; }
+.relato .r-nucleo { fill: #6fe39a; }
+.relato .r-humo {
+  fill: none; stroke: rgba(255,255,255,0.3); stroke-width: 2.4; stroke-linecap: round;
+}
+.relato .r-chispa {
+  fill: none; stroke: #ffb03a; stroke-width: 1.8; stroke-linecap: round; opacity: 0.5;
+}
+.relato .r-crater {
+  fill: none; stroke: rgba(255,255,255,0.42); stroke-width: 2.4; stroke-linecap: round;
+}
+.relato .r-cuerpo {
+  fill: none; stroke: rgba(255,255,255,0.42); stroke-width: 2.6; stroke-linecap: round;
+}
+.relato .r-vena {
+  fill: none; stroke: #6fe39a; stroke-width: 1.4; stroke-linecap: round; opacity: 0.9;
+}
+.relato .r-asfalto { fill: rgba(255,255,255,0.07); stroke: rgba(255,255,255,0.16); stroke-width: 1.5; }
+.relato .r-raya { fill: none; stroke: rgba(255,255,255,0.3); stroke-width: 2; stroke-linecap: round; }
+.relato .r-horda circle { fill: #6fe39a; opacity: 0.85; }
+
+/* ---------- informe de amenazas, con cara ---------- */
+.amenazas { max-width: 400px; margin: 0 auto 12px; }
+.amenazas-tit {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 7px;
+  font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
+  color: #9fb0a6;
+}
+.amenazas-tit::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.14), transparent);
+}
+.amenazas-tit i {
+  font-style: normal; padding: 0 6px; border-radius: 999px;
+  background: rgba(255,255,255,0.08); font-size: 10px;
+}
+.amenazas-rejilla {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+}
+.amenaza {
+  position: relative;
+  /* `min-width: 0` no es opcional: sin él, una celda de rejilla se ensancha
+     hasta caber su contenido, y "Revientaesporas" empujaba la ficha fuera de
+     la cuadrícula en vez de recortarse. */
+  min-width: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 5px 2px 4px;
+  border: 1px solid rgba(255,255,255,0.09);
+  border-top: 2px solid var(--a-tinte);
+  border-radius: 9px;
+  background: rgba(255,255,255,0.035);
+  color: inherit; font: inherit;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+.amenaza.elegida { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.22); }
+/* El retrato tarda en llegar: hasta entonces, un disco del color de la ficha,
+   para que la cuadrícula no aparezca vacía y luego dé un salto. */
+.amenaza-cara {
+  width: 100%; aspect-ratio: 4 / 5;
+  border-radius: 7px;
+  background: radial-gradient(circle at 50% 68%, color-mix(in srgb, var(--a-tinte) 45%, transparent) 0%, transparent 65%);
+  /* `contain`, no `cover`: recortando al cuadrado, el Coloso salía partido por
+     la cintura y el Escarbador sin cabeza. Lo que hay que reconocer de un
+     huésped es su silueta entera, no su torso. */
+  object-fit: contain;
+}
+.amenaza-cara[hidden] { display: block !important; visibility: hidden; }
+.amenaza b {
+  width: 100%;
+  font-size: 8px; font-weight: 800; letter-spacing: 0.1px;
+  line-height: 1.1;
+  color: #d7e0d9;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.amenazas-pie {
+  margin: 7px 0 0;
+  min-height: 30px;
+  font-size: 11px; line-height: 1.35;
+  opacity: 0.72;
+  text-align: left;
+}
+.amenazas-pie b { color: var(--green); }
+
+/* ---------- secciones plegables del informe ---------- */
+.plegable { max-width: 380px; margin: 0 auto 8px; text-align: left; }
+.plegable > summary {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.035);
+  font-size: 10px; font-weight: 800; letter-spacing: 1.8px; text-transform: uppercase;
+  color: #9fb0a6;
+  cursor: pointer;
+  list-style: none;
+}
+.plegable > summary::-webkit-details-marker { display: none; }
+.plegable > summary i {
+  font-style: normal;
+  margin-left: auto;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  font-size: 10px;
+}
+.plegable > summary::after {
+  content: '';
+  width: 6px; height: 6px;
+  border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform .18s;
+}
+.plegable[open] > summary::after { transform: rotate(-135deg) translateY(-1px); }
+.plegable[open] > summary { border-color: rgba(95,217,122,0.3); color: var(--green); }
+.plegable > *:not(summary) { margin-top: 8px; }
+
+/* ---------- selector de niveles ---------- */
+.niveles { display: flex; flex-direction: column; gap: 6px; margin: 0 auto 14px; max-width: 380px; }
+.nivel {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; text-align: left;
+  padding: 8px 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.035);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.nivel[data-estado="cerrado"] { opacity: 0.38; cursor: default; }
+.nivel[data-estado="hecho"] .nivel-num { background: var(--green); color: #08160c; }
+.nivel.elegido { border-color: var(--green); background: rgba(95,217,122,0.12); }
+.nivel-num {
+  flex: none;
+  width: 26px; height: 26px; border-radius: 8px;
+  display: grid; place-items: center;
+  background: rgba(255,255,255,0.09);
+  font-size: 13px; font-weight: 900;
+}
+.nivel-txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.nivel-txt b { font-size: 13px; letter-spacing: 0.3px; }
+.nivel-txt em {
+  font-style: normal; font-size: 11px; line-height: 1.3; opacity: 0.62;
+}
+
+/* Lo que se acaba de abrir al ganar. */
+.premio {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px;
+  margin: 0 auto 16px; max-width: 340px;
+  padding: 10px 12px;
+  border: 1px solid rgba(95,217,122,0.35);
+  border-radius: 12px;
+  background: rgba(95,217,122,0.08);
+}
+.premio-tit {
+  width: 100%;
+  font-size: 9px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--green); opacity: 0.85;
+}
+.premio b {
+  padding: 3px 9px; border-radius: 999px;
+  background: rgba(95,217,122,0.16);
+  font-size: 12px;
+}
+
+.big-btn {
+  position: sticky;
+  bottom: calc(env(safe-area-inset-bottom) + 10px);
+  padding: 13px 32px;
+  font-size: 15px;
+}

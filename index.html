@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#0d1117" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>AlienZ Resistance</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+</head>
+<body>
+  <!-- Iconografía del juego. Los emoji del sistema los dibujaba el móvil, no
+       nosotros: 🪖 era un casco para el Fusilero y 🌪️ un tornado para el
+       Ametrallador, y cambiaban entre Android e iOS. Estos van trazados como
+       plantilla estarcida: `.b` es la forma del arma, `.t` y `.f` la parte que
+       define el rol, teñida con el color de la unidad en el tablero. -->
+  <!-- Los atributos van EN el símbolo, no en una hoja de estilos: el contenido
+       de <use> vive en un shadow DOM al que los selectores de CSS no llegan.
+       Con `.b`/`.t` como clases, los trazos se rellenaban de negro por defecto.
+       Solo pasan las propiedades heredadas, así que la forma usa `currentColor`
+       y el rol usa la variable --u-tint, que sí hereda. -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+    <symbol id="i-archer" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3a12 12 0 0 1 0 18"/><path d="M8 3v18"/><path stroke="var(--u-tint)" d="M4 12h15"/><path stroke="var(--u-tint)" d="m16 9 3.5 3-3.5 3"/></symbol>
+    <symbol id="i-rifle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11h17"/><path d="M6 9h5"/><path d="M4 11 2 14"/><path stroke="var(--u-tint)" d="M9 11v4l-2 2"/></symbol>
+    <symbol id="i-shotgun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h10m0-1h8m-8 2h8"/><path d="M6 12 3 15"/><path stroke="var(--u-tint)" d="M9 12v3h4"/></symbol>
+    <symbol id="i-sniper" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 14h20"/><path d="M4 14 2 17"/><path stroke="var(--u-tint)" d="M8 10h7M9 10v4M14 10v4"/><path d="m16 14-2 5m2-5 2 5"/></symbol>
+    <symbol id="i-flamer" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="6" height="8" rx="3"/><path d="M9 12h7"/><path fill="var(--u-tint)" stroke="none" d="M16 10c2.4.8 3.4 1.6 5.5 1.2-1.4 2.4-3 3.2-5.5 3.2z"/></symbol>
+    <symbol id="i-gunner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11h18"/><path d="M15 9.5v3M17 9.5v3M19 9.5v3"/><path stroke="var(--u-tint)" d="M6 11v4h4"/><path d="m14 11-2 6m2-6 2 6"/></symbol>
+    <symbol id="i-mortar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke-width="3" d="M8 19 16 7"/><path d="M4 20h9"/><path fill="var(--u-tint)" stroke="none" d="m18.5 3 1.7 1.7-1.7 1.7-1.7-1.7z"/></symbol>
+    <symbol id="i-sandbags" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="14" width="8" height="4.5" rx="2.2"/><rect x="13" y="14" width="8" height="4.5" rx="2.2"/><rect stroke="var(--u-tint)" x="7.5" y="8.5" width="8" height="4.5" rx="2.2"/></symbol>
+    <symbol id="i-spikes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20"/><path stroke="var(--u-tint)" d="M6 9.5v5M4 10.5l4 3M8 10.5l-4 3M12 9.5v5M10 10.5l4 3M14 10.5l-4 3M18 9.5v5M16 10.5l4 3M20 10.5l-4 3"/></symbol>
+    <symbol id="i-grenade" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="14.5" r="5.2"/><path opacity=".45" d="M6 14.5h10M11 9.5v10"/><path d="M9.5 9.2V7.4h3v1.8"/><path stroke="var(--u-tint)" d="m13 7.4 3.6-2.2"/><circle stroke="var(--u-tint)" cx="18" cy="4" r="1.7"/></symbol>
+    <symbol id="i-airstrike" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path fill="var(--u-tint)" stroke="none" d="M12 2.5 15 12l6 3.2v2L12 14l-9 3.2v-2L9 12z"/><path stroke="var(--u-tint)" d="M9 19.5v2.2M15 19.5v2.2M12 20.5v1.6"/></symbol>
+    <symbol id="i-collector" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18v-6a6 6 0 0 1 12 0v6"/><path stroke="var(--u-tint)" d="M3.6 18h4.8M15.6 18h4.8"/><circle fill="var(--u-tint)" stroke="none" cx="12" cy="8.5" r="2.4"/></symbol>
+    <symbol id="i-sound" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z"/><path stroke="var(--u-tint)" d="M15.5 9a4.5 4.5 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/></symbol>
+    <symbol id="i-mute" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z"/><path stroke="var(--u-tint)" d="m16 9.5 5 5m0-5-5 5"/></symbol>
+  </defs></svg>
+
+  <div id="app">
+    <canvas id="scene"></canvas>
+
+    <header id="hud">
+      <div class="coins" id="coins"><span class="coin-dot"></span><span id="coin-value">0</span></div>
+      <div class="wave-box">
+        <div class="wave-label" id="wave-label">Preparados</div>
+        <div class="base-bar"><div class="base-fill" id="base-fill"></div></div>
+      </div>
+      <button class="icon-btn" id="mute" aria-label="Silenciar" aria-pressed="false">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-sound"/></svg>
+      </button>
+    </header>
+
+    <div id="banner" class="banner"></div>
+
+    <div id="inspector" class="inspector hidden">
+      <div class="inspector-title" id="inspector-title"></div>
+      <div class="inspector-actions">
+        <button id="act-upgrade" class="chip chip-up"></button>
+        <button id="act-move" class="chip">Mover</button>
+        <button id="act-close" class="chip chip-ghost">Cerrar</button>
+      </div>
+    </div>
+
+    <!-- Franja de estado: sale por encima de la barra para que el "llevo un
+         escopetero en la mano" no quede debajo del propio pulgar. -->
+    <div id="armed" class="armed" hidden aria-live="polite">
+      <span class="armed-dot"></span>
+      <span class="armed-head"><b id="armed-name"></b><em id="armed-hint"></em></span>
+      <span class="armed-blurb" id="armed-blurb"></span>
+    </div>
+
+    <!-- El carril lleva el fondo y la máscara y NO se desplaza; solo se desplaza
+         el <nav> de dentro. Si la máscara fuese con el scroll, se iría con él. -->
+    <div class="armory-rail">
+      <nav id="armory" class="armory" role="group" aria-label="Armería"></nav>
+    </div>
+
+    <div id="overlay" class="overlay">
+      <div class="panel">
+        <p class="eyebrow">Protocolo de contención · Carretera 7</p>
+        <h1 class="logo">
+          <!-- El emblema es el "toque de nave y zombi a la vez": el platillo
+               abre el haz y dentro del haz va el huésped, ya encorvado. Todo en
+               verde espora, el mismo #6fe39a que usan la volanta y el dossier. -->
+          <svg class="logo-mark" viewBox="0 0 52 50" aria-hidden="true">
+            <defs>
+              <linearGradient id="lg-haz" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#8dffb8" stop-opacity=".55"/>
+                <stop offset="1" stop-color="#8dffb8" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path fill="url(#lg-haz)" d="M17 15h18l9 31H8z"/>
+            <path fill="#0d1117" stroke="#6fe39a" stroke-width="2.4" stroke-linejoin="round"
+                  d="M19 12a7 7 0 0 1 14 0"/>
+            <ellipse cx="26" cy="13.5" rx="19" ry="5" fill="#0d1117" stroke="#6fe39a" stroke-width="2.4"/>
+            <circle cx="15" cy="14.6" r="1.7" fill="#8dffb8"/>
+            <circle cx="26" cy="15.2" r="1.7" fill="#8dffb8"/>
+            <circle cx="37" cy="14.6" r="1.7" fill="#8dffb8"/>
+            <!-- El huésped, de perfil: espalda encorvada, los dos brazos
+                 tendidos hacia delante y la zancada rota. De frente y simétrico
+                 parecía sencillamente una persona abducida. -->
+            <g transform="translate(3.2,0)" stroke="#6fe39a" stroke-width="3.4" stroke-linecap="round" fill="none">
+              <circle cx="21" cy="28.8" r="4.2" fill="#6fe39a" stroke="none"/>
+              <path d="M22.4 34q-2.3 3.4-1.9 6.4"/>
+              <path d="M22 35.4l9.2-1.9M21.6 37.8l8.8.5"/>
+              <path d="M20.5 40.4 16.8 47M20.5 40.4 25.2 47"/>
+            </g>
+          </svg>
+          <span class="logo-words">
+            <span class="logo-main">ALIEN<span class="logo-z">Z</span></span>
+            <span class="logo-sub">RESISTANCE</span>
+          </span>
+        </h1>
+        <p class="tagline">No están muertos. Están ocupados.</p>
+
+        <!-- La historia, contada en tres viñetas.
+             Antes eran tres párrafos seguidos: unas noventa palabras que nadie
+             lee antes de darle a jugar. Lo que se lee de un menú es lo que se
+             MIRA, así que cada momento tiene su dibujo, su fecha y una sola
+             línea. La historia entera cabe ahora en un vistazo. -->
+        <ol class="relato">
+          <li>
+            <svg viewBox="0 0 64 52" aria-hidden="true">
+              <path class="r-suelo" d="M2 44h60"/>
+              <!-- La atmósfera: un arco ancho y alto que cruza toda la viñeta.
+                   Con un arco pequeño y una raya recta, esto parecía la aguja de
+                   un velocímetro. -->
+              <path class="r-tenue" d="M-2 16a44 44 0 0 1 68 0"/>
+              <!-- La estela va troceada y de menos a más: una raya continua que
+                   acaba en un punto sobre la línea del suelo se lee como la
+                   aguja de un velocímetro, no como algo que cae ardiendo. -->
+              <path class="r-chispa" d="M11 4 15 9"/>
+              <path class="r-estela" d="M17 12 25 21"/>
+              <path class="r-brillo" d="m27 24 6 7"/>
+              <circle class="r-nucleo" cx="36" cy="35" r="4"/>
+              <!-- Cráter abierto en el suelo, con la tierra levantada a los lados. -->
+              <path class="r-crater" d="M27 44q9-7 18 0"/>
+              <path class="r-humo" d="M26 44 22 40M46 44l4-4"/>
+            </svg>
+            <b>Día 0</b>
+            <em>Algo entró en la atmósfera y <s>no</s> se quemó.</em>
+          </li>
+          <li>
+            <svg viewBox="0 0 64 52" aria-hidden="true">
+              <path class="r-suelo" d="M0 44h64"/>
+              <circle class="r-cuerpo" cx="32" cy="14" r="7"/>
+              <path class="r-cuerpo" d="M32 21v14M32 26l-9 6M32 26l9 6M32 35l-6 9M32 35l6 9"/>
+              <circle class="r-nucleo" cx="32" cy="26" r="5"/>
+              <path class="r-vena" d="M32 26 26 17M32 26l7-7M32 26l-5 9M32 26l6 8"/>
+            </svg>
+            <b>Días 1-10</b>
+            <em>No mata. Se instala, vacía y lo devuelve a caminar.</em>
+          </li>
+          <li>
+            <svg viewBox="0 0 64 52" aria-hidden="true">
+              <path class="r-asfalto" d="M22 4h20l14 40H8z"/>
+              <path class="r-raya" d="M32 8v6M32 20v7M32 33v9"/>
+              <g class="r-horda">
+                <circle cx="26" cy="16" r="2"/><circle cx="38" cy="15" r="2"/>
+                <circle cx="31" cy="22" r="2.4"/><circle cx="22" cy="26" r="2.4"/>
+                <circle cx="42" cy="27" r="2.6"/><circle cx="33" cy="33" r="2.8"/>
+              </g>
+              <path class="r-linea" d="M6 46h52"/>
+            </svg>
+            <b>Hoy</b>
+            <em>Vienen todos por la misma carretera. Tú eres lo último.</em>
+          </li>
+        </ol>
+
+        <!-- Nueve amenazas con su cara de verdad, fotografiada del mismo modelo
+             que baja por la carretera. Antes era una lista de nueve filas de
+             texto con una etiqueta de color: un informe que no se leía. -->
+        <section class="amenazas">
+          <div class="amenazas-tit">
+            <span>Formas confirmadas</span>
+            <i id="amenazas-n">9</i>
+          </div>
+          <div class="amenazas-rejilla" id="amenazas"></div>
+          <p class="amenazas-pie" id="amenazas-pie">Toca una para leer su ficha.</p>
+        </section>
+
+        <details class="plegable">
+          <summary>Cómo se aguanta <i>4</i></summary>
+        <ul class="rules">
+          <li>Compra defensores abajo y tócalos en un carril.</li>
+          <li>Disparan solos. Tú decides <b>dónde</b> y <b>en qué gastas</b>.</li>
+          <li>Cada huésped abatido suelta <b>biomasa</b>: recógela antes de que se disuelva.</li>
+          <li>La armería no pausa la contención. Nunca.</li>
+        </ul>
+        </details>
+
+        <div class="niveles" id="niveles"></div>
+        <button id="start" class="big-btn">AGUANTAR LA LÍNEA</button>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
