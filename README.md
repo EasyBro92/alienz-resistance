@@ -5,7 +5,10 @@ Defensa por carriles en 3D para el móvil. Una carretera, cinco carriles y lo
 los huéspedes al caer, y la armería no pausa nada: se compra mientras la horda
 sigue andando.
 
-**Jugar:** *(pendiente de publicar)*
+**Jugar:** https://easybro92.github.io/alienz-resistance/
+
+Desde el móvil, el navegador ofrece instalarlo como aplicación: pantalla
+completa, vertical y jugable sin conexión una vez cargado.
 
 ## Qué tiene
 
