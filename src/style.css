@@ -1,10 +1,62 @@
+/* Dos temas, un solo juego de nombres.
+ *
+ * Todo lo que era `var(--borde-1)` a pelo —cuarenta y tres colores
+ * repartidos por la hoja— pasa por estas variables. Sobre fondo claro, un velo
+ * blanco al 9% es invisible y un borde blanco al 14% no existe: no basta con
+ * cambiar el fondo, hay que invertir TODAS las capas.
+ *
+ * Los velos son superficies apiladas (tarjeta sobre panel sobre fondo) y los
+ * bordes su contorno. Se numeran por peso, no por color, justamente para que
+ * cambiar de tema sea redefinirlos y nada más.
+ *
+ * Lo que NO cambia con el tema: el verde de la espora, el oro de la biomasa y
+ * el rojo del peligro. Son el código de color del JUEGO, y el tablero 3D —un
+ * mediodía de desierto— se ve igual en los dos. Si el verde cambiara, dejaría
+ * de significar lo mismo en el menú y en la carretera. */
 :root {
   --ink: #10141a;
   --panel: rgba(14, 19, 26, 0.86);
   --gold: #ffc93c;
   --green: #5fd97a;
   --red: #e8523f;
-  --stroke: rgba(255, 255, 255, 0.14);
+  --stroke: var(--borde-2);
+
+  /* --- superficies: cada velo es una capa más cerca del ojo --- */
+  --fondo: #0d1117;
+  --velo-1: var(--velo-1);
+  --velo-2: rgba(255,255,255,0.06);
+  --velo-3: var(--borde-1);
+  --velo-4: var(--velo-4);
+  --borde-1: var(--borde-1);
+  --borde-2: rgba(255,255,255,0.13);
+  --borde-3: rgba(255,255,255,0.24);
+
+  /* --- tinta: del texto principal al más apagado --- */
+  --tinta: #ffffff;
+  --tinta-2: var(--tinta-2);
+  --tinta-3: rgba(255,255,255,0.62);
+  --tinta-4: rgba(255,255,255,0.34);
+  --tinta-fria: var(--tinta-fria);
+
+  /* --- sombras y velos oscuros --- */
+  --sombra-fuerte: var(--sombra-fuerte);
+  --sombra-media: rgba(0,0,0,0.4);
+  --sombra-suave: rgba(0,0,0,0.25);
+  --cortina: rgba(6,9,13,0.72);
+  --panel-fondo: rgba(10,15,20,0.9);
+  --verde-tenue: rgba(95,217,122,0.12);
+  --verde-borde: rgba(95,217,122,0.4);
+  /* El fondo del informe, que tapa el tablero. */
+  --informe-1: rgba(20,28,38,0.82);
+  --informe-2: rgba(6,9,13,0.96);
+  /* Verde para TEXTO. El de la espora es el del juego y se queda como está;
+     este es el que tiene que leerse sobre el fondo que toque. */
+  --verde-texto: #6fe39a;
+  --titulo-alto: #eafff0;
+  --logo-1: #eafff0;
+  --logo-2: #b6c8bd;
+  --logo-z: #b8ffcf;
+
   /* Alto de la barra de armería. Solo es el valor del primer fotograma: ui.js
      lo mide y lo recalcula, porque el contenido de las fichas cambia su altura
      y todo lo que se ancla a la barra se descuadraba en silencio. */
@@ -15,15 +67,57 @@
   color-scheme: dark;
 }
 
+/* Tema claro. El tablero 3D ya es un mediodía de desierto, así que un menú
+ * claro le pega más de lo que parece: lo que cambia es el informe, no el juego. */
+:root[data-tema="claro"] {
+  color-scheme: light;
+  --ink: #f2efe6;
+  --panel: rgba(248, 246, 240, 0.9);
+  --stroke: rgba(24, 30, 26, 0.16);
+
+  --fondo: #e8e4d8;
+  --velo-1: rgba(24,30,26,0.045);
+  --velo-2: rgba(24,30,26,0.075);
+  --velo-3: rgba(24,30,26,0.11);
+  --velo-4: rgba(24,30,26,0.17);
+  --borde-1: rgba(24,30,26,0.14);
+  --borde-2: rgba(24,30,26,0.2);
+  --borde-3: rgba(24,30,26,0.3);
+
+  --tinta: #16201a;
+  --tinta-2: #2e3a31;
+  --tinta-3: rgba(22,32,26,0.72);
+  --tinta-4: rgba(22,32,26,0.45);
+  --tinta-fria: #4d6155;
+
+  --sombra-fuerte: rgba(24,30,26,0.22);
+  --sombra-media: rgba(24,30,26,0.14);
+  --sombra-suave: rgba(24,30,26,0.08);
+  --cortina: rgba(238,235,225,0.93);
+  --panel-fondo: rgba(250, 248, 242, 0.93);
+  --verde-tenue: rgba(42,125,65,0.14);
+  --verde-borde: rgba(42,125,65,0.45);
+  /* El verde de marca sobre blanco se lava: para TEXTO hace falta uno más
+     oscuro. El del juego no se toca — sigue siendo el de la espora. */
+  --green: #2a7d41;
+  --informe-1: rgba(250,248,242,0.9);
+  --informe-2: rgba(226,222,208,0.97);
+  --verde-texto: #1f6b36;
+  --titulo-alto: #0f4423;
+  --logo-1: #2b3a30;
+  --logo-2: #5c6b60;
+  --logo-z: #3fa35c;
+}
+
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 html, body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: #0d1117;
+  background: var(--fondo);
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  color: #fff;
+  color: var(--tinta);
   user-select: none;
   touch-action: manipulation;
 }
@@ -51,12 +145,12 @@ html, body {
   font-weight: 900;
   font-size: 20px;
   letter-spacing: 0.5px;
-  text-shadow: 0 2px 0 rgba(0,0,0,0.5);
+  text-shadow: 0 2px 0 var(--sombra-media);
 }
 .coin-dot {
   width: 20px; height: 20px; border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, #ffe89a, var(--gold) 60%, #c98b13);
-  box-shadow: inset 0 -2px 3px rgba(0,0,0,0.35);
+  box-shadow: inset 0 -2px 3px var(--sombra-suave);
 }
 .coins.flash { animation: pop 0.25s ease; }
 @keyframes pop { 50% { transform: scale(1.14); } }
@@ -65,7 +159,7 @@ html, body {
 .wave-label {
   font-size: 12px; font-weight: 800; text-transform: uppercase;
   letter-spacing: 1.2px; opacity: 0.85; text-align: center;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.7);
+  text-shadow: 0 2px 4px var(--sombra-fuerte);
 }
 .base-bar {
   height: 12px; margin-top: 4px;
@@ -87,7 +181,7 @@ html, body {
   border-radius: 999px;
   width: 42px; height: 42px;
   padding: 0;
-  color: #fff; cursor: pointer;
+  color: var(--tinta); cursor: pointer;
 }
 .icon-btn .ic { width: 22px; height: 22px; --u-tint: #6fe39a; }
 
@@ -98,7 +192,7 @@ html, body {
   font-size: clamp(28px, 9vw, 56px);
   font-weight: 900;
   letter-spacing: 2px;
-  text-shadow: 0 4px 0 rgba(0,0,0,0.55), 0 0 26px rgba(255,80,60,0.5);
+  text-shadow: 0 4px 0 var(--sombra-fuerte), 0 0 26px rgba(255,80,60,0.5);
   pointer-events: none;
   opacity: 0;
   transform: scale(0.86);
@@ -161,7 +255,7 @@ html, body {
   content: attr(data-label); position: absolute; left: -1px; bottom: 6px;
   writing-mode: vertical-rl;
   font-size: 7px; font-weight: 900; letter-spacing: 1.4px;
-  text-transform: uppercase; color: #6fe39a; opacity: 0.55;
+  text-transform: uppercase; color: var(--verde-texto); opacity: 0.55;
 }
 
 .card {
@@ -174,18 +268,18 @@ html, body {
   padding: 8px 5px 6px;
   text-align: center;
   cursor: pointer;
-  color: #fff;
+  color: var(--tinta);
   font: inherit;                 /* los <button> no heredan la tipografía */
   touch-action: manipulation;
   /* Placa con canto: el brillo interior de arriba y la sombra interior de abajo
      son lo que separa una chapa de un rectángulo pintado. */
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0) 42%),
-    linear-gradient(180deg, #141b21, #0a0f14);
-  border: 1px solid rgba(255,255,255,0.09);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.07),
-              inset 0 -14px 20px rgba(0,0,0,0.35),
-              0 5px 12px rgba(0,0,0,0.45);
+    linear-gradient(180deg, var(--velo-2), rgba(255,255,255,0) 42%),
+    linear-gradient(180deg, var(--panel-fondo), var(--fondo));
+  border: 1px solid var(--borde-1);
+  box-shadow: inset 0 1px 0 var(--velo-2),
+              inset 0 -14px 20px var(--sombra-suave),
+              0 5px 12px var(--sombra-media);
   transition: transform 0.24s cubic-bezier(.2,.9,.28,1.3),
               border-color 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
   animation: cardIn 0.34s cubic-bezier(.2,.9,.3,1.2) backwards;
@@ -198,7 +292,7 @@ html, body {
 .card[aria-pressed="true"] { transform: translateY(-7px); border-color: var(--u-tint); }
 .card[aria-pressed="true"]:active { transform: translateY(-7px) scale(0.94); }
 .card[aria-pressed="true"] {
-  box-shadow: 0 0 0 2px var(--u-glow), 0 10px 22px rgba(0,0,0,0.5);
+  box-shadow: 0 0 0 2px var(--u-glow), 0 10px 22px var(--sombra-media);
 }
 .card[aria-pressed="true"] .ic { filter: drop-shadow(0 0 6px var(--u-glow)); }
 .card:focus-visible { outline: 2px solid #6fe39a; outline-offset: 2px; }
@@ -223,14 +317,14 @@ html, body {
   position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%);
   height: 62px; width: auto;
   image-rendering: auto;
-  filter: drop-shadow(0 3px 4px rgba(0,0,0,0.55));
+  filter: drop-shadow(0 3px 4px var(--sombra-fuerte));
 }
 /* Con retrato, el arma pasa a insignia de esquina: sigue diciendo el rol. */
 .card.has-face .ic {
   position: absolute; right: -2px; bottom: -4px;
   width: 19px; height: 19px;
   opacity: 0.92;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.8));
+  filter: drop-shadow(0 1px 2px var(--sombra-fuerte));
 }
 .card.has-face[aria-pressed="true"] .card-face { filter: drop-shadow(0 0 7px var(--u-glow)); }
 /* `color` y `--u-tint` son heredables, que es la única vía para pintar dentro
@@ -267,7 +361,7 @@ html, body {
 .card[data-state="broke"] .card-rail { opacity: 0.3; }
 .card-meter {
   position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
-  background: rgba(255,255,255,0.07);
+  background: var(--velo-2);
   opacity: 0; transition: opacity 0.2s;
 }
 .card-meter::before {
@@ -297,7 +391,7 @@ html, body {
   border-radius: 12px 12px 4px 4px;
   background: linear-gradient(180deg, rgba(16,24,20,0.94), rgba(9,14,11,0.94));
   border: 1px solid var(--u-tint, #6fe39a); border-bottom: none;
-  box-shadow: 0 -6px 18px rgba(0,0,0,0.45);
+  box-shadow: 0 -6px 18px var(--sombra-media);
   animation: armedIn 0.18s ease;
   pointer-events: none;          /* no debe robar el toque que coloca la unidad */
 }
@@ -311,7 +405,7 @@ html, body {
 @keyframes pulseDot { 50% { opacity: 0.35; } }
 .armed-head { display: flex; flex-direction: column; }
 .armed-head b { font-size: 11px; font-weight: 900; letter-spacing: 1.2px; }
-.armed-head em { font-style: normal; font-size: 9px; letter-spacing: 0.4px; color: #6fe39a; opacity: 0.85; }
+.armed-head em { font-style: normal; font-size: 9px; letter-spacing: 0.4px; color: var(--verde-texto); opacity: 0.85; }
 .armed-blurb {
   flex: 1; font-size: 10px; line-height: 1.35; color: #aebbc8; opacity: 0.9;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
@@ -340,8 +434,8 @@ html, body {
 .inspector-actions { display: flex; gap: 6px; justify-content: center; }
 .chip {
   border: 2px solid var(--stroke);
-  background: rgba(255,255,255,0.08);
-  color: #fff;
+  background: var(--velo-3);
+  color: var(--tinta);
   border-radius: 999px;
   padding: 7px 12px;
   font-size: 12px; font-weight: 800;
@@ -356,7 +450,7 @@ html, body {
   position: absolute; inset: 0;
   display: grid; place-items: center;
   padding: 24px;
-  background: radial-gradient(circle at 50% 30%, rgba(20,28,38,0.82), rgba(6,9,13,0.96));
+  background: radial-gradient(circle at 50% 30%, var(--informe-1), var(--informe-2));
   backdrop-filter: blur(3px);
   z-index: 5;
 }
@@ -368,9 +462,9 @@ html, body {
   font-size: clamp(38px, 12vw, 62px);
   font-weight: 900;
   letter-spacing: 3px;
-  background: linear-gradient(180deg, #eafff0, var(--green));
+  background: linear-gradient(180deg, var(--titulo-alto), var(--green));
   -webkit-background-clip: text; background-clip: text; color: transparent;
-  filter: drop-shadow(0 4px 0 rgba(0,0,0,0.55));
+  filter: drop-shadow(0 4px 0 var(--sombra-fuerte));
 }
 .tagline { margin: 6px 0 18px; opacity: 0.82; font-size: 14px; }
 .rules {
@@ -384,7 +478,7 @@ html, body {
   font-size: 17px; font-weight: 900; letter-spacing: 1.5px;
   color: #08160c;
   background: linear-gradient(180deg, #8ff0a5, #3fbf62);
-  box-shadow: 0 5px 0 #2a7d41, 0 10px 22px rgba(0,0,0,0.45);
+  box-shadow: 0 5px 0 #2a7d41, 0 10px 22px var(--sombra-media);
   cursor: pointer;
 }
 .big-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #2a7d41; }
@@ -401,7 +495,7 @@ html, body {
 .eyebrow {
   margin: 0 0 6px;
   font-size: 10px; font-weight: 800; letter-spacing: 2.4px; text-transform: uppercase;
-  color: #6fe39a; opacity: 0.75;
+  color: var(--verde-texto); opacity: 0.75;
 }
 
 .panel h1 { letter-spacing: 4px; }
@@ -416,7 +510,7 @@ html, body {
   justify-content: center;
   gap: 12px;
   background: none;
-  color: #fff;
+  color: var(--tinta);
   filter: none;
   letter-spacing: 0;
   line-height: 1;
@@ -431,13 +525,13 @@ html, body {
 .logo-main {
   font-size: clamp(34px, 11vw, 54px);
   letter-spacing: 2px;
-  background: linear-gradient(180deg, #eafff0, #b6c8bd);
+  background: linear-gradient(180deg, var(--logo-1), var(--logo-2));
   -webkit-background-clip: text; background-clip: text; color: transparent;
-  filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.55));
+  filter: drop-shadow(0 3px 0 var(--sombra-fuerte));
 }
 /* La Z es la marca: verde espora, con el mismo halo que el emblema. */
 .logo-z {
-  background: linear-gradient(180deg, #b8ffcf, var(--green));
+  background: linear-gradient(180deg, var(--logo-z), var(--green));
   -webkit-background-clip: text; background-clip: text; color: transparent;
   filter: drop-shadow(0 0 12px rgba(95, 217, 122, 0.6));
 }
@@ -445,7 +539,7 @@ html, body {
   font-size: clamp(12px, 3.9vw, 18px);
   font-weight: 800;
   letter-spacing: clamp(4px, 1.9vw, 9px);
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--tinta-3);
   /* El espaciado de la última letra empuja el bloque a la izquierda; se
      compensa para que RESISTANCE quede a ras de ALIENZ. */
   margin-left: 2px;
@@ -457,7 +551,7 @@ html, body {
 .firma {
   margin: -8px 0 14px;
   font-size: 9px; font-weight: 800; letter-spacing: 2.2px; text-transform: uppercase;
-  color: #9fb0a6; opacity: 0.6;
+  color: var(--tinta-fria); opacity: 0.6;
 }
 
 /* El informe en párrafos se sustituyó por `.relato`: tres viñetas dibujadas. */
@@ -474,7 +568,7 @@ html, body {
 }
 .dossier-title {
   font-size: 10px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;
-  color: #6fe39a; margin-bottom: 8px; opacity: 0.8;
+  color: var(--verde-texto); margin-bottom: 8px; opacity: 0.8;
 }
 .dossier-row {
   font-size: 12px; line-height: 1.5; opacity: 0.8;
@@ -572,9 +666,9 @@ html, body {
 .marcas li {
   display: flex; align-items: center; gap: 7px;
   padding: 5px 8px;
-  border: 1px solid rgba(255,255,255,0.09);
+  border: 1px solid var(--borde-1);
   border-radius: 9px;
-  background: rgba(255,255,255,0.03);
+  background: var(--velo-1);
   font-size: 11px; text-align: left;
 }
 .marca-letra {
@@ -590,6 +684,77 @@ html, body {
 .marca-2 { --r-tinte: #ffc93c }
 .marca-3 { --r-tinte: #6fe39a }
 
+/* ---------- el tablero no lleva tema ---------- */
+/*
+ * El tema claro es del INFORME, no del juego.
+ *
+ * La interfaz de partida —marcador, armería, franja de estado, inspector— flota
+ * encima de un mediodía de desierto: asfalto claro, arena clara, cielo claro.
+ * Con la paleta clara, esas piezas quedaban claras sobre claro y no se leía
+ * ninguna. Y no es un problema de ajustar tonos: no hay tono claro que se
+ * despegue de ese fondo.
+ *
+ * Así que estas capas se quedan con la paleta oscura pase lo que pase. No es
+ * una excepción incómoda, es lo correcto: son un panel de control encima de una
+ * escena, y un panel de control se lee oscuro sobre lo que sea.
+ */
+:root[data-tema="claro"] #hud,
+:root[data-tema="claro"] .armory-rail,
+:root[data-tema="claro"] .armed,
+:root[data-tema="claro"] .inspector,
+:root[data-tema="claro"] .banner {
+  --panel: rgba(14, 19, 26, 0.86);
+  --stroke: rgba(255, 255, 255, 0.14);
+  --velo-1: rgba(255,255,255,0.03);
+  --velo-2: rgba(255,255,255,0.06);
+  --velo-3: rgba(255,255,255,0.09);
+  --velo-4: rgba(255,255,255,0.16);
+  --borde-1: rgba(255,255,255,0.09);
+  --borde-2: rgba(255,255,255,0.13);
+  --borde-3: rgba(255,255,255,0.24);
+  --tinta: #ffffff;
+  --tinta-2: #cfd8d2;
+  --tinta-3: rgba(255,255,255,0.62);
+  --tinta-4: rgba(255,255,255,0.34);
+  --tinta-fria: #9fb0a6;
+  --panel-fondo: rgba(10,15,20,0.9);
+  --fondo: #0d1117;
+  --green: #5fd97a;
+  --verde-texto: #6fe39a;
+}
+
+/* ---------- parte de operaciones ---------- */
+.parte-capa { z-index: 25; align-items: center; padding: 0 20px; }
+.panel-parte { max-width: 380px; display: flex; flex-direction: column; align-items: center; }
+.panel-parte h2 {
+  margin: 0 0 14px;
+  font-size: clamp(26px, 8vw, 36px); font-weight: 900; letter-spacing: 2px;
+  background: linear-gradient(180deg, var(--titulo-alto), var(--green));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.parte-texto {
+  text-align: left; margin: 0 0 14px;
+  border-left: 2px solid var(--verde-borde);
+  padding-left: 12px;
+}
+.parte-texto p { margin: 0 0 9px; font-size: 12.5px; line-height: 1.6; color: var(--tinta-3); }
+.parte-texto p:last-child { margin-bottom: 0; }
+.parte-datos {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
+  margin-bottom: 18px;
+}
+.parte-datos span {
+  padding: 5px 11px; border-radius: 999px;
+  border: 1px solid var(--borde-1);
+  background: var(--velo-1);
+  font-size: 11px; color: var(--tinta-3);
+}
+.parte-datos b { color: var(--tinta-2); }
+.parte-datos .dato-jefe { border-color: rgba(232,82,63,0.45); background: rgba(232,82,63,0.12); }
+.parte-datos .dato-jefe b { color: var(--red); }
+.panel-parte .big-btn { margin-bottom: 10px; }
+.panel-parte .chip-ghost { font-size: 12px; padding: 8px 16px; }
+
 /* ---------- pausa ---------- */
 /* Capa propia, por encima del informe. Se oscurece menos que el menú: en pausa
    interesa seguir viendo el tablero para decidir si merece la pena abandonar. */
@@ -598,7 +763,7 @@ html, body {
 .panel-pausa h2 {
   margin: 0;
   font-size: 30px; font-weight: 900; letter-spacing: 3px; text-transform: uppercase;
-  background: linear-gradient(180deg, #eafff0, var(--green));
+  background: linear-gradient(180deg, var(--titulo-alto), var(--green));
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 .panel-pausa p { margin: 0 0 16px; font-size: 12.5px; opacity: 0.72; }
@@ -617,16 +782,16 @@ html, body {
 .ajuste { display: flex; flex-direction: column; gap: 6px; padding: 0 2px; }
 .ajuste-tit {
   font-size: 10px; font-weight: 800; letter-spacing: 1.6px; text-transform: uppercase;
-  color: #9fb0a6;
+  color: var(--tinta-fria);
 }
 .ajuste-ops { display: flex; gap: 5px; }
 .ajuste-op {
   flex: 1;
   padding: 8px 4px;
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid var(--borde-2);
   border-radius: 10px;
-  background: rgba(255,255,255,0.04);
-  color: #cfd8d2;
+  background: var(--velo-1);
+  color: var(--tinta-2);
   font: inherit; font-size: 11.5px; font-weight: 800;
   cursor: pointer;
   transition: border-color .15s, background .15s;
@@ -659,9 +824,9 @@ html, body {
 .relato li {
   display: flex; flex-direction: column; align-items: center; gap: 3px;
   padding: 9px 6px 10px;
-  border: 1px solid rgba(255,255,255,0.09);
+  border: 1px solid var(--borde-1);
   border-radius: 12px;
-  background: rgba(255,255,255,0.03);
+  background: var(--velo-1);
   text-align: center;
 }
 .relato svg { width: 100%; max-width: 74px; height: auto; }
@@ -679,7 +844,7 @@ html, body {
 .relato s { text-decoration-color: var(--red); text-decoration-thickness: 2px; }
 
 .relato .r-suelo, .relato .r-linea {
-  fill: none; stroke: rgba(255,255,255,0.22); stroke-width: 2; stroke-linecap: round;
+  fill: none; stroke: var(--borde-3); stroke-width: 2; stroke-linecap: round;
 }
 .relato .r-tenue {
   fill: none; stroke: rgba(125,255,158,0.3); stroke-width: 1.6; stroke-dasharray: 3 4;
@@ -688,25 +853,25 @@ html, body {
   fill: none; stroke: #ffb03a; stroke-width: 2.6; stroke-linecap: round; opacity: 0.85;
 }
 .relato .r-brillo { fill: none; stroke: #fff0c0; stroke-width: 3.4; stroke-linecap: round; }
-.relato .r-nucleo { fill: #6fe39a; }
+.relato .r-nucleo { fill: var(--verde-texto); }
 .relato .r-humo {
-  fill: none; stroke: rgba(255,255,255,0.3); stroke-width: 2.4; stroke-linecap: round;
+  fill: none; stroke: var(--tinta-4); stroke-width: 2.4; stroke-linecap: round;
 }
 .relato .r-chispa {
   fill: none; stroke: #ffb03a; stroke-width: 1.8; stroke-linecap: round; opacity: 0.5;
 }
 .relato .r-crater {
-  fill: none; stroke: rgba(255,255,255,0.42); stroke-width: 2.4; stroke-linecap: round;
+  fill: none; stroke: var(--tinta-4); stroke-width: 2.4; stroke-linecap: round;
 }
 .relato .r-cuerpo {
-  fill: none; stroke: rgba(255,255,255,0.42); stroke-width: 2.6; stroke-linecap: round;
+  fill: none; stroke: var(--tinta-4); stroke-width: 2.6; stroke-linecap: round;
 }
 .relato .r-vena {
-  fill: none; stroke: #6fe39a; stroke-width: 1.4; stroke-linecap: round; opacity: 0.9;
+  fill: none; stroke: var(--verde-texto); stroke-width: 1.4; stroke-linecap: round; opacity: 0.9;
 }
-.relato .r-asfalto { fill: rgba(255,255,255,0.07); stroke: rgba(255,255,255,0.16); stroke-width: 1.5; }
-.relato .r-raya { fill: none; stroke: rgba(255,255,255,0.3); stroke-width: 2; stroke-linecap: round; }
-.relato .r-horda circle { fill: #6fe39a; opacity: 0.85; }
+.relato .r-asfalto { fill: var(--velo-2); stroke: var(--velo-4); stroke-width: 1.5; }
+.relato .r-raya { fill: none; stroke: var(--tinta-4); stroke-width: 2; stroke-linecap: round; }
+.relato .r-horda circle { fill: var(--verde-texto); opacity: 0.85; }
 
 /* ---------- informe de amenazas, con cara ---------- */
 .amenazas { max-width: 400px; margin: 0 auto 12px; }
@@ -714,15 +879,15 @@ html, body {
   display: flex; align-items: center; gap: 8px;
   margin-bottom: 7px;
   font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
-  color: #9fb0a6;
+  color: var(--tinta-fria);
 }
 .amenazas-tit::after {
   content: ''; flex: 1; height: 1px;
-  background: linear-gradient(90deg, rgba(255,255,255,0.14), transparent);
+  background: linear-gradient(90deg, var(--borde-2), transparent);
 }
 .amenazas-tit i {
   font-style: normal; padding: 0 6px; border-radius: 999px;
-  background: rgba(255,255,255,0.08); font-size: 10px;
+  background: var(--velo-3); font-size: 10px;
 }
 .amenazas-rejilla {
   display: grid;
@@ -737,15 +902,15 @@ html, body {
   min-width: 0;
   display: flex; flex-direction: column; align-items: center; gap: 2px;
   padding: 5px 2px 4px;
-  border: 1px solid rgba(255,255,255,0.09);
+  border: 1px solid var(--borde-1);
   border-top: 2px solid var(--a-tinte);
   border-radius: 9px;
-  background: rgba(255,255,255,0.035);
+  background: var(--velo-1);
   color: inherit; font: inherit;
   cursor: pointer;
   transition: background .15s, border-color .15s;
 }
-.amenaza.elegida { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.22); }
+.amenaza.elegida { background: var(--borde-1); border-color: var(--borde-3); }
 /* El retrato tarda en llegar: hasta entonces, un disco del color de la ficha,
    para que la cuadrícula no aparezca vacía y luego dé un salto. */
 .amenaza-cara {
@@ -762,7 +927,7 @@ html, body {
   width: 100%;
   font-size: 8px; font-weight: 800; letter-spacing: 0.1px;
   line-height: 1.1;
-  color: #d7e0d9;
+  color: var(--tinta-2);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .amenazas-pie {
@@ -779,11 +944,11 @@ html, body {
 .plegable > summary {
   display: flex; align-items: center; gap: 8px;
   padding: 7px 12px;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid var(--velo-3);
   border-radius: 10px;
-  background: rgba(255,255,255,0.035);
+  background: var(--velo-1);
   font-size: 10px; font-weight: 800; letter-spacing: 1.8px; text-transform: uppercase;
-  color: #9fb0a6;
+  color: var(--tinta-fria);
   cursor: pointer;
   list-style: none;
 }
@@ -793,7 +958,7 @@ html, body {
   margin-left: auto;
   padding: 0 6px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.08);
+  background: var(--velo-3);
   font-size: 10px;
 }
 .plegable > summary::after {
@@ -817,10 +982,10 @@ html, body {
   aspect-ratio: 1 / 1;
   max-width: 46px;
   display: grid; place-items: center;
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid var(--borde-2);
   border-radius: 11px;
-  background: rgba(255,255,255,0.04);
-  color: #cfd8d2;
+  background: var(--velo-1);
+  color: var(--tinta-2);
   font: inherit; font-size: 15px; font-weight: 900;
   cursor: pointer;
   transition: border-color .15s, background .15s, transform .1s;
@@ -855,7 +1020,7 @@ html, body {
 .nivel-datos i {
   font-style: normal;
   padding: 2px 8px; border-radius: 999px;
-  background: rgba(255,255,255,0.08);
+  background: var(--velo-3);
   font-size: 9px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase;
   color: #b9c4bd;
 }

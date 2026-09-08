@@ -200,6 +200,11 @@ export const NIVEL_1 = {
   name: 'La avanzadilla',
   lugar: 'Carretera 7 · kilómetro 12',
   resumen: 'Los primeros huéspedes. Vienen de frente y poco más.',
+  parte: [
+    'El contrato lo firmó un ayuntamiento que ya no existe. Doce kilómetros de asfalto y una orden de una línea: que no pasen.',
+    'Los primeros llegan sin método. Caminan hacia el ruido porque es lo único que saben hacer todavía.'
+  ],
+  cierre: 'Ninguno pasó. Al recoger los cuerpos, uno seguía moviendo los dedos con la cabeza a diez metros.',
   desbloquea: ['shotgun', 'spikes'],
   dureza: 0.06,
   waves: [
@@ -215,6 +220,11 @@ export const NIVEL_2 = {
   name: 'El cruce',
   lugar: 'Carretera 7 · enlace norte',
   resumen: 'Escupen a distancia, saltan las barreras y revientan al caer.',
+  parte: [
+    'En el enlace norte la espora ha tenido tiempo. Los huéspedes ya no vienen todos iguales: hay quien escupe, quien salta y quien revienta.',
+    'No están improvisando. Están probando qué funciona contra nosotros.'
+  ],
+  cierre: 'Tres formas nuevas en un solo tramo. Lo que cayó del cielo no trajo un bicho: trajo un taller.',
   desbloquea: ['sniper', 'flamer', 'collector'],
   dureza: 0.12,
   waves: [
@@ -232,6 +242,11 @@ export const NIVEL_3 = {
   name: 'El nido',
   lugar: 'Carretera 7 · el final',
   resumen: 'Cosen a los suyos, salen por debajo y detrás viene LA MADRE.',
+  parte: [
+    'Aquí acababa el contrato. Aquí está lo que la ciudad llamó «el nido», y de aquí salió todo lo que hemos visto.',
+    'Detrás de la horda viene algo que ninguno de nosotros ha visto entero. Le llaman LA MADRE porque no supieron llamarla de otra forma.'
+  ],
+  cierre: 'La MADRE cayó. Y debajo, en el asfalto reventado, había un túnel que baja. Esto no era el nido: era la puerta.',
   desbloquea: ['gunner', 'mortar', 'airstrike'],
   dureza: 0.22,
   waves: [
@@ -258,6 +273,11 @@ export const NIVEL_4 = {
   name: 'Contraflujo',
   lugar: 'Carretera 7 · bajada de los álamos',
   resumen: 'Todo llega deprisa. Lo que dispara lento no llega a tiempo.',
+  parte: [
+    'El contrato se acabó en el nido, pero la carretera sigue subiendo y ellos siguen bajando. La compañía vota quedarse. Nadie vota irse.',
+    'En la bajada de los álamos todo llega deprisa. Lo que dispara lento no llega a tiempo.'
+  ],
+  cierre: 'Ya no bajan hacia la ciudad: bajan hacia NOSOTROS. Hemos dejado de ser un muro y hemos pasado a ser el objetivo.',
   dureza: 0.17,
   waves: [
     { gap: 7, spawns: [{ type: 'runner', count: 5, every: 1.5 }, { type: 'leaper', count: 1, every: 4 }] },
@@ -275,6 +295,11 @@ export const NIVEL_5 = {
   name: 'La colmena',
   lugar: 'Carretera 7 · área de servicio',
   resumen: 'Se curan entre ellos y el caparazón devuelve las balas.',
+  parte: [
+    'El área de servicio está llena. No de cuerpos: de estructura. La espora ha dejado de fabricar soldados y ha empezado a fabricar oficio.',
+    'Se cosen entre ellos mientras les disparas. El caparazón devuelve las balas normales. Hay que elegir a quién matar primero.'
+  ],
+  cierre: 'Encontramos la primera cámara de cría. Vacía, tibia, y con sitio para muchas más de las que hemos matado.',
   dureza: 0.23,
   waves: [
     { gap: 7, spawns: [{ type: 'armored', count: 3, every: 2.4 }, { type: 'healer', count: 1, every: 5 }] },
@@ -293,6 +318,11 @@ export const NIVEL_6 = {
   name: 'Madre y crías',
   lugar: 'Carretera 7 · el kilómetro cero',
   resumen: 'Todo a la vez, y al final no viene una MADRE: vienen dos.',
+  parte: [
+    'Kilómetro cero. Donde cayó. La compañía entera cabe en cinco carriles y no queda nadie detrás de nosotros.',
+    'Bajarán todas las formas a la vez. Y al final no viene una MADRE: vienen dos.'
+  ],
+  cierre: 'Se acabó la carretera.',
   dureza: 0.29,
   waves: [
     { gap: 7, spawns: [{ type: 'walker', count: 6, every: 1.3 }, { type: 'runner', count: 3, every: 2.2 }] },

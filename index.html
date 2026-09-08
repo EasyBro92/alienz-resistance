@@ -3,10 +3,23 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-  <meta name="theme-color" content="#0d1117" />
+  <meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#e8e4d8" media="(prefers-color-scheme: light)" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>AlienZ Resistance</title>
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <script>
+    // Sin esperar al módulo: si el tema llegara con el JavaScript, la primera
+    // pintada saldría oscura y quien tenga el móvil en claro vería un fogonazo
+    // negro. Con "auto" manda lo que diga el sistema.
+    try {
+      var t = localStorage.getItem('alienz-tema-v1')
+      if (t !== 'claro' && t !== 'oscuro') {
+        t = matchMedia('(prefers-color-scheme: light)').matches ? 'claro' : 'oscuro'
+      }
+      document.documentElement.dataset.tema = t
+    } catch (e) { document.documentElement.dataset.tema = 'oscuro' }
+  </script>
 </head>
 <body>
   <!-- Iconografía del juego. Los emoji del sistema los dibujaba el móvil, no
@@ -78,6 +91,19 @@
          el <nav> de dentro. Si la máscara fuese con el scroll, se iría con él. -->
     <div class="armory-rail">
       <nav id="armory" class="armory" role="group" aria-label="Armería"></nav>
+    </div>
+
+    <!-- Parte de operaciones: lo que se lee antes de bajar al tramo. Capa
+         propia como la de pausa, para no tener que reconstruir el informe. -->
+    <div id="parte-capa" class="overlay parte-capa hidden">
+      <div class="panel panel-parte">
+        <p class="eyebrow" id="parte-lugar"></p>
+        <h2 id="parte-nombre"></h2>
+        <div class="parte-texto" id="parte-texto"></div>
+        <div class="parte-datos" id="parte-datos"></div>
+        <button id="parte-ir" class="big-btn">BAJAR AL TRAMO</button>
+        <button id="parte-volver" class="chip chip-ghost">Volver al informe</button>
+      </div>
     </div>
 
     <div id="pausa-capa" class="overlay pausa-capa hidden">
@@ -203,6 +229,11 @@
             <span class="ajuste-tit">Calidad gráfica</span>
             <div class="ajuste-ops" id="calidad-ops"></div>
             <p class="ajuste-pie" id="calidad-pie"></p>
+          </div>
+          <div class="ajuste">
+            <span class="ajuste-tit">Tema</span>
+            <div class="ajuste-ops" id="tema-ops"></div>
+            <p class="ajuste-pie" id="tema-pie"></p>
           </div>
         </details>
 

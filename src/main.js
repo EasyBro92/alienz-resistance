@@ -1026,9 +1026,9 @@ function win () {
       <h1>CARRETERA LIMPIA</h1>
       <p class="tagline">Seis tramos. La siembra no pasó de ninguno.</p>
       ${sello}
-      <p class="cierre">La compañía cobra y levanta el campamento. La carretera
-      queda despejada, pero lo que cayó hace once días sigue ahí fuera, y esto
-      solo era el kilómetro doce.</p>
+      <p class="cierre">${nivel.cierre ?? ''} La compañía cobra y levanta el
+      campamento. Pero el túnel del nido sigue bajando, y nadie de los que
+      firmaron aquel contrato sabe hasta dónde.</p>
       <ol class="marcas">${marcas}</ol>
       <button class="big-btn" onclick="location.reload()">VOLVER AL INFORME</button>`)
     return
@@ -1038,6 +1038,7 @@ function win () {
     <h1>LÍNEA INTACTA</h1>
     <p class="tagline">«${nivel.name}» bajo control.</p>
     ${sello}
+    ${nivel.cierre ? `<p class="cierre">${nivel.cierre}</p>` : ''}
     ${nuevas.length ? `<div class="premio"><span class="premio-tit">Arsenal liberado</span>${nuevas.map(n => `<b>${n}</b>`).join('')}</div>` : ''}
     <button class="big-btn" onclick="location.reload()">${siguiente ? 'AL SIGUIENTE' : 'VOLVER AL INFORME'}</button>`)
 }
@@ -1173,6 +1174,60 @@ pintarCalidad()
 // refresca al abrir los ajustes en vez de quedarse con lo que había al cargar.
 document.getElementById('ajustes').addEventListener('toggle', pintarCalidad)
 
+// --- tema claro / oscuro ------------------------------------------------------
+// El valor real lo pone un guion en el <head>, antes de la primera pintada.
+// Aquí solo se cambia y se guarda.
+const CLAVE_TEMA = 'alienz-tema-v1'
+const TEMAS = [
+  ['auto', 'Auto', 'El del móvil. Si lo tienes en claro, el informe sale claro.'],
+  ['oscuro', 'Oscuro', 'Informe de contención sobre fondo negro. El de siempre.'],
+  ['claro', 'Claro', 'Papel en vez de pantalla. El tablero no cambia: sigue siendo mediodía.']
+]
+
+function temaGuardado () {
+  try {
+    const v = localStorage.getItem(CLAVE_TEMA)
+    return v === 'claro' || v === 'oscuro' ? v : 'auto'
+  } catch { return 'auto' }
+}
+
+function aplicarTema (pref) {
+  const efectivo = pref === 'auto'
+    ? (matchMedia('(prefers-color-scheme: light)').matches ? 'claro' : 'oscuro')
+    : pref
+  document.documentElement.dataset.tema = efectivo
+  try {
+    if (pref === 'auto') localStorage.removeItem(CLAVE_TEMA)
+    else localStorage.setItem(CLAVE_TEMA, pref)
+  } catch { /* modo privado */ }
+}
+
+const elTemaOps = document.getElementById('tema-ops')
+const elTemaPie = document.getElementById('tema-pie')
+
+function pintarTema () {
+  const elegido = temaGuardado()
+  elTemaOps.innerHTML = ''
+  for (const [clave, nombre, detalle] of TEMAS) {
+    const b = document.createElement('button')
+    b.type = 'button'
+    b.className = 'ajuste-op'
+    b.textContent = nombre
+    b.classList.toggle('elegida', clave === elegido)
+    b.addEventListener('click', () => { aplicarTema(clave); pintarTema() })
+    elTemaOps.appendChild(b)
+  }
+  elTemaPie.textContent = TEMAS.find(t => t[0] === elegido)?.[2] ?? ''
+}
+
+pintarTema()
+
+// Si está en automático y el móvil cambia de tema —al anochecer, por ejemplo—
+// el informe cambia con él sin tener que recargar.
+matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+  if (temaGuardado() === 'auto') aplicarTema('auto')
+})
+
 // --- informe de amenazas ----------------------------------------------------
 // Nueve fichas con la cara del bicho. Lo que dice cada una NO es su vida ni su
 // velocidad —eso no significa nada antes de haber jugado— sino qué hace y qué
@@ -1305,7 +1360,39 @@ function marcarElegido () {
 }
 
 pintarNiveles()
-elStart.addEventListener('click', () => start(nivelActual))
+// --- parte de operaciones ----------------------------------------------------
+// Entre elegir el tramo y jugarlo hay una pantalla que cuenta a qué vas. Los
+// seis partes seguidos son la historia de la compañía subiendo por la carretera,
+// y sin ellos superar un nivel solo significaba desbloquear la ficha siguiente.
+const elParteCapa = document.getElementById('parte-capa')
+
+function abrirParte (indice) {
+  const n = NIVELES[indice]
+  document.getElementById('parte-lugar').textContent = n.lugar ?? ''
+  document.getElementById('parte-nombre').textContent = n.name
+  document.getElementById('parte-texto').innerHTML =
+    (n.parte ?? [n.resumen ?? '']).map(t => `<p>${t}</p>`).join('')
+
+  const oleadas = n.waves.length
+  const conJefe = n.waves.some(w => w.boss)
+  document.getElementById('parte-datos').innerHTML = [
+    `<span><b>${oleadas}</b> oleadas</span>`,
+    conJefe ? '<span class="dato-jefe"><b>Jefe</b> al final</span>' : '',
+    n.desbloquea?.length ? `<span><b>${n.desbloquea.length}</b> por liberar</span>` : ''
+  ].filter(Boolean).join('')
+
+  elParteCapa.classList.remove('hidden')
+}
+
+document.getElementById('parte-ir').addEventListener('click', () => {
+  elParteCapa.classList.add('hidden')
+  start(nivelActual)
+})
+document.getElementById('parte-volver').addEventListener('click', () => {
+  elParteCapa.classList.add('hidden')
+})
+
+elStart.addEventListener('click', () => abrirParte(nivelActual))
 
 // Consola de pruebas: solo existe en desarrollo, no viaja a la versión publicada.
 if (import.meta.env.DEV) {
