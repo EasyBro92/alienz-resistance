@@ -8,6 +8,12 @@ export function createEffects (scene, camera) {
   const bursts = []
   const texts = []
 
+  // Cuántas partículas de las pedidas se dibujan de verdad. El ajuste de
+  // calidad lo baja en los niveles flojos: una explosión de treinta y cuatro
+  // chispas y una de quince se leen igual, y la diferencia se nota justo cuando
+  // más cosas se mueven a la vez.
+  let densidad = 1
+
   const tracerGeo = new THREE.CylinderGeometry(0.035, 0.035, 1, 5)
   const tracerMat = new THREE.MeshBasicMaterial({ color: 0xfff0a8 })
   const burstGeo = new THREE.SphereGeometry(0.3, 8, 6)
@@ -24,6 +30,9 @@ export function createEffects (scene, camera) {
   }
 
   function burst (position, color = 0x8fbf4a, count = 6, power = 1) {
+    // Nunca menos de dos: una explosión de una sola chispa no se lee como
+    // una explosión, se lee como un fallo de dibujado.
+    count = Math.max(2, Math.round(count * densidad))
     const mat = new THREE.MeshBasicMaterial({ color, transparent: true })
     for (let i = 0; i < count; i++) {
       const m = new THREE.Mesh(burstGeo, mat)
@@ -182,5 +191,8 @@ export function createEffects (scene, camera) {
     }
   }
 
-  return { tracer, burst, floatText, shell, smoke, arrow, flame, mortar, update }
+  return {
+    tracer, burst, floatText, shell, smoke, arrow, flame, mortar, update,
+    setDensidad (v) { densidad = v }
+  }
 }

@@ -33,6 +33,8 @@
     <symbol id="i-airstrike" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path fill="var(--u-tint)" stroke="none" d="M12 2.5 15 12l6 3.2v2L12 14l-9 3.2v-2L9 12z"/><path stroke="var(--u-tint)" d="M9 19.5v2.2M15 19.5v2.2M12 20.5v1.6"/></symbol>
     <symbol id="i-collector" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18v-6a6 6 0 0 1 12 0v6"/><path stroke="var(--u-tint)" d="M3.6 18h4.8M15.6 18h4.8"/><circle fill="var(--u-tint)" stroke="none" cx="12" cy="8.5" r="2.4"/></symbol>
     <symbol id="i-sound" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z"/><path stroke="var(--u-tint)" d="M15.5 9a4.5 4.5 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5v14M15 5v14"/></symbol>
+    <symbol id="i-ajustes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.6v2.6M12 18.8v2.6M21.4 12h-2.6M5.2 12H2.6M18.6 5.4l-1.8 1.8M7.2 16.8l-1.8 1.8M18.6 18.6l-1.8-1.8M7.2 7.2 5.4 5.4"/></symbol>
     <symbol id="i-mute" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z"/><path stroke="var(--u-tint)" d="m16 9.5 5 5m0-5-5 5"/></symbol>
   </defs></svg>
 
@@ -45,6 +47,9 @@
         <div class="wave-label" id="wave-label">Preparados</div>
         <div class="base-bar"><div class="base-fill" id="base-fill"></div></div>
       </div>
+      <button class="icon-btn" id="pausa" aria-label="Pausa">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-pause"/></svg>
+      </button>
       <button class="icon-btn" id="mute" aria-label="Silenciar" aria-pressed="false">
         <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-sound"/></svg>
       </button>
@@ -73,6 +78,15 @@
          el <nav> de dentro. Si la máscara fuese con el scroll, se iría con él. -->
     <div class="armory-rail">
       <nav id="armory" class="armory" role="group" aria-label="Armería"></nav>
+    </div>
+
+    <div id="pausa-capa" class="overlay pausa-capa hidden">
+      <div class="panel panel-pausa">
+        <h2>En pausa</h2>
+        <p>La contención está detenida. Nadie avanza.</p>
+        <button id="pausa-seguir" class="big-btn">SEGUIR AGUANTANDO</button>
+        <button id="pausa-salir" class="chip chip-ghost">Abandonar y volver al informe</button>
+      </div>
     </div>
 
     <div id="overlay" class="overlay">
@@ -178,6 +192,18 @@
           <div class="amenazas-rejilla" id="amenazas"></div>
           <p class="amenazas-pie" id="amenazas-pie">Toca una para leer su ficha.</p>
         </section>
+
+        <details class="plegable" id="ajustes">
+          <summary>
+            <svg class="ic-ajustes" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-ajustes"/></svg>
+            Ajustes <i id="ajustes-valor">Auto</i>
+          </summary>
+          <div class="ajuste">
+            <span class="ajuste-tit">Calidad gráfica</span>
+            <div class="ajuste-ops" id="calidad-ops"></div>
+            <p class="ajuste-pie" id="calidad-pie"></p>
+          </div>
+        </details>
 
         <details class="plegable">
           <summary>Cómo se aguanta <i>4</i></summary>

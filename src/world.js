@@ -594,7 +594,9 @@ export function createWorld (canvas) {
   }
 
   return {
-    renderer, scene, camera, resize, slots, setSlotsVisible,
+    // `sun` sale fuera porque el ajuste de calidad cambia el tamaño de su mapa
+    // de sombras, y ese mapa es lo más caro que hay en la escena.
+    renderer, scene, camera, sun, resize, slots, setSlotsVisible,
     onResize (fn) { oyentesTam.push(fn) }
   }
 }

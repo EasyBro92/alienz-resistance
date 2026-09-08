@@ -14,6 +14,7 @@ import { renderPortraits } from './portraits.js'
 import { cargarProgreso, superarNivel, nivelJugable } from './systems/progreso.js'
 import { crearResplandor, marcarBrillo } from './systems/resplandor.js'
 import { crearGolpes } from './systems/golpes.js'
+import { crearCalidad, NIVELES as CALIDADES, leerPreferencia } from './systems/calidad.js'
 
 const canvas = document.getElementById('scene')
 const world = createWorld(canvas)
@@ -34,6 +35,17 @@ marcarBrillo(scene)
 const resplandor = crearResplandor(renderer, scene, camera)
 world.onResize(resplandor.resize)
 
+// El ajuste de calidad se crea aquí porque necesita el sol —para el tamaño de
+// su mapa de sombras—, el resplandor y los efectos, y los tres ya existen.
+const calidad = crearCalidad({
+  renderer,
+  sun: world.sun,
+  resplandor,
+  effects,
+  // Cambiar la resolución de dibujado no reajusta la cámara por su cuenta.
+  alCambiar: () => world.resize()
+})
+
 const soldiers = []
 const zombies = []
 const occupied = new Map()            // "carril-fila" -> soldado
@@ -52,6 +64,7 @@ let running = false
 // Qué nivel se está jugando. Se elige en el menú y hace falta al ganar, para
 // saber cuál marcar como superado y cuál ofrecer después.
 let nivelActual = 0
+let pausado = false
 let moving = null                     // soldado esperando destino
 let director = null
 
@@ -648,6 +661,10 @@ function damageBase (amount) {
 let last = performance.now()
 
 function simulate (dt) {
+  // En pausa no avanza NADA: ni la horda, ni los efectos, ni la nave. Congelar
+  // solo la partida y dejar el humo subiendo se lee como que el juego se ha
+  // colgado, no como una pausa.
+  if (pausado) return
   if (running) {
     if (economy.update(dt)) audio.coin()
     director.update(dt, zombies.length)
@@ -846,8 +863,12 @@ function simulate (dt) {
 
 function frame (now) {
   requestAnimationFrame(frame)
-  const dt = Math.min(0.05, (now - last) / 1000)
+  // El tiempo REAL del fotograma, sin recortar, es el que mide la calidad: con
+  // el recorte de 50 ms un móvil ahogado parecería ir siempre a veinte justos.
+  const real = now - last
+  const dt = Math.min(0.05, real / 1000)
   last = now
+  calidad.medir(real)
   simulate(dt)
   resplandor.render()
 }
@@ -887,12 +908,11 @@ function lose () {
     <button class="big-btn" onclick="location.reload()">REINTENTAR</button>`), 900)
 }
 
-function start (indice = nivelActual) {
-  nivelActual = Math.max(0, Math.min(NIVELES.length - 1, indice))
-  // Empezar significa empezar: sin esto, una segunda partida heredaba los
-  // defensores y la vida de base de la anterior. Hoy no se nota porque
-  // reintentar recarga la página, pero es una trampa esperando a que alguien
-  // añada un botón de "otra vez" sin recarga.
+// Dejar el tablero como recién puesto. Empezar significa empezar: sin esto, una
+// segunda partida heredaba los defensores y la vida de base de la anterior. Hoy
+// lo usan dos sitios —arrancar un nivel y abandonar desde la pausa— y el segundo
+// SÍ vuelve al menú sin recargar, así que ya no es una trampa teórica.
+function limpiarPartida () {
   for (const s of soldiers) scene.remove(s.mesh)
   for (const z of zombies) scene.remove(z.mesh)
   for (const c of corpses) scene.remove(c.mesh)
@@ -908,7 +928,11 @@ function start (indice = nivelActual) {
   baseHp = BASE.hp
   ui.setBase(1)
   ui.closeInspector()
+}
 
+function start (indice = nivelActual) {
+  nivelActual = Math.max(0, Math.min(NIVELES.length - 1, indice))
+  limpiarPartida()
   ui.hideOverlay()
   audio.unlock()
   audio.startMusic()
@@ -927,6 +951,83 @@ function start (indice = nivelActual) {
   running = true
   last = performance.now()
 }
+
+// --- pausa --------------------------------------------------------------------
+const elPausaCapa = document.getElementById('pausa-capa')
+const elPausa = document.getElementById('pausa')
+
+function pausar (v) {
+  // Solo tiene sentido con una partida en curso: en el menú no hay nada que
+  // detener, y el botón está tapado por el propio informe.
+  if (!running && v) return
+  pausado = v
+  elPausaCapa.classList.toggle('hidden', !v)
+  elPausa.setAttribute('aria-pressed', v ? 'true' : 'false')
+  // Al reanudar hay que refrescar el reloj: si no, el primer fotograma tras la
+  // pausa traería todo el rato transcurrido de golpe y la horda daría un salto.
+  if (!v) last = performance.now()
+}
+
+elPausa.addEventListener('click', () => pausar(!pausado))
+document.getElementById('pausa-seguir').addEventListener('click', () => pausar(false))
+document.getElementById('pausa-salir').addEventListener('click', () => {
+  pausar(false)
+  volverAlInforme()
+})
+
+// Volver al informe SIN recargar la página. El menú sigue en el DOM tal cual
+// —solo se le puso la clase que lo oculta— así que basta con limpiar la partida
+// y volver a enseñarlo. Recargar costaría los doscientos milisegundos de generar
+// otra vez las texturas y los retratos, para acabar en el mismo sitio.
+function volverAlInforme () {
+  running = false
+  audio.stopMusic()
+  limpiarPartida()
+  ui.el.overlay.innerHTML.includes('niveles') || pintarNiveles()
+  ui.el.overlay.classList.remove('hidden')
+  ui.setWave('Preparados')
+}
+
+// --- ajustes de calidad -------------------------------------------------------
+const elCalidadOps = document.getElementById('calidad-ops')
+const elCalidadPie = document.getElementById('calidad-pie')
+const elAjustesValor = document.getElementById('ajustes-valor')
+
+const OPCIONES = [
+  ['auto', 'Auto', 'El juego mide cómo va y sube o baja la calidad solo. Es lo recomendable: acierta más que cualquiera de nosotros dos, porque lo mide en TU móvil.'],
+  ['alta', CALIDADES.alta.nombre, CALIDADES.alta.detalle],
+  ['media', CALIDADES.media.nombre, CALIDADES.media.detalle],
+  ['baja', CALIDADES.baja.nombre, CALIDADES.baja.detalle]
+]
+
+function pintarCalidad () {
+  const elegida = calidad.preferencia
+  elCalidadOps.innerHTML = ''
+  for (const [clave, nombre, detalle] of OPCIONES) {
+    const b = document.createElement('button')
+    b.type = 'button'
+    b.className = 'ajuste-op'
+    b.textContent = nombre
+    b.classList.toggle('elegida', clave === elegida)
+    b.addEventListener('click', () => {
+      calidad.elegir(clave)
+      pintarCalidad()
+    })
+    elCalidadOps.appendChild(b)
+  }
+  const actual = OPCIONES.find(o => o[0] === elegida)
+  elCalidadPie.textContent = actual?.[2] ?? ''
+  // En automático se enseña además en qué escalón está ahora mismo, que es la
+  // única forma de saber si el móvil está dando de sí o va justo.
+  elAjustesValor.textContent = elegida === 'auto'
+    ? `Auto · ${CALIDADES[calidad.nivel].nombre}`
+    : actual?.[1] ?? ''
+}
+
+pintarCalidad()
+// El escalón puede cambiar solo mientras se juega, así que la etiqueta se
+// refresca al abrir los ajustes en vez de quedarse con lo que había al cargar.
+document.getElementById('ajustes').addEventListener('toggle', pintarCalidad)
 
 // --- informe de amenazas ----------------------------------------------------
 // Nueve fichas con la cara del bicho. Lo que dice cada una NO es su vida ni su
