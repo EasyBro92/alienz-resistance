@@ -156,8 +156,10 @@ function mejorHueco (item) {
   // lista: cuatro toques seguidos veían los cuatro un tablero vacío y plantaban
   // la columna entera en el mismo carril. Las casillas se reservan al momento.
   const defensa = new Array(FIELD.lanes).fill(0)
+  const piezas = new Array(FIELD.lanes).fill(0)
   for (const [casilla, ocupante] of occupied) {
     const lane = Number(casilla.slice(0, casilla.indexOf('-')))
+    piezas[lane]++
     defensa[lane] += ocupante?.spec
       ? ocupante.spec.cost * (1 + 0.4 * (ocupante.level - 1))
       : ocupante?.coste ?? 50
@@ -165,14 +167,24 @@ function mejorHueco (item) {
 
   const maxA = Math.max(1, ...amenaza)
   const maxP = Math.max(1, ...presion)
-  const maxD = Math.max(1, ...defensa)
   const centro = (FIELD.lanes - 1) / 2
   const orden = []
   for (let l = 0; l < FIELD.lanes; l++) {
-    // Sin nadie a la vista la amenaza es cero en todos y manda el reparto: se
-    // llena por donde menos hay, y a igualdad, por el centro hacia fuera.
+    // Lo ya puesto se descuenta por PIEZAS, no dividiendo por el máximo.
+    //
+    // Antes era `defensa[l] / maxD`, y dividir por el máximo hace que el carril
+    // más defendido puntúe exactamente -1 tenga un arquero o tenga cuatro
+    // morteros: a partir del primero, apilar salía GRATIS. Con el término de
+    // presión valiendo hasta +1,2, un carril por el que hubiera bajado la horda
+    // se llevaba tres seguidos mientras los de al lado se quedaban vacíos.
+    //
+    // Contando piezas, cada una que se pone encarece la siguiente, así que se
+    // reparte a lo ancho primero y solo se apila cuando ya hay algo en todos.
+    // El valor sigue contando, pero sobre una referencia fija —no relativa— para
+    // que cuatro arqueros no valgan lo mismo que cuatro morteros.
+    const ocupacion = piezas[l] * 0.65 + defensa[l] / 500
     const nota = (amenaza[l] / maxA) * 2 + (presion[l] / maxP) * 1.2 -
-      defensa[l] / maxD - Math.abs(l - centro) * 0.08
+      ocupacion - Math.abs(l - centro) * 0.08
     orden.push({ lane: l, nota })
   }
   orden.sort((a, b) => b.nota - a.nota)
@@ -203,11 +215,25 @@ async function place (item, lane, row) {
   const s = await createSoldier(item.key, spec, lane, row)
   s.mesh.userData.soldierId = s.id
   marcarBrillo(s.mesh)
+
+  // No aparecen en su casilla: entran por detrás de la línea y suben andando.
+  // Las barreras sí aparecen puestas — un saco terrero no camina.
+  if (!spec.blocker) {
+    const entrada = new THREE.Vector3(laneX(lane), 0, FIELD.baseZ + 2.4)
+    s.px = entrada.x
+    s.pz = entrada.z
+    s.mesh.position.set(entrada.x, 0, entrada.z)
+    s.spawnT = 0                      // sin el rebote de "caer del cielo"
+    s.moveTo(lane, row, true)
+    effects.burst(entrada, 0xffffff, 4, 0.5)
+  } else {
+    effects.burst(s.mesh.position, 0xffffff, 4, 0.5)
+  }
+
   scene.add(s.mesh)
   soldiers.push(s)
   occupied.set(key, s)
   audio.place()
-  effects.burst(s.mesh.position, 0xffffff, 4, 0.5)
 
   if (!economy.canAfford(item.cost)) { ui.clearSelection(); world.setSlotsVisible(false) }
 }
@@ -315,15 +341,99 @@ canvas.addEventListener('pointerdown', e => {
   }
 
   // 4. tocar un soldado ya colocado
+  //
+  // Aquí NO se abre el inspector todavía. Un dedo que baja sobre un soldado
+  // puede querer dos cosas distintas —consultarlo o arrastrarlo a otra casilla—
+  // y solo se sabe cuál al levantarlo. Se anota el candidato y decide `pointerup`.
   const sHits = raycaster.intersectObjects(soldiers.map(s => s.mesh), true)
   if (sHits.length) {
     const s = findSoldierFrom(sHits[0].object)
+    if (s && !s.spec.blocker) {
+      arrastre = { soldado: s, x0: px, y0: py, activo: false }
+      return
+    }
     if (s) { ui.openInspector(s, economy.coins); return }
   }
 
   ui.closeInspector()
   ui.clearSelection()
   world.setSlotsVisible(false)
+})
+
+// --- arrastrar un soldado a otra casilla -------------------------------------
+// El umbral en píxeles es lo que separa un toque de un arrastre. Doce es un
+// número medido, no elegido: por debajo, el temblor normal de un pulgar sobre
+// una pantalla ya cuenta como arrastre y el inspector deja de abrirse nunca.
+const UMBRAL_ARRASTRE = 12
+let arrastre = null
+
+function casillaBajoDedo (e, rect) {
+  pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+  pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+  raycaster.setFromCamera(pointer, camera)
+  const hits = raycaster.intersectObjects(world.slots.children, false)
+  return hits.length ? hits[0].object.userData : null
+}
+
+canvas.addEventListener('pointermove', e => {
+  if (!arrastre) return
+  const rect = canvas.getBoundingClientRect()
+  const px = e.clientX - rect.left
+  const py = e.clientY - rect.top
+
+  if (!arrastre.activo) {
+    if (Math.hypot(px - arrastre.x0, py - arrastre.y0) < UMBRAL_ARRASTRE) return
+    arrastre.activo = true
+    ui.closeInspector()
+    world.setSlotsVisible(true)
+  }
+
+  const c = casillaBajoDedo(e, rect)
+  if (!c) return
+  const ocupante = occupied.get(slotKey(c.lane, c.row))
+  // Su propia casilla cuenta como libre: soltar donde estaba es cancelar.
+  world.resaltarSlot(c.lane, c.row, !ocupante || ocupante === arrastre.soldado)
+})
+
+function soltarArrastre (e) {
+  if (!arrastre) return
+  const { soldado, activo } = arrastre
+  arrastre = null
+
+  if (!activo) {
+    // No se movió: era un toque, y un toque sobre un soldado es consultarlo.
+    if (!soldado.dead) ui.openInspector(soldado, economy.coins)
+    return
+  }
+
+  world.setSlotsVisible(false)
+  if (soldado.dead) return
+
+  const c = casillaBajoDedo(e, canvas.getBoundingClientRect())
+  if (!c) return
+  const destino = slotKey(c.lane, c.row)
+  if (occupied.has(destino)) {
+    // Si es la suya, no hay nada que hacer y tampoco es un error.
+    if (occupied.get(destino) !== soldado) audio.denied()
+    return
+  }
+  occupied.delete(slotKey(soldado.lane, soldado.row))
+  soldado.moveTo(c.lane, c.row)
+  occupied.set(destino, soldado)
+  audio.place()
+}
+
+canvas.addEventListener('pointerup', soltarArrastre)
+// Si el dedo sale del lienzo o el sistema se queda el gesto —una notificación,
+// un cambio de aplicación— hay que soltar igual, o el arrastre se queda pegado
+// y el siguiente toque en cualquier sitio movería al soldado de antes.
+canvas.addEventListener('pointercancel', () => {
+  if (arrastre?.activo) world.setSlotsVisible(false)
+  arrastre = null
+})
+canvas.addEventListener('pointerleave', () => {
+  if (arrastre?.activo) world.setSlotsVisible(false)
+  arrastre = null
 })
 
 // ---------------------------------------------------------------------------

@@ -561,7 +561,21 @@ export function createWorld (canvas) {
   scene.add(slots)
 
   function setSlotsVisible (on) {
-    for (const c of slots.children) c.material.opacity = on ? 0.16 : 0
+    for (const c of slots.children) {
+      c.material.opacity = on ? 0.16 : 0
+      c.material.color.setHex(0xffffff)
+    }
+  }
+
+  // La casilla que hay debajo del dedo mientras se arrastra. Sin esto, con la
+  // rejilla entera al 16% no hay forma de saber dónde se va a soltar: todas las
+  // casillas se ven igual y el jugador suelta a ciegas.
+  function resaltarSlot (lane, row, libre = true) {
+    for (const c of slots.children) {
+      const suya = c.userData.lane === lane && c.userData.row === row
+      c.material.opacity = suya ? (libre ? 0.5 : 0.34) : 0.14
+      c.material.color.setHex(suya ? (libre ? 0x8dffb8 : 0xff7a6a) : 0xffffff)
+    }
   }
 
   // Encaja el campo en pantalla sea cual sea la forma del móvil.
@@ -596,7 +610,7 @@ export function createWorld (canvas) {
   return {
     // `sun` sale fuera porque el ajuste de calidad cambia el tamaño de su mapa
     // de sombras, y ese mapa es lo más caro que hay en la escena.
-    renderer, scene, camera, sun, resize, slots, setSlotsVisible,
+    renderer, scene, camera, sun, resize, slots, setSlotsVisible, resaltarSlot,
     onResize (fn) { oyentesTam.push(fn) }
   }
 }

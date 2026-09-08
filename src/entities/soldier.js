@@ -132,6 +132,11 @@ export async function createSoldier (key, spec, lane, row) {
     px: laneX(lane),
     pz: rowZ(row),
     andando: false,
+    // Entrar en el tablero y recolocarse son el mismo andar, pero no el mismo
+    // paso: quien llega de la retaguardia viene al trote, y quien ya está en el
+    // frente se mueve andando. Sin esto, comprar un mortero para la última fila
+    // costaba cinco segundos de figura cruzando el asfalto sin disparar.
+    entrando: false,
     destX: laneX(lane),
     destZ: rowZ(row),
     pasoFase: 0,
@@ -157,12 +162,13 @@ export async function createSoldier (key, spec, lane, row) {
     // Reubicar ya no es teletransportar: el soldado se va andando. La casilla se
     // le asigna en el acto —para que nadie más la ocupe mientras cruza— pero su
     // posición real tarda lo que tarde en llegar.
-    moveTo (newLane, newRow) {
+    moveTo (newLane, newRow, entrando = false) {
       this.lane = newLane
       this.row = newRow
       this.destX = laneX(newLane)
       this.destZ = rowZ(newRow)
       this.andando = true
+      this.entrando = entrando
       this.gesture = null
       this.asiento = 0
       this.mismoObjetivo = null
@@ -202,16 +208,17 @@ export async function createSoldier (key, spec, lane, row) {
         const dx = this.destX - this.px
         const dz = this.destZ - this.pz
         const falta = Math.hypot(dx, dz)
-        const avance = PASO * dt
+        const avance = PASO * (this.entrando ? 2 : 1) * dt
         if (falta <= avance || falta < 1e-4) {
           this.px = this.destX
           this.pz = this.destZ
           this.andando = false
+          this.entrando = false
           this.pasoFase = 0
         } else {
           this.px += (dx / falta) * avance
           this.pz += (dz / falta) * avance
-          this.pasoFase += dt * 9
+          this.pasoFase += dt * (this.entrando ? 14 : 9)
           rumbo = Math.atan2(-dx / falta, -dz / falta)
         }
         this.hasTarget = false

@@ -453,6 +453,12 @@ html, body {
 }
 
 .tagline { font-style: italic; letter-spacing: 0.3px; }
+/* Quién eres: una compañía privada, no el último héroe del mundo. */
+.firma {
+  margin: -8px 0 14px;
+  font-size: 9px; font-weight: 800; letter-spacing: 2.2px; text-transform: uppercase;
+  color: #9fb0a6; opacity: 0.6;
+}
 
 /* El informe en párrafos se sustituyó por `.relato`: tres viñetas dibujadas. */
 
