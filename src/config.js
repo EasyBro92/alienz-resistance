@@ -118,25 +118,28 @@ export const UPGRADES = {
   }
 }
 
+// La vida subió un 15% en todos el 2026-09-08. A TODOS por igual y a la vez:
+// tocar solo a unos cuantos cambiaría quién es duro respecto a quién, y el
+// jugador ya ha aprendido ese orden. Lo que cambia es cuánto plomo hace falta.
 export const ZOMBIES = {
   walker: {
-    name: 'Portador', hp: 23, speed: 3.4, damage: 18, attackRate: 1.3,
+    name: 'Portador', hp: 26, speed: 3.4, damage: 18, attackRate: 1.3,
     coins: 14, scale: 1, color: 0x7fa855, accent: 0x4a6b30
   },
   runner: {
-    name: 'Corredor', hp: 15, speed: 7.2, damage: 12, attackRate: 2.0,
+    name: 'Corredor', hp: 17, speed: 7.2, damage: 12, attackRate: 2.0,
     coins: 16, scale: 0.9, color: 0xb8d14a, accent: 0x6d7d24
   },
   armored: {
-    name: 'Encostrado', hp: 53, speed: 2.8, damage: 26, attackRate: 1.0,
+    name: 'Encostrado', hp: 61, speed: 2.8, damage: 26, attackRate: 1.0,
     coins: 28, scale: 1.1, color: 0x6b7a86, accent: 0x39434b, armor: 0.7
   },
   spitter: {
-    name: 'Sembrador', hp: 34, speed: 2.85, damage: 20, attackRate: 0.9,
+    name: 'Sembrador', hp: 39, speed: 2.85, damage: 20, attackRate: 0.9,
     coins: 30, scale: 1, color: 0xa05fb8, accent: 0x5c2f6d, rangedAttack: 11
   },
   tank: {
-    name: 'Coloso', hp: 258, speed: 1.8, damage: 70, attackRate: 0.8,
+    name: 'Coloso', hp: 296, speed: 1.8, damage: 70, attackRate: 0.8,
     coins: 85, scale: 1.9, color: 0xd39a8f, accent: 0x8d5a52, wide: true
   },
   // --- los cuatro con maneras ------------------------------------------------
@@ -146,7 +149,7 @@ export const ZOMBIES = {
 
   // Rompe la barrera: la salta. Contra una pared de sacos, esta pasa por encima.
   leaper: {
-    name: 'Saltador', hp: 28, speed: 4.2, damage: 22, attackRate: 1.2,
+    name: 'Saltador', hp: 32, speed: 4.2, damage: 22, attackRate: 1.2,
     coins: 22, scale: 0.95, color: 0x4fb8c4, accent: 0x1f5f6b,
     salta: { distancia: 6.5, recarga: 5 }
   },
@@ -154,7 +157,7 @@ export const ZOMBIES = {
   // Rompe la aglomeración: al morir revienta y se lleva por delante lo que
   // tenga cerca. Apilar siete soldados en un carril deja de salir gratis.
   bloater: {
-    name: 'Revientaesporas', hp: 70, speed: 2.4, damage: 16, attackRate: 0.9,
+    name: 'Revientaesporas', hp: 80, speed: 2.4, damage: 16, attackRate: 0.9,
     coins: 34, scale: 1.25, color: 0xd8b04a, accent: 0x7a5a18,
     revienta: { daño: 42, radio: 3.4 }
   },
@@ -162,7 +165,7 @@ export const ZOMBIES = {
   // Rompe el goteo de daño: cura a los de alrededor. Si no la matas a ella
   // primero, el carril entero se vuelve una esponja.
   healer: {
-    name: 'Injertadora', hp: 40, speed: 3.0, damage: 10, attackRate: 0.8,
+    name: 'Injertadora', hp: 46, speed: 3.0, damage: 10, attackRate: 0.8,
     coins: 40, scale: 1, color: 0xe86fa8, accent: 0x7a2a52,
     injerta: { cura: 11, radio: 5.5, cada: 1.2 }
   },
@@ -170,13 +173,13 @@ export const ZOMBIES = {
   // Rompe la línea de frente: pasa por debajo y sale POR DETRÁS de tus tropas,
   // donde están los que menos vida tienen. Obliga a mirar el fondo del tablero.
   burrower: {
-    name: 'Escarbador', hp: 45, speed: 3.2, damage: 24, attackRate: 1.1,
+    name: 'Escarbador', hp: 52, speed: 3.2, damage: 24, attackRate: 1.1,
     coins: 32, scale: 1.05, color: 0x8a6a4a, accent: 0x46331f,
     escarba: { hasta: -2.5, prisa: 1.5 }
   },
 
   boss: {
-    name: 'LA MADRE', hp: 1650, speed: 1.4, damage: 120, attackRate: 0.7,
+    name: 'LA MADRE', hp: 1900, speed: 1.4, damage: 120, attackRate: 0.7,
     coins: 500, scale: 3.4, color: 0xe0a397, accent: 0x9a5b52, boss: true, wide: true
   }
 }
@@ -198,7 +201,7 @@ export const NIVEL_1 = {
   lugar: 'Carretera 7 · kilómetro 12',
   resumen: 'Los primeros huéspedes. Vienen de frente y poco más.',
   desbloquea: ['shotgun', 'spikes'],
-  dureza: 0.05,
+  dureza: 0.06,
   waves: [
     { gap: 6, spawns: [{ type: 'walker', count: 4, every: 1.6, lanes: [1, 2, 3] }] },
     { gap: 8, spawns: [{ type: 'walker', count: 6, every: 1.2, lanes: [1, 2, 3] }, { type: 'runner', count: 2, every: 3, lanes: [1, 2, 3] }] },
@@ -213,7 +216,7 @@ export const NIVEL_2 = {
   lugar: 'Carretera 7 · enlace norte',
   resumen: 'Escupen a distancia, saltan las barreras y revientan al caer.',
   desbloquea: ['sniper', 'flamer', 'collector'],
-  dureza: 0.09,
+  dureza: 0.12,
   waves: [
     { gap: 6, spawns: [{ type: 'walker', count: 6, every: 1.2 }, { type: 'runner', count: 3, every: 2.2 }] },
     { gap: 8, spawns: [{ type: 'walker', count: 8, every: 1 }, { type: 'spitter', count: 2, every: 4 }] },
@@ -230,7 +233,7 @@ export const NIVEL_3 = {
   lugar: 'Carretera 7 · el final',
   resumen: 'Cosen a los suyos, salen por debajo y detrás viene LA MADRE.',
   desbloquea: ['gunner', 'mortar', 'airstrike'],
-  dureza: 0.19,
+  dureza: 0.22,
   waves: [
     { gap: 3,  spawns: [{ type: 'walker', count: 4, every: 1.5, lanes: [1, 2, 3] }] },
     { gap: 4,  spawns: [{ type: 'walker', count: 7, every: 1.1, lanes: [1, 2, 3] }, { type: 'runner', count: 3, every: 2.2, lanes: [1, 2, 3] }] },
@@ -246,4 +249,63 @@ export const NIVEL_3 = {
   ]
 }
 
-export const NIVELES = [NIVEL_1, NIVEL_2, NIVEL_3]
+// A partir de aquí ya no se desbloquea nada: con el nido superado tienes las
+// doce cartas. Estos tres existen para usarlas contra algo que de verdad las
+// exija, y cada uno aprieta por un sitio distinto — si los tres fueran "el nido
+// con más vida", bastaría con repetir la misma línea tres veces y no habría
+// ninguna decisión nueva que tomar.
+export const NIVEL_4 = {
+  name: 'Contraflujo',
+  lugar: 'Carretera 7 · bajada de los álamos',
+  resumen: 'Todo llega deprisa. Lo que dispara lento no llega a tiempo.',
+  dureza: 0.17,
+  waves: [
+    { gap: 7, spawns: [{ type: 'runner', count: 5, every: 1.5 }, { type: 'leaper', count: 1, every: 4 }] },
+    { gap: 6, spawns: [{ type: 'runner', count: 8, every: 1 }, { type: 'walker', count: 5, every: 1.4 }] },
+    { gap: 6, spawns: [{ type: 'leaper', count: 7, every: 1.6 }, { type: 'runner', count: 10, every: 0.9 }] },
+    { gap: 5, spawns: [{ type: 'runner', count: 14, every: 0.6 }, { type: 'burrower', count: 4, every: 2.4 }] },
+    { gap: 5, spawns: [{ type: 'leaper', count: 8, every: 1.4 }, { type: 'armored', count: 5, every: 1.8 }, { type: 'runner', count: 10, every: 0.9 }] },
+    { gap: 5, spawns: [{ type: 'burrower', count: 6, every: 1.8 }, { type: 'runner', count: 14, every: 0.6 }, { type: 'spitter', count: 4, every: 2.4 }] },
+    { gap: 4, spawns: [{ type: 'tank', count: 1, every: 6 }, { type: 'runner', count: 16, every: 0.55 }, { type: 'leaper', count: 8, every: 1.4 }] },
+    { gap: 4, spawns: [{ type: 'runner', count: 18, every: 0.5 }, { type: 'leaper', count: 10, every: 1.1 }, { type: 'burrower', count: 6, every: 1.8 }, { type: 'tank', count: 1, every: 8 }] }
+  ]
+}
+
+export const NIVEL_5 = {
+  name: 'La colmena',
+  lugar: 'Carretera 7 · área de servicio',
+  resumen: 'Se curan entre ellos y el caparazón devuelve las balas.',
+  dureza: 0.23,
+  waves: [
+    { gap: 7, spawns: [{ type: 'armored', count: 3, every: 2.4 }, { type: 'healer', count: 1, every: 5 }] },
+    { gap: 6, spawns: [{ type: 'healer', count: 2, every: 4 }, { type: 'armored', count: 5, every: 1.7 }] },
+    { gap: 5, spawns: [{ type: 'armored', count: 8, every: 1.2 }, { type: 'spitter', count: 5, every: 2 }, { type: 'healer', count: 3, every: 3.4 }] },
+    { gap: 5, spawns: [{ type: 'bloater', count: 6, every: 1.8 }, { type: 'armored', count: 7, every: 1.3 }, { type: 'healer', count: 3, every: 3 }] },
+    { gap: 4, spawns: [{ type: 'tank', count: 1, every: 6 }, { type: 'healer', count: 4, every: 2.6 }, { type: 'armored', count: 8, every: 1.2 }] },
+    { gap: 4, spawns: [{ type: 'spitter', count: 7, every: 1.6 }, { type: 'healer', count: 4, every: 2.4 }, { type: 'bloater', count: 6, every: 1.8 }] },
+    { gap: 4, spawns: [{ type: 'tank', count: 2, every: 7 }, { type: 'armored', count: 9, every: 1.1 }, { type: 'healer', count: 4, every: 2.4 }] },
+    { gap: 4, spawns: [{ type: 'healer', count: 5, every: 2.2 }, { type: 'armored', count: 10, every: 1 }, { type: 'burrower', count: 6, every: 1.8 }, { type: 'bloater', count: 6, every: 1.8 }] },
+    { gap: 4, spawns: [{ type: 'tank', count: 2, every: 6 }, { type: 'healer', count: 5, every: 2.2 }, { type: 'armored', count: 10, every: 1 }, { type: 'spitter', count: 6, every: 1.8 }] }
+  ]
+}
+
+export const NIVEL_6 = {
+  name: 'Madre y crías',
+  lugar: 'Carretera 7 · el kilómetro cero',
+  resumen: 'Todo a la vez, y al final no viene una MADRE: vienen dos.',
+  dureza: 0.29,
+  waves: [
+    { gap: 7, spawns: [{ type: 'walker', count: 6, every: 1.3 }, { type: 'runner', count: 3, every: 2.2 }] },
+    { gap: 6, spawns: [{ type: 'armored', count: 4, every: 1.9 }, { type: 'leaper', count: 3, every: 2.4 }] },
+    { gap: 4, spawns: [{ type: 'healer', count: 3, every: 3 }, { type: 'spitter', count: 6, every: 1.7 }, { type: 'walker', count: 10, every: 0.9 }] },
+    { gap: 4, spawns: [{ type: 'bloater', count: 6, every: 1.8 }, { type: 'burrower', count: 6, every: 1.8 }, { type: 'runner', count: 10, every: 0.9 }] },
+    { gap: 4, spawns: [{ type: 'tank', count: 2, every: 6 }, { type: 'armored', count: 8, every: 1.2 }, { type: 'healer', count: 3, every: 3 }] },
+    { gap: 4, spawns: [{ type: 'leaper', count: 10, every: 1.1 }, { type: 'runner', count: 14, every: 0.6 }, { type: 'spitter', count: 5, every: 2 }] },
+    { gap: 3, spawns: [{ type: 'burrower', count: 8, every: 1.4 }, { type: 'bloater', count: 7, every: 1.5 }, { type: 'healer', count: 4, every: 2.4 }, { type: 'armored', count: 8, every: 1.2 }] },
+    { gap: 3, spawns: [{ type: 'tank', count: 3, every: 5 }, { type: 'walker', count: 14, every: 0.7 }, { type: 'leaper', count: 8, every: 1.3 }] },
+    { gap: 3, spawns: [{ type: 'healer', count: 5, every: 2.2 }, { type: 'armored', count: 10, every: 1 }, { type: 'spitter', count: 7, every: 1.5 }, { type: 'burrower', count: 8, every: 1.4 }] },
+    { gap: 4, boss: true, spawns: [{ type: 'boss', count: 2, every: 22 }, { type: 'tank', count: 2, every: 16 }, { type: 'walker', count: 18, every: 0.8 }, { type: 'runner', count: 10, every: 1.4 }, { type: 'healer', count: 5, every: 4 }, { type: 'burrower', count: 8, every: 2.6 }, { type: 'leaper', count: 10, every: 2.2 }] }
+  ]
+}
+
+export const NIVELES = [NIVEL_1, NIVEL_2, NIVEL_3, NIVEL_4, NIVEL_5, NIVEL_6]

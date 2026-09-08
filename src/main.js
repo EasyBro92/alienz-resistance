@@ -996,37 +996,62 @@ pintarAmenazas()
 const elNiveles = document.getElementById('niveles')
 const elStart = document.getElementById('start')
 
+// Seis niveles no caben como seis tarjetas: el botón de jugar acababa tapando
+// la tercera y las tres últimas quedaban fuera de la pantalla. Se dibujan como
+// una fila de fichas numeradas y, debajo, el detalle SOLO del elegido — que
+// además es como se usa esto: eliges uno, no te lees los seis.
 function pintarNiveles () {
   const { superados } = cargarProgreso()
   // El que toca: el primero sin superar, o el último si ya está todo hecho.
   nivelActual = Math.min(superados, NIVELES.length - 1)
   elNiveles.innerHTML = ''
+
+  const fila = document.createElement('div')
+  fila.className = 'nivel-fila'
   NIVELES.forEach((nivel, i) => {
     const abierto = nivelJugable(i, superados)
     const hecho = i < superados
     const b = document.createElement('button')
     b.type = 'button'
-    b.className = 'nivel'
+    b.className = 'nivel-ficha'
     b.disabled = !abierto
     b.dataset.estado = hecho ? 'hecho' : abierto ? 'abierto' : 'cerrado'
-    b.innerHTML = `
-      <span class="nivel-num">${hecho ? '✓' : i + 1}</span>
-      <span class="nivel-txt">
-        <b>${nivel.name}</b>
-        <em>${abierto ? nivel.resumen : 'Supera el anterior para llegar aquí.'}</em>
-      </span>`
+    b.textContent = hecho ? '✓' : abierto ? String(i + 1) : '🔒'
+    b.setAttribute('aria-label', `Nivel ${i + 1}: ${abierto ? nivel.name : 'bloqueado'}`)
     b.addEventListener('click', () => { nivelActual = i; marcarElegido() })
-    elNiveles.appendChild(b)
+    fila.appendChild(b)
   })
+  elNiveles.appendChild(fila)
+
+  const detalle = document.createElement('div')
+  detalle.className = 'nivel-detalle'
+  detalle.id = 'nivel-detalle'
+  elNiveles.appendChild(detalle)
+
   marcarElegido()
 }
 
 function marcarElegido () {
-  for (const [i, b] of [...elNiveles.children].entries()) {
-    b.classList.toggle('elegido', i === nivelActual)
-  }
+  const { superados } = cargarProgreso()
+  const fichas = [...elNiveles.querySelector('.nivel-fila').children]
+  for (const [i, b] of fichas.entries()) b.classList.toggle('elegida', i === nivelActual)
+
+  const nivel = NIVELES[nivelActual]
+  const total = nivel.waves.length
+  const conJefe = nivel.waves.some(w => w.boss)
+  const abre = (nivel.desbloquea ?? []).length
+  document.getElementById('nivel-detalle').innerHTML = `
+    <b>${nivelActual + 1} · ${nivel.name}</b>
+    <span class="nivel-lugar">${nivel.lugar}</span>
+    <em>${nivel.resumen}</em>
+    <span class="nivel-datos">
+      <i>${total} oleadas</i>
+      ${conJefe ? '<i class="jefe">con jefe</i>' : ''}
+      ${abre ? `<i class="abre">abre ${abre}</i>` : ''}
+    </span>`
+
   // Texto corto y fijo: con el nombre del nivel dentro se partía en dos líneas.
-  // Cuál se va a jugar ya lo dice la tarjeta marcada justo encima.
+  // Cuál se va a jugar ya lo dice la ficha marcada justo encima.
   elStart.textContent = 'AGUANTAR LA LÍNEA'
 }
 

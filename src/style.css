@@ -676,34 +676,59 @@ html, body {
 .plegable > *:not(summary) { margin-top: 8px; }
 
 /* ---------- selector de niveles ---------- */
-.niveles { display: flex; flex-direction: column; gap: 6px; margin: 0 auto 14px; max-width: 380px; }
-.nivel {
-  display: flex; align-items: center; gap: 10px;
-  width: 100%; text-align: left;
-  padding: 8px 12px;
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 12px;
-  background: rgba(255,255,255,0.035);
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-  transition: border-color .15s, background .15s;
-}
-.nivel[data-estado="cerrado"] { opacity: 0.38; cursor: default; }
-.nivel[data-estado="hecho"] .nivel-num { background: var(--green); color: #08160c; }
-.nivel.elegido { border-color: var(--green); background: rgba(95,217,122,0.12); }
-.nivel-num {
-  flex: none;
-  width: 26px; height: 26px; border-radius: 8px;
+.niveles { max-width: 400px; margin: 0 auto 12px; }
+
+.nivel-fila { display: flex; gap: 6px; justify-content: center; }
+.nivel-ficha {
+  flex: 1;
+  min-width: 0;
+  aspect-ratio: 1 / 1;
+  max-width: 46px;
   display: grid; place-items: center;
-  background: rgba(255,255,255,0.09);
-  font-size: 13px; font-weight: 900;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 11px;
+  background: rgba(255,255,255,0.04);
+  color: #cfd8d2;
+  font: inherit; font-size: 15px; font-weight: 900;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, transform .1s;
 }
-.nivel-txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.nivel-txt b { font-size: 13px; letter-spacing: 0.3px; }
-.nivel-txt em {
-  font-style: normal; font-size: 11px; line-height: 1.3; opacity: 0.62;
+.nivel-ficha[data-estado="cerrado"] { opacity: 0.32; cursor: default; font-size: 12px; }
+.nivel-ficha[data-estado="hecho"] { color: var(--green); border-color: rgba(95,217,122,0.35); }
+.nivel-ficha.elegida {
+  border-color: var(--green);
+  background: rgba(95,217,122,0.16);
+  transform: translateY(-2px);
 }
+
+.nivel-detalle {
+  display: flex; flex-direction: column; gap: 2px;
+  margin-top: 7px;
+  padding: 9px 12px 10px;
+  border: 1px solid rgba(95,217,122,0.3);
+  border-radius: 12px;
+  background: rgba(95,217,122,0.07);
+  text-align: left;
+}
+.nivel-detalle b { font-size: 14px; letter-spacing: 0.3px; }
+.nivel-lugar {
+  font-size: 9px; font-weight: 800; letter-spacing: 1.6px; text-transform: uppercase;
+  color: var(--green); opacity: 0.7;
+}
+.nivel-detalle em {
+  font-style: normal; font-size: 11.5px; line-height: 1.35; opacity: 0.8;
+  margin-top: 2px;
+}
+.nivel-datos { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+.nivel-datos i {
+  font-style: normal;
+  padding: 2px 8px; border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  font-size: 9px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase;
+  color: #b9c4bd;
+}
+.nivel-datos .jefe { background: rgba(232,82,63,0.2); color: #ffb0a5; }
+.nivel-datos .abre { background: rgba(95,217,122,0.18); color: #a8f0bd; }
 
 /* Lo que se acaba de abrir al ganar. */
 .premio {
