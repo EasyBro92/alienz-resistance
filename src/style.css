@@ -517,6 +517,79 @@ html, body {
 
 .rules { font-size: 11.5px; line-height: 1.5; margin-bottom: 12px; padding-left: 16px; }
 
+/* ---------- sello de rango ---------- */
+/* Cuatro escalones, y el color va de "por los pelos" a "intacto". El mismo
+   código de color se usa en la ficha del nivel del menú, para que la letra que
+   ves ahí signifique lo mismo que la que viste al ganar. */
+.sello {
+  display: flex; align-items: center; gap: 10px;
+  margin: 0 auto 14px; padding: 8px 14px 8px 8px;
+  width: fit-content;
+  border: 1px solid var(--r-borde);
+  border-radius: 14px;
+  background: var(--r-fondo);
+}
+.sello-letra {
+  width: 38px; height: 38px; flex: none;
+  display: grid; place-items: center;
+  border-radius: 11px;
+  background: var(--r-tinte);
+  color: #08160c;
+  font-size: 20px; font-weight: 900;
+}
+.sello-txt { display: flex; flex-direction: column; text-align: left; gap: 1px; }
+.sello-txt b { font-size: 13px; letter-spacing: 0.4px; color: var(--r-tinte); }
+.sello-txt em { font-style: normal; font-size: 11px; opacity: 0.68; }
+
+.sello-0, [data-rango="0"] { --r-tinte: #c98d63; --r-borde: rgba(201,141,99,0.4); --r-fondo: rgba(201,141,99,0.1); }
+.sello-1, [data-rango="1"] { --r-tinte: #b9c2cc; --r-borde: rgba(185,194,204,0.4); --r-fondo: rgba(185,194,204,0.1); }
+.sello-2, [data-rango="2"] { --r-tinte: #ffc93c; --r-borde: rgba(255,201,60,0.4); --r-fondo: rgba(255,201,60,0.1); }
+.sello-3, [data-rango="3"] { --r-tinte: #6fe39a; --r-borde: rgba(111,227,154,0.45); --r-fondo: rgba(111,227,154,0.12); }
+
+/* La ficha del nivel toma el mismo tinte cuando lleva rango.
+   Con `.nivel-ficha[data-rango]` a secas no ganaba: la regla de "nivel hecho"
+   tiene la misma especificidad y va después en la hoja, así que las seis fichas
+   salían del mismo verde y la letra no significaba nada. */
+.nivel-ficha[data-estado="hecho"][data-rango] {
+  color: var(--r-tinte);
+  border-color: var(--r-borde);
+  background: var(--r-fondo);
+}
+
+/* ---------- cierre de campaña ---------- */
+.cierre {
+  max-width: 340px; margin: 0 auto 14px;
+  font-size: 12.5px; line-height: 1.6; opacity: 0.8;
+  text-align: left;
+  border-left: 2px solid rgba(95,217,122,0.4);
+  padding-left: 12px;
+}
+.marcas {
+  list-style: none; margin: 0 auto 18px; padding: 0;
+  max-width: 340px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 5px;
+}
+.marcas li {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 8px;
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 9px;
+  background: rgba(255,255,255,0.03);
+  font-size: 11px; text-align: left;
+}
+.marca-letra {
+  width: 20px; height: 20px; flex: none;
+  display: grid; place-items: center;
+  border-radius: 6px;
+  background: var(--r-tinte);
+  color: #08160c;
+  font-size: 11px; font-weight: 900;
+}
+.marca-0 { --r-tinte: #c98d63 }
+.marca-1 { --r-tinte: #b9c2cc }
+.marca-2 { --r-tinte: #ffc93c }
+.marca-3 { --r-tinte: #6fe39a }
+
 /* ---------- pausa ---------- */
 /* Capa propia, por encima del informe. Se oscurece menos que el menú: en pausa
    interesa seguir viendo el tablero para decidir si merece la pena abandonar. */

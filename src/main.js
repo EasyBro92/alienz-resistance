@@ -11,7 +11,7 @@ import { createAmbient } from './systems/ambient.js'
 import { createAudio } from './audio.js'
 import { createUI } from './ui.js'
 import { renderPortraits } from './portraits.js'
-import { cargarProgreso, superarNivel, nivelJugable } from './systems/progreso.js'
+import { cargarProgreso, superarNivel, nivelJugable, RANGOS, rangoDe, campañaCompleta } from './systems/progreso.js'
 import { crearResplandor, marcarBrillo } from './systems/resplandor.js'
 import { crearGolpes } from './systems/golpes.js'
 import { crearCalidad, NIVELES as CALIDADES, leerPreferencia } from './systems/calidad.js'
@@ -990,10 +990,13 @@ function win () {
   running = false
   audio.stopMusic()
   const nivel = NIVELES[nivelActual]
-  const antes = cargarProgreso().superados
-  superarNivel(nivelActual)
-  const primeraVez = nivelActual >= antes
+  const antes = cargarProgreso()
+  const porcentaje = Math.round(baseHp / BASE.hp * 100)
+  const rango = RANGOS[rangoDe(porcentaje)]
+  const primeraVez = nivelActual >= antes.superados
+  const progreso = superarNivel(nivelActual, porcentaje)
   const siguiente = NIVELES[nivelActual + 1]
+  const mejora = !(nivelActual in antes.rangos) || rangoDe(porcentaje) > antes.rangos[nivelActual]
 
   // Lo que se acaba de abrir, con su nombre de verdad. "Has desbloqueado 2
   // objetos" no dice nada; "Escopetero, Alambrada" sí.
@@ -1001,9 +1004,40 @@ function win () {
     ? (nivel.desbloquea ?? []).map(k => (SOLDIERS[k] ?? DEFENSES[k] ?? STRIKES[k] ?? { name: k }).name)
     : []
 
+  // Los tres últimos niveles no abren arsenal —ya lo tienes todo—, así que su
+  // pantalla de victoria se quedaba en un título y una línea. El rango le da a
+  // CADA victoria algo que enseñar, y de paso una razón para repetir un nivel
+  // que ya está superado: dejarlo mejor de como quedó.
+  const sello = `
+    <div class="sello sello-${rangoDe(porcentaje)}">
+      <span class="sello-letra">${rango.corto}</span>
+      <span class="sello-txt"><b>${rango.nombre}</b><em>Perímetro al ${porcentaje}%${mejora && !primeraVez ? ' · mejor marca' : ''}</em></span>
+    </div>`
+
+  if (!siguiente && campañaCompleta(progreso)) {
+    // Fin de campaña. No es un nivel más superado: es el último, y merece una
+    // pantalla que no se parezca a las otras cinco.
+    const marcas = NIVELES.map((n, i) => {
+      const r = RANGOS[progreso.rangos[i] ?? 0]
+      return `<li><span class="marca-letra marca-${progreso.rangos[i] ?? 0}">${r.corto}</span>${n.name}</li>`
+    }).join('')
+    ui.showOverlay(`
+      <p class="eyebrow">Carretera 7 · informe de cierre</p>
+      <h1>CARRETERA LIMPIA</h1>
+      <p class="tagline">Seis tramos. La siembra no pasó de ninguno.</p>
+      ${sello}
+      <p class="cierre">La compañía cobra y levanta el campamento. La carretera
+      queda despejada, pero lo que cayó hace once días sigue ahí fuera, y esto
+      solo era el kilómetro doce.</p>
+      <ol class="marcas">${marcas}</ol>
+      <button class="big-btn" onclick="location.reload()">VOLVER AL INFORME</button>`)
+    return
+  }
+
   ui.showOverlay(`
     <h1>LÍNEA INTACTA</h1>
-    <p class="tagline">«${nivel.name}» bajo control. Perímetro al ${Math.round(baseHp / BASE.hp * 100)}%.</p>
+    <p class="tagline">«${nivel.name}» bajo control.</p>
+    ${sello}
     ${nuevas.length ? `<div class="premio"><span class="premio-tit">Arsenal liberado</span>${nuevas.map(n => `<b>${n}</b>`).join('')}</div>` : ''}
     <button class="big-btn" onclick="location.reload()">${siguiente ? 'AL SIGUIENTE' : 'VOLVER AL INFORME'}</button>`)
 }
@@ -1212,7 +1246,7 @@ const elStart = document.getElementById('start')
 // una fila de fichas numeradas y, debajo, el detalle SOLO del elegido — que
 // además es como se usa esto: eliges uno, no te lees los seis.
 function pintarNiveles () {
-  const { superados } = cargarProgreso()
+  const { superados, rangos } = cargarProgreso()
   // El que toca: el primero sin superar, o el último si ya está todo hecho.
   nivelActual = Math.min(superados, NIVELES.length - 1)
   elNiveles.innerHTML = ''
@@ -1227,7 +1261,11 @@ function pintarNiveles () {
     b.className = 'nivel-ficha'
     b.disabled = !abierto
     b.dataset.estado = hecho ? 'hecho' : abierto ? 'abierto' : 'cerrado'
-    b.textContent = hecho ? '✓' : abierto ? String(i + 1) : '🔒'
+    // La ficha de un nivel hecho enseña CÓMO se hizo, no solo que se hizo:
+    // una S y una C son la misma victoria pero no la misma partida, y eso da
+    // una razón para volver a un nivel ya superado.
+    b.textContent = hecho ? RANGOS[rangos[i] ?? 0].corto : abierto ? String(i + 1) : '🔒'
+    if (hecho) b.dataset.rango = rangos[i] ?? 0
     b.setAttribute('aria-label', `Nivel ${i + 1}: ${abierto ? nivel.name : 'bloqueado'}`)
     b.addEventListener('click', () => { nivelActual = i; marcarElegido() })
     fila.appendChild(b)
@@ -1243,7 +1281,7 @@ function pintarNiveles () {
 }
 
 function marcarElegido () {
-  const { superados } = cargarProgreso()
+  const { superados, rangos } = cargarProgreso()
   const fichas = [...elNiveles.querySelector('.nivel-fila').children]
   for (const [i, b] of fichas.entries()) b.classList.toggle('elegida', i === nivelActual)
 
