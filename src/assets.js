@@ -3,6 +3,7 @@ import { brilla } from './systems/resplandor.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { seg as lados, CON_OCLUSION, CON_ADORNOS, FUNDE_TONOS } from './systems/detalle.js'
 
 // ---------------------------------------------------------------------------
 // PUNTO DE CAMBIO DE MODELOS
@@ -58,12 +59,28 @@ function geo (key, make) {
   return geoCache.get(key)
 }
 
-const box = (w, h, d, r = 0.02, seg = 2) =>
-  geo(`rb${w},${h},${d},${r},${seg}`, () => new RoundedBoxGeometry(w, h, d, seg, Math.min(r, w / 2.05, h / 2.05, d / 2.05)))
+// Todas las primitivas pasan sus divisiones por `lados()`, que las recorta según
+// el detalle elegido. Se recorta AQUÍ y no en cada figura porque así ninguna
+// pieza nueva se olvida de hacerlo, y porque el número recortado entra en la
+// clave de caché.
+const box = (w, h, d, r = 0.02, s = 2) => {
+  const v = lados(s, 1)
+  return geo(`rb${w},${h},${d},${r},${v}`, () => new RoundedBoxGeometry(w, h, d, v, Math.min(r, w / 2.05, h / 2.05, d / 2.05)))
+}
 
-const cap = (r, len, cs = 5, rs = 12) => geo(`c${r},${len},${cs},${rs}`, () => new THREE.CapsuleGeometry(r, len, cs, rs))
-const ball = (r, w = 14, h = 10) => geo(`s${r},${w},${h}`, () => new THREE.SphereGeometry(r, w, h))
-const tube = (rt, rb, h, s = 10) => geo(`y${rt},${rb},${h},${s}`, () => new THREE.CylinderGeometry(rt, rb, h, s))
+const cap = (r, len, cs = 5, rs = 12) => {
+  // La cápsula gasta anillos x radios: recortar los dos multiplica el ahorro.
+  const a = lados(cs, 2); const b = lados(rs, 5)
+  return geo(`c${r},${len},${a},${b}`, () => new THREE.CapsuleGeometry(r, len, a, b))
+}
+const ball = (r, w = 14, h = 10) => {
+  const a = lados(w, 5); const b = lados(h, 4)
+  return geo(`s${r},${a},${b}`, () => new THREE.SphereGeometry(r, a, b))
+}
+const tube = (rt, rb, h, s = 10) => {
+  const v = lados(s, 5)
+  return geo(`y${rt},${rb},${h},${v}`, () => new THREE.CylinderGeometry(rt, rb, h, v))
+}
 // Perfil girado: sirve para torsos, cascos y cualquier volumen orgánico que no
 // se pueda sacar de una cápsula.
 //
@@ -71,11 +88,13 @@ const tube = (rt, rb, h, s = 10) => geo(`y${rt},${rb},${h},${s}`, () => new THRE
 // de arriba abajo sale con las normales hacia dentro y la pieza se vuelve
 // invisible desde fuera — así se perdieron los cascos, que estaban ahí pero
 // renderizados del revés. Se normaliza aquí para que dé igual cómo se escriba.
-const lathe = (key, pts, seg = 16) =>
-  geo(`l${key}`, () => {
+const lathe = (key, pts, s = 16) => {
+  const v = lados(s, 6)
+  return geo(`l${key},${v}`, () => {
     const ordered = pts[0][1] > pts[pts.length - 1][1] ? [...pts].reverse() : pts
-    return new THREE.LatheGeometry(ordered.map(([x, y]) => new THREE.Vector2(x, y)), seg)
+    return new THREE.LatheGeometry(ordered.map(([x, y]) => new THREE.Vector2(x, y)), v)
   })
+}
 
 const shade = (hex, f) => new THREE.Color(hex).multiplyScalar(f).getHex()
 const jitterColor = (hex, amount) => {
@@ -161,7 +180,11 @@ function cocerAO (geos, esferas) {
 
 // Junta las piezas quietas en una malla por material: sin esto cada soldado
 // serían casi cien llamadas de dibujo y el móvil se arrastraría.
-export function bake (parts, ao = true) {
+export function bake (parts, quiereAO = true) {
+  // En detalle bajo no se cuece la oclusión: son unos seis milisegundos por
+  // figura y un color por vértice en toda la malla. Se nota al colocar soldados,
+  // que es justo el momento en que el móvil viejo se traba.
+  const ao = quiereAO && CON_OCLUSION
   parts.updateMatrixWorld(true)
   const byMat = new Map()
   const todas = []
@@ -181,8 +204,11 @@ export function bake (parts, ao = true) {
       esferas.push(esfera)
       todas.push({ g, i: esferas.length - 1, esfera })
     }
-    if (!byMat.has(o.material)) byMat.set(o.material, [])
-    byMat.get(o.material).push(g)
+    const clave = FUNDE_TONOS ? familia(o.material) : o.material
+    if (!byMat.has(clave)) byMat.set(clave, { material: o.material, lista: [], origen: new Set() })
+    const grupo = byMat.get(clave)
+    grupo.lista.push(g)
+    grupo.origen.add(o.material)
   })
 
   // El coste va con vértices × piezas. En un soldado son unos ocho mil por
@@ -190,7 +216,7 @@ export function bake (parts, ao = true) {
   if (ao) cocerAO(todas, esferas)
 
   const out = new THREE.Group()
-  for (const [material, list] of byMat) {
+  for (const { material, lista: list, origen } of byMat.values()) {
     const mesh = new THREE.Mesh(list.length > 1 ? mergeGeometries(list, false) : list[0],
       ao ? materialAO(material) : material)
     // Lo plano y transparente (marcas del asfalto) no debe proyectar sombra.
@@ -200,10 +226,42 @@ export function bake (parts, ao = true) {
     mesh.receiveShadow = true
     // De qué material salió: es la única forma de volver a encontrar una pieza
     // concreta —el cañón, por ejemplo— después de haber fundido noventa en cinco.
+    // Geometría propia de esta figura, no una de la caché compartida: se puede
+    // soltar sin dejar sin cuerpo a las demás.
+    mesh.userData.fundida = true
     mesh.userData.baseMat = material
+    // Con la fusión, un dibujo puede venir de varios materiales: hay que poder
+    // encontrar la pieza por cualquiera de ellos.
+    mesh.userData.baseMats = origen
     out.add(mesh)
   }
   return out
+}
+
+// Un soldado sale de `bake` con veinticinco materiales, o sea veinticinco
+// llamadas de dibujado por figura; con el tablero lleno eran mil trescientas.
+// Pero muchos de esos veinticinco son el mismo caqui con medio tono de
+// diferencia: correa, funda, cantimplora, cinchas. A setenta píxeles de alto esa
+// diferencia no existe, así que en detalle bajo se agrupan por color redondeado
+// y las cuatro piezas acaban en un solo dibujo.
+//
+// No entran en la fusión: lo transparente (se ordena aparte), lo que emite luz
+// (lo lee el resplandor) y lo que esté marcado `solo` — el cañón, que se calienta
+// cambiando SU material y teñiría de rojo a todo lo que estuviera fundido con él.
+const TRAMO = 0.14
+function familia (m) {
+  if (m.transparent || m.userData?.solo) return m
+  if (m.emissive && (m.emissive.r || m.emissive.g || m.emissive.b)) return m
+  const q = c => Math.round(c / TRAMO)
+  return `f${q(m.color.r)},${q(m.color.g)},${q(m.color.b)},${Math.round(m.roughness * 3)},${Math.round(m.metalness * 2)}`
+}
+
+// Detalle que solo se aprecia de cerca. Se monta igual que `piece`, pero en
+// detalle bajo no se monta: son piezas de dos centímetros —una vértebra, una
+// vena, un jirón— que a la distancia de juego son un píxel, y cada una cuesta
+// vértices y una entrada más en la fusión de materiales.
+function adorno (...args) {
+  return CON_ADORNOS ? piece(...args) : null
 }
 
 function piece (parent, geometry, material, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0) {
@@ -296,6 +354,9 @@ function buildWeapon (key) {
   const canonMat = new THREE.MeshStandardMaterial({
     color: 0x141619, roughness: 0.3, metalness: 0.6, emissive: 0x000000
   })
+  // Fuera de la fusión de tonos: al calentarse cambia su emisivo, y fundido con
+  // el resto del arma pondría al rojo la culata y el cargador con él.
+  canonMat.userData.solo = true
   const steel = mat(0x24272c, 0.30, 0.75)
   const black = mat(0x141619, 0.3, 0.6)
   const polymer = mat(0x2f3a33, 0.72, 0.05)
@@ -419,7 +480,7 @@ function buildWeapon (key) {
   g.userData.muzzleZ = { sniper: -1.1, shotgun: -0.7, archer: -0.7, gunner: -1.02, flamer: -0.72, mortar: -0.4 }[key] ?? -0.88
   // La malla del cañón, para poder calentarla. `bake` clona el material al
   // activarle el color por vértice, así que se busca por el original.
-  g.userData.canon = g.children.find(c => c.userData.baseMat === canonMat) ?? null
+  g.userData.canon = g.children.find(c => c.userData.baseMats.has(canonMat)) ?? null
 
   // Puerto de expulsión: por aquí salen los casquillos. Antes salían por la boca
   // del cañón, que es por donde sale la bala, no la vaina.
@@ -610,7 +671,7 @@ function placeholderSoldier (key, spec) {
       piece(statics, cap(0.055, 0.52, 4, 8), clothDark, 0, 1.26, 0.25, 0, 0, 0.95)     // manta enrollada
       piece(statics, box(0.09, 0.09, 0.62, 0.03), gearDark, -0.02, 1.20, 0.27, 0.35)   // funda del rifle
       for (let i = 0; i < 6; i++) {
-        piece(statics, box(0.035, 0.17, 0.02, 0.008), mat(shade(spec.accent, 1.2), 0.97),
+        adorno(statics, box(0.035, 0.17, 0.02, 0.008), mat(shade(spec.accent, 1.2), 0.97),
           -0.11 + i * 0.044, 1.05, 0.28, 0.2)                                          // tiras de camuflaje
       }
     } else if (key === 'gunner') {
@@ -689,7 +750,7 @@ function placeholderSoldier (key, spec) {
       // Una de cada cuatro tiras trepa a la coronilla: rompe la cúpula lisa, que
       // es la superficie que la cámara ve más de plano. Cero piezas nuevas.
       const alto = i % 4 === 0
-      piece(headParts, box(0.035, 0.19, 0.025, 0.01), mat(shade(spec.accent, 1.2), 0.97),
+      adorno(headParts, box(0.035, 0.19, 0.025, 0.01), mat(shade(spec.accent, 1.2), 0.97),
         Math.cos(a) * 0.18, alto ? 0.14 : -0.2 - (i % 3) * 0.05, Math.sin(a) * 0.18, 0.24, a, 0)
     }
   } else if (heavy) {
@@ -715,7 +776,7 @@ function placeholderSoldier (key, spec) {
       ], 14), faenaOsc, 0, 0.02, 0)
       for (let i = 0; i < 5; i++) {                                        // jirones de camuflaje
         const a = (i / 5) * Math.PI * 2 + 0.4
-        piece(headParts, box(0.03, 0.1, 0.02, 0.008), faena,
+        adorno(headParts, box(0.03, 0.1, 0.02, 0.008), faena,
           Math.cos(a) * 0.17, 0.05, Math.sin(a) * 0.17, 0.3, a, 0)
       }
     }
@@ -938,20 +999,20 @@ function placeholderZombie (spec) {
   for (let i = 0; i < 9; i++) {
     const a = (i / 9) * Math.PI * 2
     const r = (bulky ? 0.26 : 0.17)
-    piece(trunk, box(0.06, 0.14 + rnd() * 0.12, 0.02, 0.008), i % 2 ? rags : ragsAlt,
+    adorno(trunk, box(0.06, 0.14 + rnd() * 0.12, 0.02, 0.008), i % 2 ? rags : ragsAlt,
       Math.cos(a) * r, 0.24 - rnd() * 0.1, Math.sin(a) * r * 0.9, rnd() * 0.4, a, (rnd() - 0.5) * 0.5)
   }
 
   // costillar y clavículas al aire por el costado abierto
   for (let i = 0; i < 4; i++) {
-    piece(trunk, cap(0.019, 0.2, 3, 8), bone, 0.05, 0.3 + i * 0.075, -0.12, 0, 0, Math.PI / 2 + 0.14)
+    adorno(trunk, cap(0.019, 0.2, 3, 8), bone, 0.05, 0.3 + i * 0.075, -0.12, 0, 0, Math.PI / 2 + 0.14)
   }
   piece(trunk, ball(0.09, 10, 8), gore, -0.1, 0.36, -0.14).scale.set(1, 1.3, 0.6)   // herida abierta
   for (const side of [-1, 1]) {
     piece(trunk, cap(0.016, 0.13, 3, 6), bone, side * 0.09, 0.55, -0.09, 0, 0, Math.PI / 2 + side * 0.35)
   }
   // vértebras marcadas en la espalda
-  for (let i = 0; i < 6; i++) piece(trunk, ball(0.026, 8, 6), fleshDark, 0, 0.24 + i * 0.065, 0.13)
+  for (let i = 0; i < 6; i++) adorno(trunk, ball(0.026, 8, 6), fleshDark, 0, 0.24 + i * 0.065, 0.13)
 
   // --- lo que no es humano ----------------------------------------------------
   // Cristales de espora saliendo de la espalda y el hombro. Son lo primero que
@@ -973,7 +1034,7 @@ function placeholderZombie (spec) {
 
   // Venas de espora recorriendo el pecho: la cosa respirando bajo la piel.
   for (let i = 0; i < 5; i++) {
-    piece(trunk, cap(0.012, 0.07 + rnd() * 0.09, 3, 5), sporeDim,
+    adorno(trunk, cap(0.012, 0.07 + rnd() * 0.09, 3, 5), sporeDim,
       (rnd() - 0.5) * 0.24, 0.24 + rnd() * 0.3, -0.13, rnd() * 0.5, 0, (rnd() - 0.5) * 1.4)
   }
 

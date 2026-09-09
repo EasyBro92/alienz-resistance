@@ -11,6 +11,7 @@ import { createAmbient } from './systems/ambient.js'
 import { createAudio } from './audio.js'
 import { createUI } from './ui.js'
 import { renderPortraits } from './portraits.js'
+import { NIVEL_DETALLE } from './systems/detalle.js'
 import { cargarProgreso, superarNivel, nivelJugable, RANGOS, rangoDe, campañaCompleta } from './systems/progreso.js'
 import { crearResplandor, marcarBrillo } from './systems/resplandor.js'
 import { crearGolpes } from './systems/golpes.js'
@@ -1135,6 +1136,12 @@ function volverAlInforme () {
 
 // --- ajustes de calidad -------------------------------------------------------
 const elCalidadOps = document.getElementById('calidad-ops')
+// La calidad tiene dos mitades. La resolución, las sombras y el resplandor
+// cuestan por píxel y se cambian en caliente. Pero cuántos lados tiene cada
+// pieza y cuántos adornos lleva se decide al CONSTRUIR la figura, y una figura
+// ya construida no se rehace sola — rehacer las veintiuna daría justo el tirón
+// que se quiere evitar. Así que ese lado del ajuste entra al recargar, y hay que
+// decirlo en vez de dejar al jugador pensando que no ha pasado nada.
 const elCalidadPie = document.getElementById('calidad-pie')
 const elAjustesValor = document.getElementById('ajustes-valor')
 
@@ -1162,6 +1169,15 @@ function pintarCalidad () {
   }
   const actual = OPCIONES.find(o => o[0] === elegida)
   elCalidadPie.textContent = actual?.[2] ?? ''
+  const nivelPedido = elegida === 'auto' ? NIVEL_DETALLE : elegida
+  if (nivelPedido !== NIVEL_DETALLE) {
+    const aviso = document.createElement('span')
+    aviso.className = 'ajuste-aviso'
+    aviso.innerHTML = 'El detalle de las figuras se aplica al recargar. ' +
+      '<button type="button" class="ajuste-recarga">Recargar ahora</button>'
+    aviso.querySelector('button').addEventListener('click', () => location.reload())
+    elCalidadPie.appendChild(aviso)
+  }
   // En automático se enseña además en qué escalón está ahora mismo, que es la
   // única forma de saber si el móvil está dando de sí o va justo.
   elAjustesValor.textContent = elegida === 'auto'

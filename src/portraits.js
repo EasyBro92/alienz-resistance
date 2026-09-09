@@ -17,8 +17,25 @@ import { buildSoldierMesh, buildSandbagsMesh, buildZombieMesh } from './assets.j
 //
 // Coste: veintiún renders de 176x220 una sola vez al arrancar, reutilizando el
 // renderer del juego. Cero coste por fotograma.
+//
+// Pero veintiuna figuras seguidas son medio segundo de hilo principal, y en un
+// móvil viejo pasa del medio segundo: el menú se quedaba tieso justo al entrar.
+// Entre retrato y retrato se cede el hilo al navegador, así que el menú responde
+// desde el primer momento y las fichas se van llenando solas. Y al terminar cada
+// figura se suelta su geometría: son mallas fundidas, únicas, que si no se
+// quedan ocupando memoria de vídeo para siempre por una foto ya hecha.
 const ANCHO = 176
 const ALTO = 220
+
+// Un fotograma de respiro. Sin esto los `await` de dentro del bucle solo ceden a
+// microtareas, que se ejecutan sin dejar pintar: el hilo seguía bloqueado.
+const respirar = () => new Promise(r => requestAnimationFrame(() => r()))
+
+function soltar (raiz) {
+  // Solo lo que salió de `bake`. El resto de piezas usan geometrías de la caché
+  // compartida, y soltar una dejaría sin cuerpo a todas las figuras del tablero.
+  raiz.traverse(o => { if (o.isMesh && o.userData.fundida) o.geometry.dispose() })
+}
 
 export async function renderPortraits (renderer) {
   const escena = new THREE.Scene()
@@ -82,6 +99,8 @@ export async function renderPortraits (renderer) {
     destino.set(clave, lienzo.toDataURL('image/png'))
 
     escena.remove(malla)
+    soltar(malla)
+    await respirar()
   }
 
   for (const [clave, spec] of Object.entries(SOLDIERS)) {

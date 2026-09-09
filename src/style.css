@@ -808,6 +808,25 @@ html, body {
   text-align: left;
 }
 
+/* El detalle de las figuras solo entra al recargar, y hay que decirlo donde se
+   toca el ajuste, no en ningún otro sitio. */
+.ajuste-aviso {
+  display: block;
+  margin-top: 6px;
+  color: var(--verde-texto);
+  opacity: 1;
+}
+.ajuste-recarga {
+  margin-left: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /* ---------- la historia en tres viñetas ---------- */
 /* Cada momento es un dibujo, una fecha y una línea. En una pantalla de móvil
    caben los tres en fila; por debajo de 380 px se apilan, porque un dibujo de

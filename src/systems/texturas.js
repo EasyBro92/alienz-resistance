@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { DETALLE } from './detalle.js'
 
 // Texturas dibujadas por código al arrancar. Ni un archivo de imagen: la regla
 // del proyecto es que todo sea procedural, y además una textura generada se
@@ -10,7 +11,11 @@ import * as THREE from 'three'
 // leyéndose plano; es la normal la que mete la piedra del asfalto dentro de la
 // escena.
 
-const LADO = 512
+// Generar las cuatro texturas de 512 cuesta 149 ms, y son cuatro píxeles de
+// trabajo por cada uno de 256. El asfalto se ve en escorzo y repetido veintidós
+// veces a lo largo de la carretera: a la mitad de lado nadie nota la diferencia,
+// y el arranque se acorta en más de cien milisegundos.
+const LADO = DETALLE > 0.7 ? 512 : 256
 
 // --- ruido -------------------------------------------------------------------
 // Ruido de valor con envoltura: la rejilla se toma en módulo, así que el borde

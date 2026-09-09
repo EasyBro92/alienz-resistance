@@ -95,6 +95,15 @@ export function crearCalidad ({ renderer, sun, resplandor, effects, alCambiar })
       renderer.shadowMap.needsUpdate = true
     }
 
+    // Se apunta el escalón al que ha llegado el ajuste automático. La calidad de
+    // dibujado se cambia en caliente, pero cuánta geometría lleva cada figura se
+    // decide al construirla: si este móvil ha acabado en «baja» hoy, mañana
+    // conviene construir ya en bajo desde el principio, sin esperar a que se
+    // trabe otra vez para descubrirlo. Lo lee `detalle.js` al arrancar.
+    if (preferencia === 'auto') {
+      try { localStorage.setItem('alienz-detalle-v1', clave) } catch { /* modo privado */ }
+    }
+
     resplandor.activo = n.resplandor
     effects.setDensidad?.(n.particulas)
     alCambiar?.()
