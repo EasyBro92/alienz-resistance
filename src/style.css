@@ -258,7 +258,11 @@ html, body {
   text-transform: uppercase; color: var(--verde-texto); opacity: 0.55;
 }
 
+/* La tienda se desliza en horizontal y el arrastre al tablero es vertical:
+   `pan-x` le deja al navegador el deslizamiento de la tienda y nos deja a
+   nosotros el gesto hacia el campo, que si no se lo queda él como scroll. */
 .card {
+  touch-action: pan-x;
   flex: 0 0 auto;
   position: relative;
   overflow: hidden;
@@ -825,6 +829,30 @@ html, body {
   color: inherit;
   text-decoration: underline;
   cursor: pointer;
+}
+
+/* Lo que va colgado del dedo mientras se arrastra una carta al tablero. Sin
+   esto el gesto es invisible: la carta se queda en su sitio y lo único que
+   cambia es el resaltado de una casilla al fondo, que el propio pulgar tapa. */
+.fantasma {
+  position: fixed;
+  left: 0; top: 0;
+  z-index: 90;
+  /* El -50%/-150% lo sube por encima del dedo: pegado al punto de contacto lo
+     tapa la mano y no se lee. */
+  transform: translate(-50%, -150%);
+  padding: 7px 13px;
+  border: 1px solid var(--u-tint, #8fbf5a);
+  border-radius: 999px;
+  background: #0d1117ee;
+  color: var(--u-tint, #8fbf5a);
+  font-size: 12px; font-weight: 800; letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: 0 6px 20px #0009;
+  /* No debe interceptar el puntero: está justo debajo del dedo y se comería el
+     `pointerup` que decide la casilla. */
+  pointer-events: none;
 }
 
 /* ---------- la historia en tres viñetas ---------- */

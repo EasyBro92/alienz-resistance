@@ -103,7 +103,38 @@ const ui = createUI({
     ui.clearSelection()
     world.setSlotsVisible(true)
   },
-  onDeselect () { world.setSlotsVisible(false) }
+  onDeselect () { world.setSlotsVisible(false) },
+
+  // Llevar una carta directamente a su casilla, sin pasar por la colocación
+  // automática. El gesto lo detecta la tienda —es ahí donde empieza— y aquí solo
+  // se resuelve contra el tablero.
+  onArrastreCarta (item, fase, e) {
+    if (!running || pausado) return
+    if (fase === 'inicio') {
+      moving = null
+      ui.closeInspector()
+      world.setSlotsVisible(true)
+      return
+    }
+    if (fase === 'mueve') {
+      // Fuera del lienzo no hay casilla, y eso también es información: el
+      // resaltado se apaga y se ve que soltar ahí no coloca nada.
+      const c = casillaBajoDedo(e, canvas.getBoundingClientRect())
+      if (!c) return world.resaltarSlot(-1, -1, false)
+      world.resaltarSlot(c.lane, c.row, !occupied.has(slotKey(c.lane, c.row)))
+      return
+    }
+
+    world.setSlotsVisible(false)
+    if (fase === 'cancela') return
+
+    const c = casillaBajoDedo(e, canvas.getBoundingClientRect())
+    // Soltar sobre la tienda o fuera del tablero cancela sin cobrar. Es la
+    // salida del gesto: si te arrepientes a medias, sueltas donde no hay casilla.
+    if (!c) return
+    if (occupied.has(slotKey(c.lane, c.row))) return audio.denied()
+    place(item, c.lane, c.row)
+  }
 })
 
 economy.onChange(v => ui.setCoins(v))
@@ -194,8 +225,20 @@ function mejorHueco (item) {
   // detrás, donde tardan más en tenerlos encima. Con alcances de 15 a 44 llegan
   // igual de lejos desde la última fila.
   const filas = item.spec.blocker ? [3, 2, 1, 0] : [0, 1, 2, 3]
-  for (const { lane } of orden) {
-    for (const row of filas) {
+
+  // La FILA manda sobre el carril, y esto es lo que estaba al revés.
+  //
+  // Antes se elegía el mejor carril y se rellenaba esa columna entera antes de
+  // pasar al siguiente: por un carril caliente salían tres seguidos, uno detrás
+  // de otro, mientras los carriles de al lado seguían vacíos. La puntuación de
+  // amenaza llega a +2 y cada pieza solo descontaba 0,65, así que un carril con
+  // la horda encima ganaba tres veces seguidas por mucho que se le penalizara.
+  //
+  // Ahora no se pasa de fila hasta que la fila está llena. Dentro de una fila
+  // sigue mandando la amenaza —el primero va donde más falta hace—, pero el
+  // segundo ya no puede ponerse detrás del primero habiendo hueco al lado.
+  for (const row of filas) {
+    for (const { lane } of orden) {
       if (!occupied.has(slotKey(lane, row))) return { lane, row }
     }
   }
@@ -466,22 +509,33 @@ function updateCorpses (dt) {
   }
 }
 
-// A quién le dispara cada uno. Por defecto, al más adelantado del carril: el que
-// está a punto de cruzar es el que importa. Dos unidades no siguen esa regla, y
-// es justo lo que las hace valer su precio.
+// A quién le dispara cada uno.
 //
-// Los huéspedes marcados como anchos (Coloso y jefe) ocupan tanto que también
-// les disparan desde los carriles de al lado; si no, al jefe solo lo pelea una
-// columna de cinco soldados y es imbatible.
+// El alcance era una distancia SOLO en z, y encima el objetivo tenía que estar
+// en el mismo carril: un fusilero con un huésped a dos metros en el carril de al
+// lado se quedaba mirando al frente sin disparar, que es de lo primero que chirría
+// cuando lo ves. Ahora el alcance es un radio de verdad y se puede disparar a
+// cualquiera que esté dentro.
+//
+// Pero con eso solo, veinte soldados concentran todo el fuego en el que va más
+// adelantado y dejan su propio carril sin cubrir: se gana por acumulación y el
+// tablero deja de tener carriles. Así que el carril propio manda — se dispara
+// fuera SOLO cuando en el propio no hay nadie a tiro. Nadie se queda quieto
+// habiendo blancos, y nadie abandona lo que tiene encima.
 function alcanzables (soldier) {
-  const lista = []
+  const propio = []
+  const fuera = []
   for (const z of zombies) {
     if (z.dead || z.intocable) continue
-    if (Math.abs(z.lane - soldier.lane) > (z.spec.wide ? 1 : 0)) continue
-    if (Math.abs(z.z - soldier.pz) > soldier.spec.range) continue
-    lista.push(z)
+    const dx = z.mesh.position.x - soldier.px
+    const dz = z.z - soldier.pz
+    if (Math.hypot(dx, dz) > soldier.spec.range) continue
+    // Los anchos (Coloso y jefe) ocupan tanto que cuentan como propios también
+    // desde los carriles de al lado: si no, al jefe solo lo pelea una columna.
+    const suyo = Math.abs(z.lane - soldier.lane) <= (z.spec.wide ? 1 : 0)
+    ;(suyo ? propio : fuera).push(z)
   }
-  return lista
+  return propio.length ? propio : fuera
 }
 
 function pickTarget (soldier) {
@@ -595,7 +649,7 @@ function soldierFire (soldier, target) {
   if (spec.flame) {
     const z0 = soldier.pz
     for (const z of zombies) {
-      if (z === target || z.dead || z.lane !== soldier.lane) continue
+      if (z === target || z.dead || z.lane !== target.lane) continue
       if (z0 - z.z > spec.range || z.z > z0) continue
       z.hurt(soldier.damage, pierce)
     }

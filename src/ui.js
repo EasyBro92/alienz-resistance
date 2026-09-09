@@ -53,7 +53,7 @@ export function buildCatalog (abiertas = cartasAbiertas()) {
   return items
 }
 
-export function createUI ({ onSelect, onUpgrade, onMove, onDeselect }) {
+export function createUI ({ onSelect, onUpgrade, onMove, onDeselect, onArrastreCarta }) {
   const el = {
     coins: document.getElementById('coins'),
     coinValue: document.getElementById('coin-value'),
@@ -73,6 +73,66 @@ export function createUI ({ onSelect, onUpgrade, onMove, onDeselect }) {
     overlay: document.getElementById('overlay'),
     mute: document.getElementById('mute')
   }
+
+  // --- arrastrar desde la tienda ----------------------------------------------
+  // Tocar la carta coloca sola donde más falta hace, y para el noventa por
+  // ciento de las compras eso es lo que quieres. Pero cuando SÍ sabes dónde lo
+  // quieres, tener que colocarlo y arrastrarlo después son dos gestos para una
+  // intención. Ahora la carta se puede llevar directamente a su casilla.
+  //
+  // Es el mismo umbral que separa un toque de un arrastre sobre un soldado ya
+  // puesto: por debajo, el temblor de un pulgar convertiría en arrastre cada
+  // compra y no se podría comprar tocando.
+  const UMBRAL_CARTA = 12
+  let gesto = null
+  // El `pointerup` que termina un arrastre va seguido de un `click` sobre la
+  // carta. Sin esta marca, soltar en una casilla colocaba uno ahí Y otro donde
+  // la colocación automática quisiera.
+  let veniaDeArrastre = false
+
+  const fantasma = document.createElement('div')
+  fantasma.className = 'fantasma'
+  fantasma.hidden = true
+  document.body.appendChild(fantasma)
+
+  function moverFantasma (e) {
+    // Con `left`/`top` y no con `transform`: el transform lo usa el CSS para
+    // subir la etiqueta por encima del dedo, y escribirlo aquí lo borraría.
+    fantasma.style.left = e.clientX + 'px'
+    fantasma.style.top = e.clientY + 'px'
+  }
+
+  window.addEventListener('pointermove', e => {
+    if (!gesto) return
+    if (!gesto.activo) {
+      if (Math.hypot(e.clientX - gesto.x0, e.clientY - gesto.y0) < UMBRAL_CARTA) return
+      gesto.activo = true
+      selected = null
+      refreshSelection()
+      fantasma.textContent = CORTO[gesto.item.key] ?? gesto.item.spec.name
+      fantasma.style.setProperty('--u-tint', hex(gesto.item.spec.color ?? TINTE_APOYO[gesto.item.key] ?? 0x8fbf5a))
+      fantasma.hidden = false
+      onArrastreCarta?.(gesto.item, 'inicio', e)
+    }
+    moverFantasma(e)
+    onArrastreCarta?.(gesto.item, 'mueve', e)
+  })
+
+  function acabarGesto (e, cancelado) {
+    if (!gesto) return
+    const g = gesto
+    gesto = null
+    fantasma.hidden = true
+    if (!g.activo) return             // fue un toque: lo resuelve el `click`
+    veniaDeArrastre = true
+    // El `click` llega justo después, en esta misma tanda; se limpia en cuanto
+    // el navegador vuelve a respirar.
+    setTimeout(() => { veniaDeArrastre = false }, 0)
+    onArrastreCarta?.(g.item, cancelado ? 'cancela' : 'suelta', e)
+  }
+
+  window.addEventListener('pointerup', e => acabarGesto(e, false))
+  window.addEventListener('pointercancel', e => acabarGesto(e, true))
 
   const catalog = buildCatalog()
   const cards = new Map()
@@ -126,7 +186,18 @@ export function createUI ({ onSelect, onUpgrade, onMove, onDeselect }) {
       <span class="card-cost"><i class="coin-dot xs"></i>${item.cost}</span>
       <span class="card-meter"></span>`
 
+    // Solo tropa y barreras se pueden arrastrar: un ataque aéreo se dirige
+    // tocando el sitio, y una mejora no va a ninguna casilla.
+    if (item.type === 'soldier' || item.type === 'defense') {
+      card.addEventListener('pointerdown', e => {
+        if (purse < item.cost) return
+        if (e.pointerType === 'mouse' && e.button !== 0) return
+        gesto = { item, x0: e.clientX, y0: e.clientY, activo: false }
+      })
+    }
+
     card.addEventListener('click', () => {
+      if (veniaDeArrastre) return
       // Sin biomasa no se selecciona: antes se podía elegir, tocar el carril y
       // solo entonces oír el rechazo, lejos de donde se había pulsado.
       if (purse < item.cost) {
