@@ -57,7 +57,9 @@
     #carga-relleno {
       display: block; height: 100%; width: 0;
       border-radius: 999px;
-      background: #fff;
+      /* `currentColor`, no blanco: sobre el fondo crema del tema claro una barra
+         blanca no se ve, que es justo cuando más falta hace. */
+      background: currentColor;
       transition: width .3s ease;
     }
     #carga-paso {
@@ -123,6 +125,123 @@
     <symbol id="i-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5v14M15 5v14"/></symbol>
     <symbol id="i-ajustes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.6v2.6M12 18.8v2.6M21.4 12h-2.6M5.2 12H2.6M18.6 5.4l-1.8 1.8M7.2 16.8l-1.8 1.8M18.6 18.6l-1.8-1.8M7.2 7.2 5.4 5.4"/></symbol>
     <symbol id="i-mute" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z"/><path stroke="var(--u-tint)" d="m16 9.5 5 5m0-5-5 5"/></symbol>
+
+    <!-- ============ los seis tramos ============ -->
+    <!-- La ficha de nivel era un número y una letra, y el detalle tres líneas de
+         texto: seis sitios con nombre propio —el enlace, el nido, la bajada de
+         los álamos— que no se distinguían de un vistazo. Cada uno tiene ahora su
+         silueta.
+
+         Todo con `currentColor` y opacidades, así el mismo dibujo vale para el
+         tema oscuro y el claro sin duplicar nada. Y en los seis está la misma
+         carretera yéndose al horizonte: es el mismo viaje, tramo a tramo.
+
+         La línea del horizonte va en y=26 y NO hay suelo relleno debajo. Con un
+         bloque macizo abajo, el degradado que funde el dibujo con el texto se
+         comía justo la carretera y quedaba un cuadrado gris. -->
+    <symbol id="esc-1" viewBox="0 0 120 40">
+      <!-- Kilómetro 12: carretera abierta y nada más. Es el primer tramo, y lo
+           que lo define es que aún no hay nada que lo defina. -->
+      <path opacity=".34" d="M54 26h12l20 14H34z"/>
+      <path opacity=".8" d="M59.5 28h1v2.4h-1zM59.2 32.4h1.6v3.2h-1.6z"/>
+      <g opacity=".8" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round">
+        <!-- El brazo va curvado hacia la calzada. Recto y en ángulo, las farolas
+             se leían como corchetes. -->
+        <path d="M32 26V13q0-3.4 4-3.6l3.4-.2"/>
+        <path d="M84 26V10q0-3.2-3.6-3.4l-3 -.2"/>
+      </g>
+      <g opacity=".85">
+        <rect x="97" y="12" width="10" height="8" rx="1.4"/>
+        <path stroke="currentColor" stroke-width="1.4" d="M102 20v6"/>
+      </g>
+      <path opacity=".45" d="M0 25.4h120v1.2H0z"/>
+    </symbol>
+
+    <symbol id="esc-2" viewBox="0 0 120 40">
+      <!-- Enlace norte: un paso elevado cruzando por encima. La carretera pasa
+           por debajo, que es de donde salen los que saltan. -->
+      <path opacity=".34" d="M54 26h12l20 14H34z"/>
+      <path opacity=".8" d="M59.5 28h1v2.4h-1zM59.2 32.4h1.6v3.2h-1.6z"/>
+      <g opacity=".85">
+        <path d="M6 10h108v4.6H6z"/>
+        <path d="M22 14.6h5.4V26H22zM92.6 14.6H98V26h-5.4z"/>
+        <path opacity=".5" d="M6 6.6h108v1.6H6z"/>
+      </g>
+      <path opacity=".45" d="M0 25.4h120v1.2H0z"/>
+    </symbol>
+
+    <symbol id="esc-3" viewBox="0 0 120 40">
+      <!-- El nido: el asfalto reventado y lo que creció encima. La carretera ya
+           no llega al horizonte, se la come el cráter. -->
+      <path opacity=".22" d="M54 26h12l20 14H34z"/>
+      <path opacity=".85" d="M38 26c4-5 40-5 44 0z"/>
+      <g opacity=".9">
+        <path d="M45 26c-1.4-8 1.4-13.4 3.6-16 1.4 5 .4 11.4 1.4 16zM70 26c2.4-10 6.6-14.6 9.6-16.6-1 6.6-3.4 12-3.4 16.6zM58.6 26c0-12 3-17.6 5.2-20.6 1.2 7.6-1 15.2-1 20.6z"/>
+        <circle cx="48.6" cy="8.4" r="2.4"/><circle cx="63.8" cy="4.2" r="2.8"/><circle cx="79.6" cy="8.2" r="2.2"/>
+      </g>
+      <path opacity=".45" d="M0 25.4h120v1.2H0z"/>
+    </symbol>
+
+    <symbol id="esc-4" viewBox="0 0 120 40">
+      <!-- Bajada de los álamos: la hilera de árboles altos y finos a los dos
+           lados, y la carretera cayendo entre ellos. -->
+      <path opacity=".34" d="M55 26h10l21 14H34z"/>
+      <path opacity=".8" d="M59.5 28h1v2.4h-1zM59.2 32.4h1.6v3.2h-1.6z"/>
+      <!-- Un álamo es casi todo copa: una hoja estrecha y altísima sobre un
+           tronco corto. Con rectángulos de tapa redonda parecían postes, que es
+           exactamente lo que hay en el tramo 1. Alturas desiguales para que sea
+           una hilera y no una valla. -->
+      <!-- Copa rellena y tronco aparte. El tronco iba dentro del mismo `path`
+           como un segmento suelto, y un segmento sin trazo no se dibuja: los
+           árboles salían flotando. -->
+      <g opacity=".85">
+        <path d="M14 17c-2.2-2-2.6-9.4 0-13.6 2.6 4.2 2.2 11.6 0 13.6zM13.3 15h1.4v11h-1.4z"/>
+        <path d="M30.6 19c-2-1.8-2.4-8.4 0-12.2 2.4 3.8 2 10.4 0 12.2zM29.9 17h1.4v9h-1.4z"/>
+        <path d="M44.4 21c-1.6-1.4-1.9-6.6 0-9.6 1.9 3 1.6 8.2 0 9.6zM43.8 19h1.2v7h-1.2z"/>
+        <path d="M106 16c-2.4-2.2-2.8-10.2 0-14.8 2.8 4.6 2.4 12.6 0 14.8zM105.3 14h1.4v12h-1.4z"/>
+        <path d="M89.4 19c-2-1.8-2.4-8.4 0-12.2 2.4 3.8 2 10.4 0 12.2zM88.7 17h1.4v9h-1.4z"/>
+        <path d="M75.6 21c-1.6-1.4-1.9-6.6 0-9.6 1.9 3 1.6 8.2 0 9.6zM75 19h1.2v7H75z"/>
+      </g>
+      <path opacity=".45" d="M0 25.4h120v1.2H0z"/>
+    </symbol>
+
+    <symbol id="esc-5" viewBox="0 0 120 40">
+      <!-- Área de servicio: la marquesina con sus surtidores y la tienda al
+           fondo. Aquí es donde la espora dejó de improvisar. -->
+      <path opacity=".34" d="M55 26h10l21 14H34z"/>
+      <path opacity=".8" d="M59.5 28h1v2.4h-1zM59.2 32.4h1.6v3.2h-1.6z"/>
+      <g opacity=".85">
+        <path d="M72 8h40v4.4H72z"/>
+        <path d="M76 12.4h3V26h-3zM105 12.4h3V26h-3z"/>
+        <rect x="83" y="19" width="4.4" height="7" rx="1.2"/>
+        <rect x="96" y="19" width="4.4" height="7" rx="1.2"/>
+      </g>
+      <g opacity=".6">
+        <path d="M6 26V14h24v12z"/>
+        <path opacity=".55" d="M10 17.6h6v4.4h-6zM21 17.6h6v4.4h-6z"/>
+      </g>
+      <path opacity=".45" d="M0 25.4h120v1.2H0z"/>
+    </symbol>
+
+    <symbol id="esc-6" viewBox="0 0 120 40">
+      <!-- Kilómetro cero: donde cayó. La nodriza sobre la carretera con el haz
+           abierto. No queda nadie detrás. -->
+      <path opacity=".2" d="M52 26h16l18 14H34z"/>
+      <!-- El haz: es lo que dice que la nave está soltando algo ahí abajo. Con
+           la nave en macizo negro y sin haz, era una mancha. -->
+      <path opacity=".26" d="M46 15h28l16 11H30z"/>
+      <g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+        <ellipse cx="60" cy="12.6" rx="26" ry="5.4"/>
+        <path d="M49 7.6a11.4 11.4 0 0 1 22 0"/>
+      </g>
+      <g opacity=".9">
+        <circle cx="44" cy="13.4" r="1.7"/><circle cx="60" cy="14.2" r="1.7"/><circle cx="76" cy="13.4" r="1.7"/>
+      </g>
+      <g opacity=".5">
+        <path d="M10 26V12h4.4v14zM106 26V15.4h4.4V26z"/>
+      </g>
+      <path opacity=".45" d="M0 25.4h120v1.2H0z"/>
+    </symbol>
   </defs></svg>
 
   <div id="app">
@@ -171,6 +290,7 @@
          propia como la de pausa, para no tener que reconstruir el informe. -->
     <div id="parte-capa" class="overlay parte-capa hidden">
       <div class="panel panel-parte">
+        <svg class="parte-escena" id="parte-escena" viewBox="0 0 120 40" aria-hidden="true"><use href="#esc-1"></use></svg>
         <p class="eyebrow" id="parte-lugar"></p>
         <h2 id="parte-nombre"></h2>
         <div class="parte-texto" id="parte-texto"></div>

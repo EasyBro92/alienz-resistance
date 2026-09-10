@@ -831,6 +831,19 @@ html, body {
   cursor: pointer;
 }
 
+/* El tramo en el parte de operaciones: la misma silueta, en grande, encabezando
+   la pantalla que se lee justo antes de bajar. */
+.parte-escena {
+  display: block;
+  width: calc(100% + 40px);
+  margin: -20px -20px 10px;
+  height: 96px;
+  color: var(--green);
+  fill: currentColor;
+  -webkit-mask-image: linear-gradient(#000 76%, transparent);
+  mask-image: linear-gradient(#000 76%, transparent);
+}
+
 /* Lo que va colgado del dedo mientras se arrastra una carta al tablero. Sin
    esto el gesto es invisible: la carta se queda en su sitio y lo único que
    cambia es el resaltado de una casilla al fondo, que el propio pulgar tapa. */
@@ -1053,6 +1066,23 @@ html, body {
   border-radius: 12px;
   background: rgba(95,217,122,0.07);
   text-align: left;
+}
+/* El tramo dibujado. Va pegado al borde superior del recuadro, sin margen a los
+   lados, para que se lea como un paisaje visto desde dentro del informe y no
+   como un icono metido en una caja. El degradado inferior lo funde con el texto:
+   sin él, el borde recto del dibujo corta la ficha en dos mitades. */
+.nivel-escena {
+  display: block;
+  width: calc(100% + 24px);
+  margin: -9px -12px 6px;
+  height: 54px;
+  color: var(--green);
+  /* Explícito: un <path> sin `fill` se rellena de NEGRO, no del color de texto,
+     y los seis tramos salían en negro sobre negro. `fill` se hereda, así que
+     desde aquí entra en el contenido del <use>. */
+  fill: currentColor;
+  -webkit-mask-image: linear-gradient(#000 74%, transparent);
+  mask-image: linear-gradient(#000 74%, transparent);
 }
 .nivel-detalle b { font-size: 14px; letter-spacing: 0.3px; }
 .nivel-lugar {

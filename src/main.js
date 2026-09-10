@@ -24,10 +24,11 @@ const effects = createEffects(scene, camera)
 const economy = createEconomy(scene)
 // El ambiente vive aunque la partida esté parada: en el menú también sopla viento.
 const ambient = createAmbient(scene)
-// La nave vive fuera de la partida: se queda oculta hasta que el director avisa.
-const dropship = createDropship()
-scene.add(dropship.group)
 const audio = createAudio()
+// La nave vive fuera de la partida: se queda oculta hasta que el director avisa.
+// Va después del sonido porque le pasa un aviso por cada tramo de la secuencia.
+const dropship = createDropship(fase => audio.nave(fase))
+scene.add(dropship.group)
 const golpes = crearGolpes(scene, effects, audio)
 
 // Resplandor selectivo. Se crea después del mundo y la nave para que ya estén
@@ -1444,7 +1445,13 @@ function marcarElegido () {
   const total = nivel.waves.length
   const conJefe = nivel.waves.some(w => w.boss)
   const abre = (nivel.desbloquea ?? []).length
+  // El tramo, dibujado. No hace falta esconderlo en los cerrados: sus fichas
+  // están desactivadas, así que un nivel que no se puede jugar tampoco puede
+  // llegar hasta aquí.
   document.getElementById('nivel-detalle').innerHTML = `
+    <svg class="nivel-escena" viewBox="0 0 120 40" aria-hidden="true">
+      <use href="#esc-${nivelActual + 1}"></use>
+    </svg>
     <b>${nivelActual + 1} · ${nivel.name}</b>
     <span class="nivel-lugar">${nivel.lugar}</span>
     <em>${nivel.resumen}</em>
@@ -1468,6 +1475,10 @@ const elParteCapa = document.getElementById('parte-capa')
 
 function abrirParte (indice) {
   const n = NIVELES[indice]
+  // El mismo dibujo que en la ficha, pero aquí en grande: es la pantalla que se
+  // lee antes de bajar, y la primera imagen del sitio al que vas.
+  const escena = document.getElementById('parte-escena')
+  if (escena) escena.firstElementChild.setAttribute('href', '#esc-' + (indice + 1))
   document.getElementById('parte-lugar').textContent = n.lugar ?? ''
   document.getElementById('parte-nombre').textContent = n.name
   document.getElementById('parte-texto').innerHTML =

@@ -160,6 +160,113 @@ export function createAudio () {
       })
     },
 
+    // La nave de desembarco, por fases.
+    //
+    // Es lo más grande que pasa en pantalla y era lo único que pasaba en
+    // silencio: bajaba trece metros, apoyaba, abría una compuerta y volvía a
+    // subir sin hacer ruido. Con sonido, además, se oye venir la oleada antes de
+    // verla —la nave avisa con 3,4 segundos de antelación—, así que da tiempo a
+    // levantar la vista del arsenal.
+    nave (fase) {
+      play(() => {
+        const t = ctx.currentTime
+        if (fase === 'bajando') {
+          // Zumbido grave que se acerca: dos osciladores desafinados entre sí,
+          // que es lo que hace que "bata" en vez de sonar a pitido de horno.
+          for (const [hz, det] of [[42, 0], [42, 1.6]]) {
+            const o = ctx.createOscillator()
+            o.type = 'sawtooth'
+            o.frequency.setValueAtTime(hz + det, t)
+            o.frequency.linearRampToValueAtTime(hz * 1.5 + det, t + 2.4)
+            const f = ctx.createBiquadFilter()
+            f.type = 'lowpass'
+            f.frequency.setValueAtTime(180, t)
+            f.frequency.linearRampToValueAtTime(620, t + 2.4)
+            const g = ctx.createGain()
+            g.gain.setValueAtTime(0.0001, t)
+            g.gain.exponentialRampToValueAtTime(0.3, t + 1.9)
+            g.gain.exponentialRampToValueAtTime(0.0001, t + 2.55)
+            o.connect(f).connect(g).connect(sfxGain)
+            o.start(t); o.stop(t + 2.6)
+          }
+          return
+        }
+
+        if (fase === 'posada') {
+          // El golpe de las patas contra el asfalto y el polvo que levanta: un
+          // seno que se desploma y una ráfaga de ruido filtrada encima.
+          const o = ctx.createOscillator()
+          o.type = 'sine'
+          o.frequency.setValueAtTime(120, t)
+          o.frequency.exponentialRampToValueAtTime(34, t + 0.5)
+          const g = ctx.createGain()
+          env(g, 0.8, 0.006, 0.55)
+          o.connect(g).connect(sfxGain)
+          o.start(t); o.stop(t + 0.7)
+
+          const src = ctx.createBufferSource()
+          src.buffer = noiseBuffer(0.9)
+          const f = ctx.createBiquadFilter()
+          f.type = 'bandpass'
+          f.frequency.setValueAtTime(1400, t)
+          f.frequency.exponentialRampToValueAtTime(320, t + 0.8)
+          const ng = ctx.createGain()
+          env(ng, 0.3, 0.03, 0.8)
+          src.connect(f).connect(ng).connect(sfxGain)
+          src.start(t); src.stop(t + 1)
+          return
+        }
+
+        if (fase === 'rampa') {
+          // Servo hidráulico: un tono que sube despacio mientras la compuerta
+          // baja, y un chasquido metálico al llegar al asfalto.
+          const o = ctx.createOscillator()
+          o.type = 'square'
+          o.frequency.setValueAtTime(70, t)
+          o.frequency.linearRampToValueAtTime(128, t + 0.9)
+          const f = ctx.createBiquadFilter()
+          f.type = 'lowpass'; f.frequency.value = 900
+          const g = ctx.createGain()
+          g.gain.setValueAtTime(0.0001, t)
+          g.gain.exponentialRampToValueAtTime(0.12, t + 0.08)
+          g.gain.setValueAtTime(0.12, t + 0.82)
+          g.gain.exponentialRampToValueAtTime(0.0001, t + 1)
+          o.connect(f).connect(g).connect(sfxGain)
+          o.start(t); o.stop(t + 1.05)
+
+          const golpe = ctx.createOscillator()
+          golpe.type = 'triangle'
+          golpe.frequency.setValueAtTime(240, t + 0.95)
+          golpe.frequency.exponentialRampToValueAtTime(90, t + 1.15)
+          const gg = ctx.createGain()
+          gg.gain.setValueAtTime(0.0001, t + 0.95)
+          gg.gain.exponentialRampToValueAtTime(0.34, t + 0.965)
+          gg.gain.exponentialRampToValueAtTime(0.0001, t + 1.3)
+          golpe.connect(gg).connect(sfxGain)
+          golpe.start(t + 0.95); golpe.stop(t + 1.35)
+          return
+        }
+
+        if (fase === 'subiendo') {
+          // Se va: el zumbido al revés, subiendo de tono y alejándose.
+          const o = ctx.createOscillator()
+          o.type = 'sawtooth'
+          o.frequency.setValueAtTime(64, t)
+          o.frequency.exponentialRampToValueAtTime(150, t + 2.6)
+          const f = ctx.createBiquadFilter()
+          f.type = 'lowpass'
+          f.frequency.setValueAtTime(700, t)
+          f.frequency.exponentialRampToValueAtTime(150, t + 2.6)
+          const g = ctx.createGain()
+          g.gain.setValueAtTime(0.0001, t)
+          g.gain.exponentialRampToValueAtTime(0.22, t + 0.25)
+          g.gain.exponentialRampToValueAtTime(0.0001, t + 2.7)
+          o.connect(f).connect(g).connect(sfxGain)
+          o.start(t); o.stop(t + 2.8)
+        }
+      })
+    },
+
     // Pausa. Dos cosas a la vez, y las dos hacen falta.
     //
     // El sonido: un golpe seco que BAJA de tono al parar y SUBE al seguir. Es la

@@ -232,7 +232,11 @@ function baliza (padre, lista, M, x, y, z, fase) {
   lista.push(b)
 }
 
-export function createDropship () {
+// `alFase` avisa de cada tramo de la secuencia: bajando, posada, rampa,
+// subiendo. Se pasa desde fuera en vez de que la nave llame al sonido ella
+// misma, porque una entidad que solo sabe de geometría y de tiempos es la que se
+// puede probar sin montar medio juego alrededor.
+export function createDropship (alFase) {
   const group = new THREE.Group()
   group.visible = false
 
@@ -390,6 +394,7 @@ export function createDropship () {
       if (estado === 'bajando' || estado === 'rampa' || estado === 'abierta') return
       vestir(jefe ? FLOTA.length - 1 : (n - 1) % (FLOTA.length - 1))
       estado = 'bajando'
+      alFase?.('bajando')
       t = 0
       despedida = false
       group.visible = true
@@ -429,7 +434,14 @@ export function createDropship () {
           const resto = Math.max(0, 1 - t / T_BAJADA)
           group.rotation.z = Math.sin(t * 3.1) * 0.05 * resto
           group.rotation.x = Math.sin(t * 2.3 + 1) * 0.035 * resto
-          if (t >= T_BAJADA) { estado = 'rampa'; t = 0; group.rotation.set(0, 0, 0); tPolvo = 0 }
+          if (t >= T_BAJADA) {
+            estado = 'rampa'
+            // Dos avisos en el mismo instante: el golpe de las patas y el
+            // servo de la compuerta, que empieza a abrir acto seguido.
+            alFase?.('posada')
+            alFase?.('rampa')
+            t = 0; group.rotation.set(0, 0, 0); tPolvo = 0
+          }
           break
         }
         case 'rampa': {
@@ -445,7 +457,7 @@ export function createDropship () {
         case 'cerrando': {
           const k = Math.min(1, t / T_RAMPA)
           bisagra.rotation.x = ABIERTA + (CERRADA - ABIERTA) * easeInOut(k)
-          if (k >= 1) { estado = 'subiendo'; t = 0 }
+          if (k >= 1) { estado = 'subiendo'; alFase?.('subiendo'); t = 0 }
           break
         }
         case 'subiendo': {
