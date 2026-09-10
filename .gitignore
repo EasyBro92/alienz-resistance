@@ -4,3 +4,8 @@ dev-dist
 
 # Archivos de estudio: pruebas sueltas que no forman parte del juego.
 _*.html
+
+# Claves de API (Meshy y lo que venga). El archivo se queda en tu máquina: una
+# clave subida a un repositorio público hay que darla por quemada y rehacerla.
+.env
+.env.local
