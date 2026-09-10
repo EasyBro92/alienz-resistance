@@ -522,18 +522,37 @@ function updateCorpses (dt) {
 // tablero deja de tener carriles. Así que el carril propio manda — se dispara
 // fuera SOLO cuando en el propio no hay nadie a tiro. Nadie se queda quieto
 // habiendo blancos, y nadie abandona lo que tiene encima.
+// Qué parte del alcance sirve para ayudar a OTRO carril. Está medido, no
+// elegido, con el mismo banco de siempre: tres fusileros puestos y ni una moneda
+// más gastada en todo el nivel 1.
+//
+//   solo su carril (como estaba)  · muere en la oleada 4
+//   alcance entero fuera          · gana 5/5 con la base al 82%
+//   0,35 del alcance              · muere 3 de cada 5 veces, y las que aguanta
+//                                   llega a la última oleada con media base
+//
+// Con el alcance entero, un soldado cubría el tablero de lado a lado y el
+// carril dejaba de ser una decisión: se ganaba por acumulación. Con 0,35 cada
+// uno sigue cubriendo su carril ENTERO y además lo que tiene cerca a los lados,
+// que es lo que se pedía —que no se queden mirando al frente con uno a dos
+// metros— sin convertir la línea en una sola masa de fuego.
+const FUERA_DE_CARRIL = 0.35
+
 function alcanzables (soldier) {
   const propio = []
   const fuera = []
+  const alcance = soldier.spec.range
+  const deReojo = alcance * FUERA_DE_CARRIL
   for (const z of zombies) {
     if (z.dead || z.intocable) continue
     const dx = z.mesh.position.x - soldier.px
     const dz = z.z - soldier.pz
-    if (Math.hypot(dx, dz) > soldier.spec.range) continue
+    const d = Math.hypot(dx, dz)
+    if (d > alcance) continue
     // Los anchos (Coloso y jefe) ocupan tanto que cuentan como propios también
     // desde los carriles de al lado: si no, al jefe solo lo pelea una columna.
-    const suyo = Math.abs(z.lane - soldier.lane) <= (z.spec.wide ? 1 : 0)
-    ;(suyo ? propio : fuera).push(z)
+    if (Math.abs(z.lane - soldier.lane) <= (z.spec.wide ? 1 : 0)) propio.push(z)
+    else if (d <= deReojo) fuera.push(z)
   }
   return propio.length ? propio : fuera
 }
