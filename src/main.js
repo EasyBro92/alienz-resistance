@@ -1078,6 +1078,13 @@ function win () {
     ? (nivel.desbloquea ?? []).map(k => (SOLDIERS[k] ?? DEFENSES[k] ?? STRIKES[k] ?? { name: k }).name)
     : []
 
+  // Abrir arsenal es el premio de verdad de la campaña —lo otro es un sello— y
+  // hasta ahora aparecía en silencio, en la misma pantalla y con la misma
+  // presencia que cualquier otra victoria. Va con retraso: el arpegio tiene que
+  // caer cuando la pantalla ya está puesta y el ojo ha llegado al recuadro, no
+  // encima del último disparo de la oleada.
+  if (nuevas.length) setTimeout(() => audio.desbloqueo(), 620)
+
   // Los tres últimos niveles no abren arsenal —ya lo tienes todo—, así que su
   // pantalla de victoria se quedaba en un título y una línea. El rango le da a
   // CADA victoria algo que enseñar, y de paso una razón para repetir un nivel
@@ -1179,6 +1186,10 @@ function pausar (v) {
   // Solo tiene sentido con una partida en curso: en el menú no hay nada que
   // detener, y el botón está tapado por el propio informe.
   if (!running && v) return
+  // Antes de nada: el sonido de la pausa es lo único que confirma el toque
+  // cuando el dedo tapa el botón, y además apaga la música, que se quedaba
+  // sonando alegremente con el juego congelado.
+  audio.pausa(v)
   pausado = v
   elPausaCapa.classList.toggle('hidden', !v)
   elPausa.setAttribute('aria-pressed', v ? 'true' : 'false')
@@ -1534,7 +1545,41 @@ world.resize()
 // Los retratos de la armería se sacan del propio modelo. Va después del primer
 // ajuste de tamaño y sin bloquear el arranque: si algo fallara, las fichas se
 // quedan con el icono del arma y el juego sigue.
-renderPortraits(renderer)
+// --- pantalla de carga --------------------------------------------------------
+// El texto no es decorativo: dice el paso en el que está de verdad. Una barra
+// que avanza sola mientras el móvil se ahoga miente, y en un móvil viejo —que es
+// donde este segundo se nota— la mentira dura tres.
+const elCarga = document.getElementById('carga')
+const elCargaRelleno = document.getElementById('carga-relleno')
+const elCargaPaso = document.getElementById('carga-paso')
+
+function pintarCarga (parte, texto) {
+  if (!elCarga) return
+  elCargaRelleno.style.width = Math.round(parte * 100) + '%'
+  if (texto) elCargaPaso.textContent = texto
+}
+
+function cerrarCarga () {
+  if (!elCarga) return
+  pintarCarga(1, 'Línea preparada')
+  elCarga.classList.add('fuera')
+  // Se quita del árbol al acabar el fundido: dejarlo puesto y transparente
+  // seguiría atrapando el primer toque sobre el botón de jugar.
+  setTimeout(() => elCarga.remove(), 500)
+}
+
+// El tramo ya está levantado —texturas, carretera y luces— cuando llega aquí:
+// lo que queda son las figuras del informe, y de esas sí se sabe cuántas son.
+pintarCarga(0.12, 'Reconociendo el arsenal')
+
+renderPortraits(renderer, (hechas, total) => {
+  // Del 12% al 100%: lo de antes ya está hecho y no se puede volver a contar.
+  pintarCarga(0.12 + (hechas / total) * 0.88)
+})
   .then(({ retratos, amenazas }) => { ui.setPortraits(retratos); pintarAmenazas(amenazas) })
   .catch(err => console.warn('Sin retratos:', err))
+  // Pase lo que pase con los retratos, la pantalla se quita: si fallaran, el
+  // juego sigue con el icono del arma en las fichas, y quedarse tapado detrás de
+  // una pantalla de carga eterna sería mucho peor que unas fichas sin foto.
+  .finally(cerrarCarga)
 requestAnimationFrame(frame)

@@ -7,6 +7,10 @@ export function createAudio () {
   let musicGain = null
   let sfxGain = null
   let musicTimer = null
+  // Filtro fijo en la cadena de la música. En marcha está abierto del todo y no
+  // se nota; al pausar se cierra, y eso es lo que hace que suene "detrás del
+  // cristal" en vez de simplemente bajar de volumen.
+  let musicFilter = null
   let step = 0
   let intensity = 0
   let muted = false
@@ -18,7 +22,11 @@ export function createAudio () {
     master.gain.value = 0.9
     master.connect(ctx.destination)
     sfxGain = ctx.createGain(); sfxGain.gain.value = 0.55; sfxGain.connect(master)
-    musicGain = ctx.createGain(); musicGain.gain.value = 0.22; musicGain.connect(master)
+    musicFilter = ctx.createBiquadFilter()
+    musicFilter.type = 'lowpass'
+    musicFilter.frequency.value = 20000        // abierto: no toca nada
+    musicFilter.connect(master)
+    musicGain = ctx.createGain(); musicGain.gain.value = 0.22; musicGain.connect(musicFilter)
     return ctx
   }
 
@@ -152,6 +160,62 @@ export function createAudio () {
       })
     },
 
+    // Pausa. Dos cosas a la vez, y las dos hacen falta.
+    //
+    // El sonido: un golpe seco que BAJA de tono al parar y SUBE al seguir. Es la
+    // misma información que da el icono, pero llega antes que la vista y sin
+    // mirar, que es lo que se quiere de un botón de pausa.
+    //
+    // Y la música, que se quedaba sonando igual con el juego congelado. Eso se
+    // lee como que la aplicación se ha colgado: todo quieto y la banda sonora
+    // tan tranquila. Se apaga casi del todo y se cierra el filtro, así que queda
+    // un rumor sordo de fondo —sigue habiendo partida, solo que detenida— en vez
+    // de un silencio de "esto se ha muerto".
+    pausa (parando) {
+      play(() => {
+        const t = ctx.currentTime
+        const o = ctx.createOscillator()
+        o.type = 'square'
+        o.frequency.setValueAtTime(parando ? 440 : 220, t)
+        o.frequency.exponentialRampToValueAtTime(parando ? 165 : 470, t + 0.11)
+        const g = ctx.createGain()
+        env(g, 0.2, 0.004, 0.13)
+        o.connect(g).connect(sfxGain)
+        o.start(t); o.stop(t + 0.3)
+      })
+      // Fuera de `play`: si está silenciado no suena nada, pero el estado de la
+      // música tiene que quedar bien igualmente para cuando se quite el silencio.
+      if (!ctx) return
+      const t = ctx.currentTime
+      musicGain.gain.cancelScheduledValues(t)
+      musicGain.gain.setTargetAtTime(parando ? 0.03 : 0.22, t, 0.08)
+      musicFilter.frequency.cancelScheduledValues(t)
+      musicFilter.frequency.setTargetAtTime(parando ? 260 : 20000, t, 0.08)
+    },
+
+    // Arsenal liberado. Un arpegio corto que sube, con la última nota más larga
+    // y algo más brillante: tiene que sonar a recompensa y no confundirse con la
+    // moneda, que suena veinte veces por oleada.
+    desbloqueo () {
+      play(() => {
+        const base = ctx.currentTime
+        const notas = [392, 523.25, 659.25, 783.99]   // sol, do, mi, sol
+        notas.forEach((hz, i) => {
+          const t = base + i * 0.085
+          const ultima = i === notas.length - 1
+          const o = ctx.createOscillator()
+          o.type = ultima ? 'triangle' : 'square'
+          o.frequency.setValueAtTime(hz, t)
+          const g = ctx.createGain()
+          g.gain.setValueAtTime(0.0001, t)
+          g.gain.exponentialRampToValueAtTime(ultima ? 0.26 : 0.16, t + 0.012)
+          g.gain.exponentialRampToValueAtTime(0.0001, t + (ultima ? 0.75 : 0.16))
+          o.connect(g).connect(sfxGain)
+          o.start(t); o.stop(t + (ultima ? 0.9 : 0.25))
+        })
+      })
+    },
+
     // Bucle de tensión: un bajo que late y un acorde que entra según lo apurado
     // que vaya el jugador. `setIntensity(0..1)` lo sube.
     startMusic () {
@@ -189,7 +253,19 @@ export function createAudio () {
       }, 640)
     },
 
-    stopMusic () { clearInterval(musicTimer); musicTimer = null },
+    stopMusic () {
+      clearInterval(musicTimer); musicTimer = null
+      // Se deja la cadena como estaba. Si se sale al informe desde la pausa, la
+      // música de la partida siguiente arrancaría amortiguada y sin volumen.
+      if (!ctx) return
+      // Con automatizaciones pendientes, escribir `.value` a secas se ignora:
+      // hay que cancelarlas y fijar el valor en la línea de tiempo.
+      const t = ctx.currentTime
+      musicGain.gain.cancelScheduledValues(t)
+      musicGain.gain.setValueAtTime(0.22, t)
+      musicFilter.frequency.cancelScheduledValues(t)
+      musicFilter.frequency.setValueAtTime(20000, t)
+    },
     setIntensity (v) { intensity = Math.max(0, Math.min(1, v)) }
   }
 

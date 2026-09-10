@@ -20,8 +20,82 @@
       document.documentElement.dataset.tema = t
     } catch (e) { document.documentElement.dataset.tema = 'oscuro' }
   </script>
+  <style>
+    /* Lo mínimo para que la pantalla de carga se pinte en la PRIMERA pasada. El
+       resto de estilos llegan con el módulo, y para entonces ya no hay nada que
+       tapar. */
+    #carga {
+      position: fixed; inset: 0; z-index: 200;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 22px;
+      background: #0d1117;
+      color: #6fe39a;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      transition: opacity .45s ease;
+    }
+    :root[data-tema="claro"] #carga { background: #e8e4d8; color: #1f6b45; }
+    #carga.fuera { opacity: 0; pointer-events: none; }
+    #carga-marca { width: 92px; height: 88px; }
+    #carga-nombre {
+      margin: 0;
+      font-size: 26px; font-weight: 900; letter-spacing: .16em;
+      color: inherit;
+    }
+    #carga-nombre small {
+      display: block;
+      margin-top: 5px;
+      font-size: 11px; font-weight: 700; letter-spacing: .42em;
+      opacity: .68;
+    }
+    #carga-barra {
+      width: min(230px, 58vw); height: 4px;
+      border-radius: 999px;
+      background: currentColor;
+      opacity: .22;
+      overflow: hidden;
+    }
+    #carga-relleno {
+      display: block; height: 100%; width: 0;
+      border-radius: 999px;
+      background: #fff;
+      transition: width .3s ease;
+    }
+    #carga-paso {
+      margin: 0;
+      min-height: 15px;
+      font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+      opacity: .6;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #carga, #carga-relleno { transition: none; }
+    }
+  </style>
 </head>
 <body>
+  <!-- Pantalla de carga, delante de todo.
+       Levantar el tramo y fotografiar las veintiuna figuras del informe lleva
+       cerca de un segundo, y hasta ahora ese segundo se pasaba en el menú ya
+       montado pero a medio hacer: la cuadrícula de amenazas vacía y las fichas
+       del arsenal sin cara, rellenándose de golpe delante del jugador. Esto lo
+       tapa y, de paso, cuenta lo que está pasando en vez de dar vueltas a una
+       ruedecita que no significa nada. -->
+  <div id="carga">
+    <svg id="carga-marca" viewBox="0 0 52 50" aria-hidden="true">
+      <path fill="currentColor" opacity=".18" d="M17 15h18l9 31H8z"/>
+      <ellipse cx="26" cy="13.5" rx="19" ry="5" fill="none" stroke="currentColor" stroke-width="2.4"/>
+      <path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" d="M19 12a7 7 0 0 1 14 0"/>
+      <g stroke="currentColor" stroke-width="3.4" stroke-linecap="round" fill="none" transform="translate(3.2,0)">
+        <circle cx="21" cy="28.8" r="4.2" fill="currentColor" stroke="none"/>
+        <path d="M22.4 34q-2.3 3.4-1.9 6.4"/>
+        <path d="M22 35.4l9.2-1.9M21.6 37.8l8.8.5"/>
+        <path d="M20.5 40.4 16.8 47M20.5 40.4 25.2 47"/>
+      </g>
+    </svg>
+    <h1 id="carga-nombre">ALIENZ<small>RESISTANCE</small></h1>
+    <div id="carga-barra"><span id="carga-relleno"></span></div>
+    <p id="carga-paso">Levantando el tramo</p>
+  </div>
+
   <!-- Iconografía del juego. Los emoji del sistema los dibujaba el móvil, no
        nosotros: 🪖 era un casco para el Fusilero y 🌪️ un tornado para el
        Ametrallador, y cambiaban entre Android e iOS. Estos van trazados como

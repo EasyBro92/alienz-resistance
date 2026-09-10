@@ -29,7 +29,18 @@ const ALTO = 220
 
 // Un fotograma de respiro. Sin esto los `await` de dentro del bucle solo ceden a
 // microtareas, que se ejecutan sin dejar pintar: el hilo seguía bloqueado.
-const respirar = () => new Promise(r => requestAnimationFrame(() => r()))
+//
+// Y no solo con `requestAnimationFrame`: en una pestaña de fondo el navegador
+// deja de dar fotogramas, así que si alguien abre el juego y se va a otra
+// aplicación mientras carga, el bucle se queda parado para siempre y al volver
+// se encuentra la pantalla de carga colgada a medias. El temporizador es la
+// salida: llega tarde y mal, pero llega.
+const respirar = () => new Promise(r => {
+  let hecho = false
+  const una = () => { if (!hecho) { hecho = true; r() } }
+  requestAnimationFrame(una)
+  setTimeout(una, 60)
+})
 
 function soltar (raiz) {
   // Solo lo que salió de `bake`. El resto de piezas usan geometrías de la caché
@@ -37,7 +48,12 @@ function soltar (raiz) {
   raiz.traverse(o => { if (o.isMesh && o.userData.fundida) o.geometry.dispose() })
 }
 
-export async function renderPortraits (renderer) {
+export async function renderPortraits (renderer, alAvanzar) {
+  // Cuántas figuras hay que fotografiar en total. Se cuenta antes de empezar
+  // para que la barra de carga avance con el número de verdad y no con una
+  // estimación que se quede corta en cuanto se añada una unidad.
+  const total = Object.keys(SOLDIERS).length + Object.keys(DEFENSES).length + Object.keys(ZOMBIES).length
+  let hechas = 0
   const escena = new THREE.Scene()
 
   // Luz propia del retrato, no la del nivel: aquí interesa que se lea la figura,
@@ -100,6 +116,7 @@ export async function renderPortraits (renderer) {
 
     escena.remove(malla)
     soltar(malla)
+    alAvanzar?.(++hechas, total, clave)
     await respirar()
   }
 
