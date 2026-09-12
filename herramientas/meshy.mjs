@@ -141,7 +141,9 @@ if (!o.prompt || !o.nombre) {
     '  --nombre   cómo se llamará el archivo (sin .glb)',
     '  --prompt   la descripción, en inglés: Meshy entiende mejor su idioma',
     '  --polys    polígonos objetivo (por defecto 4000; en pantalla puede haber 40 piezas)',
-    '  --refinar  añade textura PBR. Cuesta créditos aparte.',
+      '  --refinar  añade textura PBR. Cuesta créditos aparte.',
+    '  --persona  figura humanoide: sale en pose A y se le puede poner esqueleto',
+    '  --rig      le monta esqueleto y descarga la versión que anda (exige --persona)',
     '  --saldo    solo consulta el saldo y sale'
   ].join('\n'))
 }
@@ -167,6 +169,10 @@ const previo = await pedir(clave, '/openapi/v2/text-to-3d', {
     ai_model: 'latest',
     should_remesh: true,
     topology: 'triangle',
+    // Pose A solo para figuras humanas. El montador de esqueletos necesita ver
+    // los miembros separados del cuerpo; una figura con los brazos pegados al
+    // costado le sale con el hombro fundido al torso.
+    ...(o.persona ? { pose_mode: 'a-pose' } : {}),
     target_polycount: polys,
     target_formats: ['glb']
   })
@@ -200,8 +206,52 @@ if (o.refinar) {
   console.log('\n2/2  Textura: saltada (usa --refinar para añadirla)')
 }
 
-const url = tarea.model_urls?.glb
+let url = tarea.model_urls?.glb
 if (!url) salir('La tarea terminó bien pero no trae .glb en model_urls.')
+
+// --- esqueleto ---------------------------------------------------------------
+// Aquí está la diferencia entre una pieza de decorado y un personaje. Las
+// figuras del juego se animan moviendo piezas sueltas —brazo, pierna, cabeza—,
+// y una malla de Meshy es una sola pieza: puesta tal cual, el soldado se
+// desliza tieso por el asfalto. El montador de esqueletos le mete huesos y
+// devuelve, además del personaje en reposo, un .glb con la animación de andar
+// DENTRO. Ese es el que se guarda: trae malla, huesos y ciclo en un archivo.
+if (o.rig) {
+  if (!o.refinar) salir('El esqueleto exige textura: usa --refinar junto a --rig.')
+  console.log(String.fromCharCode(10) + '3/3  Esqueleto')
+  const rig = await pedir(clave, '/openapi/v1/rigging', {
+    method: 'POST',
+    body: JSON.stringify({
+      input_task_id: tarea.id ?? previo.result,
+      // La altura de verdad del personaje. No es cosmético: de aquí saca las
+      // proporciones del esqueleto, y con el valor por defecto a un soldado
+      // achaparrado le colocaba las rodillas donde no van.
+      height_meters: Number(o.altura ?? 1.75)
+    })
+  })
+  let t = { status: '' }
+  let ultimo = -1
+  for (;;) {
+    t = await pedir(clave, `/openapi/v1/rigging/${rig.result}`)
+    if (t.progress !== ultimo) {
+      ultimo = t.progress
+      process.stdout.write(`  esqueleto: ${t.status} ${t.progress ?? 0}%   `)
+    }
+    if (t.status === 'SUCCEEDED') { console.log(); break }
+    if (t.status === 'FAILED' || t.status === 'CANCELED') {
+      console.log()
+      salir(`El esqueleto terminó en ${t.status}: ${t.task_error?.message ?? 'sin detalle'}`)
+    }
+    await new Promise(r => setTimeout(r, 5000))
+  }
+  const r = t.result ?? {}
+  url = r.basic_animations?.walking_glb_url ?? r.rigged_character_glb_url
+  if (!url) salir('El esqueleto terminó bien pero no trae .glb utilizable.')
+  // El de reposo también, para poder comparar y para tener la pose de quieto.
+  if (r.rigged_character_glb_url) {
+    await descargar(r.rigged_character_glb_url, path.join(DESTINO, `${o.nombre}-reposo.glb`))
+  }
+}
 
 const destino = path.join(DESTINO, `${o.nombre}.glb`)
 const bytes = await descargar(url, destino)
