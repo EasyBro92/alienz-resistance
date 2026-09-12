@@ -97,6 +97,16 @@ export const DEFENSES = {
     name: 'Alambrada', cost: 80, hp: 150, color: 0x8d949c, accent: 0x4a5058,
     blocker: true, thorns: 14,
     blurb: 'Frena y desangra: cada mordisco que recibe se lo devuelve al zombi.'
+  },
+  // La tercera barrera, y juega distinto a las otras dos. Los sacos aguantan y
+  // la alambrada desangra; esta no aguanta nada —doce puntos de vida, el primer
+  // mordisco se la lleva— pero al caer revienta y se lleva por delante al corro
+  // que tenía encima. Es la respuesta a las hordas apelotonadas de la segunda
+  // mitad de la campaña, donde aguantar ya no basta.
+  mines: {
+    name: 'Carga enterrada', cost: 120, hp: 12, color: 0x6d6a5c, accent: 0xc4622f,
+    blocker: true, revienta: { daño: 260, radio: 3.6 },
+    blurb: 'No aguanta nada. Al romperse revienta y se lleva al corro entero.'
   }
 }
 
@@ -108,6 +118,15 @@ export const STRIKES = {
   airstrike: {
     name: 'Ataque aéreo', cost: 300, damage: 400, radius: 5.5,
     blurb: 'Arrasa una zona. Para cuando ya no llegas.'
+  },
+  // El aéreo mata de golpe y se acabó. Este mata poco y sigue matando: deja el
+  // asfalto ardiendo veinte segundos, así que no resuelve una oleada, la
+  // ESTRANGULA. Contra las hordas largas del final vale más que el golpe seco,
+  // y contra un jefe no vale casi nada. Que elija el jugador.
+  napalm: {
+    name: 'Napalm', cost: 260, damage: 90, radius: 4.6,
+    brasas: { daño: 46, dura: 20, radio: 4.2 },
+    blurb: 'Poco golpe y mucho rato: deja la calzada ardiendo veinte segundos.'
   }
 }
 

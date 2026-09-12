@@ -196,13 +196,15 @@ export function crearGolpes (scene, effects, audio) {
       marca.position.set(destino.x, 0.06, destino.z)
       marca.visible = true
 
-      if (clave === 'airstrike') {
+      // El napalm también lo trae el avión —es una bomba incendiaria, no algo
+      // que se tire a mano—, con el mismo radio de aro que su explosión.
+      if (clave === 'airstrike' || clave === 'napalm') {
         // El avión entra desde el fondo de la carretera y pasa por encima. La
         // bomba se suelta ANTES de llegar, porque una bomba soltada justo
         // encima del blanco caería detrás: lleva la velocidad del avión.
         vuelos.push({
           tipo: 'avion', t: 0, destino, alImpacto,
-          entrada: 1.05, caida: 0.62, radio: 5.5, marca: true
+          entrada: 1.05, caida: 0.62, radio: clave === 'napalm' ? 4.6 : 5.5, marca: true
         })
       } else {
         vuelos.push({

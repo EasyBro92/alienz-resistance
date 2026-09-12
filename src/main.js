@@ -311,6 +311,18 @@ function useStrike (item, point) {
       // Menos daño en el borde: acertar de lleno tiene que valer más que rozar.
       z.hurt(spec.damage * (1 - (d / radio) * 0.45), 1)
     }
+    // El napalm no acaba al explotar: deja la calzada ardiendo. Tres focos en
+    // vez de uno porque una sola brasa de radio 4,2 es un círculo perfecto y se
+    // lee como un decalque; tres solapados se leen como fuego derramado.
+    if (spec.brasas) {
+      brasaEn(spec.brasas, donde)
+      for (let i = 0; i < 2; i++) {
+        brasaEn(spec.brasas, {
+          x: donde.x + (Math.random() - 0.5) * radio,
+          z: donde.z + (Math.random() - 0.5) * radio
+        })
+      }
+    }
   })
 
   ui.clearSelection()
@@ -697,13 +709,18 @@ const brasas = []
 const BRASA_GEO = new THREE.CircleGeometry(1, 14)
 
 function prenderBrasas (soldier, target) {
-  const spec = soldier.spec.brasas
+  brasaEn(soldier.spec.brasas, target.mesh.position)
+}
+
+// El lanzallamas prende donde está su objetivo; el napalm, donde cayó la bomba.
+// Lo que cambia es el punto, así que el punto es el argumento.
+function brasaEn (spec, punto) {
   // Una sola por llamarada, y solo si no hay ya una encendida ahí mismo: sin
   // esto el suelo se cubría de discos superpuestos y el daño se multiplicaba
   // por seis por segundo.
   for (const b of brasas) {
-    if (b.t > 0 && Math.abs(b.malla.position.x - target.mesh.position.x) < 1.2 &&
-        Math.abs(b.malla.position.z - target.mesh.position.z) < 1.2) { b.t = spec.dura; return }
+    if (b.t > 0 && Math.abs(b.malla.position.x - punto.x) < 1.2 &&
+        Math.abs(b.malla.position.z - punto.z) < 1.2) { b.t = spec.dura; return }
   }
 
   let brasa = brasas.find(b => b.t <= 0)
@@ -717,7 +734,7 @@ function prenderBrasas (soldier, target) {
     brasa = { malla, t: 0, lane: 0 }
     brasas.push(brasa)
   }
-  brasa.malla.position.set(target.mesh.position.x, 0.05, target.mesh.position.z)
+  brasa.malla.position.set(punto.x, 0.05, punto.z)
   brasa.malla.scale.setScalar(spec.radio)
   brasa.malla.visible = true
   brasa.t = spec.dura
@@ -1020,6 +1037,16 @@ function simulate (dt) {
         if (z.attackCd <= 0) {
           z.attackCd = 1 / z.spec.attackRate
           blocker.hurt(z.spec.damage)
+          // La carga enterrada no muere: detona. Se mira DESPUÉS del mordisco,
+          // que es cuando puede haber bajado a cero, y antes de que el bucle la
+          // retire — si no, se la llevaría la limpieza sin haber estallado.
+          if (blocker.spec.revienta && blocker.hp <= 0 && !blocker.detonada) {
+            blocker.detonada = true
+            const { daño, radio } = blocker.spec.revienta
+            splashDamage(blocker.mesh.position, radio, daño, 1)
+            effects.burst(blocker.mesh.position, 0xffb03a, 22, 2.4)
+            audio.boom()
+          }
           // La alambrada devuelve parte del mordisco: no dispara, pero desangra.
           if (blocker.spec.thorns) {
             z.hurt(blocker.spec.thorns, 0.5)
