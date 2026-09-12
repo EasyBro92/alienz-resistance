@@ -3,6 +3,11 @@ import { buildSoldierMesh, buildSandbagsMesh } from '../assets.js'
 import { laneX, rowZ } from '../world.js'
 import { createHealthBar } from './healthbar.js'
 
+// Uno solo para todos los soldados: esto se usa seis veces por figura y por
+// fotograma, y crear un cuaternión cada vez es basura que recoger cuarenta
+// veces por segundo.
+const _giro = new THREE.Quaternion()
+
 let nextId = 1
 
 // Repertorio de gestos de espera. Cada uno recibe `k` (0 → 1 → 0, una campana)
@@ -96,16 +101,16 @@ export async function createSoldier (key, spec, lane, row) {
   // apagarlo daba un tirón en la pierna cada vez que se le mandaba mover,
   // porque la animación arrancaba de su primer fotograma en vez de seguir
   // donde estaba.
-  let mezclador = null
-  let paso = null
-  if (mesh.userData.clips?.length) {
-    mezclador = new THREE.AnimationMixer(mesh)
-    paso = mezclador.clipAction(mesh.userData.clips[0])
-    paso.play()
-    paso.setEffectiveWeight(0)
-    // Cada figura entra por un punto distinto del ciclo: si no, cinco soldados
-    // andando cruzan el tablero como un desfile, con el mismo pie a la vez.
-    paso.time = Math.random() * (mesh.userData.clips[0].duration || 1)
+  // Los huesos que el bucle mueve a través de sus mandos. Se recogen una vez:
+  // buscarlos cada fotograma sería recorrer el esqueleto entero cuarenta veces
+  // por segundo.
+  const mandos = []
+  if (mesh.userData.animado) {
+    const ud = mesh.userData
+    for (const m of [...Object.values(ud.limbs), ud.head]) {
+      if (m?.userData.hueso) mandos.push(m)
+      if (m?.userData.lower?.userData.hueso) mandos.push(m.userData.lower)
+    }
   }
 
   const bar = createHealthBar(1.4, spec.blocker ? 1.6 : 2.45)
@@ -216,15 +221,11 @@ export async function createSoldier (key, spec, lane, row) {
       this.bar.face(camera, dt)
       this.idle += dt
 
-      if (mezclador) {
-        mezclador.update(dt)
-        // Se persigue el valor en vez de saltar a él: un soldado que arranca a
-        // andar tarda dos décimas en meter el paso, que es lo que tarda una
-        // persona. El salto seco se veía como un parpadeo.
-        const quiere = this.andando ? 1 : 0
-        const w = paso.getEffectiveWeight()
-        paso.setEffectiveWeight(w + (quiere - w) * Math.min(1, dt * 7))
-      }
+      // Los mandos se ponen a cero al empezar el fotograma. El bucle escribe
+      // sumando sobre lo que haya —`rotation.x += ...` en media docena de
+      // sitios—, así que sin limpiar se acumularía hasta darle la vuelta al
+      // brazo en tres segundos.
+      for (const m of mandos) m.rotation.set(0, 0, 0)
 
       const ud = this.mesh.userData
       const limbs = ud.limbs
@@ -485,6 +486,21 @@ export async function createSoldier (key, spec, lane, row) {
         this.flashTime = Math.max(0, this.flashTime - dt)
         flash.visible = this.flashTime > 0
         if (flash.visible) flash.scale.set(1 + Math.random() * 0.5, 1 + Math.random() * 0.5, 1.8)
+      }
+
+      // Y ahora, al hueso. Lo último del fotograma, cuando ya está escrito todo:
+      // el encare, el paso, el retroceso del disparo y el gesto que toque.
+      //
+      // Se compone POR LA DERECHA —reposo × desvío— y no al revés. El desvío
+      // está en el sistema del propio hueso: doblar el codo es girar sobre el
+      // eje X DEL BRAZO, no sobre el X del mundo. Multiplicando al otro lado,
+      // el codo se doblaría hacia donde mire el personaje y los brazos salían
+      // disparados en cuanto el soldado giraba a encarar un carril de al lado.
+      for (const m of mandos) {
+        const h = m.userData.hueso
+        h.quaternion.copy(m.userData.reposo).multiply(
+          _giro.setFromEuler(m.rotation)
+        )
       }
     },
 

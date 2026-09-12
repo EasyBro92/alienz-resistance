@@ -53,21 +53,55 @@ async function loadModel (url) {
   return copia
 }
 
-// Un miembro de mentira: un nudo con su `lower` dentro, igual que los de la
-// figura procedural, pero sin nada colgando.
+// Un mando a distancia para un hueso.
 //
-// El bucle de `soldier.js` posa brazos y piernas en CADA fotograma —encare,
-// respiración, reparto del peso, retroceso—, y esos modelos no tienen miembros
-// que posar: los mueve el esqueleto con su animación. En vez de sembrar el
-// bucle de condicionales (y de olvidarse de una, y de que reviente al mover un
-// soldado en mitad de una oleada), se le da dónde escribir. Escribe al vacío,
-// no cuesta nada, y el bucle sigue siendo uno solo para las dos clases de figura.
-function miembroFantasma () {
+// El bucle de `soldier.js` posa brazos y piernas en CADA fotograma: el encare,
+// el retroceso del disparo, la respiración, el reparto del peso de una pierna a
+// otra, los gestos. Todo eso es lo que hace que un soldado parezca vivo, y está
+// escrito contra la figura de piezas: escribe ángulos absolutos en `rotation.x`
+// de un miembro que arranca sin girar.
+//
+// A un hueso de verdad no se le puede escribir así. Viene con su orientación de
+// reposo, que es un giro cualquiera en los tres ejes, y meterle un `rotation.x`
+// absoluto lo arranca de sitio: el brazo sale del hombro mirando a otra parte.
+//
+// Así que el bucle escribe en un mando —un objeto suelto que empieza a cero— y
+// al final del fotograma lo que haya escrito se aplica al hueso COMO DESVÍO
+// sobre su reposo. El juego sigue sin saber que hay huesos, y el soldado de
+// Meshy recupera todo lo que hacía el de piezas.
+// Bajar los brazos de la pose A.
+//
+// La figura se pide en pose A —brazos abiertos como una letra A— porque es lo
+// que el montador de esqueletos necesita para reconocer dónde acaba el torso y
+// empieza el brazo. Pero el bucle del juego posa desde una figura con los
+// brazos CAÍDOS, y sus ángulos son pequeños: medio radián arriba o abajo del
+// costado. Sumados sobre una pose A, los soldados se quedaban en cruz, con las
+// manos en alto y el fusil apuntando al cielo.
+//
+// Así que al reposo del hueso se le encadena esta corrección, y a partir de ahí
+// el juego escribe como si la figura tuviera los brazos donde siempre.
+const _aux = new THREE.Quaternion()
+const _eje = new THREE.Vector3(0, 0, 1)
+function bajarBrazo (signo) {
+  return _aux.clone().setFromAxisAngle(_eje, signo * 0.95)
+}
+
+function mandoDeHueso (hueso, huesoLower, ajuste = null) {
   const nudo = new THREE.Object3D()
   const lower = new THREE.Object3D()
   nudo.add(lower)
   nudo.userData.lower = lower
   nudo.userData.restBend = 0
+  if (hueso) {
+    nudo.userData.hueso = hueso
+    const reposo = hueso.quaternion.clone()
+    if (ajuste) reposo.multiply(ajuste)
+    nudo.userData.reposo = reposo
+  }
+  if (huesoLower) {
+    lower.userData.hueso = huesoLower
+    lower.userData.reposo = huesoLower.quaternion.clone()
+  }
   return nudo
 }
 
@@ -145,11 +179,24 @@ async function armarPersona (key, spec, urls) {
 
   g.add(contactShadow(0.85))
 
-  g.userData.limbs = { armL: miembroFantasma(), armR: miembroFantasma(), legL: miembroFantasma(), legR: miembroFantasma() }
-  g.userData.head = miembroFantasma()
-  // Igual que los miembros: el bucle mueve el arma al encarar y al retroceder,
-  // y aquí la mueve el hueso de la mano. Se le da un muñeco donde escribir.
-  g.userData.weapon = miembroFantasma()
+  // Los nombres son los del montador de esqueletos, que usa la convención de
+  // siempre: hombro y antebrazo, muslo y tibia.
+  g.userData.limbs = {
+    // Los signos están medidos sobre el esqueleto, no deducidos: el brazo se
+    // extiende por su +Y local y gira sobre Z, y el rig no es simétrico —al
+    // izquierdo lo baja el giro positivo y al derecho el negativo—. Con los
+    // signos cambiados los soldados salían en cruz, apuntando al cielo.
+    armL: mandoDeHueso(hueso('LeftArm'), hueso('LeftForeArm'), bajarBrazo(1)),
+    armR: mandoDeHueso(hueso('RightArm'), hueso('RightForeArm'), bajarBrazo(-1)),
+    legL: mandoDeHueso(hueso('LeftUpLeg'), hueso('LeftLeg')),
+    legR: mandoDeHueso(hueso('RightUpLeg'), hueso('RightLeg'))
+  }
+  g.userData.head = mandoDeHueso(hueso('Head'), null)
+  // El arma cuelga del hueso de la mano, así que la mueve la mano. El mando
+  // recoge lo que el bucle le escriba —el retroceso, el arma recogida al
+  // andar— y lo aplica al antebrazo de disparo, que es lo que de verdad
+  // levanta el cañón.
+  g.userData.weapon = mandoDeHueso(null, null)
   g.userData.rest = {
     arm: { armL: 0, armR: 0 }, leg: { legL: 0, legR: 0 },
     armBend: { armL: 0, armR: 0 }, legBend: { legL: 0, legR: 0 },
