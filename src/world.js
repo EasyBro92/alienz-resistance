@@ -22,7 +22,7 @@ export function rowFromZ (z) {
 // Pintura y desgaste del asfalto. Todo va tumbado en el suelo y en tonos
 // apagados: tiene que dar textura sin robarle contraste a las unidades, que son
 // lo único que el jugador necesita leer rápido.
-function paintRoad (scene) {
+function paintRoad (scene, pintables) {
   const rand = (a, b) => a + Math.random() * (b - a)
   const half = fieldWidth / 2
 
@@ -33,7 +33,7 @@ function paintRoad (scene) {
   const crackMat = flat(0x3a3733, 0.26)
   const skidMat = flat(0x2b2825, 0.13)
   const stainMat = flat(0x4a1310, 0.2)
-  const paintMat = flat(0xe8dcc0, 0.3)
+  const paintMat = pintables.raya
 
   const put = (mesh, x, z, rotZ = 0, y = 0.014) => {
     mesh.rotation.x = -Math.PI / 2
@@ -426,6 +426,24 @@ export function createWorld (canvas) {
   road.receiveShadow = true
   scene.add(road)
 
+  // Los materiales que cambian con la región. Se crean aquí y se le pasan a
+  // `decorate`, que los usa en vez de inventarse los suyos: así reteñir un
+  // bioma entero es asignar cuatro colores, sin recorrer la escena buscando
+  // mallas ni reconstruir nada. Funciona porque `bake` va sin oclusión y no
+  // clona los materiales — con oclusión los clonaría y esto no valdría.
+  const pintables = {
+    cerro: new THREE.MeshStandardMaterial({ color: 0xb99a72, roughness: 1 }),
+    meseta: new THREE.MeshStandardMaterial({ color: 0xc7ab86, roughness: 1 }),
+    matojo: new THREE.MeshStandardMaterial({ color: 0x9c8a52, roughness: 1 }),
+    piedra: new THREE.MeshStandardMaterial({ color: 0xa39079, roughness: 1 }),
+    // La calzada: lo que se pisa es la mitad de la pantalla, y era idéntica en
+    // Tarragona y en Manaos. La raya va como material básico transparente,
+    // igual que el resto de marcas del asfalto, para que se funda con ellas.
+    raya: new THREE.MeshBasicMaterial({ color: 0xe8dcc0, transparent: true, opacity: 0.3, depthWrite: false }),
+    bordillo: new THREE.MeshStandardMaterial({ color: 0xbdb6a8, roughness: 0.85 }),
+    bordilloOscuro: new THREE.MeshStandardMaterial({ color: 0x8d8578, roughness: 0.9 })
+  }
+
   // A partir de aquí, todo lo que no se mueve se construye dentro de `decor` y
   // se funde al final en un puñado de mallas.
   const decor = new THREE.Group()
@@ -434,8 +452,8 @@ export function createWorld (canvas) {
   // La calzada terminaba en un corte a ras de arena, como una alfombra puesta
   // encima. Un bordillo de diez centímetros con su cara vista es lo que hace que
   // la carretera esté metida en el terreno y no apoyada sobre él.
-  const bordilloMat = new THREE.MeshStandardMaterial({ color: 0xbdb6a8, roughness: 0.85 })
-  const bordilloOscuro = new THREE.MeshStandardMaterial({ color: 0x8d8578, roughness: 0.9 })
+  const bordilloMat = pintables.bordillo
+  const bordilloOscuro = pintables.bordilloOscuro
   for (const side of [-1, 1]) {
     // A trozos, con junta: una viga de 260 metros de largo no es un bordillo.
     for (let z = FIELD.baseZ + 6; z > -132; z -= 3.1) {
@@ -543,19 +561,8 @@ export function createWorld (canvas) {
 
   // Todo el decorado se funde en un puñado de mallas. Suelto eran más de mil
   // piezas y el fotograma se iba a 22 ms: un móvil no lo aguanta.
-  // Los materiales que cambian con la región. Se crean aquí y se le pasan a
-  // `decorate`, que los usa en vez de inventarse los suyos: así reteñir un
-  // bioma entero es asignar cuatro colores, sin recorrer la escena buscando
-  // mallas ni reconstruir nada. Funciona porque `bake` va sin oclusión y no
-  // clona los materiales — con oclusión los clonaría y esto no valdría.
-  const pintables = {
-    cerro: new THREE.MeshStandardMaterial({ color: 0xb99a72, roughness: 1 }),
-    meseta: new THREE.MeshStandardMaterial({ color: 0xc7ab86, roughness: 1 }),
-    matojo: new THREE.MeshStandardMaterial({ color: 0x9c8a52, roughness: 1 }),
-    piedra: new THREE.MeshStandardMaterial({ color: 0xa39079, roughness: 1 })
-  }
   decorate(decor, pintables)
-  paintRoad(decor)
+  paintRoad(decor, pintables)
   // Sin oclusión: son piezas sueltas repartidas por el descampado, no hay
   // rincones entre ellas, y cocerla costaría media carga a cambio de nada.
   scene.add(bake(decor, false))
@@ -675,6 +682,12 @@ export function createWorld (canvas) {
     bioma = clave
 
     sand.material.color.setHex(b.tierra)
+    road.material.color.setHex(b.asfalto)
+    pintables.raya.color.setHex(b.raya)
+    pintables.bordillo.color.setHex(b.bordillo)
+    // El bordillo salpicado va un escalón más oscuro que el suyo, no a un gris
+    // fijo: con un color fijo, sobre el hielo quedaban manchas pardas.
+    pintables.bordilloOscuro.color.setHex(b.bordillo).multiplyScalar(0.74)
     pintables.cerro.color.setHex(b.cerro)
     pintables.meseta.color.setHex(b.meseta)
     // El matojo y la piedra tiran del tono de la tierra: puestos a un color
