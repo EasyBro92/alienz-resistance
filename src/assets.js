@@ -192,15 +192,29 @@ async function armarPersona (key, spec, urls) {
     legR: mandoDeHueso(hueso('RightUpLeg'), hueso('RightLeg'))
   }
   g.userData.head = mandoDeHueso(hueso('Head'), null)
-  // El arma cuelga del hueso de la mano, así que la mueve la mano. El mando
-  // recoge lo que el bucle le escriba —el retroceso, el arma recogida al
-  // andar— y lo aplica al antebrazo de disparo, que es lo que de verdad
-  // levanta el cañón.
-  g.userData.weapon = mandoDeHueso(null, null)
+  // El arma cuelga del hueso de la mano, así que es la mano la que la mueve.
+  //
+  // Aquí estaba lo de "corren con el arma levantada y disparan sin moverse":
+  // el bucle escribe en `weapon` el retroceso de cada disparo y la bajada del
+  // arma al andar —`rotation.x = 0.06 + relax * 0.75`, que es el cañón cayendo
+  // al suelo cuando no hay a quién apuntar—, y ese mando no iba a ninguna parte.
+  // Enganchado a la mano, el arma vuelve a caer al cruzar el descampado y a dar
+  // la patada al disparar.
+  g.userData.weapon = mandoDeHueso(hueso('RightHand'), null)
+  // El reposo del que parte el bucle. Para la figura de piezas son ángulos
+  // absolutos; aquí son DESVÍOS sobre la pose del esqueleto, así que los
+  // números son otros, pero el papel es el mismo: la postura a la que vuelve
+  // el soldado cuando no está haciendo nada.
+  //
+  // Los codos no van a cero. Con los brazos estirados el fusil queda colgando
+  // de una mano a la altura de la cadera; lo que sujeta un arma al pecho es el
+  // codo doblado, y de ahí sale además el sitio por donde el bucle mete el
+  // retroceso y la recarga.
   g.userData.rest = {
-    arm: { armL: 0, armR: 0 }, leg: { legL: 0, legR: 0 },
-    armBend: { armL: 0, armR: 0 }, legBend: { legL: 0, legR: 0 },
+    arm: { armL: 0.1, armR: 0 }, leg: { legL: 0, legR: 0 },
+    armBend: { armL: 0.85, armR: 1.05 }, legBend: { legL: 0, legR: 0 },
     armRoll: { armL: 0, armR: 0 },
+    // El arma la lleva la mano: no hay posición que fijar, solo giro.
     weaponRest: new THREE.Vector3(0, 0, 0), headY: 1.66
   }
   // Estos SÍ son los de verdad: se leen por matriz de mundo al disparar, así que

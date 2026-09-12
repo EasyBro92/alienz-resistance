@@ -107,7 +107,7 @@ export async function createSoldier (key, spec, lane, row) {
   const mandos = []
   if (mesh.userData.animado) {
     const ud = mesh.userData
-    for (const m of [...Object.values(ud.limbs), ud.head]) {
+    for (const m of [...Object.values(ud.limbs), ud.head, ud.weapon]) {
       if (m?.userData.hueso) mandos.push(m)
       if (m?.userData.lower?.userData.hueso) mandos.push(m.userData.lower)
     }
