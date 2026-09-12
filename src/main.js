@@ -11,6 +11,7 @@ import { createAmbient } from './systems/ambient.js'
 import { createAudio } from './audio.js'
 import { createUI } from './ui.js'
 import { renderPortraits } from './portraits.js'
+import { pintarMapa } from './mapa.js'
 import { NIVEL_DETALLE } from './systems/detalle.js'
 import { cargarProgreso, superarNivel, nivelJugable, ESTRELLAS, estrellasDe, estrellasTotales, estrellasQueFaltan, campañaCompleta } from './systems/progreso.js'
 
@@ -1111,16 +1112,16 @@ function win () {
     // Fin de campaña. No es un nivel más superado: es el último, y merece una
     // pantalla que no se parezca a las otras cinco.
     const marcas = NIVELES.map((n, i) => {
-      return `<li>${estrellitas(progreso.rangos[i] ?? 0)}${n.name}</li>`
+      return `<li>${estrellitas(progreso.rangos[i] ?? 0)}${n.name}<small>${n.pais}</small></li>`
     }).join('')
     ui.showOverlay(`
-      <p class="eyebrow">Carretera 7 · informe de cierre</p>
-      <h1>CARRETERA LIMPIA</h1>
-      <p class="tagline">Seis tramos. La siembra no pasó de ninguno.</p>
+      <p class="eyebrow">Mando del búnker · informe de cierre</p>
+      <h1>PLANETA LIMPIO</h1>
+      <p class="tagline">Doce campamentos. No queda ninguno en pie.</p>
       ${sello}
-      <p class="cierre">${nivel.cierre ?? ''} La compañía cobra y levanta el
-      campamento. Pero el túnel del nido sigue bajando, y nadie de los que
-      firmaron aquel contrato sabe hasta dónde.</p>
+      <p class="cierre">${nivel.cierre ?? ''} Los búnkeres abren y la gente
+      empieza a salir. Pero los túneles siguen bajando en los doce sitios, y
+      nadie de los que firmamos aquello sabe hasta dónde.</p>
       <ol class="marcas">${marcas}</ol>
       <button class="big-btn" onclick="location.reload()">VOLVER AL INFORME</button>`)
     return
@@ -1425,33 +1426,32 @@ function pintarNiveles () {
   marcador.innerHTML = `<span class="estrella on">★</span> <b>${total}</b> de ${NIVELES.length * 3}`
   elNiveles.appendChild(marcador)
 
-  const fila = document.createElement('div')
-  fila.className = 'nivel-fila'
-  NIVELES.forEach((nivel, i) => {
-    const abierto = nivelJugable(i, superados, progresoActual)
-    const hecho = i < superados
-    const b = document.createElement('button')
-    b.type = 'button'
-    b.className = 'nivel-ficha'
-    b.disabled = !abierto
-    b.dataset.estado = hecho ? 'hecho' : abierto ? 'abierto' : 'cerrado'
-    // La ficha de un nivel hecho enseña CÓMO se hizo, no solo que se hizo:
-    // una S y una C son la misma victoria pero no la misma partida, y eso da
-    // una razón para volver a un nivel ya superado.
-    // La ficha enseña las estrellas sacadas, no un número de orden: es lo que
-    // dice de un vistazo dónde queda trabajo por hacer. Y si está cerrada por
-    // falta de estrellas, dice CUÁNTAS faltan en vez de un candado mudo.
-    const faltan = abierto ? 0 : estrellasQueFaltan(i, progresoActual)
-    b.innerHTML = hecho
-      ? estrellitas(rangos[i] ?? 0)
-      : abierto ? String(i + 1)
-      : faltan ? `<span class="ficha-peaje">★${faltan}</span>` : '🔒'
-    if (hecho) b.dataset.rango = rangos[i] ?? 0
-    b.setAttribute('aria-label', `Nivel ${i + 1}: ${abierto ? nivel.name : 'bloqueado'}`)
-    b.addEventListener('click', () => { nivelActual = i; marcarElegido() })
-    fila.appendChild(b)
+  // El mapa, en vez de una fila de fichas numeradas.
+  //
+  // Con seis tramos de una misma carretera, una fila de números valía: iban
+  // seguidos y estaban en el mismo sitio. Con doce campamentos repartidos por
+  // el mundo, el número no dice nada y el sitio lo dice todo — que el siguiente
+  // salto es de Grecia a Egipto es media historia contada sin una palabra.
+  const caja = document.createElement('div')
+  caja.className = 'mapa-caja'
+  caja.innerHTML = pintarMapa(NIVELES, i => {
+    if (i < superados) return 'hecho'
+    if (nivelJugable(i, superados, progresoActual)) return 'abierto'
+    return 'cerrado'
+  }, nivelActual)
+  elNiveles.appendChild(caja)
+
+  // Un toque en cualquier parte del grupo, no solo en el círculo de 5 unidades:
+  // en un móvil, acertarle a una chincheta de ese tamaño con el pulgar es
+  // pedirle demasiado a nadie.
+  caja.addEventListener('click', e => {
+    const g = e.target.closest('.pin')
+    if (!g) return
+    const i = Number(g.dataset.i)
+    if (!nivelJugable(i, superados, progresoActual)) { audio.denied(); return }
+    nivelActual = i
+    marcarElegido()
   })
-  elNiveles.appendChild(fila)
 
   const detalle = document.createElement('div')
   detalle.className = 'nivel-detalle'
@@ -1462,9 +1462,11 @@ function pintarNiveles () {
 }
 
 function marcarElegido () {
-  const { superados, rangos } = cargarProgreso()
-  const fichas = [...elNiveles.querySelector('.nivel-fila').children]
-  for (const [i, b] of fichas.entries()) b.classList.toggle('elegida', i === nivelActual)
+  const progresoActual = cargarProgreso()
+  const { rangos } = progresoActual
+  for (const g of elNiveles.querySelectorAll('.pin')) {
+    g.classList.toggle('pin-elegido', Number(g.dataset.i) === nivelActual)
+  }
 
   const nivel = NIVELES[nivelActual]
   const total = nivel.waves.length
@@ -1475,10 +1477,11 @@ function marcarElegido () {
   // llegar hasta aquí.
   document.getElementById('nivel-detalle').innerHTML = `
     <svg class="nivel-escena" viewBox="0 0 120 40" aria-hidden="true">
-      <use href="#esc-${nivelActual + 1}"></use>
+      <use href="#esc-${(nivelActual % 6) + 1}"></use>
     </svg>
-    <b>${nivelActual + 1} · ${nivel.name}</b>
+    <b>${nivel.name}<small>${nivel.pais}</small></b>
     <span class="nivel-lugar">${nivel.lugar}</span>
+    ${nivelActual in rangos ? estrellitas(rangos[nivelActual]) : ''}
     <em>${nivel.resumen}</em>
     <span class="nivel-datos">
       <i>${total} oleadas</i>

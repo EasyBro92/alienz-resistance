@@ -890,6 +890,75 @@ html, body {
   pointer-events: none;
 }
 
+/* ---------- el mapa de la campaña ---------- */
+.mapa-caja {
+  margin: 0 0 10px;
+  border: 2px solid var(--borde-2);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--velo-1);
+}
+.mapa { display: block; width: 100%; height: auto; }
+.mapa-mar { fill: var(--velo-2); }
+/* La rejilla no es decoración: sin ella el mapa parece un dibujo suelto, y con
+   ella se lee como un parte de operaciones, que es lo que es. */
+.mapa-rejilla line { stroke: var(--borde-1); stroke-width: 0.4; }
+.mapa-tierra path {
+  fill: var(--velo-4);
+  stroke: var(--borde-3);
+  stroke-width: 0.6;
+  stroke-linejoin: round;
+}
+/* La ruta, punteada: une los doce destinos en orden y convierte doce chinchetas
+   sueltas en un viaje. Va por debajo de las chinchetas a propósito. */
+.mapa-ruta {
+  fill: none;
+  stroke: var(--verde-texto);
+  stroke-width: 0.9;
+  stroke-dasharray: 3 2.5;
+  opacity: 0.5;
+  stroke-linejoin: round;
+}
+
+.pin { cursor: pointer; }
+/* El aro va RELLENO con el fondo del panel, no hueco. Cinco de los doce
+   destinos estan en el Mediterraneo y sus chinchetas se tocan: huecas se
+   superponian en un borron dorado donde no se distinguia una de otra. Con
+   relleno opaco, cada una se recorta contra la de al lado. */
+.pin-aro { fill: var(--panel-fondo); stroke-width: 1.4; }
+.pin-centro { fill: var(--tinta); }
+.pin-hecho .pin-aro { stroke: #ffcf45; }
+.pin-hecho .pin-centro { fill: #ffcf45; }
+.pin-abierto .pin-aro { stroke: var(--verde-texto); }
+.pin-abierto .pin-centro { fill: var(--verde-texto); }
+/* Cerrado se dibuja, no se esconde: ver los destinos que quedan por delante es
+   la mitad de la gracia de un mapa de campaña. */
+.pin-cerrado { cursor: not-allowed; }
+.pin-cerrado .pin-aro { stroke: var(--tinta-4); }
+.pin-cerrado .pin-centro { fill: var(--tinta-4); }
+.pin-halo {
+  fill: none;
+  stroke: var(--verde-texto);
+  stroke-width: 1.2;
+  opacity: 0.55;
+  animation: pin-late 1.8s ease-in-out infinite;
+}
+@keyframes pin-late {
+  50% { r: 10; opacity: 0.15; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pin-halo { animation: none; }
+}
+
+/* El país, bajo el nombre del destino. */
+.nivel-detalle b small {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--verde-texto);
+}
+
 /* ---------- estrellas ---------- */
 /* La unidad de medida de toda la campaña: el mismo dibujo en la ficha del
    informe, en la pantalla de victoria y en el resumen final. Apagada es el
