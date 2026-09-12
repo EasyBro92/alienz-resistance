@@ -37,6 +37,28 @@ const sitio = (lat, lon) => ({ x: (lon + 180) / 360, y: (90 - lat) / 180 })
 // cuando. Con dos por destino se llevan 2i, y a partir del quinto el peaje pasa
 // de eso: ahí es donde toca volver a un campamento ya limpiado y sacarle la
 // estrella que faltó. Que es justo lo que hace que puedas volver atrás.
+// Qué dibujo le toca a cada destino.
+//
+// Los seis dibujos del informe son escenas de carretera, y con doce destinos
+// repartirlos por orden hacía que Bombay enseñara el kilómetro 12 de Tarragona.
+// Se reparten por TABLA DE OLEADAS, que además informa: dos destinos con el
+// mismo dibujo se juegan igual, y quien haya sufrido Nápoles reconoce de un
+// vistazo que Vladivostok le va a exigir lo mismo.
+const ESCENA = {
+  avanzadilla: 1,   // carretera abierta y nada más: el primer contacto
+  formas: 2,        // el cruce: aquí aparecen maneras nuevas
+  madre: 3,         // el nido: campamento grande y un jefe al fondo
+  contraflujo: 4,   // la bajada: todo llega deprisa
+  colmena: 5,       // el área de servicio: se cosen entre ellos
+  todas: 6          // el kilómetro cero: todo a la vez
+}
+
+// La tabla se guarda por referencia en cada destino, así que el nombre se
+// recupera dando la vuelta al objeto. Preferible a repetir el nombre a mano en
+// los doce, que es una copia más que puede quedarse desfasada.
+const NOMBRE_TABLA = new Map(Object.entries(OLEADAS).map(([nombre, tabla]) => [tabla, nombre]))
+export const escenaDe = destino => ESCENA[NOMBRE_TABLA.get(destino.waves)] ?? 1
+
 export const DESTINOS = [
   {
     name: 'Tarragona',

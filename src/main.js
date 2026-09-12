@@ -12,6 +12,7 @@ import { createAudio } from './audio.js'
 import { createUI } from './ui.js'
 import { renderPortraits } from './portraits.js'
 import { pintarMapa } from './mapa.js'
+import { escenaDe } from './campana.js'
 import { NIVEL_DETALLE } from './systems/detalle.js'
 import { cargarProgreso, superarNivel, nivelJugable, ESTRELLAS, estrellasDe, estrellasTotales, estrellasQueFaltan, campañaCompleta } from './systems/progreso.js'
 
@@ -1477,7 +1478,7 @@ function marcarElegido () {
   // llegar hasta aquí.
   document.getElementById('nivel-detalle').innerHTML = `
     <svg class="nivel-escena" viewBox="0 0 120 40" aria-hidden="true">
-      <use href="#esc-${(nivelActual % 6) + 1}"></use>
+      <use href="#esc-${escenaDe(nivel)}"></use>
     </svg>
     <b>${nivel.name}<small>${nivel.pais}</small></b>
     <span class="nivel-lugar">${nivel.lugar}</span>
@@ -1506,18 +1507,25 @@ function abrirParte (indice) {
   // El mismo dibujo que en la ficha, pero aquí en grande: es la pantalla que se
   // lee antes de bajar, y la primera imagen del sitio al que vas.
   const escena = document.getElementById('parte-escena')
-  if (escena) escena.firstElementChild.setAttribute('href', '#esc-' + (indice + 1))
-  document.getElementById('parte-lugar').textContent = n.lugar ?? ''
+  if (escena) escena.firstElementChild.setAttribute('href', '#esc-' + escenaDe(n))
+  // El país por encima del sitio: lo primero que hay que saber de un parte de
+  // operaciones es a qué parte del mundo te mandan.
+  document.getElementById('parte-lugar').textContent = `${n.pais} · ${n.lugar ?? ''}`
   document.getElementById('parte-nombre').textContent = n.name
   document.getElementById('parte-texto').innerHTML =
     (n.parte ?? [n.resumen ?? '']).map(t => `<p>${t}</p>`).join('')
 
   const oleadas = n.waves.length
   const conJefe = n.waves.some(w => w.boss)
+  const yaSacadas = cargarProgreso().rangos[indice]
   document.getElementById('parte-datos').innerHTML = [
     `<span><b>${oleadas}</b> oleadas</span>`,
     conJefe ? '<span class="dato-jefe"><b>Jefe</b> al final</span>' : '',
-    n.desbloquea?.length ? `<span><b>${n.desbloquea.length}</b> por liberar</span>` : ''
+    n.desbloquea?.length ? `<span><b>${n.desbloquea.length}</b> por liberar</span>` : '',
+    // Volver a un campamento ya limpiado es una jugada legítima —es así como se
+    // pagan los peajes de más adelante—, así que el parte tiene que decir con
+    // qué nota quedó la última vez y cuánto margen queda.
+    yaSacadas ? `<span class="dato-marca">${estrellitas(yaSacadas)}${yaSacadas < 3 ? ' por mejorar' : ' al máximo'}</span>` : ''
   ].filter(Boolean).join('')
 
   elParteCapa.classList.remove('hidden')
