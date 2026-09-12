@@ -14,9 +14,23 @@ import { seg as lados, CON_OCLUSION, CON_ADORNOS, FUNDE_TONOS } from './systems/
 // y decláralo aquí. Ver public/models/LEEME.md.
 // ---------------------------------------------------------------------------
 // Una lista por clave: el juego elige una al azar por figura. Es lo que evita
-// que los cinco fusileros del tablero sean gemelos.
+// que los cinco fusileros del tablero sean gemelos, y es donde entran las
+// mujeres — cada unidad tiene su versión de las dos.
+//
+// El color de la unidad va en el chaleco y el casco, no en un brazalete: a la
+// distancia a la que se juega, un brazalete no existe, y el tablero se lee por
+// el color de cada pieza. Dos manchas de caqui no se distinguen de nada.
+//
+// La clave que no esté aquí sigue con su figura procedural, y el Mortero se
+// queda así a propósito.
 export const MODELS = {
-  rifle: ['models/soldado-fusil-f.glb', 'models/soldado-fusil-m.glb']
+  rifle: ['models/soldado-fusil-f.glb', 'models/soldado-fusil-m.glb'],
+  shotgun: ['models/soldado-escopeta-f.glb', 'models/soldado-escopeta-m.glb'],
+  sniper: ['models/soldado-tirador-f.glb', 'models/soldado-tirador-m.glb'],
+  flamer: ['models/soldado-lanzallamas-f.glb', 'models/soldado-lanzallamas-m.glb']
+  // Arquero, Ametrallador y Mortero se quedan con su figura de piezas: el
+  // presupuesto de generacion daba para cinco unidades en las dos versiones y
+  // se han gastado en las que mas salen al tablero.
 }
 
 const loader = new GLTFLoader()
@@ -1367,7 +1381,16 @@ function montarFogonazo (arma) {
 }
 
 export async function buildSoldierMesh (key, spec) {
-  if (MODELS[key]) return await armarPersona(key, spec, MODELS[key])
+  if (MODELS[key]) {
+    try {
+      return await armarPersona(key, spec, MODELS[key])
+    } catch (e) {
+      // Un archivo que falta o que viene roto no puede tumbar la partida. La
+      // figura procedural sigue ahí y hace exactamente lo mismo: se avisa por
+      // consola y se juega igual, con el soldado de piezas.
+      console.warn(`Sin modelo para ${key}, va la figura de piezas:`, e.message)
+    }
+  }
   return placeholderSoldier(key, spec)
 }
 
