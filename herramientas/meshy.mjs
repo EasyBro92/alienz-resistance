@@ -36,12 +36,13 @@ const ESTILO = [
   'stylized mobile game art style',
   'chunky bold readable shapes',
   'clean silhouette',
-  'vibrant saturated colors',
+  'flat separated color blocks',
   'soft even shading',
   'semi-realistic arcade look',
+  'military sci-fi',
   'not photorealistic',
   'no dirt no grunge no noise',
-  'simple flat color blocks'
+  'no gold trim, no ornate decoration, no filigree, no fantasy ornament'
 ].join(', ')
 
 const RAIZ = path.resolve(import.meta.dirname, '..')
@@ -180,7 +181,14 @@ if (o.refinar) {
       mode: 'refine',
       preview_task_id: previo.result,
       enable_pbr: true,
-      texture_prompt: ESTILO,
+      // El prompt ENTERO, no solo el estilo.
+      //
+      // Aquí estaba el fallo de la primera flota. Pasando únicamente `ESTILO`,
+      // la fase que pinta no sabía qué objeto tenía delante ni de qué color
+      // tocaba: las cinco naves salieron del mismo rojo y oro pese a que cada
+      // prompt pedía su paleta. El color se decide al texturizar, así que es
+      // aquí donde hay que repetirlo.
+      texture_prompt: `${o.prompt}. ${ESTILO}`,
       // 2k y no 4k: la pieza se ve de lejos y en un móvil, y cada salto de
       // resolución multiplica por cuatro lo que hay que descargar y subir a la
       // tarjeta gráfica.
