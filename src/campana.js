@@ -66,7 +66,7 @@ export const PAISES = [
         parte: ['Doce kilómetros de asfalto entre su campamento y lo que queda de la ciudad. La orden es de una línea: que no pasen.',
           'Los primeros llegan sin método. Caminan hacia el ruido porque es lo único que les dejaron saber hacer.'],
         cierre: 'Ninguno pasó. Uno llevaba todavía la tarjeta de empleado de una fábrica de Reus.',
-        desbloquea: ['shotgun', 'spikes'], waves: OLEADAS.avanzadilla
+        waves: OLEADAS.avanzadilla
       },
       {
         name: 'Valencia', lugar: 'Puerto · autovía de acceso', mapa: sitio(39.47, -0.38),
@@ -103,7 +103,7 @@ export const PAISES = [
         parte: ['El campamento del puerto lleva más tiempo montado, y se nota: los huéspedes ya no vienen todos iguales.',
           'No están improvisando. Están probando qué funciona contra nosotros.'],
         cierre: 'Tres formas nuevas en un solo muelle. Esto no es una plaga: es un taller con turnos.',
-        desbloquea: ['sniper', 'flamer', 'collector'], waves: OLEADAS.formas
+        waves: OLEADAS.formas
       },
       {
         name: 'Lyon', lugar: 'Confluencia del Ródano', mapa: sitio(45.76, 4.84),
@@ -140,7 +140,7 @@ export const PAISES = [
         parte: ['La ciudad se vació en cuatro días. En el anillo todo llega deprisa.',
           'Lo que dispara lento no llega a tiempo.'],
         cierre: 'Ya no bajan hacia la ciudad: bajan hacia NOSOTROS. Saben que venimos.',
-        desbloquea: ['gunner'], waves: OLEADAS.contraflujo
+        waves: OLEADAS.contraflujo
       },
       {
         name: 'Roma', lugar: 'Grande Raccordo Anulare', mapa: sitio(41.90, 12.50), bioma: 'mediterraneo',
@@ -177,7 +177,7 @@ export const PAISES = [
         parte: ['La terminal está llena. No de cuerpos: de estructura.',
           'Han dejado de fabricar soldados y han empezado a fabricar oficio.'],
         cierre: 'Encontramos la primera cámara de cría intacta. Tibia, y con sitio para muchas más de las que hemos matado.',
-        desbloquea: ['mortar', 'airstrike'], waves: OLEADAS.colmena
+        waves: OLEADAS.colmena
       },
       {
         name: 'Salónica', lugar: 'Carretera del puerto', mapa: sitio(40.64, 22.94),
@@ -214,7 +214,7 @@ export const PAISES = [
         parte: ['El barco de Creta lleva a bordo lo mismo que los contenedores de Valencia: gente dormida en literas.',
           'Los del puerto bajan todos a la vez para que no lleguemos.'],
         cierre: 'Había cuatrocientas personas en el barco. Ciento doce seguían vivas.',
-        desbloquea: ['mines'], waves: OLEADAS.avanzadilla
+        waves: OLEADAS.avanzadilla
       },
       {
         name: 'Luxor', lugar: 'Carretera del Nilo', mapa: sitio(25.69, 32.64),
@@ -325,7 +325,7 @@ export const PAISES = [
         parte: ['El puerto de Shanghái recibía lo que salía de Chongqing río abajo.',
           'Aquí llegan las formas terminadas. Espera cosas que no has visto.'],
         cierre: 'Río arriba se ve la luz de Chongqing desde aquí. De noche ilumina las nubes.',
-        desbloquea: ['napalm'], waves: OLEADAS.formas
+        waves: OLEADAS.formas
       },
       {
         name: 'Pekín', lugar: 'Tercer anillo', mapa: sitio(39.90, 116.41), bioma: 'mediterraneo',

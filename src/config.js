@@ -203,10 +203,11 @@ export const ZOMBIES = {
   }
 }
 
-// Con qué se empieza. El resto se gana jugando: doce cartas de golpe en la
-// primera partida es un muro, y además no hay forma de aprender para qué sirve
-// cada una si aparecen todas a la vez. Cada nivel superado abre dos o tres.
-export const INICIALES = ['archer', 'rifle', 'sandbags', 'grenade']
+// Con qué se empieza: el arquero y nada más. Todo lo demás se compra en la
+// tienda con billetes, que salen jugando. Comprobado que se puede: diez
+// arqueros bien puestos ganan Tarragona con el perímetro al 74%, y seis la
+// pierden en la última oleada, así que la primera misión se gana pero exige.
+export const INICIALES = ['archer']
 
 // Un nivel = oleadas contadas + jefe. `gap` son los segundos de calma antes de la oleada.
 // La calma se acorta según avanza: al final apenas te da tiempo a recolocar.

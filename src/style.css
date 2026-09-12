@@ -1106,6 +1106,159 @@ html, body {
 /* El cierre de campaña agrupa por país: treinta y seis líneas no se leen. */
 .marca-pais { flex: 1; text-align: left; }
 
+/* ---------- billetes en el marcador ---------- */
+.billetes {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 10px 3px 8px;
+  border: 2px solid var(--stroke);
+  border-radius: 999px;
+  background: var(--panel);
+  color: #7be08f;
+  font-size: 13px; font-weight: 900;
+  text-shadow: 0 1px 0 var(--sombra-media);
+}
+.billetes-icono { width: 17px; height: 17px; }
+.billetes.gana { animation: pop 0.3s ease; }
+
+/* ---------- botones de tienda ---------- */
+.tienda-boton { display: inline-flex; align-items: center; gap: 6px; margin: 12px auto 0; }
+.tienda-boton svg { width: 16px; height: 16px; color: var(--verde-texto); }
+.panel-mapa .tienda-boton { margin: 0 0 8px; }
+
+/* ---------- la tienda ---------- */
+.tienda-capa { z-index: 16; }
+.panel-tienda { width: 100%; max-width: min(460px, 100%); min-width: 0; display: flex; flex-direction: column; align-items: stretch; }
+.panel-tienda h2 {
+  margin: 0 0 10px; text-align: center;
+  font-size: clamp(28px, 9vw, 40px); font-weight: 900; letter-spacing: 2px;
+  background: linear-gradient(180deg, var(--titulo-alto), var(--green));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.panel-tienda .eyebrow { text-align: center; }
+.tienda-saldo { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin: 0 0 8px; }
+.saldo {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 999px;
+  border: 1px solid var(--borde-2); background: var(--velo-1);
+}
+.saldo svg { width: 18px; height: 18px; }
+.saldo b { font-size: 16px; font-weight: 900; color: var(--tinta); }
+.saldo small { font-size: 10px; color: var(--tinta-3); }
+.saldo-billetes svg { color: var(--verde-texto); }
+.saldo-monedas svg { color: #d9a52a; }
+.tienda-canjear { align-self: center; margin-bottom: 6px; }
+.tienda-canjear:disabled { opacity: 0.55; cursor: default; }
+.tienda-pie { margin: 0 0 12px; text-align: center; font-size: 11px; line-height: 1.5; color: var(--tinta-3); }
+
+.tienda-pestanas { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin: 0 0 12px; }
+.pestana {
+  padding: 8px 2px; border-radius: 10px;
+  border: 1px solid var(--borde-2); background: var(--velo-1);
+  font: inherit; font-size: 12px; font-weight: 800; color: var(--tinta-3);
+  cursor: pointer;
+}
+.pestana.activa { background: var(--verde-texto); color: var(--panel-fondo); border-color: transparent; }
+
+.tienda-lista { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0 0 14px; }
+.tienda-lista.lista-mejoras { grid-template-columns: 1fr; }
+.tienda-vacia { grid-column: 1 / -1; text-align: center; font-size: 12px; color: var(--tinta-3); }
+
+.articulo {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  min-width: 0; padding: 10px 8px;
+  border-radius: 12px; border: 1px solid var(--borde-2);
+  border-top: 3px solid var(--u-tint, var(--borde-2));
+  background: var(--velo-1);
+  text-align: center;
+}
+.articulo.propio { background: var(--velo-2); }
+.articulo-cara { width: 64px; height: 78px; display: grid; place-items: center; }
+.articulo-cara.mini { width: 36px; height: 44px; }
+.articulo-cara img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.articulo-cara svg { width: 40px; height: 40px; color: var(--tinta-2); }
+.articulo-cara.mini svg { width: 26px; height: 26px; }
+.articulo b { font-size: 13px; }
+.articulo p { margin: 0; font-size: 10.5px; line-height: 1.35; color: var(--tinta-3); }
+.articulo small { font-size: 10px; color: var(--tinta-4); }
+.articulo-comprar {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 4px; padding: 7px 14px;
+  border: none; border-radius: 999px;
+  font: inherit; font-size: 13px; font-weight: 900; color: #08160c;
+  background: linear-gradient(180deg, #8ff0a5, #3fbf62);
+  box-shadow: 0 3px 0 #2a7d41;
+  cursor: pointer;
+}
+.articulo-comprar svg { width: 15px; height: 15px; }
+.articulo-comprar:active { transform: translateY(2px); box-shadow: 0 1px 0 #2a7d41; }
+.articulo-comprar:disabled { filter: grayscale(0.85); opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+.articulo-tuyo { margin-top: 6px; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--verde-texto); }
+
+.mejora {
+  padding: 10px 12px; border-radius: 12px;
+  border: 1px solid var(--borde-2); border-left: 3px solid var(--u-tint);
+  background: var(--velo-1);
+}
+.mejora-cabeza { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.mejora-cabeza b { font-size: 14px; }
+.mejora-pista { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px; padding: 4px 0; }
+.mejora-pista .articulo-comprar { margin: 0; padding: 5px 11px; font-size: 12px; }
+.mejora-nombre { font-size: 12px; color: var(--tinta-2); }
+.mejora-nombre em { font-style: normal; color: var(--verde-texto); font-weight: 800; }
+.pips { display: inline-flex; gap: 3px; }
+.pips i { width: 12px; height: 5px; border-radius: 3px; background: var(--borde-2); }
+.pips i.on { background: #ffcf45; }
+.mejora-max { font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #c9951e; }
+
+/* ---------- botín y cofre del final de partida ---------- */
+.botin { width: 100%; max-width: 380px; margin: 6px auto 16px; }
+.botin-billetes {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  margin: 0 0 10px; font-size: 13px; color: var(--tinta-2);
+}
+.botin-billetes svg { width: 18px; height: 18px; color: var(--verde-texto); }
+.botin-billetes b { color: var(--verde-texto); font-size: 16px; }
+
+.cofre-tit { margin: 0 0 6px; font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--verde-texto); text-align: center; }
+.cofre-ventana {
+  position: relative; overflow: hidden;
+  height: 104px; border-radius: 12px;
+  border: 2px solid var(--borde-2); background: var(--velo-2);
+}
+/* Los bordes de la ventana se funden a transparente: las piezas aparecen y se
+   van en vez de cortarse en seco, que es lo que hace que parezca una tira que
+   pasa y no una fila que se mueve. */
+.cofre-ventana::before,
+.cofre-ventana::after {
+  content: ''; position: absolute; top: 0; bottom: 0; width: 34px; z-index: 2; pointer-events: none;
+}
+.cofre-ventana::before { left: 0; background: linear-gradient(90deg, var(--panel-fondo), transparent); }
+.cofre-ventana::after { right: 0; background: linear-gradient(270deg, var(--panel-fondo), transparent); }
+.cofre-marca {
+  position: absolute; left: 50%; top: 0; bottom: 0; z-index: 3;
+  width: 3px; margin-left: -1.5px;
+  background: #ffcf45; box-shadow: 0 0 10px rgba(255, 207, 69, 0.7);
+}
+.cofre-tira { display: flex; gap: 8px; padding: 10px 0; will-change: transform; }
+.cofre-pieza {
+  flex: 0 0 84px; height: 80px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  border-radius: 10px; background: var(--velo-1);
+  border-bottom: 4px solid var(--rareza);
+}
+.cofre-pieza svg { width: 28px; height: 28px; color: var(--rareza); }
+.cofre-pieza b { font-size: 16px; font-weight: 900; color: var(--tinta); }
+.cofre-pieza small { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--tinta-3); }
+.cofre-pieza.gana { box-shadow: 0 0 0 2px var(--rareza), 0 0 18px var(--rareza); }
+.cofre-resultado { min-height: 20px; margin: 8px 0 0; text-align: center; font-size: 13px; line-height: 1.45; color: var(--tinta-2); }
+.cofre-resultado span { font-weight: 800; color: var(--rareza); }
+/* Los colores de rareza de siempre: gris, azul, morado, rosa y oro. */
+.r-comun { --rareza: #8ea3b5; }
+.r-poco { --rareza: #4b8df0; }
+.r-raro { --rareza: #8a5cf0; }
+.r-epico { --rareza: #e04fa8; }
+.r-legendario { --rareza: #ffb52e; }
+
 /* ---------- estrellas ---------- */
 /* La unidad de medida de toda la campaña: el mismo dibujo en la ficha del
    informe, en la pantalla de victoria y en el resumen final. Apagada es el

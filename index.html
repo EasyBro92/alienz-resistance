@@ -119,6 +119,11 @@
     <!-- Imán de herradura: dos brazos, el arco de arriba y las puntas teñidas,
          que es como se dibuja un imán desde que existen los dibujos animados.
          Se lee a dieciséis píxeles, que es el tamaño al que va a vivir. -->
+    <!-- Billete y moneda: la moneda que se queda y la que da el cofre. Dos
+         formas que no se confunden a dieciséis píxeles: un rectángulo con su
+         valor en el centro y un disco con el canto marcado. -->
+    <symbol id="i-billete" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.8"/><path d="M6 9.5v5M18 9.5v5"/></symbol>
+    <symbol id="i-moneda" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/></symbol>
     <symbol id="i-iman" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 20V11a6 6 0 0 1 12 0v9"/><path stroke="var(--u-tint)" d="M6 17.4v2.6M18 17.4v2.6"/></symbol>
     <symbol id="i-sandbags" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="14" width="8" height="4.5" rx="2.2"/><rect x="13" y="14" width="8" height="4.5" rx="2.2"/><rect stroke="var(--u-tint)" x="7.5" y="8.5" width="8" height="4.5" rx="2.2"/></symbol>
     <symbol id="i-spikes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20"/><path stroke="var(--u-tint)" d="M6 9.5v5M4 10.5l4 3M8 10.5l-4 3M12 9.5v5M10 10.5l4 3M14 10.5l-4 3M18 9.5v5M16 10.5l4 3M20 10.5l-4 3"/></symbol>
@@ -258,6 +263,13 @@
              partir de ahí las monedas se cobraban solas, sin que nada dijera por
              qué. Esta chapa aparece al comprarlo, pegada al contador que es justo
              lo que el Recolector afecta, y lleva el nombre escrito. -->
+        <!-- Los billetes, pegados al contador de monedas porque salen de él: uno
+             por cada 30 cobradas. Enseña el total de la cartera, que es lo que
+             dice si ya llegas al precio de lo siguiente. -->
+        <div class="billetes" id="billetes" title="Billetes: se gastan en la tienda">
+          <svg class="billetes-icono" aria-hidden="true"><use href="#i-billete"></use></svg>
+          <span id="billetes-valor">0</span>
+        </div>
         <div class="recolector hidden" id="recolector" title="Recolector: las monedas se recogen solas">
           <svg class="recolector-icono" aria-hidden="true"><use href="#i-iman"></use></svg>
           <span>RECOLECTOR</span>
@@ -340,7 +352,26 @@
           <span><i class="leg-cerrado"></i>Cerrado</span>
         </div>
         <p class="mapa-pie">Desliza el mapa y toca un país.</p>
+        <button id="mapa-tienda" class="chip tienda-boton"><svg aria-hidden="true"><use href="#i-billete"></use></svg>Tienda</button>
         <button id="mapa-volver" class="chip chip-ghost">Volver a la portada</button>
+      </div>
+    </div>
+
+    <!-- La tienda, en capa propia por encima de la portada y del mapa: se abre
+         desde los dos sitios y al cerrarla se vuelve a donde se estaba. -->
+    <div id="tienda-capa" class="overlay tienda-capa hidden">
+      <div class="panel panel-tienda">
+        <p class="eyebrow">Intendencia · Compañía Cuervo</p>
+        <h2>Tienda</h2>
+        <div class="tienda-saldo">
+          <span class="saldo saldo-billetes"><svg aria-hidden="true"><use href="#i-billete"></use></svg><b id="tienda-billetes">0</b><small>billetes</small></span>
+          <span class="saldo saldo-monedas"><svg aria-hidden="true"><use href="#i-moneda"></use></svg><b id="tienda-monedas">0</b><small>monedas</small></span>
+        </div>
+        <button id="tienda-canjear" class="chip tienda-canjear" type="button"></button>
+        <p class="tienda-pie">Los billetes salen jugando: uno por cada 30 monedas que cobras en partida, y lo que toque en el cofre del final.</p>
+        <div class="tienda-pestanas" id="tienda-pestanas" role="tablist"></div>
+        <div class="tienda-lista" id="tienda-lista"></div>
+        <button id="tienda-volver" class="chip chip-ghost" type="button">Volver</button>
       </div>
     </div>
 
@@ -495,6 +526,7 @@
              países no cabía debajo de la historia, las amenazas y los ajustes: el
              botón de jugar acababa tapando el mapa. Tiene su propia pantalla. -->
         <button id="ir-mapa" class="big-btn">VER EL MAPA</button>
+        <button id="ir-tienda" class="chip tienda-boton"><svg aria-hidden="true"><use href="#i-billete"></use></svg>Tienda</button>
       </div>
     </div>
   </div>

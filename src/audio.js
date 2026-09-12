@@ -319,6 +319,42 @@ export function createAudio () {
       })
     },
 
+    // Un clic seco por cada pieza del cofre que pasa bajo la marca. Tiene que
+    // ser cortísimo y flojo: suena decenas de veces seguidas y cualquier cola
+    // se amontonaría en un zumbido.
+    tic () {
+      play(() => {
+        const t = ctx.currentTime
+        const o = ctx.createOscillator()
+        o.type = 'square'
+        o.frequency.setValueAtTime(1800, t)
+        const g = ctx.createGain()
+        env(g, 0.05, 0.001, 0.025)
+        o.connect(g).connect(sfxGain)
+        o.start(t); o.stop(t + 0.05)
+      })
+    },
+
+    // El billete: dos notas que suben, más alegres que la moneda. Suena poco
+    // —uno cada 30 monedas— y tiene que distinguirse de ella a oído.
+    billete () {
+      play(() => {
+        const t = ctx.currentTime
+        ;[660, 990].forEach((hz, i) => {
+          const t0 = t + i * 0.07
+          const o = ctx.createOscillator()
+          o.type = 'triangle'
+          o.frequency.setValueAtTime(hz, t0)
+          const g = ctx.createGain()
+          g.gain.setValueAtTime(0.0001, t0)
+          g.gain.exponentialRampToValueAtTime(0.18, t0 + 0.01)
+          g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.18)
+          o.connect(g).connect(sfxGain)
+          o.start(t0); o.stop(t0 + 0.22)
+        })
+      })
+    },
+
     // Pausa. Dos cosas a la vez, y las dos hacen falta.
     //
     // El sonido: un golpe seco que BAJA de tono al parar y SUBE al seguir. Es la

@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { brilla } from './systems/resplandor.js'
+import { brilla, apagarEmision } from './systems/resplandor.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
@@ -39,7 +39,9 @@ const cache = new Map()
 // El .glb entero, no solo la escena: los modelos con esqueleto traen las
 // animaciones aparte y se pierden si uno se queda con `gltf.scene`.
 async function cargarGLTF (url) {
-  if (!cache.has(url)) cache.set(url, loader.loadAsync(url))
+  // Se apaga la luz propia al cargar, UNA vez: las copias de cada figura
+  // comparten los materiales del original, así que basta con tocar este.
+  if (!cache.has(url)) cache.set(url, loader.loadAsync(url).then(g => { apagarEmision(g.scene); return g }))
   return cache.get(url)
 }
 

@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { FIELD } from '../config.js'
-import { brilla } from '../systems/resplandor.js'
+import { brilla, apagarEmision } from '../systems/resplandor.js'
 
 // Nave de desembarco. Antes cada oleada aparecía de la nada al fondo de la
 // carretera: los huéspedes se materializaban en el asfalto y no había ninguna
@@ -261,6 +261,8 @@ const SUELO = 2.6
 const FRENTE = 5.6
 
 function encajarCasco (raiz) {
+  // Los cascos de Meshy traen luz propia de fábrica y se veían fluorescentes.
+  apagarEmision(raiz)
   raiz.updateWorldMatrix(true, true)
   const caja = new THREE.Box3().setFromObject(raiz)
   const tam = caja.getSize(new THREE.Vector3())

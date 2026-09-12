@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { buildSoldierMesh, buildSandbagsMesh } from '../assets.js'
 import { laneX, rowZ } from '../world.js'
 import { createHealthBar } from './healthbar.js'
+import { factorMejora } from '../systems/cartera.js'
 
 // Uno solo para todos los soldados: esto se usa seis veces por figura y por
 // fotograma, y crear un cuaternión cada vez es basura que recoger cuarenta
@@ -114,6 +115,12 @@ export async function createSoldier (key, spec, lane, row) {
     }
   }
 
+  // Las mejoras de la tienda, leídas UNA vez al crear la figura. Se multiplican
+  // en cada disparo, y leer la cartera del almacén cuarenta veces por segundo
+  // sería absurdo: lo que se compra entre partidas no cambia a mitad de una.
+  const mejoraDano = factorMejora(key, 'dano')
+  const mejoraCadencia = factorMejora(key, 'cadencia')
+
   const bar = createHealthBar(1.4, spec.blocker ? 1.6 : 2.45)
   mesh.add(bar.group)
 
@@ -183,8 +190,8 @@ export async function createSoldier (key, spec, lane, row) {
     get canShoot () { return !spec.blocker && !this.andando },
     // Cada mejora sube daño y cadencia: pagar por uno bueno compite de verdad
     // con pagar por uno más.
-    get damage () { return spec.damage * (1 + 0.55 * (this.level - 1)) },
-    get fireRate () { return spec.fireRate * (1 + 0.18 * (this.level - 1)) },
+    get damage () { return spec.damage * (1 + 0.55 * (this.level - 1)) * mejoraDano },
+    get fireRate () { return spec.fireRate * (1 + 0.18 * (this.level - 1)) * mejoraCadencia },
 
     // Reubicar ya no es teletransportar: el soldado se va andando. La casilla se
     // le asigna en el acto —para que nadie más la ocupe mientras cruza— pero su

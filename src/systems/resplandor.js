@@ -72,6 +72,27 @@ export function brilla (obj) {
   return obj
 }
 
+// Quita la luz propia que traen de fábrica los modelos de fuera.
+//
+// Los modelos de Meshy salen con una textura de emisión al cien por cien: los
+// soldados y las naves se iluminaban solos y además `marcarBrillo` los metía en
+// el halo por tener emisión, así que en calidad alta parecían fluorescentes. Lo
+// que brilla en este juego lo decide el juego —el fogonazo, el cañón al rojo,
+// las balizas—, no el exportador de un modelo.
+export function apagarEmision (raiz) {
+  raiz.traverse(o => {
+    if (!o.isMesh) return
+    for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+      if (!m || !m.emissive) continue
+      m.emissive.setHex(0x000000)
+      m.emissiveMap = null
+      m.emissiveIntensity = 0
+      m.needsUpdate = true
+    }
+  })
+  return raiz
+}
+
 function destino (w, h) {
   return new THREE.WebGLRenderTarget(w, h, {
     minFilter: THREE.LinearFilter,

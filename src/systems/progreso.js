@@ -1,4 +1,5 @@
-import { NIVELES, INICIALES } from '../config.js'
+import { NIVELES } from '../config.js'
+import { cargarCartera } from './cartera.js'
 
 // Lo que el jugador se lleva de una partida a otra: qué niveles ha superado y,
 // de ahí, qué cartas tiene abiertas. Vive en el almacén del navegador, que es
@@ -99,13 +100,11 @@ export function campañaCompleta (progreso = cargarProgreso()) {
   return progreso.superados >= NIVELES.length
 }
 
-// Las cartas abiertas: las de salida más lo que haya soltado cada nivel hecho.
-export function cartasAbiertas (superados = cargarProgreso().superados) {
-  const set = new Set(INICIALES)
-  for (let i = 0; i < superados && i < NIVELES.length; i++) {
-    for (const clave of NIVELES[i].desbloquea ?? []) set.add(clave)
-  }
-  return set
+// Las cartas abiertas.
+// Ya no las abre la campaña: son las compradas en la tienda más el arquero, que
+// viene de serie. Se conserva el nombre para no tocar a quien lo usa.
+export function cartasAbiertas () {
+  return new Set(cargarCartera().desbloqueadas)
 }
 
 // Cuántas estrellas se llevan en total. Es la moneda con la que se abren los

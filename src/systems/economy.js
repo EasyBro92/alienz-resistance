@@ -1,29 +1,25 @@
 import * as THREE from 'three'
 import { ECONOMY, FIELD } from '../config.js'
-import { brilla } from './resplandor.js'
+import { MONEDAS_POR_BILLETE } from './cartera.js'
 
 // Moneda acuñada: canto biselado, cara hundida y una estrella en relieve. Oro
 // pulido de verdad (metalness 1, rugosidad muy baja) para que el entorno de
 // iluminación le saque destellos al girar.
-// La moneda emite luz propia y entra en el pase de resplandor.
+// La moneda: oro con algo de luz propia, pero SIN resplandor.
 //
-// El oro pulido depende de que algo se refleje en él, y sobre asfalto gris a
-// mediodía no se refleja gran cosa: la moneda quedaba parda, del color del
-// suelo, y había que buscarla. Que es justo lo contrario de lo que tiene que
-// hacer una moneda tirada en el suelo, que es CANTAR.
-//
-// El emisivo sube de 0,35 a 1,1 y deja de ser marrón: emite el mismo oro que
-// tiene de color, así que brilla como oro y no como barro iluminado. Con eso
-// sola ya se ve, pero además se la marca para el halo —el mismo pase que usan
-// la espora y los fogonazos—, y entonces suelta destello y se localiza de un
-// vistazo desde el otro extremo del carril.
+// Sin emisión quedaba parda sobre el asfalto a mediodía y había que buscarla,
+// así que se le dio luz propia. Pero se le dio de más: a 1,1 y metida en el
+// pase de halo, en calidad alta cada moneda era una bombilla y parecía
+// fluorescente. Se queda en 0,42 —suficiente para que el oro se lea como oro y
+// no como barro— y fuera del halo, que es para lo que de verdad es luz: la
+// espora, los fogonazos, las balizas.
 const COIN_MAT = new THREE.MeshStandardMaterial({
   color: 0xffd75e, roughness: 0.1, metalness: 1,
-  emissive: 0xffbb22, emissiveIntensity: 1.1
+  emissive: 0xffbb22, emissiveIntensity: 0.42
 })
 const COIN_RIM = new THREE.MeshStandardMaterial({
   color: 0xf0b62c, roughness: 0.18, metalness: 1,
-  emissive: 0xc98a12, emissiveIntensity: 0.8
+  emissive: 0xc98a12, emissiveIntensity: 0.3
 })
 
 function buildCoinGeometry () {
@@ -51,6 +47,11 @@ const STAR_GEO = new THREE.CylinderGeometry(0.13, 0.1, 0.025, 5)
 export function createEconomy (scene) {
   const pickups = []
   let coins = ECONOMY.startCoins
+  // Monedas COBRADAS en esta partida, para soltar un billete cada 30. Solo
+  // cuentan las que se recogen de un huésped abatido: el goteo gratis no, porque
+  // un billete tiene que costar jugar, no esperar.
+  let ganadas = 0
+  const alBillete = new Set()
   let dripTimer = ECONOMY.dripEvery
   let auto = ECONOMY.autoCollect
   const listeners = new Set()
@@ -60,12 +61,10 @@ export function createEconomy (scene) {
   function spawnCoin (position, value) {
     const mesh = new THREE.Group()
     const disc = new THREE.Mesh(COIN_GEO, COIN_MAT)
-    brilla(disc)
     disc.castShadow = true
     mesh.add(disc)
     for (const side of [1, -1]) {
       const star = new THREE.Mesh(STAR_GEO, COIN_RIM)
-      brilla(star)
       star.position.y = side * 0.055
       star.rotation.y = 0.3
       mesh.add(star)
@@ -95,11 +94,14 @@ export function createEconomy (scene) {
       for (const p of pickups) scene.remove(p.mesh)
       pickups.length = 0
       coins = ECONOMY.startCoins
+      ganadas = 0
       dripTimer = ECONOMY.dripEvery
       auto = ECONOMY.autoCollect
       notify()
     },
     onChange (fn) { listeners.add(fn); fn(coins) },
+    // Un billete cada 30 monedas cobradas. Lo escucha el juego para guardarlo.
+    onBillete (fn) { alBillete.add(fn) },
 
     canAfford: cost => coins >= cost,
     spend (cost) {
@@ -118,6 +120,11 @@ export function createEconomy (scene) {
       pickups.splice(i, 1)
       scene.remove(pickup.mesh)
       coins += pickup.value
+      ganadas += pickup.value
+      while (ganadas >= MONEDAS_POR_BILLETE) {
+        ganadas -= MONEDAS_POR_BILLETE
+        for (const fn of alBillete) fn()
+      }
       notify()
       return pickup.value
     },

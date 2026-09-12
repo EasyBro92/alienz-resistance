@@ -12,6 +12,9 @@ import { createAudio } from './audio.js'
 import { createUI } from './ui.js'
 import { renderPortraits } from './portraits.js'
 import { pintarMapa } from './mapa.js'
+import { cargarCartera, sumarBilletes, PRECIOS } from './systems/cartera.js'
+import { tirarCofre, girarCarrusel } from './cofre.js'
+import { crearTienda } from './tienda.js'
 import { escenaDe, PAISES, paisDe } from './campana.js'
 import { NIVEL_DETALLE } from './systems/detalle.js'
 import { cargarProgreso, superarNivel, nivelJugable, ESTRELLAS, estrellasDe, estrellasTotales, estrellasQueFaltan, campañaCompleta } from './systems/progreso.js'
@@ -150,6 +153,28 @@ const ui = createUI({
 })
 
 economy.onChange(v => ui.setCoins(v))
+
+// --- billetes -----------------------------------------------------------------
+// La moneda que se queda entre partidas. Sale uno por cada 30 monedas cobradas y
+// se guarda en el acto: si el jugador cierra a mitad de misión, lo ganado hasta
+// ahí es suyo. El marcador enseña el total de la cartera y no solo lo de esta
+// partida, porque lo que empuja es ver que ya casi llegas al precio de lo
+// siguiente.
+let billetesPartida = 0
+const elBilletes = document.getElementById('billetes')
+const elBilletesValor = document.getElementById('billetes-valor')
+function pintarBilletes () { elBilletesValor.textContent = cargarCartera().billetes }
+pintarBilletes()
+economy.onBillete(() => {
+  if (!running) return
+  billetesPartida++
+  sumarBilletes(1)
+  pintarBilletes()
+  audio.billete()
+  elBilletes.classList.remove('gana')
+  void elBilletes.offsetWidth
+  elBilletes.classList.add('gana')
+})
 ui.setBase(1)
 
 ui.el.mute.addEventListener('click', () => {
@@ -1121,18 +1146,8 @@ function win () {
   const paisIdx = PAISES.indexOf(pais)
   const cierraPais = nivelActual === pais.ultima && primeraVez
 
-  // Lo que se acaba de abrir, con su nombre de verdad. "Has desbloqueado 2
-  // objetos" no dice nada; "Escopetero, Alambrada" sí.
-  const nuevas = primeraVez
-    ? (nivel.desbloquea ?? []).map(k => (SOLDIERS[k] ?? DEFENSES[k] ?? STRIKES[k] ?? { name: k }).name)
-    : []
-
-  // Abrir arsenal es el premio de verdad de la campaña —lo otro es un sello— y
-  // hasta ahora aparecía en silencio, en la misma pantalla y con la misma
-  // presencia que cualquier otra victoria. Va con retraso: el arpegio tiene que
-  // caer cuando la pantalla ya está puesta y el ojo ha llegado al recuadro, no
-  // encima del último disparo de la oleada.
-  if (nuevas.length) setTimeout(() => audio.desbloqueo(), 620)
+  // Ganar ya no abre arsenal: todo se compra en la tienda con billetes, y lo que
+  // se lleva uno de cada partida va en el botín de abajo.
 
   // Los tres últimos niveles no abren arsenal —ya lo tienes todo—, así que su
   // pantalla de victoria se quedaba en un título y una línea. El rango le da a
@@ -1163,7 +1178,9 @@ function win () {
       empieza a salir. Pero los túneles siguen bajando en los doce sitios, y
       nadie de los que firmamos aquello sabe hasta dónde.</p>
       <ol class="marcas">${marcas}</ol>
+      ${htmlBotin()}
       <button class="big-btn" onclick="volverA('mapa')">AL MAPA</button>`)
+    abrirCofre(true, estrellas)
     return
   }
 
@@ -1172,21 +1189,28 @@ function win () {
     <p class="tagline">«${nivel.name}» bajo control.</p>
     ${sello}
     ${nivel.cierre ? `<p class="cierre">${nivel.cierre}</p>` : ''}
-    ${nuevas.length ? `<div class="premio"><span class="premio-tit">Arsenal liberado</span>${nuevas.map(n => `<b>${n}</b>`).join('')}</div>` : ''}
     ${cierraPais ? `<div class="pais-desenlace"><span>${pais.nombre} limpio</span><p>${pais.cierre}</p></div>` : ''}
+    ${htmlBotin()}
     ${cierraPais
       ? `<button class="big-btn" onclick="volverA('mapa')">AL MAPA</button>`
       : `<button class="big-btn" onclick="volverA('pais:${paisIdx}')">SIGUIENTE MISIÓN</button>`}`)
+  abrirCofre(true, estrellas)
 }
 
 function lose () {
   running = false
   audio.stopMusic()
   ui.banner('DESBORDADOS')
-  setTimeout(() => ui.showOverlay(`
+  setTimeout(() => {
+    ui.showOverlay(`
     <h1 class="lost">PERÍMETRO ROTO</h1>
     <p class="tagline">La siembra pasó de la línea en la oleada ${director.wave} de ${director.total} de ${NIVELES[nivelActual].name}.</p>
-    <button class="big-btn" onclick="volverA('pais:${PAISES.indexOf(paisDe(nivelActual))}')">REINTENTAR</button>`), 900)
+    ${htmlBotin()}
+    <button class="big-btn" onclick="volverA('pais:${PAISES.indexOf(paisDe(nivelActual))}')">REINTENTAR</button>`)
+    // También al perder: la partida jugada cuenta, y lo que empuja a volver a
+    // intentarlo es salir con algo en la mano.
+    abrirCofre(false, 0)
+  }, 900)
 }
 
 // Dejar el tablero como recién puesto. Empezar significa empezar: sin esto, una
@@ -1218,6 +1242,8 @@ function start (indice = nivelActual) {
   // El paisaje de la región, antes de enseñar nada: si se vistiera después, el
   // primer fotograma del nivel saldría con la tierra del destino anterior.
   world.vestir(NIVELES[nivelActual].bioma)
+  billetesPartida = 0
+  pintarBilletes()
   ui.hideOverlay()
   // Las pantallas de campaña van en capas propias y no las cierra hideOverlay.
   document.getElementById('mapa-capa')?.classList.add('hidden')
@@ -1639,7 +1665,6 @@ function abrirParte (indice) {
   document.getElementById('parte-datos').innerHTML = [
     `<span><b>${oleadas}</b> oleadas</span>`,
     conJefe ? '<span class="dato-jefe"><b>Jefe</b> al final</span>' : '',
-    n.desbloquea?.length ? `<span><b>${n.desbloquea.length}</b> por liberar</span>` : '',
     // Volver a un campamento ya limpiado es una jugada legítima —es así como se
     // pagan los peajes de más adelante—, así que el parte tiene que decir con
     // qué nota quedó la última vez y cuánto margen queda.
@@ -1656,6 +1681,39 @@ document.getElementById('parte-ir').addEventListener('click', () => {
 document.getElementById('parte-volver').addEventListener('click', () => {
   elParteCapa.classList.add('hidden')
 })
+
+// --- tienda y cofre -----------------------------------------------------------
+// La tienda reaprovecha los retratos que se sacan al arrancar para la armería.
+let retratosGuardados = new Map()
+
+// Al cerrar la tienda solo se recarga si se ha DESBLOQUEADO algo: la armería de
+// la partida se monta al arrancar con lo que hay abierto, y una carta comprada
+// no aparecería hasta recargar. Canjear monedas o subir una mejora no cambia la
+// armería —la mejora se lee al crear cada soldado—, así que no hace falta.
+const tienda = crearTienda({
+  audio,
+  retratos: () => retratosGuardados,
+  alCerrar: (origen, cambio) => { if (cambio) window.volverA(origen) }
+})
+document.getElementById('ir-tienda').addEventListener('click', () => { audio.unlock(); tienda.abrir('portada') })
+document.getElementById('mapa-tienda').addEventListener('click', () => { audio.unlock(); tienda.abrir('mapa') })
+
+// El botín de la partida: lo sacado en billetes y el cofre. Va igual en la
+// victoria, en la derrota y en el cierre de campaña.
+function htmlBotin () {
+  const sacados = billetesPartida
+    ? `<p class="botin-billetes"><svg aria-hidden="true"><use href="#i-billete"></use></svg><b>+${billetesPartida}</b> billetes en esta partida</p>`
+    : ''
+  return `<div class="botin">${sacados}<div class="cofre" id="cofre"></div></div>`
+}
+
+// El premio se decide y se GUARDA antes de girar: la tira es solo el espectáculo.
+// Si alguien pulsa seguir a mitad de giro, lo que le tocó ya está en su cartera.
+function abrirCofre (gano, estrellas) {
+  const premio = tirarCofre({ gano, estrellas })
+  const caja = document.getElementById('cofre')
+  if (caja) girarCarrusel(caja, premio, audio)
+}
 
 document.getElementById('ir-mapa').addEventListener('click', () => { audio.unlock(); abrirMapa() })
 
@@ -1708,6 +1766,27 @@ if (import.meta.env.DEV) {
       return 0
     },
     // Cede el turno cada paso para que se resuelvan las creaciones asíncronas.
+    // --- atajos de prueba: cada comprobación en una línea ----------------------
+    ganarYa: () => { if (running) win() },
+    perderYa: () => { if (running) lose() },
+    darBilletes: n => { sumarBilletes(n); pintarBilletes(); return cargarCartera().billetes },
+    desbloquearTodo: () => {
+      const c = cargarCartera()
+      c.desbloqueadas = [...new Set([...c.desbloqueadas, ...Object.keys(PRECIOS)])]
+      localStorage.setItem('alienz-cartera-v1', JSON.stringify(c))
+      return 'recarga para verlo en la armería'
+    },
+    borrarTodo: () => {
+      localStorage.removeItem('alienz-cartera-v1')
+      localStorage.removeItem('alienz-progreso-v2')
+      return 'recarga para empezar de cero'
+    },
+    abrir: pantalla => {
+      if (pantalla === 'mapa') abrirMapa()
+      else if (pantalla === 'tienda') tienda.abrir('portada')
+      else if (pantalla?.startsWith('pais:')) { abrirMapa(); abrirPais(Number(pantalla.slice(5))) }
+    },
+    cartera: () => cargarCartera(),
     run: async (seconds, dt = 1 / 60) => {
       for (let t = 0; t < seconds; t += dt) { simulate(dt); await null }
     }
@@ -1750,7 +1829,7 @@ renderPortraits(renderer, (hechas, total) => {
   // Del 12% al 100%: lo de antes ya está hecho y no se puede volver a contar.
   pintarCarga(0.12 + (hechas / total) * 0.88)
 })
-  .then(({ retratos, amenazas }) => { ui.setPortraits(retratos); pintarAmenazas(amenazas) })
+  .then(({ retratos, amenazas }) => { retratosGuardados = retratos; ui.setPortraits(retratos); pintarAmenazas(amenazas) })
   .catch(err => console.warn('Sin retratos:', err))
   // Pase lo que pase con los retratos, la pantalla se quita: si fallaran, el
   // juego sigue con el icono del arma en las fichas, y quedarse tapado detrás de
