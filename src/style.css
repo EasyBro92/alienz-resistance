@@ -158,6 +158,10 @@ html, body {
    cuelga DEL contador, no del borde de la pantalla, porque lo que explica es
    qué le pasa a ese número. */
 .coin-zona { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+/* Sin esto la chapa no se ocultaba NUNCA. No hay regla  genérica en
+   la hoja —solo  y —, así que ponerle la
+   clase no hacía nada y el  de aquí abajo ganaba siempre. */
+.recolector.hidden { display: none; }
 .recolector {
   display: flex; align-items: center; gap: 5px;
   padding: 3px 9px 3px 7px;

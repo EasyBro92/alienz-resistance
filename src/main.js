@@ -947,6 +947,7 @@ function simulate (dt) {
           effects.burst(z.mesh.position, 0xc4a173, 16, 1.6)
           audio.thud()
         }
+        z.suelo = dropship.alturaRampa(z.z)
         z.update(dt, camera, true)
         continue
       }
@@ -1007,6 +1008,7 @@ function simulate (dt) {
         }
       }
 
+      z.suelo = dropship.alturaRampa(z.z)
       z.update(dt, camera, !attacking)
 
       if (attacking) {

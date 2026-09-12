@@ -246,9 +246,22 @@ const CASCOS_3D = [
 // delante de z = 3.6 va la bodega con su compuerta. Un casco que invada esa
 // franja tapa el hueco por donde salen los huéspedes, que es literalmente lo
 // único que la nave tiene que hacer. Se mide la pieza que venga y se encaja.
-const ANCHO = 13.4
-const SUELO = 1.45
-const FRENTE = 3.2
+// El casco, más ancho que la bodega que cuelga de él.
+//
+// Con 13,4 quedaba más estrecho que el marco de la compuerta y la nave parecía
+// un contenedor con un platillo pequeño encima: la bodega mandaba sobre el
+// casco, que es al revés de como tiene que leerse. Diecisiete y medio la deja
+// sobresaliendo por los dos lados, que es lo que hace que la bodega parezca
+// colgada DE la nave y no atornillada delante.
+const ANCHO = 17.5
+// La panza del casco, y va a propósito por DEBAJO del dintel de la bodega: el
+// casco se come el metro de arriba del marco y la bodega deja de leerse como una
+// caja apoyada delante para leerse como un hueco abierto EN la nave. Colocado
+// por encima, quedaban separados y parecía un garaje con un platillo encima.
+const SUELO = 2.6
+// Y el morro sobresale por delante de la boca de la bodega (z = 4,8), así que
+// la nave hace de visera sobre su propia compuerta.
+const FRENTE = 5.6
 
 function encajarCasco (raiz) {
   raiz.updateWorldMatrix(true, true)
@@ -387,11 +400,18 @@ export function createDropship (alFase) {
   // El hueco mide 2,15 de alto: lo justo para un huésped de 1,8 y ni un palmo
   // más. Con el dintel a 4,5 la bahía asomaba por encima de los cascos planos y
   // parecía un contenedor atornillado delante de la nave.
+  // El ANCHO de la bodega no es estético: es funcional.
+  //
+  // La carretera mide 12 —cinco carriles de 2,4—, con los carriles de fuera
+  // centrados en x = ±4,8. La bodega medía 8,4 y la rampa 7,2, o sea que los dos
+  // carriles de los extremos caían FUERA: los huéspedes de esos carriles
+  // aparecían flotando al lado de la rampa, en el aire, sin haber salido de
+  // ninguna parte. Ahora el hueco cubre hasta ±6,3 y todos bajan por la plancha.
   const MARCO = [
-    [-3.85, 2.4, 0.7, 3.3],   // jamba izquierda
-    [3.85, 2.4, 0.7, 3.3],    // jamba derecha
-    [0, 3.85, 8.4, 0.7],      // dintel
-    [0, 1.05, 8.4, 0.6]       // umbral, justo por debajo de la bisagra
+    [-6.65, 2.4, 0.7, 3.3],   // jamba izquierda
+    [6.65, 2.4, 0.7, 3.3],    // jamba derecha
+    [0, 3.85, 14, 0.7],       // dintel
+    [0, 1.05, 14, 0.6]        // umbral, justo por debajo de la bisagra
   ]
   for (const [mx, my, mw, mh] of MARCO) {
     const pieza = new THREE.Mesh(new THREE.BoxGeometry(mw, mh, 1.9), GRIS)
@@ -400,24 +420,24 @@ export function createDropship (alFase) {
     group.add(pieza)
   }
 
-  for (const wx of [-3.5, 3.5]) {
+  for (const wx of [-6.3, 6.3]) {
     const pared = new THREE.Mesh(new THREE.PlaneGeometry(2.1, 2.15), GRIS_OSCURO)
     pared.position.set(wx, 2.42, 4.75)
     pared.rotation.y = wx < 0 ? Math.PI / 2 : -Math.PI / 2
     group.add(pared)
   }
-  const techo = new THREE.Mesh(new THREE.PlaneGeometry(7, 2.1), GRIS_OSCURO)
+  const techo = new THREE.Mesh(new THREE.PlaneGeometry(12.6, 2.1), GRIS_OSCURO)
   techo.position.set(0, 3.5, 4.75)
   techo.rotation.x = Math.PI / 2
   group.add(techo)
   // El SUELO de la bodega es lo que brilla, no el fondo. La cámara mira desde
   // arriba: por un hueco de dos metros de fondo lo que se ve es el piso, y una
   // pared del fondo iluminada no llegaba a asomar por el hueco.
-  const piso = new THREE.Mesh(new THREE.PlaneGeometry(7, 2.1), INTERIOR)
+  const piso = new THREE.Mesh(new THREE.PlaneGeometry(12.6, 2.1), INTERIOR)
   piso.position.set(0, 1.38, 4.75)
   piso.rotation.x = -Math.PI / 2
   group.add(piso)
-  const fondo = new THREE.Mesh(new THREE.PlaneGeometry(7, 2.15), INTERIOR)
+  const fondo = new THREE.Mesh(new THREE.PlaneGeometry(12.6, 2.15), INTERIOR)
   fondo.position.set(0, 2.42, 3.7)
   group.add(fondo)
 
@@ -428,12 +448,12 @@ export function createDropship (alFase) {
   group.add(bisagra)
 
   const LARGO = 5
-  const plancha = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.22, LARGO), GRIS)
+  const plancha = new THREE.Mesh(new THREE.BoxGeometry(12.6, 0.22, LARGO), GRIS)
   plancha.position.z = LARGO / 2
   plancha.castShadow = true
   plancha.receiveShadow = true
   bisagra.add(plancha)
-  for (const rx of [-3.3, 3.3]) {
+  for (const rx of [-6.1, 6.1]) {
     const listón = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.28, LARGO), LUZ_RAMPA)
     listón.position.set(rx, 0.16, LARGO / 2)
     bisagra.add(listón)
@@ -449,6 +469,18 @@ export function createDropship (alFase) {
   // huéspedes, así que la nave se coloca a partir de ese número y no al revés.
   const alcance = bisagra.position.z + Math.cos(ABIERTA) * LARGO
   group.position.set(0, 0, FIELD.spawnZ - alcance)
+
+  // Cuánto sube la plancha por cada metro que se retrocede desde su punta, y
+  // hasta dónde llega. Los huéspedes aparecen unos metros por detrás de la punta
+  // —dentro de la nave— y salían a ras de suelo, o sea ATRAVESANDO la plancha
+  // desde abajo. Con esto la pisan y bajan por ella, que es lo que tiene que
+  // hacer una rampa.
+  const RAMPA = {
+    // Desde la punta hacia dentro de la nave, en z de mundo.
+    desde: FIELD.spawnZ,
+    largo: Math.cos(ABIERTA) * LARGO,
+    alto: bisagra.position.y
+  }
 
   // Polvo del aterrizaje: un anillo que se abre y se apaga.
   const polvo = new THREE.Mesh(
@@ -478,6 +510,14 @@ export function createDropship (alFase) {
 
   return {
     group,
+    // A qué altura está la plancha en un punto de la carretera. Cero fuera de
+    // ella, así que se puede llamar siempre sin preguntar nada.
+    alturaRampa (z) {
+      if (estado !== 'rampa' && estado !== 'abierta') return 0
+      const dentro = RAMPA.desde - z
+      if (dentro <= 0 || dentro > RAMPA.largo) return 0
+      return (dentro / RAMPA.largo) * RAMPA.alto
+    },
     get estado () { return estado },
     get abierta () { return estado === 'abierta' },
     get nave () { return FLOTA[cascos.indexOf(casco)].nombre },
@@ -523,6 +563,13 @@ export function createDropship (alFase) {
       switch (estado) {
         case 'bajando': {
           group.position.y = ALTURA * (1 - easeOut(Math.min(1, t / T_BAJADA)))
+          // La compuerta se abre DURANTE la bajada, no después de posarse.
+          // Esperar a tocar suelo para empezar a abrir dejaba a la nave un
+          // segundo largo ahí plantada y cerrada, sin que pasara nada; y una
+          // nave de desembarco de verdad llega con la panza ya abierta.
+          // Arranca a la mitad del descenso y termina justo al posarse.
+          const abre = Math.max(0, (t / T_BAJADA - 0.45) / 0.55)
+          bisagra.rotation.x = CERRADA + (ABIERTA - CERRADA) * easeInOut(Math.min(1, abre))
           // Un balanceo que se va calmando: una nave que baja recta como un
           // ascensor parece un decorado bajando por un raíl.
           const resto = Math.max(0, 1 - t / T_BAJADA)
@@ -539,9 +586,12 @@ export function createDropship (alFase) {
           break
         }
         case 'rampa': {
-          const k = Math.min(1, t / T_RAMPA)
-          bisagra.rotation.x = CERRADA + (ABIERTA - CERRADA) * easeInOut(k)
-          if (k >= 1) { estado = 'abierta'; t = 0 }
+          // La compuerta ya terminó de abrirse durante la bajada. Este tramo se
+          // queda por los TIEMPOS: el director de oleadas avisa con `LLEGADA` de
+          // antelación y esa cuenta incluye este segundo. Quitarlo adelantaría
+          // la salida de todas las oleadas de todos los niveles.
+          bisagra.rotation.x = ABIERTA
+          if (t >= T_RAMPA) { estado = 'abierta'; t = 0 }
           break
         }
         case 'abierta': {

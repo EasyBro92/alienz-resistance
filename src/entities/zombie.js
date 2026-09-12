@@ -45,6 +45,9 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
     // y el ametrallador suprime; los dos escriben aquí y gana el más fuerte,
     // que si no, dos fuentes flojas se multiplicaban y lo dejaban parado.
     lastre: 1,
+    // Altura del suelo bajo los pies. La pone el bucle: cero en el asfalto, la
+    // plancha de la rampa mientras están saliendo de la nave.
+    suelo: 0,
     tLastre: 0,
 
     // Saltador: cuánto le falta para poder volver a saltar, y el salto en curso.
@@ -139,7 +142,11 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
       if (lean) lean.rotation.z = swing * 0.07
 
       this.mesh.rotation.z = swing * 0.05
-      this.mesh.position.y = Math.abs(swing) * 0.09
+      // `suelo` es la altura del terreno bajo los pies, y lo pone el bucle desde
+      // fuera. Vale cero en todo el asfalto y sube en la plancha de la rampa:
+      // sin esto, los que acaban de salir aparecían a ras de carretera, o sea
+      // ATRAVESANDO la rampa desde abajo en vez de bajando por ella.
+      this.mesh.position.y = (this.suelo ?? 0) + Math.abs(swing) * 0.09
     }
   }
 }

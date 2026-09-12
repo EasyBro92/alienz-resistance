@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { ECONOMY } from '../config.js'
+import { ECONOMY, FIELD } from '../config.js'
 import { brilla } from './resplandor.js'
 
 // Moneda acuñada: canto biselado, cara hundida y una estrella en relieve. Oro
@@ -145,7 +145,35 @@ export function createEconomy (scene) {
         p.mesh.rotation.y += p.spin * dt
         p.life -= dt
         if (p.life < 2.5) p.mesh.visible = Math.floor(p.life * 6) % 2 === 0
-        if (auto && p.landed) { this.collect(p); continue }
+        // --- el imán del Recolector ------------------------------------------
+        //
+        // Antes la moneda desaparecía en el sitio en cuanto tocaba el suelo: el
+        // número subía y no se veía por qué. Se pagaban doscientas cincuenta por
+        // una mejora cuyo único efecto visible era que las monedas dejaban de
+        // estar. Ahora salen DISPARADAS hacia la línea, que es lo que hace un
+        // imán y lo que se entiende sin leer nada.
+        //
+        // Acelera en vez de ir a velocidad fija: arranca despacio, como si le
+        // costara despegarla del asfalto, y llega lanzada. A velocidad
+        // constante parece que la moneda anda, no que tira de ella algo.
+        if (auto && p.landed) p.imantada = true
+        if (p.imantada) {
+          p.vel = Math.min(26, (p.vel ?? 2) + 34 * dt)
+          const dx = 0 - p.mesh.position.x
+          const dz = FIELD.baseZ - p.mesh.position.z
+          const d = Math.hypot(dx, dz)
+          if (d < 0.5) { this.collect(p); continue }
+          const paso = Math.min(d, p.vel * dt)
+          p.mesh.position.x += (dx / d) * paso
+          p.mesh.position.z += (dz / d) * paso
+          // Se levanta del suelo al venir y gira más rápido cuanto más corre.
+          p.mesh.position.y = 0.26 + Math.min(0.5, p.vel * 0.02)
+          p.mesh.rotation.y += p.vel * 0.12 * dt
+          // Mientras vuela no caduca: una moneda que se apaga a medio camino
+          // hacia ti es peor que no haberla imantado.
+          p.life = Math.max(p.life, 3)
+          continue
+        }
         if (p.life <= 0) { pickups.splice(i, 1); scene.remove(p.mesh) }
       }
       return 0
