@@ -1,14 +1,29 @@
 import * as THREE from 'three'
 import { ECONOMY } from '../config.js'
+import { brilla } from './resplandor.js'
 
 // Moneda acuñada: canto biselado, cara hundida y una estrella en relieve. Oro
 // pulido de verdad (metalness 1, rugosidad muy baja) para que el entorno de
 // iluminación le saque destellos al girar.
+// La moneda emite luz propia y entra en el pase de resplandor.
+//
+// El oro pulido depende de que algo se refleje en él, y sobre asfalto gris a
+// mediodía no se refleja gran cosa: la moneda quedaba parda, del color del
+// suelo, y había que buscarla. Que es justo lo contrario de lo que tiene que
+// hacer una moneda tirada en el suelo, que es CANTAR.
+//
+// El emisivo sube de 0,35 a 1,1 y deja de ser marrón: emite el mismo oro que
+// tiene de color, así que brilla como oro y no como barro iluminado. Con eso
+// sola ya se ve, pero además se la marca para el halo —el mismo pase que usan
+// la espora y los fogonazos—, y entonces suelta destello y se localiza de un
+// vistazo desde el otro extremo del carril.
 const COIN_MAT = new THREE.MeshStandardMaterial({
-  color: 0xffcf45, roughness: 0.13, metalness: 1, emissive: 0x3a2600, emissiveIntensity: 0.35
+  color: 0xffd75e, roughness: 0.1, metalness: 1,
+  emissive: 0xffbb22, emissiveIntensity: 1.1
 })
 const COIN_RIM = new THREE.MeshStandardMaterial({
-  color: 0xe0a41f, roughness: 0.22, metalness: 1
+  color: 0xf0b62c, roughness: 0.18, metalness: 1,
+  emissive: 0xc98a12, emissiveIntensity: 0.8
 })
 
 function buildCoinGeometry () {
@@ -45,10 +60,12 @@ export function createEconomy (scene) {
   function spawnCoin (position, value) {
     const mesh = new THREE.Group()
     const disc = new THREE.Mesh(COIN_GEO, COIN_MAT)
+    brilla(disc)
     disc.castShadow = true
     mesh.add(disc)
     for (const side of [1, -1]) {
       const star = new THREE.Mesh(STAR_GEO, COIN_RIM)
+      brilla(star)
       star.position.y = side * 0.055
       star.rotation.y = 0.3
       mesh.add(star)
