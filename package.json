@@ -12,6 +12,7 @@
     "three": "^0.180.0"
   },
   "devDependencies": {
+    "sharp": "^0.35.4",
     "vite": "^7.1.0",
     "vite-plugin-pwa": "^1.0.0"
   }

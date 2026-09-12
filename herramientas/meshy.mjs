@@ -20,6 +20,30 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
+// La estética, en un solo sitio y pegada a TODOS los prompts.
+//
+// Es lo que decide si las piezas parecen del mismo juego o un cajón de sastre.
+// El encargo era claro: 3D realista pero arcade, como Top War —no como un juego
+// de consola—. Eso se traduce en cosas concretas que hay que pedir y en cosas
+// que hay que prohibir expresamente, porque si no Meshy tira por defecto al
+// fotorrealismo sucio, que es justo lo contrario.
+//
+// Lo que se pide: formas gruesas y legibles de lejos, colores vivos y separados,
+// sombreado suave. Lo que se prohíbe: fotorrealismo, suciedad, texturas de
+// escaneado y grano — todo eso a la escala a la que se ve la figura en un móvil
+// se convierte en barro gris.
+const ESTILO = [
+  'stylized mobile game art style',
+  'chunky bold readable shapes',
+  'clean silhouette',
+  'vibrant saturated colors',
+  'soft even shading',
+  'semi-realistic arcade look',
+  'not photorealistic',
+  'no dirt no grunge no noise',
+  'simple flat color blocks'
+].join(', ')
+
 const RAIZ = path.resolve(import.meta.dirname, '..')
 const DESTINO = path.join(RAIZ, 'public', 'models')
 const API = 'https://api.meshy.ai'
@@ -134,7 +158,9 @@ const previo = await pedir(clave, '/openapi/v2/text-to-3d', {
   method: 'POST',
   body: JSON.stringify({
     mode: 'preview',
-    prompt: o.prompt,
+    // El prompt del encargo y, detrás, la estética común. En este orden: lo
+    // primero pesa más, así que el QUÉ manda sobre el CÓMO.
+    prompt: `${o.prompt}. ${ESTILO}`,
     art_style: 'realistic',
     model_type: 'lowpoly',
     ai_model: 'latest',
@@ -154,6 +180,7 @@ if (o.refinar) {
       mode: 'refine',
       preview_task_id: previo.result,
       enable_pbr: true,
+      texture_prompt: ESTILO,
       // 2k y no 4k: la pieza se ve de lejos y en un móvil, y cada salto de
       // resolución multiplica por cuatro lo que hay que descargar y subir a la
       // tarjeta gráfica.
