@@ -323,6 +323,42 @@
       </div>
     </div>
 
+    <!-- Segunda pantalla: el mapa del mundo.
+         Capa PROPIA y no dentro de #overlay: la victoria y la derrota reescriben
+         el contenido entero de #overlay, así que un mapa que viviera ahí dentro
+         desaparecería en cuanto se gana una misión. -->
+    <div id="mapa-capa" class="overlay mapa-capa hidden">
+      <div class="panel panel-mapa">
+        <p class="eyebrow">Mando del búnker · estado del mundo</p>
+        <h2>El mundo</h2>
+        <p class="mapa-relato" id="mapa-relato"></p>
+        <p class="estrellas-total" id="mapa-estrellas"></p>
+        <div class="mapa-grande" id="mapa-lienzo"></div>
+        <div class="mapa-leyenda">
+          <span><i class="leg-hecho"></i>Limpio</span>
+          <span><i class="leg-abierto"></i>Disponible</span>
+          <span><i class="leg-cerrado"></i>Cerrado</span>
+        </div>
+        <p class="mapa-pie">Desliza el mapa y toca un país.</p>
+        <button id="mapa-volver" class="chip chip-ghost">Volver a la portada</button>
+      </div>
+    </div>
+
+    <!-- Tercera pantalla: un país, con su historia y sus tres misiones. -->
+    <div id="pais-capa" class="overlay pais-capa hidden">
+      <div class="panel panel-pais">
+        <p class="eyebrow" id="pais-lugar"></p>
+        <h2 id="pais-nombre"></h2>
+        <div class="parte-texto" id="pais-intro"></div>
+        <p class="estrellas-total" id="pais-estrellas"></p>
+        <div id="pais-aviso"></div>
+        <ol class="misiones" id="pais-misiones"></ol>
+        <div class="pais-botones">
+          <button id="pais-volver" class="chip chip-ghost">Volver al mapa</button>
+        </div>
+      </div>
+    </div>
+
     <div id="overlay" class="overlay">
       <div class="panel">
         <p class="eyebrow">Protocolo de reconquista · Mando del búnker</p>
@@ -455,8 +491,10 @@
         </ul>
         </details>
 
-        <div class="niveles" id="niveles"></div>
-        <button id="start" class="big-btn">AGUANTAR LA LÍNEA</button>
+        <!-- La campaña ya no se elige aquí. Con treinta y seis misiones en doce
+             países no cabía debajo de la historia, las amenazas y los ajustes: el
+             botón de jugar acababa tapando el mapa. Tiene su propia pantalla. -->
+        <button id="ir-mapa" class="big-btn">VER EL MAPA</button>
       </div>
     </div>
   </div>

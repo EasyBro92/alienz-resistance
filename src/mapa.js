@@ -54,13 +54,21 @@ export function pintarMapa (destinos, estado, elegido) {
     // El punto se dibuja con dos círculos: el de fuera es el aro de estado y el
     // de dentro el relleno. Con uno solo no se distingue un destino hecho de
     // uno cerrado sin mirar el color de cerca, que en un móvil no se mira.
+    // Sirve igual para misiones y para países: el país se llama `nombre` y la
+    // misión `name`. El nombre va escrito junto a la chincheta, desplazado según
+    // `etq` donde hace falta: en Europa cuatro países caen a un palmo y los
+    // nombres centrados encima se pisaban unos a otros.
+    const nombre = d.nombre ?? d.name
+    const [dx, dy, ancla] = d.etq ?? [0, -6, 'middle']
     return `
       <g class="pin pin-${e}${i === elegido ? ' pin-elegido' : ''}" data-i="${i}"
          transform="translate(${x} ${y})" role="button" tabindex="0"
-         aria-label="${d.name}, ${d.pais}">
+         aria-label="${nombre}${d.pais ? ', ' + d.pais : ''}">
         ${i === elegido ? '<circle class="pin-halo" r="7"/>' : ''}
+        <circle class="pin-toque" r="9"/>
         <circle class="pin-aro" r="3.6"/>
         <circle class="pin-centro" r="1.7"/>
+        <text class="pin-nombre" x="${dx}" y="${dy}" text-anchor="${ancla}">${nombre}</text>
       </g>`
   }).join('')
 

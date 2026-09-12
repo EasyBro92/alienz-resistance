@@ -973,6 +973,139 @@ html, body {
   color: var(--verde-texto);
 }
 
+/* ---------- segunda pantalla: el mapa del mundo ---------- */
+.mapa-capa { z-index: 12; }
+/* min-width: 0 en el panel y en la caja del mapa. Un elemento de rejilla o de
+   flex no encoge por debajo de su contenido salvo que se diga, y el contenido es
+   un mapa de 760 píxeles: empujaba el panel entero fuera de la pantalla y se
+   cortaban el titular y la leyenda. */
+.panel-mapa { width: 100%; max-width: min(520px, 100%); min-width: 0; display: flex; flex-direction: column; align-items: center; }
+.panel-mapa h2,
+.panel-pais h2 {
+  margin: 0 0 8px;
+  font-size: clamp(28px, 9vw, 40px); font-weight: 900; letter-spacing: 2px;
+  background: linear-gradient(180deg, var(--titulo-alto), var(--green));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.mapa-relato {
+  margin: 0 0 12px; max-width: 380px;
+  font-size: 12.5px; line-height: 1.6; color: var(--tinta-3);
+}
+/* Un mapa del mundo es apaisado. A lo ancho de un móvil en vertical salía de
+   poco más de cien píxeles de alto, con los doce países amontonados. Se dibuja
+   al 220% y la caja se desliza con el dedo: llena media pantalla y los nombres
+   se leen. Arranca centrada en el país que toca. */
+.mapa-grande {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto; overflow-y: hidden;
+  border: 2px solid var(--borde-2);
+  border-radius: 16px;
+  background: var(--velo-1);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.mapa-grande::-webkit-scrollbar { display: none; }
+.mapa-grande .mapa { width: 220%; min-width: 760px; max-width: none; height: auto; display: block; }
+
+/* El nombre del país junto a su chincheta. El halo es el propio fondo del panel
+   pintado por debajo del texto: sin él, el nombre se perdía sobre los
+   continentes y sobre la raya de la ruta. */
+.pin-nombre {
+  font-size: 5.4px; font-weight: 800; letter-spacing: 0.2px;
+  fill: var(--tinta-2);
+  paint-order: stroke; stroke: var(--panel-fondo); stroke-width: 1.8px; stroke-linejoin: round;
+  pointer-events: none;
+}
+.pin-hecho .pin-nombre { fill: #c9951e; }
+.pin-cerrado .pin-nombre { fill: var(--tinta-4); }
+.pin-elegido .pin-nombre { fill: var(--verde-texto); font-size: 6.4px; }
+/* Zona de toque invisible, mayor que la chincheta. Una chincheta de 3,6
+   unidades son ocho píxeles, y eso no se acierta con un pulgar. */
+.pin-toque { fill: transparent; }
+
+.mapa-leyenda {
+  display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
+  margin: 12px 0 4px;
+  font-size: 11px; color: var(--tinta-3);
+}
+.mapa-leyenda i {
+  display: inline-block; width: 9px; height: 9px; border-radius: 50%;
+  margin-right: 5px; vertical-align: -1px;
+}
+.leg-hecho { background: #ffcf45; }
+.leg-abierto { background: var(--verde-texto); }
+.leg-cerrado { background: var(--tinta-4); }
+.mapa-pie { margin: 4px 0 14px; font-size: 11px; opacity: 0.6; }
+
+/* ---------- tercera pantalla: un país ---------- */
+.pais-capa { z-index: 14; align-items: center; padding: 0 18px; }
+.panel-pais { width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: stretch; }
+.panel-pais .eyebrow,
+.panel-pais h2,
+.panel-pais .estrellas-total { text-align: center; }
+
+/* El desenlace del país, cuando ya está limpio: es donde se cuenta qué pasó
+   después, y va con el oro de lo conseguido para que no se confunda con la
+   introducción de arriba. */
+.pais-desenlace {
+  margin: 0 0 14px; padding: 10px 12px;
+  border-left: 2px solid #ffcf45;
+  background: rgba(255, 207, 69, 0.08);
+  border-radius: 0 10px 10px 0;
+  text-align: left;
+}
+.pais-desenlace span {
+  display: block; margin-bottom: 4px;
+  font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
+  color: #c9951e;
+}
+.pais-desenlace p { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--tinta-2); }
+.pais-peaje {
+  margin: 0 0 14px; padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(232, 82, 63, 0.4);
+  background: rgba(232, 82, 63, 0.1);
+  font-size: 12px; line-height: 1.5; color: var(--tinta-2);
+}
+.pais-peaje b { color: #ffcf45; }
+
+.misiones { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.mision {
+  display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center;
+  width: 100%; padding: 10px 12px;
+  border-radius: 12px; border: 1px solid var(--borde-2);
+  background: var(--velo-1);
+  font: inherit; color: inherit; text-align: left;
+  cursor: pointer;
+}
+.mision:disabled { cursor: not-allowed; opacity: 0.5; }
+.mision-abierta { border-color: var(--verde-borde); background: var(--velo-2); }
+.mision-num {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-weight: 900; background: var(--velo-3);
+}
+.mision-hecha .mision-num { background: rgba(255, 207, 69, 0.18); color: #c9951e; }
+.mision-abierta .mision-num { background: var(--verde-texto); color: var(--panel-fondo); }
+.mision-txt b { display: block; font-size: 14px; }
+.mision-txt small { display: block; margin-top: 1px; font-size: 10.5px; letter-spacing: 0.4px; color: var(--verde-texto); }
+.mision-txt em { display: block; margin-top: 3px; font-size: 11.5px; font-style: normal; line-height: 1.4; color: var(--tinta-3); }
+.mision-fin { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.mision-ir { font-style: normal; color: var(--verde-texto); font-size: 14px; }
+/* SVG del propio juego y no emoji: el emoji lo dibuja el sistema y no hereda el color del tema. */
+.mision-candado { width: 14px; height: 14px; color: var(--tinta-4); }
+.mision-jefe {
+  font-style: normal; font-size: 9px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
+  padding: 2px 6px; border-radius: 999px;
+  color: var(--red); border: 1px solid rgba(232, 82, 63, 0.45);
+}
+.pais-botones { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+
+/* El cierre de campaña agrupa por país: treinta y seis líneas no se leen. */
+.marca-pais { flex: 1; text-align: left; }
+
 /* ---------- estrellas ---------- */
 /* La unidad de medida de toda la campaña: el mismo dibujo en la ficha del
    informe, en la pantalla de victoria y en el resumen final. Apagada es el

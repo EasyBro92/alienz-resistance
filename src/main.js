@@ -12,7 +12,7 @@ import { createAudio } from './audio.js'
 import { createUI } from './ui.js'
 import { renderPortraits } from './portraits.js'
 import { pintarMapa } from './mapa.js'
-import { escenaDe } from './campana.js'
+import { escenaDe, PAISES, paisDe } from './campana.js'
 import { NIVEL_DETALLE } from './systems/detalle.js'
 import { cargarProgreso, superarNivel, nivelJugable, ESTRELLAS, estrellasDe, estrellasTotales, estrellasQueFaltan, campañaCompleta } from './systems/progreso.js'
 
@@ -1114,6 +1114,12 @@ function win () {
   const progreso = superarNivel(nivelActual, porcentaje)
   const siguiente = NIVELES[nivelActual + 1]
   const mejora = !(nivelActual in antes.rangos) || estrellas > antes.rangos[nivelActual]
+  // Si era la última misión del país, esta victoria cierra el país entero y se
+  // cuenta su desenlace. Solo la primera vez: repetirla para mejorar la nota no
+  // vuelve a limpiar nada.
+  const pais = paisDe(nivelActual)
+  const paisIdx = PAISES.indexOf(pais)
+  const cierraPais = nivelActual === pais.ultima && primeraVez
 
   // Lo que se acaba de abrir, con su nombre de verdad. "Has desbloqueado 2
   // objetos" no dice nada; "Escopetero, Alambrada" sí.
@@ -1141,19 +1147,23 @@ function win () {
   if (!siguiente && campañaCompleta(progreso)) {
     // Fin de campaña. No es un nivel más superado: es el último, y merece una
     // pantalla que no se parezca a las otras cinco.
-    const marcas = NIVELES.map((n, i) => {
-      return `<li>${estrellitas(progreso.rangos[i] ?? 0)}${n.name}<small>${n.pais}</small></li>`
+    // Por país y no por misión: treinta y seis líneas seguidas no se leen, y lo
+    // que se quiere ver al acabar es cómo quedó cada país.
+    const marcas = PAISES.map(p => {
+      let suyas = 0
+      for (let i = p.primera; i <= p.ultima; i++) suyas += progreso.rangos[i] ?? 0
+      return `<li><span class="marca-pais">${p.nombre}</span><b>${suyas}</b>&nbsp;<small>/ ${p.misiones.length * 3} ★</small></li>`
     }).join('')
     ui.showOverlay(`
       <p class="eyebrow">Mando del búnker · informe de cierre</p>
       <h1>PLANETA LIMPIO</h1>
-      <p class="tagline">Doce campamentos. No queda ninguno en pie.</p>
+      <p class="tagline">Doce países. Treinta y seis campamentos. No queda ninguno en pie.</p>
       ${sello}
       <p class="cierre">${nivel.cierre ?? ''} Los búnkeres abren y la gente
       empieza a salir. Pero los túneles siguen bajando en los doce sitios, y
       nadie de los que firmamos aquello sabe hasta dónde.</p>
       <ol class="marcas">${marcas}</ol>
-      <button class="big-btn" onclick="location.reload()">VOLVER AL INFORME</button>`)
+      <button class="big-btn" onclick="volverA('mapa')">AL MAPA</button>`)
     return
   }
 
@@ -1163,7 +1173,10 @@ function win () {
     ${sello}
     ${nivel.cierre ? `<p class="cierre">${nivel.cierre}</p>` : ''}
     ${nuevas.length ? `<div class="premio"><span class="premio-tit">Arsenal liberado</span>${nuevas.map(n => `<b>${n}</b>`).join('')}</div>` : ''}
-    <button class="big-btn" onclick="location.reload()">${siguiente ? 'AL SIGUIENTE' : 'VOLVER AL INFORME'}</button>`)
+    ${cierraPais ? `<div class="pais-desenlace"><span>${pais.nombre} limpio</span><p>${pais.cierre}</p></div>` : ''}
+    ${cierraPais
+      ? `<button class="big-btn" onclick="volverA('mapa')">AL MAPA</button>`
+      : `<button class="big-btn" onclick="volverA('pais:${paisIdx}')">SIGUIENTE MISIÓN</button>`}`)
 }
 
 function lose () {
@@ -1173,7 +1186,7 @@ function lose () {
   setTimeout(() => ui.showOverlay(`
     <h1 class="lost">PERÍMETRO ROTO</h1>
     <p class="tagline">La siembra pasó de la línea en la oleada ${director.wave} de ${director.total} de ${NIVELES[nivelActual].name}.</p>
-    <button class="big-btn" onclick="location.reload()">REINTENTAR</button>`), 900)
+    <button class="big-btn" onclick="volverA('pais:${PAISES.indexOf(paisDe(nivelActual))}')">REINTENTAR</button>`), 900)
 }
 
 // Dejar el tablero como recién puesto. Empezar significa empezar: sin esto, una
@@ -1206,6 +1219,9 @@ function start (indice = nivelActual) {
   // primer fotograma del nivel saldría con la tierra del destino anterior.
   world.vestir(NIVELES[nivelActual].bioma)
   ui.hideOverlay()
+  // Las pantallas de campaña van en capas propias y no las cierra hideOverlay.
+  document.getElementById('mapa-capa')?.classList.add('hidden')
+  document.getElementById('pais-capa')?.classList.add('hidden')
   audio.unlock()
   audio.startMusic()
   director = createWaveDirector(
@@ -1259,8 +1275,9 @@ function volverAlInforme () {
   running = false
   audio.stopMusic()
   limpiarPartida()
-  ui.el.overlay.innerHTML.includes('niveles') || pintarNiveles()
-  ui.el.overlay.classList.remove('hidden')
+  // Se sale al mapa, no a la portada: quien abandona una misión quiere elegir
+  // otra, no volver a leer la historia desde el principio.
+  abrirMapa()
   ui.setWave('Preparados')
 }
 
@@ -1436,114 +1453,167 @@ function pintarAmenazas (caras = null) {
 pintarAmenazas()
 
 // --- selector de niveles ----------------------------------------------------
-// El menú deja elegir entre los superados y el siguiente, nunca más allá: cada
-// nivel abre el arsenal que hace falta para el que viene, y saltarse uno deja
-// al jugador delante de una oleada que no puede responder con lo que tiene.
-const elNiveles = document.getElementById('niveles')
-const elStart = document.getElementById('start')
+// --- segunda pantalla: el mapa del mundo --------------------------------------
+//
+// El informe lo tenía todo en una sola pantalla —la historia, las amenazas, los
+// ajustes y la campaña— y con doce destinos ya no cabía: el botón de jugar
+// tapaba el mapa. Con treinta y seis misiones en doce países, mucho menos.
+//
+// Ahora son tres pantallas, y cada una cuenta su parte de la historia: la
+// portada cuenta de dónde viene todo, el mapa cuenta cómo está el mundo según
+// lo que llevas limpiado, y cada país abre con su introducción y cierra con su
+// desenlace.
+const elMapaCapa = document.getElementById('mapa-capa')
+const elPaisCapa = document.getElementById('pais-capa')
+const elMapaLienzo = document.getElementById('mapa-lienzo')
+let paisActual = 0
 
-// Seis niveles no caben como seis tarjetas: el botón de jugar acababa tapando
-// la tercera y las tres últimas quedaban fuera de la pantalla. Se dibujan como
-// una fila de fichas numeradas y, debajo, el detalle SOLO del elegido — que
-// además es como se usa esto: eliges uno, no te lees los seis.
-function pintarNiveles () {
-  const progresoActual = cargarProgreso()
-  const { superados, rangos } = progresoActual
-  const total = estrellasTotales(progresoActual)
-  // El que toca: el primero sin superar. Pero SOLO si se puede entrar.
-  //
-  // Con el peaje de estrellas, "el siguiente" y "el siguiente al que puedo
-  // entrar" dejaron de ser lo mismo: quien llega al quinto con once estrellas y
-  // el quinto pide doce se encontraba el destino elegido, el botón verde
-  // encendido y un tramo que no podía jugar. Se retrocede hasta el último
-  // abierto, que además es donde de verdad toca ir: a repetir uno y sacarle la
-  // estrella que falta.
-  nivelActual = Math.min(superados, NIVELES.length - 1)
-  while (nivelActual > 0 && !nivelJugable(nivelActual, superados, progresoActual)) nivelActual--
-  elNiveles.innerHTML = ''
-
-  const marcador = document.createElement('p')
-  marcador.className = 'estrellas-total'
-  marcador.innerHTML = `<span class="estrella on">★</span> <b>${total}</b> de ${NIVELES.length * 3}`
-  elNiveles.appendChild(marcador)
-
-  // El mapa, en vez de una fila de fichas numeradas.
-  //
-  // Con seis tramos de una misma carretera, una fila de números valía: iban
-  // seguidos y estaban en el mismo sitio. Con doce campamentos repartidos por
-  // el mundo, el número no dice nada y el sitio lo dice todo — que el siguiente
-  // salto es de Grecia a Egipto es media historia contada sin una palabra.
-  const caja = document.createElement('div')
-  caja.className = 'mapa-caja'
-  caja.innerHTML = pintarMapa(NIVELES, i => {
-    if (i < superados) return 'hecho'
-    if (nivelJugable(i, superados, progresoActual)) return 'abierto'
-    return 'cerrado'
-  }, nivelActual)
-  elNiveles.appendChild(caja)
-
-  // Un toque en cualquier parte del grupo, no solo en el círculo de 5 unidades:
-  // en un móvil, acertarle a una chincheta de ese tamaño con el pulgar es
-  // pedirle demasiado a nadie.
-  caja.addEventListener('click', e => {
-    const g = e.target.closest('.pin')
-    if (!g) return
-    const i = Number(g.dataset.i)
-    if (!nivelJugable(i, superados, progresoActual)) audio.denied()
-    // Se selecciona igual: un destino cerrado se puede mirar y leer su parte,
-    // solo que el botón dirá cuántas estrellas faltan en vez de dejar entrar.
-    nivelActual = i
-    marcarElegido()
-  })
-
-  const detalle = document.createElement('div')
-  detalle.className = 'nivel-detalle'
-  detalle.id = 'nivel-detalle'
-  elNiveles.appendChild(detalle)
-
-  marcarElegido()
+// Volver a una pantalla concreta DESPUÉS de recargar.
+//
+// Ganar y perder recargan la página, y es a propósito: es la manera segura de
+// dejar la escena, la economía y los huéspedes exactamente como al arrancar.
+// Pero recargar dejaba al jugador en la portada, a dos toques de donde estaba.
+// Se apunta a dónde volver y el arranque lo reabre.
+window.volverA = destino => {
+  try { sessionStorage.setItem('alienz-abrir', destino) } catch { /* sin almacén: vuelve a la portada */ }
+  location.reload()
 }
 
-function marcarElegido () {
-  const progresoActual = cargarProgreso()
-  const { rangos } = progresoActual
-  for (const g of elNiveles.querySelectorAll('.pin')) {
-    g.classList.toggle('pin-elegido', Number(g.dataset.i) === nivelActual)
+function estadoPais (ip, pr) {
+  const p = PAISES[ip]
+  if (pr.superados > p.ultima) return 'hecho'
+  if (nivelJugable(p.primera, pr.superados, pr)) return 'abierto'
+  return 'cerrado'
+}
+
+// El país que toca: el último en el que se puede entrar. No el primero sin
+// limpiar, porque con el peaje de estrellas pueden no ser el mismo.
+function paisQueToca (pr) {
+  let ip = 0
+  for (let i = 0; i < PAISES.length; i++) if (estadoPais(i, pr) !== 'cerrado') ip = i
+  return ip
+}
+
+// Cómo está el mundo, en una línea que cambia según lo que llevas hecho. El
+// mapa es la pantalla a la que se vuelve después de cada misión, así que es el
+// sitio natural para que la historia AVANCE en vez de repetirse.
+function relatoDelMundo (limpios) {
+  if (limpios === 0) return 'Los gobiernos siguen bajo tierra. Hay un campamento suyo en cada país, y arriba solo salimos nosotros. Empieza por España.'
+  if (limpios < 4) return `${limpios} de ${PAISES.length} países limpios. Por primera vez en dos años se abren trampillas de búnker, y sale gente a mirar el cielo.`
+  if (limpios < 8) return `${limpios} de ${PAISES.length} países limpios. En la sala de Gizeh hay un mapa con puntos encendidos, y los vamos apagando uno a uno.`
+  if (limpios < PAISES.length) return `${limpios} de ${PAISES.length} países limpios. Todo lo que les queda está bajando hacia el Amazonas.`
+  return 'Los doce países están limpios y los búnkeres, abiertos. Pero los túneles siguen bajando, y nadie sabe hasta dónde.'
+}
+
+function abrirMapa () {
+  const pr = cargarProgreso()
+  paisActual = paisQueToca(pr)
+  const limpios = PAISES.filter((_, i) => estadoPais(i, pr) === 'hecho').length
+  document.getElementById('mapa-relato').textContent = relatoDelMundo(limpios)
+  document.getElementById('mapa-estrellas').innerHTML =
+    `<span class="estrella on">★</span> <b>${estrellasTotales(pr)}</b> de ${NIVELES.length * 3}`
+  elMapaLienzo.innerHTML = pintarMapa(PAISES, i => estadoPais(i, pr), paisActual)
+
+  ui.hideOverlay()
+  elPaisCapa.classList.add('hidden')
+  elMapaCapa.classList.remove('hidden')
+
+  // Centrar el país que toca en la caja deslizable. Con un temporizador y no con
+  // requestAnimationFrame: en una pestaña de fondo no llegan fotogramas y el
+  // mapa se quedaba en Alaska.
+  setTimeout(() => {
+    const pin = elMapaLienzo.querySelector('.pin-elegido')
+    if (!pin) return
+    const caja = elMapaLienzo.getBoundingClientRect()
+    const p = pin.getBoundingClientRect()
+    elMapaLienzo.scrollLeft += (p.left + p.width / 2) - (caja.left + caja.width / 2)
+  }, 0)
+}
+
+elMapaLienzo.addEventListener('click', e => {
+  const g = e.target.closest('.pin')
+  if (!g) return
+  audio.unlock()
+  abrirPais(Number(g.dataset.i))
+})
+
+// Un país cerrado también se abre: su introducción se lee igual. Lo que no se
+// puede es jugar, y la pantalla dice por qué y qué hacer para entrar.
+function abrirPais (ip) {
+  const pr = cargarProgreso()
+  const pais = PAISES[ip]
+  if (!pais) return
+  const estado = estadoPais(ip, pr)
+  paisActual = ip
+  if (estado === 'cerrado') audio.denied()
+
+  document.getElementById('pais-lugar').textContent = `País ${ip + 1} de ${PAISES.length}`
+  document.getElementById('pais-nombre').textContent = pais.nombre
+  document.getElementById('pais-intro').innerHTML = pais.intro.map(t => `<p>${t}</p>`).join('')
+
+  let suyas = 0
+  for (let i = pais.primera; i <= pais.ultima; i++) suyas += pr.rangos[i] ?? 0
+  document.getElementById('pais-estrellas').innerHTML =
+    `<span class="estrella on">★</span> <b>${suyas}</b> de ${pais.misiones.length * 3} en ${pais.nombre}`
+
+  const faltan = estrellasQueFaltan(pais.primera, pr)
+  let aviso = ''
+  if (estado === 'hecho') {
+    aviso = `<div class="pais-desenlace"><span>${pais.nombre} limpio</span><p>${pais.cierre}</p></div>`
+  } else if (estado === 'cerrado') {
+    const texto = faltan
+      ? `Faltan <b>${faltan} ★</b> para entrar. Vuelve a un país ya limpiado y mejora la nota de alguna misión.`
+      : `Limpia primero ${PAISES[ip - 1]?.nombre ?? 'el país anterior'}.`
+    aviso = `<p class="pais-peaje">${texto}</p>`
   }
+  document.getElementById('pais-aviso').innerHTML = aviso
 
-  const nivel = NIVELES[nivelActual]
-  const total = nivel.waves.length
-  const conJefe = nivel.waves.some(w => w.boss)
-  const abre = (nivel.desbloquea ?? []).length
-  // El tramo, dibujado. No hace falta esconderlo en los cerrados: sus fichas
-  // están desactivadas, así que un nivel que no se puede jugar tampoco puede
-  // llegar hasta aquí.
-  document.getElementById('nivel-detalle').innerHTML = `
-    <svg class="nivel-escena" viewBox="0 0 120 40" aria-hidden="true">
-      <use href="#esc-${escenaDe(nivel)}"></use>
-    </svg>
-    <b>${nivel.name}<small>${nivel.pais}</small></b>
-    <span class="nivel-lugar">${nivel.lugar}</span>
-    ${nivelActual in rangos ? estrellitas(rangos[nivelActual]) : ''}
-    <em>${nivel.resumen}</em>
-    <span class="nivel-datos">
-      <i>${total} oleadas</i>
-      ${conJefe ? '<i class="jefe">con jefe</i>' : ''}
-      ${abre ? `<i class="abre">abre ${abre}</i>` : ''}
-    </span>`
+  document.getElementById('pais-misiones').innerHTML = pais.misiones.map((m, im) => {
+    const i = pais.primera + im
+    const jugable = nivelJugable(i, pr.superados, pr)
+    const hecha = i < pr.superados
+    const jefe = NIVELES[i].waves.some(w => w.boss)
+    const clase = hecha ? 'mision-hecha' : jugable ? 'mision-abierta' : 'mision-cerrada'
+    // El candado como SVG del propio juego y no como emoji: el emoji lo dibuja
+    // el sistema, cambia entre Android e iOS y no hereda el color del tema.
+    const fin = hecha
+      ? estrellitas(pr.rangos[i] ?? 0)
+      : jugable
+        ? '<i class="mision-ir">▶</i>'
+        : '<svg class="mision-candado" viewBox="0 0 24 24" aria-label="cerrada"><rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2.4"/></svg>'
+    return `
+      <li>
+        <button type="button" class="mision ${clase}" data-i="${i}" ${jugable ? '' : 'disabled'}>
+          <span class="mision-num">${im + 1}</span>
+          <span class="mision-txt">
+            <b>${m.name}</b>
+            <small>${m.lugar}</small>
+            <em>${m.resumen}</em>
+          </span>
+          <span class="mision-fin">
+            ${fin}
+            ${jefe ? '<i class="mision-jefe">jefe</i>' : ''}
+          </span>
+        </button>
+      </li>`
+  }).join('')
 
-  // Un destino cerrado se puede mirar —está en el mapa y su historia se lee—,
-  // pero no se puede jugar, y el botón tiene que decirlo en vez de dejar que el
-  // jugador lo pulse y no pase nada.
-  const faltan = estrellasQueFaltan(nivelActual, progresoActual)
-  const cerrado = !nivelJugable(nivelActual, progresoActual.superados, progresoActual)
-  elStart.disabled = cerrado
-  elStart.textContent = cerrado
-    ? `FALTAN ${faltan} ★`
-    : 'AGUANTAR LA LÍNEA'
+  elPaisCapa.classList.remove('hidden')
 }
 
-pintarNiveles()
+document.getElementById('pais-misiones').addEventListener('click', e => {
+  const b = e.target.closest('.mision')
+  if (!b || b.disabled) return
+  nivelActual = Number(b.dataset.i)
+  abrirParte(nivelActual)
+})
+document.getElementById('pais-volver').addEventListener('click', () => {
+  elPaisCapa.classList.add('hidden')
+})
+document.getElementById('mapa-volver').addEventListener('click', () => {
+  elMapaCapa.classList.add('hidden')
+  ui.el.overlay.classList.remove('hidden')
+})
 // --- parte de operaciones ----------------------------------------------------
 // Entre elegir el tramo y jugarlo hay una pantalla que cuenta a qué vas. Los
 // seis partes seguidos son la historia de la compañía subiendo por la carretera,
@@ -1587,7 +1657,16 @@ document.getElementById('parte-volver').addEventListener('click', () => {
   elParteCapa.classList.add('hidden')
 })
 
-elStart.addEventListener('click', () => abrirParte(nivelActual))
+document.getElementById('ir-mapa').addEventListener('click', () => { audio.unlock(); abrirMapa() })
+
+// Si se vuelve de una partida recargando, se reabre la pantalla de la que se
+// venía: el mapa tras limpiar un país, el país tras una misión o una derrota.
+try {
+  const destino = sessionStorage.getItem('alienz-abrir')
+  sessionStorage.removeItem('alienz-abrir')
+  if (destino === 'mapa') abrirMapa()
+  else if (destino?.startsWith('pais:')) { abrirMapa(); abrirPais(Number(destino.slice(5)) || 0) }
+} catch { /* sin almacén de sesión: se queda en la portada */ }
 
 // Consola de pruebas: solo existe en desarrollo, no viaja a la versión publicada.
 if (import.meta.env.DEV) {

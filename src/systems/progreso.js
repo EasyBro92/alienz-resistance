@@ -8,7 +8,11 @@ import { NIVELES, INICIALES } from '../config.js'
 // puede editar a mano, y un `superados: 99` o un JSON roto no deben dejar el
 // menú en blanco: en el peor caso se empieza de cero, que es un estado válido.
 
-const CLAVE = 'alienz-progreso-v1'
+// v2 desde la campaña por países. Los índices de misión cambiaron —eran doce
+// destinos y ahora son treinta y seis misiones—, así que el progreso de la v1
+// se acreditaría a ciudades equivocadas: las estrellas de Marsella caerían en
+// Valencia. Se empieza limpio en vez de mentir.
+const CLAVE = 'alienz-progreso-v2'
 
 function leerCrudo () {
   try {
