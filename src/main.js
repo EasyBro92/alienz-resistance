@@ -1175,6 +1175,9 @@ function limpiarPartida () {
 function start (indice = nivelActual) {
   nivelActual = Math.max(0, Math.min(NIVELES.length - 1, indice))
   limpiarPartida()
+  // El paisaje de la región, antes de enseñar nada: si se vistiera después, el
+  // primer fotograma del nivel saldría con la tierra del destino anterior.
+  world.vestir(NIVELES[nivelActual].bioma)
   ui.hideOverlay()
   audio.unlock()
   audio.startMusic()

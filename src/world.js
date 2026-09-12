@@ -3,6 +3,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { FIELD } from './config.js'
 import { texturasDelSuelo } from './systems/texturas.js'
 import { bake } from './assets.js'
+import { BIOMAS, FLORA, HITOS } from './biomas.js'
 
 export const laneX = i => (i - (FIELD.lanes - 1) / 2) * FIELD.laneWidth
 export const rowZ = r => FIELD.frontRowZ - r * FIELD.rowDepth
@@ -100,7 +101,10 @@ function paintRoad (scene) {
 // Decorado del borde de la carretera. Nada de esto interviene en el juego: está
 // para que el campo no parezca una hoja de cálculo. Todo queda fuera de los
 // carriles para no competir con las unidades.
-function decorate (scene) {
+// Lo que hay que poder reteñir al cambiar de región. Se recogen los materiales
+// al construir en vez de buscarlos después recorriendo la escena: son siempre
+// los mismos cuatro y así el cambio de bioma es asignar colores, no una batida.
+function decorate (scene, pintables) {
   const std = (color, rough = 0.85, metal = 0) =>
     new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal })
 
@@ -118,7 +122,7 @@ function decorate (scene) {
     const side = i % 2 ? 1 : -1
     const h = rand(5, 15)
     // Cerros de muchos lados y aplastados: colinas, no pirámides.
-    const hill = new THREE.Mesh(new THREE.ConeGeometry(rand(11, 22), h, rand(6, 9) | 0), std(0xb99a72, 1))
+    const hill = new THREE.Mesh(new THREE.ConeGeometry(rand(11, 22), h, rand(6, 9) | 0), pintables.cerro)
     hill.position.set(side * rand(CLEAR, 120), h / 2 - 2.5, rand(-110, -76))
     hill.rotation.y = rand(0, Math.PI)
     hill.scale.z = rand(0.7, 1.3)
@@ -129,7 +133,7 @@ function decorate (scene) {
   for (let i = 0; i < 14; i++) {
     const w = rand(24, 46)
     const h = rand(2, 3.6)
-    const mesa = new THREE.Mesh(new THREE.CylinderGeometry(w * 0.42, w * 0.5, h, 7), std(0xc7ab86, 1))
+    const mesa = new THREE.Mesh(new THREE.CylinderGeometry(w * 0.42, w * 0.5, h, 7), pintables.meseta)
     mesa.position.set(rand(-150, 150), h / 2 - 1.5, rand(-138, -118))
     mesa.rotation.y = rand(-0.2, 0.2)
     ridge.add(mesa)
@@ -165,7 +169,7 @@ function decorate (scene) {
   // Surco de tierra levantada por detrás del impacto.
   for (let i = 0; i < 9; i++) {
     const t = i / 9
-    const mound = new THREE.Mesh(new THREE.DodecahedronGeometry(rand(0.5, 1.5) * (1 - t * 0.5), 0), std(0x9a8461, 1))
+    const mound = new THREE.Mesh(new THREE.DodecahedronGeometry(rand(0.5, 1.5) * (1 - t * 0.5), 0), pintables.piedra)
     mound.position.set(
       wreckShip.position.x + Math.sign(shipSide) * (5 + i * 3.2),
       0.2,
@@ -177,8 +181,8 @@ function decorate (scene) {
   }
 
   // Matojos secos y piedras a los lados.
-  const bushMat = std(0x9c8a52, 1)
-  const rockMat = std(0xa39079, 1)
+  const bushMat = pintables.matojo
+  const rockMat = pintables.piedra
   for (let i = 0; i < 46; i++) {
     const side = Math.random() < 0.5 ? -1 : 1
     const z = rand(FIELD.spawnZ - 22, FIELD.baseZ + 6)
@@ -352,7 +356,8 @@ export function createWorld (canvas) {
   scene.add(sun, sun.target)
   sun.target.position.copy(camTarget)
 
-  scene.add(new THREE.HemisphereLight(0xbcdcff, 0xd6a86f, 0.6))
+  const cielo = new THREE.HemisphereLight(0xbcdcff, 0xd6a86f, 0.6)
+  scene.add(cielo)
 
   // Contraluz desde el fondo del carril. El sol está en z=+13 y la cámara en
   // z=+14.6: la misma banda, así que la única cara que vemos estaba iluminada
@@ -538,7 +543,18 @@ export function createWorld (canvas) {
 
   // Todo el decorado se funde en un puñado de mallas. Suelto eran más de mil
   // piezas y el fotograma se iba a 22 ms: un móvil no lo aguanta.
-  decorate(decor)
+  // Los materiales que cambian con la región. Se crean aquí y se le pasan a
+  // `decorate`, que los usa en vez de inventarse los suyos: así reteñir un
+  // bioma entero es asignar cuatro colores, sin recorrer la escena buscando
+  // mallas ni reconstruir nada. Funciona porque `bake` va sin oclusión y no
+  // clona los materiales — con oclusión los clonaría y esto no valdría.
+  const pintables = {
+    cerro: new THREE.MeshStandardMaterial({ color: 0xb99a72, roughness: 1 }),
+    meseta: new THREE.MeshStandardMaterial({ color: 0xc7ab86, roughness: 1 }),
+    matojo: new THREE.MeshStandardMaterial({ color: 0x9c8a52, roughness: 1 }),
+    piedra: new THREE.MeshStandardMaterial({ color: 0xa39079, roughness: 1 })
+  }
+  decorate(decor, pintables)
   paintRoad(decor)
   // Sin oclusión: son piezas sueltas repartidas por el descampado, no hay
   // rincones entre ellas, y cocerla costaría media carga a cambio de nada.
@@ -607,10 +623,80 @@ export function createWorld (canvas) {
     for (const fn of oyentesTam) fn(w, h)
   }
 
+  // --- vestir la región ------------------------------------------------------
+  //
+  // Los doce destinos se jugaban en el mismo secarral ocre: daba igual que el
+  // parte dijera Lagos o Vladivostok. Esto le pone a cada uno su tierra, su
+  // cielo, su luz, su vegetación y, donde toca, su hito al fondo.
+  //
+  // Se RETIÑE y se enseña o esconde; no se reconstruye nada. Rehacer el mundo al
+  // empezar cada nivel costaría la misma pausa que costaba generar las texturas,
+  // y ya sabemos lo que se nota eso en un móvil viejo.
+  const bosques = new Map()
+  let bioma = null
+
+  function poblar (clave, b) {
+    const g = new THREE.Group()
+    const borde = fieldWidth / 2 + 3.4
+    for (const [tipo, tono, cuantos] of b.flora ?? []) {
+      const hacer = FLORA[tipo]
+      if (!hacer) continue
+      for (let i = 0; i < cuantos; i++) {
+        const pieza = hacer(tono)
+        // A los lados de la carretera y nunca encima: el corredor central es por
+        // donde se juega, y un árbol ahí tapa media partida.
+        const lado = Math.random() < 0.5 ? -1 : 1
+        pieza.position.set(
+          lado * (borde + Math.random() * 26),
+          0,
+          FIELD.spawnZ - 24 + Math.random() * (FIELD.baseZ - FIELD.spawnZ + 30)
+        )
+        pieza.rotation.y = Math.random() * Math.PI * 2
+        pieza.traverse(o => { if (o.isMesh) o.castShadow = true })
+        g.add(pieza)
+      }
+    }
+    if (b.hito) {
+      const [tipo, ...args] = b.hito
+      if (HITOS[tipo]) g.add(HITOS[tipo](...args))
+    }
+    // Se funden en un puñado de mallas, igual que el resto del decorado: veinte
+    // árboles sueltos son veinte llamadas de dibujo por nada.
+    const fundido = bake(g, false)
+    fundido.visible = false
+    scene.add(fundido)
+    bosques.set(clave, fundido)
+    return fundido
+  }
+
+  function vestir (clave) {
+    const b = BIOMAS[clave]
+    if (!b || clave === bioma) return
+    bioma = clave
+
+    sand.material.color.setHex(b.tierra)
+    pintables.cerro.color.setHex(b.cerro)
+    pintables.meseta.color.setHex(b.meseta)
+    // El matojo y la piedra tiran del tono de la tierra: puestos a un color
+    // fijo, en la nieve quedaban dos manchas marrones flotando en blanco.
+    pintables.matojo.color.setHex(b.cerro)
+    pintables.piedra.color.setHex(b.meseta)
+
+    scene.background.setHex(b.cielo)
+    scene.fog.color.setHex(b.niebla)
+    sun.color.setHex(b.sol)
+    cielo.color.setHex(b.cielo)
+    cielo.groundColor.setHex(b.ambiente)
+
+    for (const [k, g] of bosques) g.visible = k === clave
+    const mio = bosques.get(clave) ?? poblar(clave, b)
+    mio.visible = true
+  }
+
   return {
     // `sun` sale fuera porque el ajuste de calidad cambia el tamaño de su mapa
     // de sombras, y ese mapa es lo más caro que hay en la escena.
-    renderer, scene, camera, sun, resize, slots, setSlotsVisible, resaltarSlot,
+    renderer, scene, camera, sun, resize, slots, setSlotsVisible, resaltarSlot, vestir,
     onResize (fn) { oyentesTam.push(fn) }
   }
 }

@@ -23,6 +23,8 @@ import { OLEADAS } from './oleadas.js'
 // x de 0 a 1 recorriendo de -180 a 180, y de 0 a 1 bajando de +90 a -90. Se
 // calcula aquí y no a mano para que un destino nuevo solo necesite su latitud y
 // su longitud, que se buscan en cualquier sitio.
+// El paisaje de cada destino vive en biomas.js: la paleta de tierra, cielo y
+// luz, la vegetación típica y, donde de verdad ancla el sitio, un hito al fondo.
 const sitio = (lat, lon) => ({ x: (lon + 180) / 360, y: (90 - lat) / 180 })
 
 // El peaje de estrellas de cada destino, y está CALIBRADO, no puesto a ojo.
@@ -70,6 +72,7 @@ export const DESTINOS = [
       'Los primeros llegan sin método. Caminan hacia el ruido porque es lo único que les dejaron saber hacer.'
     ],
     cierre: 'Ninguno pasó. Al recoger los cuerpos, uno llevaba todavía la tarjeta de empleado de una fábrica de Reus.',
+    bioma: 'mediterraneo',
     mapa: sitio(41.12, 1.25),
     estrellas: 0,
     desbloquea: ['shotgun', 'spikes'],
@@ -86,6 +89,7 @@ export const DESTINOS = [
       'Hay quien escupe, quien salta y quien revienta. No están improvisando: están probando qué funciona contra nosotros.'
     ],
     cierre: 'Tres formas nuevas en un solo muelle. Esto no es una plaga: es un taller con turnos.',
+    bioma: 'costa',
     mapa: sitio(43.30, 5.37),
     estrellas: 2,
     desbloquea: ['sniper', 'flamer', 'collector'],
@@ -102,6 +106,7 @@ export const DESTINOS = [
       'En la carretera del anillo todo llega deprisa. Lo que dispara lento no llega a tiempo.'
     ],
     cierre: 'Ya no bajan hacia la ciudad: bajan hacia NOSOTROS. Saben que venimos.',
+    bioma: 'volcanico',
     mapa: sitio(40.85, 14.26),
     estrellas: 4,
     dureza: 0.14,
@@ -117,6 +122,7 @@ export const DESTINOS = [
       'Se cosen entre ellos mientras les disparas. Hay que elegir a quién matar primero.'
     ],
     cierre: 'Encontramos la primera cámara de cría intacta. Tibia, vacía, y con sitio para muchas más de las que hemos matado.',
+    bioma: 'egeo',
     mapa: sitio(37.94, 23.65),
     estrellas: 6,
     desbloquea: ['gunner'],
@@ -133,6 +139,7 @@ export const DESTINOS = [
       'Detrás de la horda viene algo que ninguno de nosotros ha visto entero. Le llaman LA MADRE porque no supieron llamarla de otra forma.'
     ],
     cierre: 'La MADRE cayó. Debajo, en la arena reventada, había un túnel que baja. Esto no era el nido: era una puerta.',
+    bioma: 'desierto',
     mapa: sitio(29.98, 31.13),
     estrellas: 9,
     desbloquea: ['mortar', 'airstrike'],
@@ -149,6 +156,7 @@ export const DESTINOS = [
       'Bajarán todas las formas a la vez. El búnker dice que aguantemos hasta que evacúen. No dice cuánto.'
     ],
     cierre: 'El puente sigue en pie. Debajo pasaron cuatro mil personas mientras nosotros contábamos oleadas.',
+    bioma: 'sabana',
     mapa: sitio(6.45, 3.39),
     estrellas: 12,
     dureza: 0.25,
@@ -164,6 +172,7 @@ export const DESTINOS = [
       'Vuelven a venir de frente, en masa, como los primeros. La diferencia es cuántos son y lo que aguanta cada uno.'
     ],
     cierre: 'La cuenta del día pasa de mil. El búnker deja de pedirnos el número.',
+    bioma: 'monzon',
     mapa: sitio(19.08, 72.88),
     estrellas: 15,
     dureza: 0.30,
@@ -179,6 +188,7 @@ export const DESTINOS = [
       'Fabrican para exportar. Lo que salga de aquí bajará luego por media Asia.'
     ],
     cierre: 'Reventamos la cría y las naves siguieron llegando igual. No las estábamos frenando: las estábamos entreteniendo.',
+    bioma: 'karstico',
     mapa: sitio(29.56, 106.55),
     estrellas: 18,
     dureza: 0.34,
@@ -194,6 +204,7 @@ export const DESTINOS = [
       'Y vienen deprisa. Aquí lo que dispara lento no llega a tiempo, igual que en Nápoles, pero con la mitad de tu cuerpo dormido.'
     ],
     cierre: 'Aguantamos el vano. Tres de los nuestros no bajaron del puente.',
+    bioma: 'taiga',
     mapa: sitio(43.12, 131.89),
     estrellas: 21,
     dureza: 0.38,
@@ -209,6 +220,7 @@ export const DESTINOS = [
       'Se cosen entre ellos y el caparazón devuelve las balas. Y no hay extracción hasta que esto acabe.'
     ],
     cierre: 'El búnker estaba lleno. No de gente: de camas, ordenadas, con nombre en cada una.',
+    bioma: 'artico',
     mapa: sitio(61.22, -149.90),
     estrellas: 24,
     dureza: 0.42,
@@ -224,6 +236,7 @@ export const DESTINOS = [
       'Al fondo hay otra MADRE. Y a diferencia de la del Cairo, esta ha tenido tiempo de aprender de la nuestra.'
     ],
     cierre: 'Cayó. Pero antes mandó algo hacia el sur, y lo que mandó no era una nave.',
+    bioma: 'altiplano',
     mapa: sitio(19.43, -99.13),
     estrellas: 27,
     dureza: 0.46,
@@ -239,6 +252,7 @@ export const DESTINOS = [
       'No queda nadie detrás de nosotros y no hay otro sitio al que ir. Bajarán todas las formas a la vez, y al final no viene una MADRE: vienen dos.'
     ],
     cierre: 'Se acabó.',
+    bioma: 'selva',
     mapa: sitio(-3.12, -60.02),
     estrellas: 30,
     dureza: 0.52,
