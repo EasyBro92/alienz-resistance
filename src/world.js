@@ -3,7 +3,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { FIELD } from './config.js'
 import { texturasDelSuelo } from './systems/texturas.js'
 import { bake } from './assets.js'
-import { BIOMAS, FLORA, HITOS } from './biomas.js'
+import { BIOMAS, FLORA, HITOS, RESTOS } from './biomas.js'
 
 export const laneX = i => (i - (FIELD.lanes - 1) / 2) * FIELD.laneWidth
 export const rowZ = r => FIELD.frontRowZ - r * FIELD.rowDepth
@@ -663,6 +663,22 @@ export function createWorld (canvas) {
         g.add(pieza)
       }
     }
+    // Los restos van más pegados a la calzada que los árboles: lo que se quedó
+    // tirado se quedó tirado EN la carretera o al borde, no en mitad del campo.
+    for (const [tipo, tono, cuantos] of b.restos ?? []) {
+      const hacer = RESTOS[tipo]
+      if (!hacer) continue
+      for (let i = 0; i < cuantos; i++) {
+        const pieza = hacer(tono)
+        const lado = i % 2 ? 1 : -1
+        pieza.position.x += lado * (borde + Math.random() * 7)
+        pieza.position.z += FIELD.spawnZ - 18 + Math.random() * (FIELD.baseZ - FIELD.spawnZ + 14)
+        pieza.rotation.y += Math.random() * Math.PI * 2
+        pieza.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true } })
+        g.add(pieza)
+      }
+    }
+
     if (b.hito) {
       const [tipo, ...args] = b.hito
       if (HITOS[tipo]) g.add(HITOS[tipo](...args))
