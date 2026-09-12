@@ -7,6 +7,7 @@ import { createHealthBar } from './healthbar.js'
 // fotograma, y crear un cuaternión cada vez es basura que recoger cuarenta
 // veces por segundo.
 const _giro = new THREE.Quaternion()
+const _euler = new THREE.Euler()
 
 let nextId = 1
 
@@ -498,9 +499,9 @@ export async function createSoldier (key, spec, lane, row) {
       // disparados en cuanto el soldado giraba a encarar un carril de al lado.
       for (const m of mandos) {
         const h = m.userData.hueso
-        h.quaternion.copy(m.userData.reposo).multiply(
-          _giro.setFromEuler(m.rotation)
-        )
+        const k = m.userData.ganancia ?? 1
+        _euler.set(m.rotation.x * k, m.rotation.y * k, m.rotation.z * k)
+        h.quaternion.copy(m.userData.reposo).multiply(_giro.setFromEuler(_euler))
       }
     },
 

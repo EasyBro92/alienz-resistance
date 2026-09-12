@@ -83,10 +83,28 @@ async function loadModel (url) {
 const _aux = new THREE.Quaternion()
 const _eje = new THREE.Vector3(0, 0, 1)
 function bajarBrazo (signo) {
+  // 0,95 está medido probando: por debajo quedan en cruz y por encima se pasan
+  // de largo y VUELVEN a subir por el otro lado. No es un número redondo porque
+  // el reposo del que parte no es redondo.
   return _aux.clone().setFromAxisAngle(_eje, signo * 0.95)
 }
 
-function mandoDeHueso (hueso, huesoLower, ajuste = null) {
+// Cuánto del giro escrito llega al hueso.
+//
+// El bucle está calibrado contra la figura de piezas, donde un miembro es un
+// pivote corto con una caja colgando y un radián de hombro se lee como un gesto.
+// En un esqueleto de verdad, ese mismo radián son cincuenta y siete grados de
+// brazo entero y el soldado manotea: quieto y sin nadie a tiro, el hombro
+// izquierdo se iba de -0,54 a +1,0 en medio segundo, que son los gestos de
+// reposo —estirarse, mirar atrás— gritando.
+//
+// No se tocan los gestos: se atenúa al entregar. Así el bucle sigue siendo uno
+// solo para las dos clases de figura y cada una recibe lo que le sienta bien.
+// El brazo es el que más baja porque es el que más se ve; las piernas aguantan
+// más porque el ciclo de andar necesita zancada para leerse.
+const GANANCIA = { hombro: 0.42, codo: 0.55, pierna: 0.7, cabeza: 0.45, mano: 0.4 }
+
+function mandoDeHueso (hueso, huesoLower, ajuste = null, gan = 1, ganLower = 1) {
   const nudo = new THREE.Object3D()
   const lower = new THREE.Object3D()
   nudo.add(lower)
@@ -97,10 +115,12 @@ function mandoDeHueso (hueso, huesoLower, ajuste = null) {
     const reposo = hueso.quaternion.clone()
     if (ajuste) reposo.multiply(ajuste)
     nudo.userData.reposo = reposo
+    nudo.userData.ganancia = gan
   }
   if (huesoLower) {
     lower.userData.hueso = huesoLower
     lower.userData.reposo = huesoLower.quaternion.clone()
+    lower.userData.ganancia = ganLower
   }
   return nudo
 }
@@ -186,12 +206,12 @@ async function armarPersona (key, spec, urls) {
     // extiende por su +Y local y gira sobre Z, y el rig no es simétrico —al
     // izquierdo lo baja el giro positivo y al derecho el negativo—. Con los
     // signos cambiados los soldados salían en cruz, apuntando al cielo.
-    armL: mandoDeHueso(hueso('LeftArm'), hueso('LeftForeArm'), bajarBrazo(1)),
-    armR: mandoDeHueso(hueso('RightArm'), hueso('RightForeArm'), bajarBrazo(-1)),
-    legL: mandoDeHueso(hueso('LeftUpLeg'), hueso('LeftLeg')),
-    legR: mandoDeHueso(hueso('RightUpLeg'), hueso('RightLeg'))
+    armL: mandoDeHueso(hueso('LeftArm'), hueso('LeftForeArm'), bajarBrazo(1), GANANCIA.hombro, GANANCIA.codo),
+    armR: mandoDeHueso(hueso('RightArm'), hueso('RightForeArm'), bajarBrazo(-1), GANANCIA.hombro, GANANCIA.codo),
+    legL: mandoDeHueso(hueso('LeftUpLeg'), hueso('LeftLeg'), null, GANANCIA.pierna, GANANCIA.pierna),
+    legR: mandoDeHueso(hueso('RightUpLeg'), hueso('RightLeg'), null, GANANCIA.pierna, GANANCIA.pierna)
   }
-  g.userData.head = mandoDeHueso(hueso('Head'), null)
+  g.userData.head = mandoDeHueso(hueso('Head'), null, null, GANANCIA.cabeza)
   // El arma cuelga del hueso de la mano, así que es la mano la que la mueve.
   //
   // Aquí estaba lo de "corren con el arma levantada y disparan sin moverse":
@@ -200,7 +220,7 @@ async function armarPersona (key, spec, urls) {
   // al suelo cuando no hay a quién apuntar—, y ese mando no iba a ninguna parte.
   // Enganchado a la mano, el arma vuelve a caer al cruzar el descampado y a dar
   // la patada al disparar.
-  g.userData.weapon = mandoDeHueso(hueso('RightHand'), null)
+  g.userData.weapon = mandoDeHueso(hueso('RightHand'), null, null, GANANCIA.mano)
   // El reposo del que parte el bucle. Para la figura de piezas son ángulos
   // absolutos; aquí son DESVÍOS sobre la pose del esqueleto, así que los
   // números son otros, pero el papel es el mismo: la postura a la que vuelve
