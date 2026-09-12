@@ -1185,7 +1185,7 @@ function start (indice = nivelActual) {
       if (boss) audio.groan(true)
     },
     () => setTimeout(win, 1200),
-    (n, jefe) => dropship.llegar(n, jefe),
+    (n, jefe) => { dropship.llegar(n, jefe); audio.nave(jefe) },
     () => dropship.partir()
   )
   running = true
@@ -1418,8 +1418,16 @@ function pintarNiveles () {
   const progresoActual = cargarProgreso()
   const { superados, rangos } = progresoActual
   const total = estrellasTotales(progresoActual)
-  // El que toca: el primero sin superar, o el último si ya está todo hecho.
+  // El que toca: el primero sin superar. Pero SOLO si se puede entrar.
+  //
+  // Con el peaje de estrellas, "el siguiente" y "el siguiente al que puedo
+  // entrar" dejaron de ser lo mismo: quien llega al quinto con once estrellas y
+  // el quinto pide doce se encontraba el destino elegido, el botón verde
+  // encendido y un tramo que no podía jugar. Se retrocede hasta el último
+  // abierto, que además es donde de verdad toca ir: a repetir uno y sacarle la
+  // estrella que falta.
   nivelActual = Math.min(superados, NIVELES.length - 1)
+  while (nivelActual > 0 && !nivelJugable(nivelActual, superados, progresoActual)) nivelActual--
   elNiveles.innerHTML = ''
 
   const marcador = document.createElement('p')
@@ -1449,7 +1457,9 @@ function pintarNiveles () {
     const g = e.target.closest('.pin')
     if (!g) return
     const i = Number(g.dataset.i)
-    if (!nivelJugable(i, superados, progresoActual)) { audio.denied(); return }
+    if (!nivelJugable(i, superados, progresoActual)) audio.denied()
+    // Se selecciona igual: un destino cerrado se puede mirar y leer su parte,
+    // solo que el botón dirá cuántas estrellas faltan en vez de dejar entrar.
     nivelActual = i
     marcarElegido()
   })
@@ -1490,9 +1500,15 @@ function marcarElegido () {
       ${abre ? `<i class="abre">abre ${abre}</i>` : ''}
     </span>`
 
-  // Texto corto y fijo: con el nombre del nivel dentro se partía en dos líneas.
-  // Cuál se va a jugar ya lo dice la ficha marcada justo encima.
-  elStart.textContent = 'AGUANTAR LA LÍNEA'
+  // Un destino cerrado se puede mirar —está en el mapa y su historia se lee—,
+  // pero no se puede jugar, y el botón tiene que decirlo en vez de dejar que el
+  // jugador lo pulse y no pase nada.
+  const faltan = estrellasQueFaltan(nivelActual, progresoActual)
+  const cerrado = !nivelJugable(nivelActual, progresoActual.superados, progresoActual)
+  elStart.disabled = cerrado
+  elStart.textContent = cerrado
+    ? `FALTAN ${faltan} ★`
+    : 'AGUANTAR LA LÍNEA'
 }
 
 pintarNiveles()

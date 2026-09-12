@@ -267,6 +267,58 @@ export function createAudio () {
       })
     },
 
+    // La nave posándose al fondo de la carretera.
+    //
+    // Era lo único grande del juego que pasaba en silencio: baja una nave del
+    // tamaño de un edificio, abre la compuerta y no se oye nada. Y es además el
+    // aviso de que empieza la oleada, así que suena ANTES de que se vea llegar
+    // —el jugador está mirando su línea, no el fondo— y da los segundos que
+    // faltan para colocar.
+    //
+    // Dos capas. Un bajo que cae de tono: es el motor frenando contra el suelo,
+    // y lo que hace que se lea como algo que se POSA y no como algo que pasa de
+    // largo. Y encima un siseo filtrado que se abre, que es el aire de la
+    // compuerta. Con el jefe todo baja de tono y dura más: la misma nave, pero
+    // más grande.
+    nave (jefe = false) {
+      play(() => {
+        const t = ctx.currentTime
+        const largo = jefe ? 2.6 : 1.8
+
+        const motor = ctx.createOscillator()
+        motor.type = 'sawtooth'
+        const hz = jefe ? 62 : 96
+        motor.frequency.setValueAtTime(hz, t)
+        motor.frequency.exponentialRampToValueAtTime(hz * 0.42, t + largo)
+        const filtro = ctx.createBiquadFilter()
+        filtro.type = 'lowpass'
+        filtro.frequency.setValueAtTime(420, t)
+        filtro.frequency.exponentialRampToValueAtTime(120, t + largo)
+        const gm = ctx.createGain()
+        gm.gain.setValueAtTime(0.0001, t)
+        gm.gain.exponentialRampToValueAtTime(jefe ? 0.5 : 0.32, t + 0.5)
+        gm.gain.exponentialRampToValueAtTime(0.0001, t + largo)
+        motor.connect(filtro).connect(gm).connect(sfxGain)
+        motor.start(t); motor.stop(t + largo + 0.1)
+
+        // El aire de la compuerta, en la segunda mitad: primero se posa y
+        // DESPUÉS abre. Al revés no se entiende qué ha pasado.
+        const aire = ctx.createBufferSource()
+        aire.buffer = noiseBuffer(1.2)
+        const fa = ctx.createBiquadFilter()
+        fa.type = 'bandpass'
+        fa.frequency.setValueAtTime(300, t + largo * 0.55)
+        fa.frequency.exponentialRampToValueAtTime(1800, t + largo)
+        fa.Q.value = 0.7
+        const ga = ctx.createGain()
+        ga.gain.setValueAtTime(0.0001, t + largo * 0.55)
+        ga.gain.exponentialRampToValueAtTime(0.2, t + largo * 0.78)
+        ga.gain.exponentialRampToValueAtTime(0.0001, t + largo + 0.5)
+        aire.connect(fa).connect(ga).connect(sfxGain)
+        aire.start(t + largo * 0.55); aire.stop(t + largo + 0.6)
+      })
+    },
+
     // Pausa. Dos cosas a la vez, y las dos hacen falta.
     //
     // El sonido: un golpe seco que BAJA de tono al parar y SUBE al seguir. Es la
