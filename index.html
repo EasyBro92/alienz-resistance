@@ -116,6 +116,10 @@
     <symbol id="i-flamer" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="6" height="8" rx="3"/><path d="M9 12h7"/><path fill="var(--u-tint)" stroke="none" d="M16 10c2.4.8 3.4 1.6 5.5 1.2-1.4 2.4-3 3.2-5.5 3.2z"/></symbol>
     <symbol id="i-gunner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11h18"/><path d="M15 9.5v3M17 9.5v3M19 9.5v3"/><path stroke="var(--u-tint)" d="M6 11v4h4"/><path d="m14 11-2 6m2-6 2 6"/></symbol>
     <symbol id="i-mortar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke-width="3" d="M8 19 16 7"/><path d="M4 20h9"/><path fill="var(--u-tint)" stroke="none" d="m18.5 3 1.7 1.7-1.7 1.7-1.7-1.7z"/></symbol>
+    <!-- Imán de herradura: dos brazos, el arco de arriba y las puntas teñidas,
+         que es como se dibuja un imán desde que existen los dibujos animados.
+         Se lee a dieciséis píxeles, que es el tamaño al que va a vivir. -->
+    <symbol id="i-iman" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 20V11a6 6 0 0 1 12 0v9"/><path stroke="var(--u-tint)" d="M6 17.4v2.6M18 17.4v2.6"/></symbol>
     <symbol id="i-sandbags" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="14" width="8" height="4.5" rx="2.2"/><rect x="13" y="14" width="8" height="4.5" rx="2.2"/><rect stroke="var(--u-tint)" x="7.5" y="8.5" width="8" height="4.5" rx="2.2"/></symbol>
     <symbol id="i-spikes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20"/><path stroke="var(--u-tint)" d="M6 9.5v5M4 10.5l4 3M8 10.5l-4 3M12 9.5v5M10 10.5l4 3M14 10.5l-4 3M18 9.5v5M16 10.5l4 3M20 10.5l-4 3"/></symbol>
     <symbol id="i-grenade" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="14.5" r="5.2"/><path opacity=".45" d="M6 14.5h10M11 9.5v10"/><path d="M9.5 9.2V7.4h3v1.8"/><path stroke="var(--u-tint)" d="m13 7.4 3.6-2.2"/><circle stroke="var(--u-tint)" cx="18" cy="4" r="1.7"/></symbol>
@@ -248,7 +252,17 @@
     <canvas id="scene"></canvas>
 
     <header id="hud">
-      <div class="coins" id="coins"><span class="coin-dot"></span><span id="coin-value">0</span></div>
+      <div class="coin-zona">
+        <div class="coins" id="coins"><span class="coin-dot"></span><span id="coin-value">0</span></div>
+        <!-- El Recolector no se veía por ninguna parte: se compraba una vez y a
+             partir de ahí las monedas se cobraban solas, sin que nada dijera por
+             qué. Esta chapa aparece al comprarlo, pegada al contador que es justo
+             lo que el Recolector afecta, y lleva el nombre escrito. -->
+        <div class="recolector hidden" id="recolector" title="Recolector: las monedas se recogen solas">
+          <svg class="recolector-icono" aria-hidden="true"><use href="#i-iman"></use></svg>
+          <span>RECOLECTOR</span>
+        </div>
+      </div>
       <div class="wave-box">
         <div class="wave-label" id="wave-label">Preparados</div>
         <div class="base-bar"><div class="base-fill" id="base-fill"></div></div>

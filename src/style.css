@@ -153,6 +153,28 @@ html, body {
   box-shadow: inset 0 -2px 3px var(--sombra-suave);
 }
 .coins.flash { animation: pop 0.25s ease; }
+
+/* El contador y su chapa van juntos y alineados por la izquierda: la chapa
+   cuelga DEL contador, no del borde de la pantalla, porque lo que explica es
+   qué le pasa a ese número. */
+.coin-zona { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+.recolector {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 9px 3px 7px;
+  border: 2px solid var(--stroke);
+  border-radius: 999px;
+  background: var(--panel);
+  /* El mismo ámbar de la moneda: se lee de un vistazo que habla de monedas. */
+  --u-tint: #ffcf45;
+  color: #ffcf45;
+  font-size: 10px; font-weight: 900; letter-spacing: 0.1em;
+  text-shadow: 0 1px 0 var(--sombra-media);
+  animation: recolector-entra 0.4s ease both;
+}
+.recolector-icono { width: 15px; height: 15px; }
+@keyframes recolector-entra {
+  from { opacity: 0; transform: translateY(-6px) scale(0.8); }
+}
 @keyframes pop { 50% { transform: scale(1.14); } }
 
 .wave-box { flex: 1; min-width: 0; }
@@ -867,6 +889,29 @@ html, body {
      `pointerup` que decide la casilla. */
   pointer-events: none;
 }
+
+/* ---------- estrellas ---------- */
+/* La unidad de medida de toda la campaña: el mismo dibujo en la ficha del
+   informe, en la pantalla de victoria y en el resumen final. Apagada es el
+   hueco que queda por llenar, y por eso se dibuja SIEMPRE la estrella entera
+   en gris en vez de no dibujarla: lo que empuja a repetir un tramo es ver el
+   hueco, no contar las que hay. */
+.estrellas { display: inline-flex; gap: 1px; line-height: 1; }
+.estrella { color: var(--tinta-4); font-size: 11px; }
+.estrella.on { color: #ffcf45; text-shadow: 0 0 6px #ffcf4566; }
+.estrellas.grandes .estrella { font-size: 26px; }
+
+.estrellas-total {
+  margin: 0 0 8px;
+  font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--tinta-3);
+}
+.estrellas-total b { color: var(--tinta); font-size: 15px; }
+.estrellas-total .estrella { font-size: 14px; }
+
+/* El peaje de un destino cerrado: cuántas estrellas faltan. Un candado dice
+   "no puedes"; esto dice "te faltan dos", que es accionable. */
+.ficha-peaje { font-size: 12px; font-weight: 900; color: #ffcf45; opacity: 0.75; }
 
 /* ---------- la historia en tres viñetas ---------- */
 /* Cada momento es un dibujo, una fecha y una línea. En una pantalla de móvil

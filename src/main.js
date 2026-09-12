@@ -12,7 +12,16 @@ import { createAudio } from './audio.js'
 import { createUI } from './ui.js'
 import { renderPortraits } from './portraits.js'
 import { NIVEL_DETALLE } from './systems/detalle.js'
-import { cargarProgreso, superarNivel, nivelJugable, RANGOS, rangoDe, campañaCompleta } from './systems/progreso.js'
+import { cargarProgreso, superarNivel, nivelJugable, ESTRELLAS, estrellasDe, estrellasTotales, estrellasQueFaltan, campañaCompleta } from './systems/progreso.js'
+
+// Tres estrellas dibujadas, las ganadas encendidas. Se usa en la pantalla de
+// victoria y en cada ficha del informe, y tiene que ser el MISMO dibujo en los
+// dos sitios: es la unidad de medida de toda la campaña.
+function estrellitas (n, clase = '') {
+  return `<span class="estrellas ${clase}">${
+    [1, 2, 3].map(i => `<span class="estrella${i <= n ? ' on' : ''}">★</span>`).join('')
+  }</span>`
+}
 import { crearResplandor, marcarBrillo } from './systems/resplandor.js'
 import { crearGolpes } from './systems/golpes.js'
 import { crearCalidad, NIVELES as CALIDADES, leerPreferencia } from './systems/calidad.js'
@@ -155,6 +164,7 @@ function buyUpgrade (item) {
   if (item?.key !== 'collector') return
   if (!economy.spend(item.cost)) { audio.denied(); ui.clearSelection(); return }
   economy.enableAutoCollect()
+  document.getElementById('recolector')?.classList.remove('hidden')
   ui.removeCard('collector')
   ui.clearSelection()
   audio.coin()
@@ -1067,11 +1077,12 @@ function win () {
   const nivel = NIVELES[nivelActual]
   const antes = cargarProgreso()
   const porcentaje = Math.round(baseHp / BASE.hp * 100)
-  const rango = RANGOS[rangoDe(porcentaje)]
+  const estrellas = estrellasDe(porcentaje)
+  const rango = ESTRELLAS[estrellas - 1]
   const primeraVez = nivelActual >= antes.superados
   const progreso = superarNivel(nivelActual, porcentaje)
   const siguiente = NIVELES[nivelActual + 1]
-  const mejora = !(nivelActual in antes.rangos) || rangoDe(porcentaje) > antes.rangos[nivelActual]
+  const mejora = !(nivelActual in antes.rangos) || estrellas > antes.rangos[nivelActual]
 
   // Lo que se acaba de abrir, con su nombre de verdad. "Has desbloqueado 2
   // objetos" no dice nada; "Escopetero, Alambrada" sí.
@@ -1091,8 +1102,8 @@ function win () {
   // CADA victoria algo que enseñar, y de paso una razón para repetir un nivel
   // que ya está superado: dejarlo mejor de como quedó.
   const sello = `
-    <div class="sello sello-${rangoDe(porcentaje)}">
-      <span class="sello-letra">${rango.corto}</span>
+    <div class="sello sello-${estrellas}">
+      ${estrellitas(estrellas, 'grandes')}
       <span class="sello-txt"><b>${rango.nombre}</b><em>Perímetro al ${porcentaje}%${mejora && !primeraVez ? ' · mejor marca' : ''}</em></span>
     </div>`
 
@@ -1100,8 +1111,7 @@ function win () {
     // Fin de campaña. No es un nivel más superado: es el último, y merece una
     // pantalla que no se parezca a las otras cinco.
     const marcas = NIVELES.map((n, i) => {
-      const r = RANGOS[progreso.rangos[i] ?? 0]
-      return `<li><span class="marca-letra marca-${progreso.rangos[i] ?? 0}">${r.corto}</span>${n.name}</li>`
+      return `<li>${estrellitas(progreso.rangos[i] ?? 0)}${n.name}</li>`
     }).join('')
     ui.showOverlay(`
       <p class="eyebrow">Carretera 7 · informe de cierre</p>
@@ -1149,6 +1159,7 @@ function limpiarPartida () {
   occupied.clear()
   presion.fill(0)
   economy.reset()
+  document.getElementById('recolector')?.classList.add('hidden')
   golpes.limpiar()
   for (const b of brasas) { b.t = 0; b.malla.visible = false }
   dropship.ocultar()
@@ -1402,15 +1413,22 @@ const elStart = document.getElementById('start')
 // una fila de fichas numeradas y, debajo, el detalle SOLO del elegido — que
 // además es como se usa esto: eliges uno, no te lees los seis.
 function pintarNiveles () {
-  const { superados, rangos } = cargarProgreso()
+  const progresoActual = cargarProgreso()
+  const { superados, rangos } = progresoActual
+  const total = estrellasTotales(progresoActual)
   // El que toca: el primero sin superar, o el último si ya está todo hecho.
   nivelActual = Math.min(superados, NIVELES.length - 1)
   elNiveles.innerHTML = ''
 
+  const marcador = document.createElement('p')
+  marcador.className = 'estrellas-total'
+  marcador.innerHTML = `<span class="estrella on">★</span> <b>${total}</b> de ${NIVELES.length * 3}`
+  elNiveles.appendChild(marcador)
+
   const fila = document.createElement('div')
   fila.className = 'nivel-fila'
   NIVELES.forEach((nivel, i) => {
-    const abierto = nivelJugable(i, superados)
+    const abierto = nivelJugable(i, superados, progresoActual)
     const hecho = i < superados
     const b = document.createElement('button')
     b.type = 'button'
@@ -1420,7 +1438,14 @@ function pintarNiveles () {
     // La ficha de un nivel hecho enseña CÓMO se hizo, no solo que se hizo:
     // una S y una C son la misma victoria pero no la misma partida, y eso da
     // una razón para volver a un nivel ya superado.
-    b.textContent = hecho ? RANGOS[rangos[i] ?? 0].corto : abierto ? String(i + 1) : '🔒'
+    // La ficha enseña las estrellas sacadas, no un número de orden: es lo que
+    // dice de un vistazo dónde queda trabajo por hacer. Y si está cerrada por
+    // falta de estrellas, dice CUÁNTAS faltan en vez de un candado mudo.
+    const faltan = abierto ? 0 : estrellasQueFaltan(i, progresoActual)
+    b.innerHTML = hecho
+      ? estrellitas(rangos[i] ?? 0)
+      : abierto ? String(i + 1)
+      : faltan ? `<span class="ficha-peaje">★${faltan}</span>` : '🔒'
     if (hecho) b.dataset.rango = rangos[i] ?? 0
     b.setAttribute('aria-label', `Nivel ${i + 1}: ${abierto ? nivel.name : 'bloqueado'}`)
     b.addEventListener('click', () => { nivelActual = i; marcarElegido() })

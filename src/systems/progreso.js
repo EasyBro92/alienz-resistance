@@ -21,21 +21,31 @@ function leerCrudo () {
   }
 }
 
-// Cómo se ganó, según lo que quedó en pie. Un nivel superado con el perímetro
-// intacto y otro arañado con un 5% no son la misma partida, y hasta ahora las
-// dos daban exactamente la misma pantalla: un título y una línea.
-export const RANGOS = [
-  { min: 0,   nombre: 'Por los pelos', corto: 'C' },
-  { min: 40,  nombre: 'Con bajas',     corto: 'B' },
-  { min: 75,  nombre: 'Contenido',     corto: 'A' },
-  { min: 100, nombre: 'Intacto',       corto: 'S' }
+// Cómo se ganó, en estrellas. Un nivel superado con el perímetro intacto y otro
+// arañado con un 5% no son la misma partida.
+//
+// Tres escalones y no cuatro, y con el corte donde tiene sentido dentro de la
+// ficción: o no han entrado, o han entrado, o han entrado y ha costado caro.
+// Las estrellas además ya no son solo un adorno: son la llave que abre el
+// siguiente país, así que rejugar un tramo antiguo para sacarle la tercera es
+// una forma legítima de avanzar.
+export const ESTRELLAS = [
+  { min: 0,   nombre: 'Aguantó',  detalle: 'Menos de la mitad del perímetro en pie' },
+  { min: 55,  nombre: 'Contenido', detalle: 'Entraron, pero el perímetro aguantó' },
+  { min: 100, nombre: 'Intacto',  detalle: 'No pasó ninguno' }
 ]
 
-export function rangoDe (porcentaje) {
-  let i = 0
-  for (let r = 0; r < RANGOS.length; r++) if (porcentaje >= RANGOS[r].min) i = r
-  return i
+// 3 si no entró nadie, 2 si entraron pero quedó más del 55% del perímetro,
+// 1 si se ganó por debajo de eso.
+export function estrellasDe (porcentaje) {
+  if (porcentaje >= 100) return 3
+  if (porcentaje >= 55) return 2
+  return 1
 }
+
+// Se mantiene el nombre viejo como índice 0..2 para lo que aún lo use.
+export const RANGOS = ESTRELLAS
+export const rangoDe = porcentaje => estrellasDe(porcentaje) - 1
 
 export function cargarProgreso () {
   const crudo = leerCrudo()
@@ -47,7 +57,7 @@ export function cargarProgreso () {
   if (guardados && typeof guardados === 'object') {
     for (let i = 0; i < NIVELES.length; i++) {
       const v = Number(guardados[i])
-      if (Number.isFinite(v) && v >= 0 && v < RANGOS.length) rangos[i] = Math.floor(v)
+      if (Number.isFinite(v) && v >= 1 && v <= 3) rangos[i] = Math.floor(v)
     }
   }
   return {
@@ -72,7 +82,7 @@ export function guardarProgreso (p) {
 // borrar lo que ya se demostró.
 export function superarNivel (indice, porcentaje = 0) {
   const p = cargarProgreso()
-  const rango = rangoDe(porcentaje)
+  const rango = estrellasDe(porcentaje)
   let cambia = false
   if (indice + 1 > p.superados) { p.superados = Math.min(NIVELES.length, indice + 1); cambia = true }
   if (!(indice in p.rangos) || rango > p.rangos[indice]) { p.rangos[indice] = rango; cambia = true }
@@ -94,10 +104,36 @@ export function cartasAbiertas (superados = cargarProgreso().superados) {
   return set
 }
 
-// Qué niveles se pueden jugar: los superados, más el siguiente. Nunca se salta
-// uno, porque cada nivel abre el arsenal que hace falta para el siguiente.
-export function nivelJugable (indice, superados = cargarProgreso().superados) {
-  return indice <= superados
+// Cuántas estrellas se llevan en total. Es la moneda con la que se abren los
+// países siguientes.
+export function estrellasTotales (progreso = cargarProgreso()) {
+  let n = 0
+  for (const k in progreso.rangos) n += progreso.rangos[k]
+  return n
+}
+
+// Qué niveles se pueden jugar.
+//
+// Dos condiciones, y hacen falta las dos. La de siempre: no se salta ninguno,
+// porque cada tramo abre el arsenal que hace falta para el siguiente. Y la
+// nueva: cada destino puede pedir un mínimo de estrellas ACUMULADAS.
+//
+// Acumuladas y no "las del nivel anterior" a propósito. Si el peaje fuera lo
+// sacado en el tramo justo anterior, un jugador atascado tendría que repetir
+// una y otra vez ESE tramo; contando el total, puede volver a cualquiera de los
+// que ya superó y sacarle la estrella que le falta. Que es justo para lo que
+// sirve poder volver atrás.
+export function nivelJugable (indice, superados = cargarProgreso().superados, progreso = null) {
+  if (indice > superados) return false
+  const piden = NIVELES[indice]?.estrellas ?? 0
+  if (!piden) return true
+  return estrellasTotales(progreso ?? cargarProgreso()) >= piden
+}
+
+// Cuántas estrellas faltan para poder entrar. 0 si ya se puede.
+export function estrellasQueFaltan (indice, progreso = cargarProgreso()) {
+  const piden = NIVELES[indice]?.estrellas ?? 0
+  return Math.max(0, piden - estrellasTotales(progreso))
 }
 
 export function borrarProgreso () {
