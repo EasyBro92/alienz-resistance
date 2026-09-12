@@ -262,7 +262,176 @@ function columnas (tono) {
   return g
 }
 
-export const HITOS = { piramides, volcan, karst, columnas }
+// --- hitos de ciudad ---------------------------------------------------------
+// Los de arriba cuentan una región; estos, una ciudad concreta, y por eso van en
+// la MISIÓN y no en el bioma. Cada uno declara en `userData.lados` qué lado de
+// la carretera ocupa, para que la vegetación de ese lado se quede en la acera
+// en vez de salirle de dentro.
+
+// La Ciudad de las Artes y las Ciencias, a la derecha: el estanque largo, las
+// costillas blancas del Museu, el Hemisfèric con forma de ojo y, al fondo, el
+// casco del Palau de les Arts con su pluma. Blanco y agua: es lo que la hace
+// reconocible desde cualquier distancia.
+function artesYCiencias () {
+  const g = new THREE.Group()
+  const blanco = mat(0xf2f3ef, 0.35)
+  const agua = mat(0x3fa3cc, 0.12, 0.15)
+  const vidrio = mat(0x7fa8bd, 0.2, 0.35)
+
+  // En vertical la cámara ve poco más que la calzada: todo va pegado a la
+  // barandilla y alto, para que asome por el borde de la pantalla.
+  const estanque = new THREE.Mesh(new THREE.BoxGeometry(12, 0.25, 96), agua)
+  estanque.position.set(2, 0.12, -44)
+  g.add(estanque)
+
+  // Museu: costillas inclinadas bajo una cubierta larga.
+  for (let i = 0; i < 13; i++) {
+    const costilla = new THREE.Mesh(new THREE.BoxGeometry(1.1, 13, 1.1), blanco)
+    costilla.position.set(-3.5, 6.2, -6 - i * 3.3)
+    costilla.rotation.z = 0.28
+    g.add(costilla)
+  }
+  const cubierta = new THREE.Mesh(new THREE.BoxGeometry(5, 0.9, 44), blanco)
+  cubierta.position.set(-1.6, 12.6, -25.8)
+  g.add(cubierta)
+
+  // Hemisfèric: media cúpula de cristal, alargada a lo largo del estanque, bajo
+  // un párpado blanco.
+  const ojo = new THREE.Mesh(new THREE.SphereGeometry(1, 22, 10, 0, Math.PI * 2, 0, Math.PI / 2), vidrio)
+  ojo.scale.set(5.5, 4.2, 9)
+  ojo.position.set(0, 0.2, -58)
+  g.add(ojo)
+  const parpado = new THREE.Mesh(new THREE.TorusGeometry(9.5, 0.55, 6, 26, Math.PI), blanco)
+  parpado.scale.set(1, 0.62, 1)
+  parpado.rotation.y = Math.PI / 2
+  parpado.position.set(0, 0.2, -58)
+  g.add(parpado)
+
+  // Palau de les Arts: el casco alargado y la pluma que lo cruza por encima.
+  const palau = new THREE.Mesh(new THREE.SphereGeometry(1, 22, 12), blanco)
+  palau.scale.set(9, 20, 16)
+  palau.position.set(0, 14, -90)
+  g.add(palau)
+  const pluma = new THREE.Mesh(new THREE.TorusGeometry(16, 0.8, 6, 26, Math.PI * 0.8), blanco)
+  pluma.rotation.y = Math.PI / 2
+  pluma.position.set(0, 4, -90)
+  g.add(pluma)
+
+  // Medido con la cámara del móvil en vertical: el borde de la pantalla pasa
+  // por x ≈ 13 a z = -40 y por x ≈ 18 a z = -70, y por encima de unos 10 de
+  // alto lo tapa el marcador. Lo que no cabe en esa cuña no se ve, así que el
+  // conjunto va reducido y pegado a la barandilla.
+  g.scale.setScalar(0.65)
+  g.position.set(14, 0, -30)
+  g.userData.lados = [1]
+  return g
+}
+
+// El paseo de la Castellana: oficinas a los dos lados de la avenida, con sus
+// bandas de ventanas mirando a la calzada, y al fondo las Cuatro Torres. Puede
+// dejar un hueco en un lado para otro hito, que es donde va el estadio.
+function castellana (huecoLado = 0, desde = 0, hasta = 0) {
+  const g = new THREE.Group()
+  const fachadas = [0xd9d2c4, 0xc6c1b6, 0xb6ae9f, 0xe4ded1, 0xa9abaf, 0xcfc4b0]
+  const ventana = mat(0x3b4955, 0.25, 0.4)
+  for (const lado of [-1, 1]) {
+    let z = 10
+    while (z > -118) {
+      const fondo = azar(9, 15)
+      const ancho = azar(8, 12)
+      const alto = azar(14, 32)
+      const zc = z - fondo / 2
+      if (lado === huecoLado && zc < desde && zc > hasta) { z -= fondo + 2; continue }
+      const x = lado * (12 + ancho / 2)
+      const color = fachadas[Math.floor(Math.random() * fachadas.length)]
+      const cuerpo = new THREE.Mesh(new THREE.BoxGeometry(ancho, alto, fondo), mat(color, 0.85))
+      cuerpo.position.set(x, alto / 2, zc)
+      g.add(cuerpo)
+      // Sin las bandas de ventanas son cajas; con ellas, oficinas.
+      const cara = x - lado * (ancho / 2 + 0.06)
+      for (let y = 3; y < alto - 2; y += 3.4) {
+        const banda = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.3, fondo * 0.82), ventana)
+        banda.position.set(cara, y, zc)
+        g.add(banda)
+      }
+      z -= fondo + azar(1.5, 4)
+    }
+  }
+
+  // Las Cuatro Torres al final de la avenida, entre la niebla: una de cristal,
+  // la cilíndrica, una de acero y la del arco, dos pilares unidos arriba.
+  const vidrio = mat(0x6f8ea6, 0.2, 0.5)
+  const acero = mat(0x9ca3aa, 0.35, 0.6)
+  const torres = new THREE.Group()
+  const prisma = (x, alto, w, material) => {
+    const t = new THREE.Mesh(new THREE.BoxGeometry(w, alto, w), material)
+    t.position.set(x, alto / 2, 0)
+    torres.add(t)
+  }
+  prisma(-30, 58, 8, vidrio)
+  const cilindro = new THREE.Mesh(new THREE.CylinderGeometry(4.2, 4.2, 54, 16), vidrio)
+  cilindro.position.set(-12, 27, 0)
+  torres.add(cilindro)
+  prisma(12, 56, 7, acero)
+  for (const dx of [-3.4, 3.4]) {
+    const pilar = new THREE.Mesh(new THREE.BoxGeometry(3, 62, 7), vidrio)
+    pilar.position.set(30 + dx, 31, 0)
+    torres.add(pilar)
+  }
+  const arco = new THREE.Mesh(new THREE.BoxGeometry(10, 4, 7), acero)
+  arco.position.set(30, 60, 0)
+  torres.add(arco)
+  // Detrás del final de la calzada. En el móvil en vertical solo asoman las
+  // bases bajo el marcador; en pantallas más anchas se ven enteras.
+  torres.position.set(0, 0, -105)
+  g.add(torres)
+
+  g.userData.lados = [-1, 1]
+  return g
+}
+
+// El Bernabéu, a la izquierda: el óvalo con la piel de lamas metálicas de la
+// reforma, el remate de la cubierta y las cuatro torres de las esquinas. Con el
+// lado largo mirando a la avenida, que es como se ve desde la Castellana.
+function bernabeu () {
+  const g = new THREE.Group()
+  const piel = mat(0xc3c8cd, 0.3, 0.65)
+  const oscuro = mat(0x5d6166, 0.7, 0.3)
+
+  const cuerpo = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 24, 44), oscuro)
+  cuerpo.scale.set(20, 1, 26)
+  cuerpo.position.y = 12
+  g.add(cuerpo)
+
+  const n = 64
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2
+    const lama = new THREE.Mesh(new THREE.BoxGeometry(0.5, 25, 2.6), piel)
+    lama.position.set(Math.cos(a) * 20.6, 12.5, Math.sin(a) * 26.6)
+    lama.rotation.y = -a
+    g.add(lama)
+  }
+
+  const cubierta = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1.4, 44), piel)
+  cubierta.scale.set(21.4, 1, 27.4)
+  cubierta.position.y = 25
+  g.add(cubierta)
+
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+    const torre = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 3.4, 28, 16), piel)
+    torre.position.set(sx * 15, 14, sz * 21)
+    g.add(torre)
+  }
+
+  // Reducido para caber en la cuña visible junto a la barandilla (ver
+  // artesYCiencias): el borde del óvalo queda en x ≈ -12.
+  g.scale.setScalar(0.6)
+  g.position.set(-24, 0, -72)
+  g.userData.lados = [-1]
+  return g
+}
+
+export const HITOS = { piramides, volcan, karst, columnas, artesYCiencias, castellana, bernabeu }
 
 // --- las doce regiones -------------------------------------------------------
 //
@@ -363,6 +532,15 @@ export const BIOMAS = {
     cielo: 0x74b0e0, niebla: 0xd8cdb2, sol: 0xfff0d0, ambiente: 0xc09468,
     flora: [['cactus', 0x5f7a48, 16], ['acacia', 0x7a8450, 6]],
     hito: ['volcan', 0x5a4a40, true]
+  },
+  // La ciudad: acera clara en vez de campo, árboles de alineación y coches
+  // aparcados. Es lo que convierte la carretera en una avenida.
+  ciudad: {
+    restos: [['camioneta', 0x8a8f96, 2]],
+    asfalto: 0x5e5f62, raya: 0xf2f2ee, bordillo: 0xcfcac0,
+    tierra: 0xb3aea4, cerro: 0x9a958c, meseta: 0xa6a198,
+    cielo: 0x8fbfe6, niebla: 0xcfd8de, sol: 0xfff4e0, ambiente: 0xb8b0a0,
+    flora: [['olivo', 0x55783f, 14]]
   },
   selva: {
     restos: [['barcaza', 0x7a6a52, 2]],

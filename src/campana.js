@@ -69,7 +69,8 @@ export const PAISES = [
         waves: OLEADAS.avanzadilla
       },
       {
-        name: 'Valencia', lugar: 'Puerto · autovía de acceso', mapa: sitio(39.47, -0.38),
+        name: 'Valencia', lugar: 'Avenida del Saler · Ciudad de las Artes', mapa: sitio(39.47, -0.38),
+        bioma: 'costa', hitos: [['artesYCiencias']],
         resumen: 'Ya no vienen todos iguales.',
         parte: ['El puerto era una de sus zonas de descarga. Aquí llegaban los camiones con la gente que desaparecía.',
           'Hay quien escupe y quien salta. El experimento va más avanzado de lo que creíamos.'],
@@ -77,7 +78,8 @@ export const PAISES = [
         waves: OLEADAS.formas
       },
       {
-        name: 'Madrid', lugar: 'A-3 · entrada a la ciudad', mapa: sitio(40.42, -3.70),
+        name: 'Madrid', lugar: 'Paseo de la Castellana · Chamartín', mapa: sitio(40.42, -3.70),
+        bioma: 'ciudad', hitos: [['castellana', -1, -52, -92], ['bernabeu']],
         resumen: 'Llegan deprisa. Hay que aguantar hasta que abran el búnker.',
         parte: ['El búnker del gobierno está debajo. Para abrir la trampilla hay que dejar la superficie limpia durante una hora entera.',
           'Todo lo que tienen en la zona viene hacia aquí, y viene deprisa.'],

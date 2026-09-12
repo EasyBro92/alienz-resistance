@@ -268,6 +268,17 @@ function encajarCasco (raiz) {
   const tam = caja.getSize(new THREE.Vector3())
   if (tam.x < 0.01) return null
 
+  // A lo ancho de la carretera, no a lo largo. Meshy no garantiza hacia dónde
+  // mira el modelo: la cuña y los lóbulos salían con el lado largo en
+  // profundidad y la nave llegaba de costado. Se gira un cuarto de vuelta y se
+  // vuelve a medir.
+  if (tam.z > tam.x * 1.15) {
+    raiz.rotation.y += Math.PI / 2
+    raiz.updateWorldMatrix(true, true)
+    caja.setFromObject(raiz)
+    caja.getSize(tam)
+  }
+
   raiz.scale.multiplyScalar(ANCHO / tam.x)
   raiz.updateWorldMatrix(true, true)
   caja.setFromObject(raiz)
@@ -343,6 +354,9 @@ export function createDropship (alFase) {
   // El relevo es por indice, asi que la nave que ya este en el aire no cambia
   // a media bajada: la siguiente llamada a vestir() elige de la lista nueva.
   const cargador = new GLTFLoader()
+  // Cascos que terminaron de bajar con la nave en el aire: se ponen en la
+  // siguiente llegada, no en mitad de la bajada.
+  const pendientes = []
   CASCOS_3D.forEach((url, i) => {
     cargador.loadAsync(url).then(gltf => {
       const nuevo = encajarCasco(gltf.scene)
@@ -355,12 +369,17 @@ export function createDropship (alFase) {
       // El de cajas se queda en la escena pero apagado: si el modelado diera
       // problemas, volver es cambiar una linea.
       const viejo = cascos[i]
-      viejo.visible = false
-      cascos[i] = envoltura
-      // Si el casco que estaba puesto era justo este y la nave no esta en el
-      // aire, se releva en el sitio. En el aire no se toca: cambiarle el
-      // cuerpo a una nave a media bajada se ve como un parpadeo.
-      if (casco === viejo && estado === 'oculta') casco = envoltura
+      // Si es el casco que lleva puesto la nave y está en el aire, NO se cambia
+      // ahora. Cambiarlo en mitad de la bajada hacía que la nave cambiara de
+      // forma o de orientación de golpe, y pasaba sobre todo en móviles lentos,
+      // que es donde el modelo acaba de descargarse con la nave ya volando.
+      if (casco === viejo && estado !== 'oculta') {
+        pendientes[i] = envoltura
+      } else {
+        viejo.visible = false
+        cascos[i] = envoltura
+        if (casco === viejo) casco = envoltura
+      }
     }).catch(e => console.warn('Casco sin modelo, va el de cajas:', url, e.message))
   })
 
@@ -501,6 +520,13 @@ export function createDropship (alFase) {
 
   function vestir (i) {
     casco.visible = false
+    // Los cascos que llegaron con la nave en el aire se ponen ahora, que está
+    // escondida.
+    if (pendientes[i]) {
+      cascos[i].visible = false
+      cascos[i] = pendientes[i]
+      pendientes[i] = null
+    }
     casco = cascos[i]
     casco.visible = true
     const luz = FLOTA[i].luz

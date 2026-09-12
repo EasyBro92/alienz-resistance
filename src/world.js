@@ -104,7 +104,9 @@ function paintRoad (scene, pintables) {
 // Lo que hay que poder reteñir al cambiar de región. Se recogen los materiales
 // al construir en vez de buscarlos después recorriendo la escena: son siempre
 // los mismos cuatro y así el cambio de bioma es asignar colores, no una batida.
-function decorate (scene, pintables) {
+// `aparte` recibe la nave estrellada y su surco: no se funden con el resto
+// para poder esconderlos en las misiones con monumento.
+function decorate (scene, pintables, aparte = scene) {
   const std = (color, rough = 0.85, metal = 0) =>
     new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal })
 
@@ -164,7 +166,8 @@ function decorate (scene, pintables) {
   wreckShip.position.set(shipSide * rand(12, 16), 1.6, rand(FIELD.spawnZ - 4, FIELD.spawnZ + 12))
   wreckShip.rotation.set(0.85, rand(0, 3), 0.4)
   wreckShip.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true } })
-  scene.add(wreckShip)
+  // Con nombre, para que `vestir` la quite donde estorba a un monumento.
+  aparte.add(wreckShip)
 
   // Surco de tierra levantada por detrás del impacto.
   for (let i = 0; i < 9; i++) {
@@ -177,7 +180,7 @@ function decorate (scene, pintables) {
     )
     mound.rotation.set(rand(0, 3), rand(0, 3), rand(0, 3))
     mound.castShadow = true
-    scene.add(mound)
+    aparte.add(mound)
   }
 
   // Matojos secos y piedras a los lados.
@@ -561,7 +564,11 @@ export function createWorld (canvas) {
 
   // Todo el decorado se funde en un puñado de mallas. Suelto eran más de mil
   // piezas y el fotograma se iba a 22 ms: un móvil no lo aguanta.
-  decorate(decor, pintables)
+  // Fundida con el resto perdía el nombre y `vestir` no la encontraba.
+  const estrellada = new THREE.Group()
+  estrellada.name = 'nave-estrellada'
+  decorate(decor, pintables, estrellada)
+  scene.add(estrellada)
   paintRoad(decor, pintables)
   // Sin oclusión: son piezas sueltas repartidas por el descampado, no hay
   // rincones entre ellas, y cocerla costaría media carga a cambio de nada.
@@ -642,9 +649,19 @@ export function createWorld (canvas) {
   const bosques = new Map()
   let bioma = null
 
-  function poblar (clave, b) {
+  function poblar (clave, b, hitosMision = []) {
     const g = new THREE.Group()
     const borde = fieldWidth / 2 + 3.4
+    // Los hitos de la misión se construyen ANTES que la vegetación, para saber
+    // qué lados de la carretera ocupan.
+    const deMision = []
+    const ocupado = { '-1': false, '1': false }
+    for (const [tipo, ...args] of hitosMision ?? []) {
+      if (!HITOS[tipo]) continue
+      const h = HITOS[tipo](...args)
+      for (const l of h.userData.lados ?? []) ocupado[l] = true
+      deMision.push(h)
+    }
     for (const [tipo, tono, cuantos] of b.flora ?? []) {
       const hacer = FLORA[tipo]
       if (!hacer) continue
@@ -653,8 +670,11 @@ export function createWorld (canvas) {
         // A los lados de la carretera y nunca encima: el corredor central es por
         // donde se juega, y un árbol ahí tapa media partida.
         const lado = Math.random() < 0.5 ? -1 : 1
+        // En el lado de un hito de ciudad, los árboles se quedan en la acera,
+        // entre la calzada y los edificios: sueltos por el campo acababan
+        // saliendo de dentro de un estanque o de una fachada.
         pieza.position.set(
-          lado * (borde + Math.random() * 26),
+          lado * (borde + Math.random() * (ocupado[lado] ? 2.5 : 26)),
           0,
           FIELD.spawnZ - 24 + Math.random() * (FIELD.baseZ - FIELD.spawnZ + 30)
         )
@@ -683,6 +703,7 @@ export function createWorld (canvas) {
       const [tipo, ...args] = b.hito
       if (HITOS[tipo]) g.add(HITOS[tipo](...args))
     }
+    for (const h of deMision) g.add(h)
     // Se funden en un puñado de mallas, igual que el resto del decorado: veinte
     // árboles sueltos son veinte llamadas de dibujo por nada.
     const fundido = bake(g, false)
@@ -692,10 +713,16 @@ export function createWorld (canvas) {
     return fundido
   }
 
-  function vestir (clave) {
+  // `hitosMision` son los monumentos de una ciudad concreta. Forman parte de la
+  // llave del bosque: Valencia y Tarragona comparten bioma pero no paisaje.
+  function vestir (clave, hitosMision = []) {
     const b = BIOMAS[clave]
-    if (!b || clave === bioma) return
-    bioma = clave
+    const llave = clave + '|' + (hitosMision ?? []).map(h => h.join(':')).join(',')
+    if (!b || llave === bioma) return
+    bioma = llave
+    // La nave estrellada tapaba justo el sitio de los monumentos.
+    const estrellada = scene.getObjectByName('nave-estrellada')
+    if (estrellada) estrellada.visible = !(hitosMision?.length)
 
     sand.material.color.setHex(b.tierra)
     road.material.color.setHex(b.asfalto)
@@ -717,8 +744,8 @@ export function createWorld (canvas) {
     cielo.color.setHex(b.cielo)
     cielo.groundColor.setHex(b.ambiente)
 
-    for (const [k, g] of bosques) g.visible = k === clave
-    const mio = bosques.get(clave) ?? poblar(clave, b)
+    for (const [k, g] of bosques) g.visible = k === llave
+    const mio = bosques.get(llave) ?? poblar(llave, b, hitosMision)
     mio.visible = true
   }
 

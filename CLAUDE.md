@@ -19,8 +19,8 @@ Publicado en https://easybro92.github.io/alienz-resistance/ (repo `EasyBro92/ali
 | `src/config.js` | `FIELD`, `BASE`, `ECONOMY`, `SOLDIERS`, `DEFENSES`, `STRIKES`, `UPGRADES`, `ZOMBIES`, `INICIALES` (solo el arquero). `NIVELES` se reexporta de `campana.js` |
 | `src/campana.js` | `PAISES` (12 países × 3 misiones), `DESTINOS` aplanado (= `NIVELES`), peaje de estrellas (6 por país), `dureza` de 0,06 a 0,56, bioma por misión |
 | `src/oleadas.js` | Las 6 tablas de oleadas compartidas |
-| `src/biomas.js` | `BIOMAS` (paleta, calzada, flora, restos, hito), `FLORA`, `HITOS`, `RESTOS` |
-| `src/world.js` | Escena, carretera y decorado. `world.vestir(bioma)` retiñe sin reconstruir |
+| `src/biomas.js` | `BIOMAS` (paleta, calzada, flora, restos, hito), `FLORA`, `HITOS` (de región y de ciudad: `artesYCiencias`, `castellana`, `bernabeu`), `RESTOS` |
+| `src/world.js` | Escena, carretera y decorado. `world.vestir(bioma, hitos)` retiñe sin reconstruir; los `hitos` de la misión (campo `hitos` en `campana.js`) esconden la nave estrellada |
 | `src/mapa.js` | Mapa del mundo en SVG (`pintarMapa`) |
 | `src/assets.js` | Figuras procedurales, `bake()`, `MODELS` (Meshy), `armarPersona` (huesos manejados con mandos), `buildWeapon` |
 | `src/entities/soldier.js` | Soldado. Mandos → huesos; mejoras de tienda aplicadas en `damage` y `fireRate` |
@@ -58,3 +58,8 @@ Ganar y perder recargan la página; `window.volverA('mapa' | 'pais:N' | 'portada
 - Tarragona solo con arqueros: 10 ganan con el perímetro al 74 %; 6 pierden.
 - Peaje de estrellas: con 3★ o 2★ de media se llega a las 36 misiones; con 1,5★ te atascas a la entrada de Francia.
 - Billetes por partida cobrando todas las monedas: de 27 (Tarragona) a 237 (misiones finales).
+
+## Encuadre en el móvil vertical (375×812)
+
+- Junto a la carretera solo se ve una cuña: el borde de pantalla pasa por x ≈ 10 a z = -25, x ≈ 13 a z = -40, x ≈ 18 a z = -70 y x ≈ 22 a z = -90. Por encima de unos 10 de alto lo tapa el marcador. La barandilla está en x = ±9,4.
+- Un monumento que no quepa en esa cuña no se ve en el móvil. Medirlo con `__zr.camera` y `Vector3.project` antes de hacer capturas.
