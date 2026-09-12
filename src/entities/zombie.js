@@ -8,7 +8,21 @@ let nextId = 1
 export async function createZombie (key, spec, lane, waveScale = 1) {
   const mesh = await buildZombieMesh(key, spec)
   const jitter = (Math.random() - 0.5) * FIELD.laneWidth * 0.3
-  mesh.position.set(laneX(lane) + jitter, 0, FIELD.spawnZ - Math.random() * 6)
+  // Su sitio final: el carril que le toca. Pero NO es donde aparece.
+  const xCarril = laneX(lane) + jitter
+
+  // Se sale por el centro de la rampa, porque es una nave y no un muelle de
+  // carga: la plancha mide 7,2 y la carretera 12, así que salir ya en el carril
+  // dejaba a los de los extremos apareciendo en el aire, al lado de la rampa.
+  //
+  // El abanico es pequeño —un poco a cada lado según el carril de destino— y
+  // sirve para dos cosas: que no salgan los cinco pisándose por el mismo punto,
+  // y que cada uno empiece a tirar hacia su lado desde el primer paso, así que
+  // el reparto de después ya viene encarrilado en vez de ser un cruce de todos
+  // con todos.
+  const centro = (FIELD.lanes - 1) / 2
+  const xSalida = (lane - centro) * 0.62 + jitter * 0.5
+  mesh.position.set(xSalida, 0, FIELD.spawnZ - Math.random() * 6)
   mesh.rotation.y = Math.PI // mirando hacia la base
 
   // El Escarbador entra ya bajo tierra: sale del suelo, no de la rampa. La
@@ -48,6 +62,11 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
     // Altura del suelo bajo los pies. La pone el bucle: cero en el asfalto, la
     // plancha de la rampa mientras están saliendo de la nave.
     suelo: 0,
+    // A dónde tiene que acabar yendo, y si todavía le queda camino lateral.
+    // Se reparten al PISAR el asfalto, no en la rampa: abrirse en la plancha
+    // les haría salirse de ella por el costado.
+    xCarril,
+    repartiendo: true,
     tLastre: 0,
 
     // Saltador: cuánto le falta para poder volver a saltar, y el salto en curso.
@@ -140,6 +159,24 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
 
       const lean = this.mesh.userData.lean
       if (lean) lean.rotation.z = swing * 0.07
+
+      // --- reparto a los carriles -------------------------------------------
+      // En cuanto tocan la carretera se van abriendo hacia su carril. Se mueve
+      // por PASOS y no fijando la x: el sistema de estorbo entre huéspedes
+      // también escribe ahí, y sobrescribirla de golpe deshacía sus empujones y
+      // volvían a meterse unos dentro de otros.
+      if (this.repartiendo && !this.suelo) {
+        const dx = this.xCarril - this.mesh.position.x
+        // Se abre a la mitad de lo que avanza: el desvío queda en diagonal
+        // suave, no en un giro de noventa grados nada más pisar el suelo.
+        const paso = this.velocidad * 0.5 * dt
+        if (Math.abs(dx) <= paso) {
+          this.mesh.position.x = this.xCarril
+          this.repartiendo = false
+        } else {
+          this.mesh.position.x += Math.sign(dx) * paso
+        }
+      }
 
       this.mesh.rotation.z = swing * 0.05
       // `suelo` es la altura del terreno bajo los pies, y lo pone el bucle desde

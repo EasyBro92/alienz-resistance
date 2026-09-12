@@ -246,14 +246,11 @@ const CASCOS_3D = [
 // delante de z = 3.6 va la bodega con su compuerta. Un casco que invada esa
 // franja tapa el hueco por donde salen los huéspedes, que es literalmente lo
 // único que la nave tiene que hacer. Se mide la pieza que venga y se encaja.
-// El casco, más ancho que la bodega que cuelga de él.
-//
-// Con 13,4 quedaba más estrecho que el marco de la compuerta y la nave parecía
-// un contenedor con un platillo pequeño encima: la bodega mandaba sobre el
-// casco, que es al revés de como tiene que leerse. Diecisiete y medio la deja
-// sobresaliendo por los dos lados, que es lo que hace que la bodega parezca
-// colgada DE la nave y no atornillada delante.
-const ANCHO = 17.5
+// El casco, más ancho que la bodega que cuelga de él pero sin pasarse: con la
+// bodega otra vez en 8,4, doce y medio ya la deja sobresaliendo por los dos
+// lados —que es lo que hace que la bodega parezca colgada DE la nave y no
+// atornillada delante— y la nave vuelve a tener el tamaño que tenía.
+const ANCHO = 12.5
 // La panza del casco, y va a propósito por DEBAJO del dintel de la bodega: el
 // casco se come el metro de arriba del marco y la bodega deja de leerse como una
 // caja apoyada delante para leerse como un hueco abierto EN la nave. Colocado
@@ -400,18 +397,18 @@ export function createDropship (alFase) {
   // El hueco mide 2,15 de alto: lo justo para un huésped de 1,8 y ni un palmo
   // más. Con el dintel a 4,5 la bahía asomaba por encima de los cascos planos y
   // parecía un contenedor atornillado delante de la nave.
-  // El ANCHO de la bodega no es estético: es funcional.
+  // La bodega vuelve a su ancho de siempre.
   //
-  // La carretera mide 12 —cinco carriles de 2,4—, con los carriles de fuera
-  // centrados en x = ±4,8. La bodega medía 8,4 y la rampa 7,2, o sea que los dos
-  // carriles de los extremos caían FUERA: los huéspedes de esos carriles
-  // aparecían flotando al lado de la rampa, en el aire, sin haber salido de
-  // ninguna parte. Ahora el hueco cubre hasta ±6,3 y todos bajan por la plancha.
+  // Estirarla a lo ancho de la carretera arreglaba el problema de verdad —los
+  // carriles de los extremos caían fuera de la plancha— pero a costa de una nave
+  // que parecía un hangar. La nave se queda estrecha y son los huéspedes los que
+  // se adaptan: salen por el CENTRO de la rampa, como se sale de una nave, y se
+  // reparten a sus carriles al pisar el asfalto.
   const MARCO = [
-    [-6.65, 2.4, 0.7, 3.3],   // jamba izquierda
-    [6.65, 2.4, 0.7, 3.3],    // jamba derecha
-    [0, 3.85, 14, 0.7],       // dintel
-    [0, 1.05, 14, 0.6]        // umbral, justo por debajo de la bisagra
+    [-3.85, 2.4, 0.7, 3.3],   // jamba izquierda
+    [3.85, 2.4, 0.7, 3.3],    // jamba derecha
+    [0, 3.85, 8.4, 0.7],      // dintel
+    [0, 1.05, 8.4, 0.6]       // umbral, justo por debajo de la bisagra
   ]
   for (const [mx, my, mw, mh] of MARCO) {
     const pieza = new THREE.Mesh(new THREE.BoxGeometry(mw, mh, 1.9), GRIS)
@@ -420,24 +417,24 @@ export function createDropship (alFase) {
     group.add(pieza)
   }
 
-  for (const wx of [-6.3, 6.3]) {
+  for (const wx of [-3.5, 3.5]) {
     const pared = new THREE.Mesh(new THREE.PlaneGeometry(2.1, 2.15), GRIS_OSCURO)
     pared.position.set(wx, 2.42, 4.75)
     pared.rotation.y = wx < 0 ? Math.PI / 2 : -Math.PI / 2
     group.add(pared)
   }
-  const techo = new THREE.Mesh(new THREE.PlaneGeometry(12.6, 2.1), GRIS_OSCURO)
+  const techo = new THREE.Mesh(new THREE.PlaneGeometry(7, 2.1), GRIS_OSCURO)
   techo.position.set(0, 3.5, 4.75)
   techo.rotation.x = Math.PI / 2
   group.add(techo)
   // El SUELO de la bodega es lo que brilla, no el fondo. La cámara mira desde
   // arriba: por un hueco de dos metros de fondo lo que se ve es el piso, y una
   // pared del fondo iluminada no llegaba a asomar por el hueco.
-  const piso = new THREE.Mesh(new THREE.PlaneGeometry(12.6, 2.1), INTERIOR)
+  const piso = new THREE.Mesh(new THREE.PlaneGeometry(7, 2.1), INTERIOR)
   piso.position.set(0, 1.38, 4.75)
   piso.rotation.x = -Math.PI / 2
   group.add(piso)
-  const fondo = new THREE.Mesh(new THREE.PlaneGeometry(12.6, 2.15), INTERIOR)
+  const fondo = new THREE.Mesh(new THREE.PlaneGeometry(7, 2.15), INTERIOR)
   fondo.position.set(0, 2.42, 3.7)
   group.add(fondo)
 
@@ -448,12 +445,12 @@ export function createDropship (alFase) {
   group.add(bisagra)
 
   const LARGO = 5
-  const plancha = new THREE.Mesh(new THREE.BoxGeometry(12.6, 0.22, LARGO), GRIS)
+  const plancha = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.22, LARGO), GRIS)
   plancha.position.z = LARGO / 2
   plancha.castShadow = true
   plancha.receiveShadow = true
   bisagra.add(plancha)
-  for (const rx of [-6.1, 6.1]) {
+  for (const rx of [-3.3, 3.3]) {
     const listón = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.28, LARGO), LUZ_RAMPA)
     listón.position.set(rx, 0.16, LARGO / 2)
     bisagra.add(listón)
@@ -469,6 +466,10 @@ export function createDropship (alFase) {
   // huéspedes, así que la nave se coloca a partir de ese número y no al revés.
   const alcance = bisagra.position.z + Math.cos(ABIERTA) * LARGO
   group.position.set(0, 0, FIELD.spawnZ - alcance)
+
+  // La anchura útil de la plancha, para que el huésped sepa por dónde puede
+  // bajar sin salirse. Se mide de la propia pieza en vez de repetir el número.
+  const ANCHO_RAMPA = 7.2
 
   // Cuánto sube la plancha por cada metro que se retrocede desde su punta, y
   // hasta dónde llega. Los huéspedes aparecen unos metros por detrás de la punta
@@ -512,6 +513,10 @@ export function createDropship (alFase) {
     group,
     // A qué altura está la plancha en un punto de la carretera. Cero fuera de
     // ella, así que se puede llamar siempre sin preguntar nada.
+    // Media anchura por la que se puede bajar, con un margen para no pisar el
+    // borde. La usan los huéspedes para saber cuánto pueden abrirse al salir.
+    get medioAnchoRampa () { return ANCHO_RAMPA / 2 - 0.9 },
+
     alturaRampa (z) {
       if (estado !== 'rampa' && estado !== 'abierta') return 0
       const dentro = RAMPA.desde - z
