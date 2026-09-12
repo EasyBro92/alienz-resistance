@@ -1,5 +1,7 @@
 import * as THREE from 'three'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { FIELD } from '../config.js'
+import { brilla } from '../systems/resplandor.js'
 
 // Nave de desembarco. Antes cada oleada aparecía de la nada al fondo de la
 // carretera: los huéspedes se materializaban en el asfalto y no había ninguna
@@ -224,10 +226,70 @@ const CASCOS = [
   }
 ]
 
+// Los cascos modelados, uno por nave de la flota y en el mismo orden.
+//
+// Solo el CASCO. La bodega, la rampa y las patas siguen siendo las piezas de
+// siempre, y no por pereza: la punta de la rampa es la que decide en qué punto
+// del asfalto aparece cada huésped, y no puede moverse de una oleada a otra.
+// Una malla de un archivo tampoco se abre, y aquí hay una compuerta que abrir.
+const CASCOS_3D = [
+  'models/nave-platillo.glb',
+  'models/nave-cuna.glb',
+  'models/nave-lobulos.glb',
+  'models/nave-anillo.glb',
+  'models/nave-nodriza.glb'
+]
+
+// Dónde tiene que caber el casco para no tapar lo que importa.
+//
+// La nave es ancha como la carretera a propósito, y por debajo de y = 1.2 y por
+// delante de z = 3.6 va la bodega con su compuerta. Un casco que invada esa
+// franja tapa el hueco por donde salen los huéspedes, que es literalmente lo
+// único que la nave tiene que hacer. Se mide la pieza que venga y se encaja.
+const ANCHO = 13.4
+const SUELO = 1.45
+const FRENTE = 3.2
+
+function encajarCasco (raiz) {
+  raiz.updateWorldMatrix(true, true)
+  const caja = new THREE.Box3().setFromObject(raiz)
+  const tam = caja.getSize(new THREE.Vector3())
+  if (tam.x < 0.01) return null
+
+  raiz.scale.multiplyScalar(ANCHO / tam.x)
+  raiz.updateWorldMatrix(true, true)
+  caja.setFromObject(raiz)
+
+  // Apoyada por abajo en el techo de la bodega y retirada por delante: lo que
+  // sobresalga hacia atrás da igual, ahí no hay nada.
+  raiz.position.y += SUELO - caja.min.y
+  raiz.position.z += FRENTE - caja.max.z
+  raiz.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true } })
+  return raiz
+}
+
+// Las balizas no vienen en el archivo, y son la mitad de la lectura: es lo que
+// dice desde lejos de qué nave se trata y lo que late mientras baja. Se ponen
+// en corona alrededor del casco ya encajado, con su color de flota.
+function balizasEnCorona (casco, lista, M, cuantas = 8) {
+  casco.updateWorldMatrix(true, true)
+  const caja = new THREE.Box3().setFromObject(casco)
+  const cx = (caja.min.x + caja.max.x) / 2
+  const cz = (caja.min.z + caja.max.z) / 2
+  const rx = (caja.max.x - caja.min.x) * 0.46
+  const rz = (caja.max.z - caja.min.z) * 0.46
+  const y = caja.min.y + (caja.max.y - caja.min.y) * 0.34
+  for (let i = 0; i < cuantas; i++) {
+    const a = (i / cuantas) * Math.PI * 2
+    baliza(casco, lista, M, cx + Math.cos(a) * rx, y, cz + Math.sin(a) * rz, i * 0.7)
+  }
+}
+
 function baliza (padre, lista, M, x, y, z, fase) {
   const b = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 6), M.luz.clone())
   b.position.set(x, y, z)
   b.userData.fase = fase
+  brilla(b)
   padre.add(b)
   lista.push(b)
 }
@@ -257,6 +319,38 @@ export function createDropship (alFase) {
     return g
   })
   let casco = cascos[0]
+
+  // --- cascos modelados, cuando lleguen ------------------------------------
+  //
+  // Se cargan DESPUES y sin bloquear. La partida arranca con los cascos de
+  // cajas y cilindros de siempre y cada uno se releva en cuanto su archivo
+  // termina de bajar: si la red va lenta, o si un archivo falta, se juega
+  // exactamente igual con el casco procedural. Un adorno no puede impedir que
+  // empiece una oleada.
+  //
+  // El relevo es por indice, asi que la nave que ya este en el aire no cambia
+  // a media bajada: la siguiente llamada a vestir() elige de la lista nueva.
+  const cargador = new GLTFLoader()
+  CASCOS_3D.forEach((url, i) => {
+    cargador.loadAsync(url).then(gltf => {
+      const nuevo = encajarCasco(gltf.scene)
+      if (!nuevo) return
+      const envoltura = new THREE.Group()
+      envoltura.add(nuevo)
+      balizasEnCorona(nuevo, balizas, { luz: brillo(FLOTA[i].luz) })
+      envoltura.visible = false
+      group.add(envoltura)
+      // El de cajas se queda en la escena pero apagado: si el modelado diera
+      // problemas, volver es cambiar una linea.
+      const viejo = cascos[i]
+      viejo.visible = false
+      cascos[i] = envoltura
+      // Si el casco que estaba puesto era justo este y la nave no esta en el
+      // aire, se releva en el sitio. En el aire no se toca: cambiarle el
+      // cuerpo a una nave a media bajada se ve como un parpadeo.
+      if (casco === viejo && estado === 'oculta') casco = envoltura
+    }).catch(e => console.warn('Casco sin modelo, va el de cajas:', url, e.message))
+  })
 
   // --- piezas comunes ------------------------------------------------------
   // Grafito neutro: sirve con las cinco paletas y no hay que repintarlo.

@@ -29,8 +29,29 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,glb,mp3,ogg}'],
-        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024
+        // Los .glb quedan FUERA de la precarga. Son 7,8 de los 8,5 MB del
+        // paquete, y precargarlos significa que la primera visita no ve nada
+        // hasta haberse bajado los doce modelos enteros — en el móvil viejo que
+        // llevamos dos sesiones cuidando, eso es medio minuto de pantalla de
+        // carga antes del menú.
+        //
+        // Y no hacen falta para empezar: el juego arranca con las figuras y los
+        // cascos procedurales, y cada modelo releva al suyo en cuanto termina de
+        // bajar. Lo que se pierde esperando es detalle, no partida.
+        globPatterns: ['**/*.{js,css,html,svg,png,mp3,ogg}'],
+        // Pero sí se guardan en cuanto se piden una vez, así que a partir de la
+        // segunda partida están en el aparato y la aplicación sigue funcionando
+        // entera sin red, que es de lo que va ser una PWA.
+        runtimeCaching: [{
+          urlPattern: /.glb$/,
+          handler: 'CacheFirst',
+          options: {
+            cacheName: 'modelos-3d',
+            expiration: { maxEntries: 40, maxAgeSeconds: 60 * 60 * 24 * 90 },
+            cacheableResponse: { statuses: [0, 200] }
+          }
+        }],
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024
       }
     })
   ]
