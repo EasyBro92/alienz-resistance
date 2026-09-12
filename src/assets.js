@@ -3,6 +3,7 @@ import { brilla } from './systems/resplandor.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { clone as clonarConHuesos } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { seg as lados, CON_OCLUSION, CON_ADORNOS, FUNDE_TONOS } from './systems/detalle.js'
 
 // ---------------------------------------------------------------------------
@@ -12,19 +13,151 @@ import { seg as lados, CON_OCLUSION, CON_ADORNOS, FUNDE_TONOS } from './systems/
 // articuladas que el juego anima. Cuando tengas un .glb, ponlo en public/models/
 // y decláralo aquí. Ver public/models/LEEME.md.
 // ---------------------------------------------------------------------------
+// Una lista por clave: el juego elige una al azar por figura. Es lo que evita
+// que los cinco fusileros del tablero sean gemelos.
 export const MODELS = {
-  // rifle:   'models/soldado-fusil.glb',
-  // walker:  'models/zombi-caminante.glb',
+  rifle: ['models/soldado-fusil-f.glb', 'models/soldado-fusil-m.glb']
 }
 
 const loader = new GLTFLoader()
 const cache = new Map()
 
+// El .glb entero, no solo la escena: los modelos con esqueleto traen las
+// animaciones aparte y se pierden si uno se queda con `gltf.scene`.
+async function cargarGLTF (url) {
+  if (!cache.has(url)) cache.set(url, loader.loadAsync(url))
+  return cache.get(url)
+}
+
 async function loadModel (url) {
-  if (!cache.has(url)) cache.set(url, loader.loadAsync(url).then(g => g.scene))
-  const clone = (await cache.get(url)).clone(true)
-  clone.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true } })
-  return clone
+  const gltf = await cargarGLTF(url)
+  // `clone(true)` de three NO sirve para mallas con esqueleto: copia los huesos
+  // pero deja a la malla clonada apuntando al esqueleto del ORIGINAL, así que
+  // todas las copias se mueven a la vez. `SkeletonUtils` rehace el vínculo.
+  const copia = clonarConHuesos(gltf.scene)
+  copia.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true } })
+  return copia
+}
+
+// Un miembro de mentira: un nudo con su `lower` dentro, igual que los de la
+// figura procedural, pero sin nada colgando.
+//
+// El bucle de `soldier.js` posa brazos y piernas en CADA fotograma —encare,
+// respiración, reparto del peso, retroceso—, y esos modelos no tienen miembros
+// que posar: los mueve el esqueleto con su animación. En vez de sembrar el
+// bucle de condicionales (y de olvidarse de una, y de que reviente al mover un
+// soldado en mitad de una oleada), se le da dónde escribir. Escribe al vacío,
+// no cuesta nada, y el bucle sigue siendo uno solo para las dos clases de figura.
+function miembroFantasma () {
+  const nudo = new THREE.Object3D()
+  const lower = new THREE.Object3D()
+  nudo.add(lower)
+  nudo.userData.lower = lower
+  nudo.userData.restBend = 0
+  return nudo
+}
+
+// Envolver un modelo con esqueleto en la forma que el juego espera.
+async function armarPersona (key, spec, urls) {
+  const url = Array.isArray(urls) ? urls[Math.floor(Math.random() * urls.length)] : urls
+  const gltf = await cargarGLTF(url)
+  const cuerpo = await loadModel(url)
+
+  const g = new THREE.Group()
+  const figure = new THREE.Group()
+  g.add(figure)
+  figure.add(cuerpo)
+
+  // Meshy monta el esqueleto con la cara hacia +Z; el juego mira hacia -Z, que
+  // es de donde bajan los huéspedes. Media vuelta o el soldado dispara a su
+  // propia base.
+  cuerpo.rotation.y = Math.PI
+
+  // A la altura del juego. La figura procedural mide 1,7 y todo está medido
+  // contra eso: los carriles, la cámara, la barra de vida.
+  // Se mide por los HUESOS, no por la caja envolvente.
+  //
+  // `Box3.setFromObject` no sirve con una malla de esqueleto: coge la caja de la
+  // geometría, que está en pose de reposo y en las unidades del montador, y la
+  // multiplica por la matriz del nodo. El resultado no tiene que ver con lo que
+  // se ve. Midiendo así, la figura entraba en el tablero midiendo 140 y tapaba
+  // la pantalla entera.
+  //
+  // Los huesos sí llevan su transformación de verdad, y el esqueleto trae uno
+  // llamado `head_end` justo en la coronilla y otro en la punta del pie. La
+  // distancia entre esos dos ES la altura del personaje.
+  const hueso = nombre => { let h = null; cuerpo.traverse(o => { if (!h && o.name === nombre) h = o }); return h }
+  cuerpo.updateWorldMatrix(true, true)
+
+  const arriba = hueso('head_end') ?? hueso('Head')
+  const abajo = hueso('LeftToeBase') ?? hueso('LeftFoot')
+  let alto = 0
+  const pa = new THREE.Vector3(); const pb = new THREE.Vector3()
+  if (arriba && abajo) {
+    arriba.getWorldPosition(pa)
+    abajo.getWorldPosition(pb)
+    alto = pa.y - pb.y
+  }
+  if (alto > 0.01) {
+    // El hueso de la coronilla no llega al alto del casco: se compensa un poco o
+    // los soldados salen medio palmo bajos respecto a los procedurales.
+    cuerpo.scale.multiplyScalar(1.7 / (alto * 1.06))
+    cuerpo.updateWorldMatrix(true, true)
+    abajo.getWorldPosition(pb)
+    cuerpo.position.y -= pb.y              // los pies al suelo, no al centro
+    cuerpo.updateWorldMatrix(true, true)
+  }
+
+  // --- el arma, colgada de la mano -------------------------------------------
+  // Las figuras salen sin arma a propósito: el juego ya construye cada arma
+  // pieza a pieza, con su cañón que se calienta y su puerto de casquillos, y así
+  // el mismo cuerpo sirve para las siete unidades.
+  let mano = null
+  cuerpo.traverse(o => { if (!mano && o.name === 'RightHand') mano = o })
+  const arma = buildWeapon(key, spec)
+  if (mano) {
+    mano.add(arma)
+    // La mano viene en la escala del esqueleto, que no es la del mundo: se
+    // deshace para que el arma salga del tamaño que se construyó.
+    const k = new THREE.Vector3()
+    mano.getWorldScale(k)
+    arma.scale.setScalar(1 / (k.x || 1))
+    arma.position.set(0, 0.02, 0)
+    arma.rotation.set(0, Math.PI, 0)
+  } else {
+    figure.add(arma)
+    arma.position.set(0.2, 1.26, -0.42)
+  }
+
+  g.add(contactShadow(0.85))
+
+  g.userData.limbs = { armL: miembroFantasma(), armR: miembroFantasma(), legL: miembroFantasma(), legR: miembroFantasma() }
+  g.userData.head = miembroFantasma()
+  // Igual que los miembros: el bucle mueve el arma al encarar y al retroceder,
+  // y aquí la mueve el hueso de la mano. Se le da un muñeco donde escribir.
+  g.userData.weapon = miembroFantasma()
+  g.userData.rest = {
+    arm: { armL: 0, armR: 0 }, leg: { legL: 0, legR: 0 },
+    armBend: { armL: 0, armR: 0 }, legBend: { legL: 0, legR: 0 },
+    armRoll: { armL: 0, armR: 0 },
+    weaponRest: new THREE.Vector3(0, 0, 0), headY: 1.66
+  }
+  // Estos SÍ son los de verdad: se leen por matriz de mundo al disparar, así que
+  // siguen a la mano sin que nadie los mueva a mano.
+  const fogonazo = montarFogonazo(arma)
+  arma.add(fogonazo)
+  g.userData.flash = fogonazo
+  g.userData.canon = arma.userData.canon ?? null
+  g.userData.puerto = arma.userData.puerto ?? null
+  if (g.userData.canon) brilla(g.userData.canon)
+
+  g.userData.figure = figure
+  g.userData.stance = 0
+  g.userData.headYaw = 0
+  g.userData.build = 1
+  g.userData.animado = true
+  g.userData.clips = gltf.animations ?? []
+  return g
 }
 
 // --- utilidades -------------------------------------------------------------
@@ -904,15 +1037,7 @@ function placeholderSoldier (key, spec) {
   weapon.rotation.set(0.05, 0, 0)
   g.add(weapon)
 
-  const flash = new THREE.Mesh(
-    lathe('flash', [[0.001, 0.14], [0.075, 0.02], [0.11, -0.04], [0.06, -0.1], [0.001, -0.16]], 10),
-    new THREE.MeshBasicMaterial({ color: 0xffe9a0, transparent: true, opacity: 0.95 })
-  )
-  flash.rotation.x = -Math.PI / 2
-  flash.position.z = built.userData.muzzleZ
-  flash.scale.set(1, 2.2, 1)
-  flash.visible = false
-  brilla(flash)
+  const flash = montarFogonazo(built)
   weapon.add(flash)
 
   g.add(contactShadow(heavy ? 0.95 : 0.85))
@@ -1226,8 +1351,23 @@ function placeholderZombie (spec) {
   return g
 }
 
+// El fogonazo de la boca del cañón. Fuera de `placeholderSoldier` porque lo
+// necesitan las dos clases de figura, y sin él el arma dispara a oscuras.
+function montarFogonazo (arma) {
+  const flash = new THREE.Mesh(
+    lathe('flash', [[0.001, 0.14], [0.075, 0.02], [0.11, -0.04], [0.06, -0.1], [0.001, -0.16]], 10),
+    new THREE.MeshBasicMaterial({ color: 0xffe9a0, transparent: true, opacity: 0.95 })
+  )
+  flash.rotation.x = -Math.PI / 2
+  flash.position.z = arma.userData.muzzleZ
+  flash.scale.set(1, 2.2, 1)
+  flash.visible = false
+  brilla(flash)
+  return flash
+}
+
 export async function buildSoldierMesh (key, spec) {
-  if (MODELS[key]) return await loadModel(MODELS[key])
+  if (MODELS[key]) return await armarPersona(key, spec, MODELS[key])
   return placeholderSoldier(key, spec)
 }
 

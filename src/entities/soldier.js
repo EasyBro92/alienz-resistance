@@ -87,6 +87,27 @@ export async function createSoldier (key, spec, lane, row) {
   const mesh = spec.blocker ? buildSandbagsMesh(spec) : await buildSoldierMesh(key, spec)
   mesh.position.set(laneX(lane), 0, rowZ(row))
 
+  // Figuras con esqueleto: el ciclo de andar viene dentro del archivo y lo
+  // reproduce un mezclador. Las procedurales no tienen ninguno y siguen
+  // animándose pieza a pieza, como siempre.
+  //
+  // El paso se reproduce SIEMPRE, pero con peso: a cero cuando el soldado está
+  // plantado en su casilla y a uno cuando cruza el descampado. Encenderlo y
+  // apagarlo daba un tirón en la pierna cada vez que se le mandaba mover,
+  // porque la animación arrancaba de su primer fotograma en vez de seguir
+  // donde estaba.
+  let mezclador = null
+  let paso = null
+  if (mesh.userData.clips?.length) {
+    mezclador = new THREE.AnimationMixer(mesh)
+    paso = mezclador.clipAction(mesh.userData.clips[0])
+    paso.play()
+    paso.setEffectiveWeight(0)
+    // Cada figura entra por un punto distinto del ciclo: si no, cinco soldados
+    // andando cruzan el tablero como un desfile, con el mismo pie a la vez.
+    paso.time = Math.random() * (mesh.userData.clips[0].duration || 1)
+  }
+
   const bar = createHealthBar(1.4, spec.blocker ? 1.6 : 2.45)
   mesh.add(bar.group)
 
@@ -194,6 +215,16 @@ export async function createSoldier (key, spec, lane, row) {
     update (dt, camera) {
       this.bar.face(camera, dt)
       this.idle += dt
+
+      if (mezclador) {
+        mezclador.update(dt)
+        // Se persigue el valor en vez de saltar a él: un soldado que arranca a
+        // andar tarda dos décimas en meter el paso, que es lo que tarda una
+        // persona. El salto seco se veía como un parpadeo.
+        const quiere = this.andando ? 1 : 0
+        const w = paso.getEffectiveWeight()
+        paso.setEffectiveWeight(w + (quiere - w) * Math.min(1, dt * 7))
+      }
 
       const ud = this.mesh.userData
       const limbs = ud.limbs
