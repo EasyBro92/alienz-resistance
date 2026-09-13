@@ -14,6 +14,9 @@ export function createAudio () {
   let step = 0
   let intensity = 0
   let muted = false
+  // Volúmenes elegidos en Ajustes (de 0 a 1), sobre la mezcla de siempre.
+  let volEfectos = 1
+  let volMusica = 1
 
   function ensure () {
     if (ctx) return ctx
@@ -21,12 +24,12 @@ export function createAudio () {
     master = ctx.createGain()
     master.gain.value = 0.9
     master.connect(ctx.destination)
-    sfxGain = ctx.createGain(); sfxGain.gain.value = 0.55; sfxGain.connect(master)
+    sfxGain = ctx.createGain(); sfxGain.gain.value = 0.55 * volEfectos; sfxGain.connect(master)
     musicFilter = ctx.createBiquadFilter()
     musicFilter.type = 'lowpass'
     musicFilter.frequency.value = 20000        // abierto: no toca nada
     musicFilter.connect(master)
-    musicGain = ctx.createGain(); musicGain.gain.value = 0.22; musicGain.connect(musicFilter)
+    musicGain = ctx.createGain(); musicGain.gain.value = 0.22 * volMusica; musicGain.connect(musicFilter)
     return ctx
   }
 
@@ -55,6 +58,17 @@ export function createAudio () {
   const api = {
     unlock () { ensure(); if (ctx.state === 'suspended') ctx.resume() },
     get muted () { return muted },
+    setVolumen (tipo, v) {
+      const k = Math.max(0, Math.min(1, v))
+      if (tipo === 'efectos') {
+        volEfectos = k
+        if (sfxGain) sfxGain.gain.value = 0.55 * k
+      }
+      if (tipo === 'musica') {
+        volMusica = k
+        if (musicGain) musicGain.gain.value = 0.22 * k
+      }
+    },
     toggleMute () {
       muted = !muted
       if (master) master.gain.value = muted ? 0 : 0.9
@@ -383,7 +397,7 @@ export function createAudio () {
       if (!ctx) return
       const t = ctx.currentTime
       musicGain.gain.cancelScheduledValues(t)
-      musicGain.gain.setTargetAtTime(parando ? 0.03 : 0.22, t, 0.08)
+      musicGain.gain.setTargetAtTime((parando ? 0.03 : 0.22) * volMusica, t, 0.08)
       musicFilter.frequency.cancelScheduledValues(t)
       musicFilter.frequency.setTargetAtTime(parando ? 260 : 20000, t, 0.08)
     },
@@ -457,7 +471,7 @@ export function createAudio () {
       // hay que cancelarlas y fijar el valor en la línea de tiempo.
       const t = ctx.currentTime
       musicGain.gain.cancelScheduledValues(t)
-      musicGain.gain.setValueAtTime(0.22, t)
+      musicGain.gain.setValueAtTime(0.22 * volMusica, t)
       musicFilter.frequency.cancelScheduledValues(t)
       musicFilter.frequency.setValueAtTime(20000, t)
     },

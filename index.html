@@ -124,6 +124,7 @@
          valor en el centro y un disco con el canto marcado. -->
     <symbol id="i-billete" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.8"/><path d="M6 9.5v5M18 9.5v5"/></symbol>
     <symbol id="i-moneda" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/></symbol>
+    <symbol id="i-enemigos" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c-4.4 0-7.5 3.3-7.5 7.6 0 3.6 3 6.4 5 8.6.8.9 1.6 1.8 2.5 1.8s1.7-.9 2.5-1.8c2-2.2 5-5 5-8.6C19.5 6.3 16.4 3 12 3Z"/><path stroke="var(--u-tint)" d="M8.2 11.2c1.2.2 2.1.9 2.5 2M15.8 11.2c-1.2.2-2.1.9-2.5 2"/></symbol>
     <symbol id="i-atras" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5 8 12l7 7"/></symbol>
     <symbol id="i-iman" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 20V11a6 6 0 0 1 12 0v9"/><path stroke="var(--u-tint)" d="M6 17.4v2.6M18 17.4v2.6"/></symbol>
     <symbol id="i-sandbags" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="14" width="8" height="4.5" rx="2.2"/><rect x="13" y="14" width="8" height="4.5" rx="2.2"/><rect stroke="var(--u-tint)" x="7.5" y="8.5" width="8" height="4.5" rx="2.2"/></symbol>
@@ -293,6 +294,11 @@
       <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-atras"/></svg>
     </button>
 
+    <!-- Ajustes: el engranaje arriba a la derecha, solo en la portada. -->
+    <button class="icon-btn engranaje hidden" id="ir-ajustes" aria-label="Ajustes" type="button">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-ajustes"/></svg>
+    </button>
+
     <div id="banner" class="banner"></div>
 
     <div id="inspector" class="inspector hidden">
@@ -396,6 +402,64 @@
       </div>
     </div>
 
+    <!-- Enemigos: cómo se aguanta arriba y las fichas de cada forma debajo. -->
+    <div id="enemigos-capa" class="overlay enemigos-capa hidden">
+      <div class="panel panel-enemigos">
+        <p class="eyebrow">Mando del búnker · inteligencia</p>
+        <h2>Enemigos</h2>
+        <section class="reglas-caja">
+          <span class="reglas-tit">Cómo se aguanta</span>
+          <ul class="rules">
+            <li>Compra defensores abajo y tócalos en un carril.</li>
+            <li>Disparan solos. Tú decides <b>dónde</b> y <b>en qué gastas</b>.</li>
+            <li>Cada huésped abatido suelta <b>biomasa</b>: recógela antes de que se disuelva.</li>
+            <li>La armería no pausa la contención. Nunca.</li>
+          </ul>
+        </section>
+        <section class="amenazas">
+          <div class="amenazas-tit">
+            <span>Formas confirmadas</span>
+            <i id="amenazas-n">9</i>
+          </div>
+          <div class="amenazas-rejilla" id="amenazas"></div>
+          <p class="amenazas-pie" id="amenazas-pie">Toca una para leer su ficha.</p>
+        </section>
+        <button id="enemigos-volver" class="chip chip-ghost" type="button">Volver</button>
+      </div>
+    </div>
+
+    <!-- Ajustes: calidad, tema, sonido, música y vibración. -->
+    <div id="ajustes-capa" class="overlay ajustes-capa hidden">
+      <div class="panel panel-ajustes">
+        <p class="eyebrow">Mando del búnker · equipo</p>
+        <h2>Ajustes <i id="ajustes-valor" class="ajustes-valor">Auto</i></h2>
+        <div class="ajuste">
+          <span class="ajuste-tit">Calidad gráfica</span>
+          <div class="ajuste-ops" id="calidad-ops"></div>
+          <p class="ajuste-pie" id="calidad-pie"></p>
+        </div>
+        <div class="ajuste">
+          <span class="ajuste-tit">Tema</span>
+          <div class="ajuste-ops" id="tema-ops"></div>
+          <p class="ajuste-pie" id="tema-pie"></p>
+        </div>
+        <div class="ajuste">
+          <span class="ajuste-tit">Efectos de sonido <b id="vol-efectos-valor"></b></span>
+          <input type="range" id="vol-efectos" min="0" max="100" step="5" aria-label="Volumen de los efectos">
+        </div>
+        <div class="ajuste">
+          <span class="ajuste-tit">Música <b id="vol-musica-valor"></b></span>
+          <input type="range" id="vol-musica" min="0" max="100" step="5" aria-label="Volumen de la música">
+        </div>
+        <div class="ajuste">
+          <span class="ajuste-tit">Vibración</span>
+          <div class="ajuste-ops" id="vibracion-ops"></div>
+          <p class="ajuste-pie">Al recibir daño en la base, al reventar su base y al ganar.</p>
+        </div>
+        <button id="ajustes-volver" class="chip chip-ghost" type="button">Volver</button>
+      </div>
+    </div>
+
     <div id="overlay" class="overlay">
       <div class="panel">
         <p class="eyebrow">Protocolo de reconquista · Mando del búnker</p>
@@ -492,47 +556,20 @@
         <!-- Nueve amenazas con su cara de verdad, fotografiada del mismo modelo
              que baja por la carretera. Antes era una lista de nueve filas de
              texto con una etiqueta de color: un informe que no se leía. -->
-        <section class="amenazas">
-          <div class="amenazas-tit">
-            <span>Formas confirmadas</span>
-            <i id="amenazas-n">9</i>
-          </div>
-          <div class="amenazas-rejilla" id="amenazas"></div>
-          <p class="amenazas-pie" id="amenazas-pie">Toca una para leer su ficha.</p>
-        </section>
 
-        <details class="plegable" id="ajustes">
-          <summary>
-            <svg class="ic-ajustes" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-ajustes"/></svg>
-            Ajustes <i id="ajustes-valor">Auto</i>
-          </summary>
-          <div class="ajuste">
-            <span class="ajuste-tit">Calidad gráfica</span>
-            <div class="ajuste-ops" id="calidad-ops"></div>
-            <p class="ajuste-pie" id="calidad-pie"></p>
-          </div>
-          <div class="ajuste">
-            <span class="ajuste-tit">Tema</span>
-            <div class="ajuste-ops" id="tema-ops"></div>
-            <p class="ajuste-pie" id="tema-pie"></p>
-          </div>
-        </details>
 
-        <details class="plegable">
-          <summary>Cómo se aguanta <i>4</i></summary>
-        <ul class="rules">
-          <li>Compra defensores abajo y tócalos en un carril.</li>
-          <li>Disparan solos. Tú decides <b>dónde</b> y <b>en qué gastas</b>.</li>
-          <li>Cada huésped abatido suelta <b>biomasa</b>: recógela antes de que se disuelva.</li>
-          <li>La armería no pausa la contención. Nunca.</li>
-        </ul>
-        </details>
+
+
+
 
         <!-- La campaña ya no se elige aquí. Con treinta y seis misiones en doce
              países no cabía debajo de la historia, las amenazas y los ajustes: el
              botón de jugar acababa tapando el mapa. Tiene su propia pantalla. -->
         <button id="ir-mapa" class="big-btn">VER EL MAPA</button>
-        <button id="ir-tienda" class="chip tienda-boton"><svg aria-hidden="true"><use href="#i-billete"></use></svg>Tienda</button>
+        <div class="menu-fila">
+          <button id="ir-tienda" class="menu-boton" type="button"><svg aria-hidden="true"><use href="#i-billete"></use></svg>TIENDA</button>
+          <button id="ir-enemigos" class="menu-boton" type="button"><svg aria-hidden="true"><use href="#i-enemigos"></use></svg>ENEMIGOS</button>
+        </div>
       </div>
     </div>
   </div>

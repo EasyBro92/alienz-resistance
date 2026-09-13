@@ -454,7 +454,10 @@ export function createAmbient (scene) {
         sc.ship.position.y += Math.sin(clock * 1.6 + sc.speed) * 0.012
         sc.ship.rotation.x = sc.speed * 0.006
         sc.ship.rotation.z = Math.sin(clock * 0.9 + sc.speed) * 0.08
-        if (sc.ship.position.z > -6) {
+        // Al acercarse sube y sale por arriba de la pantalla. Antes se apagaba de
+        // golpe en z = -6, que cae justo a media pantalla: se veía cortada.
+        if (sc.ship.position.z > -40) sc.ship.position.y += dt * 4
+        if (sc.ship.position.z > 26) {
           sc.active = false
           sc.ship.visible = false
           sc.timer = rand(10, 30)

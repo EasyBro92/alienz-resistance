@@ -211,7 +211,9 @@ export function createUI ({ onSelect, onUpgrade, onMove, onDeselect, onArrastreC
       // El navegador rechaza vibrar si aún no ha habido un toque real, y cada
       // rechazo es un error en consola: en una sesión de pruebas automáticas se
       // acumulaban cientos y tapaban los errores que sí importan.
-      try { navigator.vibrate?.(selected ? 9 : 4) } catch {}
+      if (document.documentElement.dataset.vibracion !== 'no') {
+        try { navigator.vibrate?.(selected ? 9 : 4) } catch {}
+      }
       onSelect(selected)
     })
 

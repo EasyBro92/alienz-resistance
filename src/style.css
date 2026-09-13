@@ -1560,3 +1560,33 @@ html, body {
 .mapa-capa, .pais-capa, .tienda-capa, .parte-capa, .pausa-capa {
   padding-top: calc(env(safe-area-inset-top) + 62px);
 }
+
+/* ---------- portada: botones del menú ---------- */
+/* VER EL MAPA grande y, debajo, TIENDA y ENEMIGOS del mismo tamaño. */
+.menu-fila { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.menu-boton {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 54px; padding: 0 10px;
+  border-radius: 14px; border: 2px solid var(--stroke);
+  background: var(--panel); color: var(--tinta);
+  font-weight: 900; font-size: 16px; letter-spacing: 1px; cursor: pointer;
+}
+.menu-boton svg { width: 20px; height: 20px; color: var(--verde-texto); --u-tint: #6fe39a; }
+.menu-boton:active { transform: translateY(2px); }
+
+/* El engranaje de ajustes, arriba a la derecha y solo en la portada. */
+.engranaje { position: absolute; top: calc(env(safe-area-inset-top) + 10px); right: 12px; z-index: 40; }
+.engranaje.hidden { display: none; }
+
+/* Pantallas de enemigos y ajustes, por encima de la portada. */
+.enemigos-capa, .ajustes-capa { z-index: 18; padding-top: calc(env(safe-area-inset-top) + 62px); }
+.reglas-caja { text-align: left; margin: 8px 0 14px; }
+.reglas-tit { display: block; font-weight: 800; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; opacity: 0.8; margin-bottom: 6px; }
+.ajustes-valor { font-style: normal; font-size: 12px; opacity: 0.7; margin-left: 6px; }
+.panel-ajustes .ajuste { margin: 14px 0; text-align: left; }
+.panel-ajustes .ajuste-tit b { font-weight: 700; opacity: 0.7; margin-left: 6px; }
+.panel-ajustes input[type=range] { width: 100%; accent-color: #6fe39a; }
+
+/* En partida el botón de atrás va en su propia franja, arriba del todo, y el
+   marcador baja justo debajo en vez de apartarse a un lado. */
+#hud.con-atras { padding-left: 12px; padding-top: calc(env(safe-area-inset-top) + 58px); }

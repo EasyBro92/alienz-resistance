@@ -395,17 +395,72 @@ export function createDropship (alFase) {
     color: 0x2bd47a, emissive: 0x2bd47a, emissiveIntensity: 0.45, roughness: 0.6, side: THREE.DoubleSide
   })
 
-  const pataGeo = new THREE.BoxGeometry(0.42, 2.6, 0.42)
+  // --- patas ---------------------------------------------------------------
+  // Salen de la panza de CADA casco. Antes eran cuatro patas en sitios fijos, y
+  // con los cascos de Meshy (platillo, lóbulos, anillo) quedaban fuera de la
+  // nave, flotando sin estar enganchadas a nada. Al vestir la nave se busca con
+  // un rayo, desde el suelo hacia arriba, dónde está su panza sobre cada pata; la
+  // pata es telescópica: sale durante la bajada y se recoge al irse.
+  const pataGeo = new THREE.BoxGeometry(0.42, 1, 0.42)
   const pieGeo = new THREE.CylinderGeometry(0.75, 0.9, 0.26, 8)
-  for (const [px, pz] of [[-4.6, -3], [4.6, -3], [-4.6, 3], [4.6, 3]]) {
+  const patas = []
+  for (let i = 0; i < 4; i++) {
     const pata = new THREE.Mesh(pataGeo, GRIS_OSCURO)
-    pata.position.set(px, 1.3, pz)
-    pata.rotation.z = px < 0 ? 0.22 : -0.22
     pata.castShadow = true
     group.add(pata)
     const pie = new THREE.Mesh(pieGeo, GRIS_OSCURO)
-    pie.position.set(px + (px < 0 ? -0.3 : 0.3), 0.13, pz)
     group.add(pie)
+    patas.push({ pata, pie, x: 0, z: 0, techo: SUELO })
+  }
+  const rayoPata = new THREE.Raycaster()
+  const _origenPata = new THREE.Vector3()
+  const _arriba = new THREE.Vector3(0, 1, 0)
+
+  function ajustarPatas () {
+    group.updateMatrixWorld(true)
+    const inversa = group.matrixWorld.clone().invert()
+    const caja = new THREE.Box3().setFromObject(casco).applyMatrix4(inversa)
+    const cx = (caja.min.x + caja.max.x) / 2
+    // Por detrás de la bodega: delante está la rampa y no puede haber patas.
+    const cz = Math.min((caja.min.z + caja.max.z) / 2, 1.5)
+    const rx = (caja.max.x - caja.min.x) / 2
+    const rz = (caja.max.z - caja.min.z) / 2
+    ;[[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz], i) => {
+      const p = patas[i]
+      let hecha = false
+      // De fuera hacia dentro hasta dar con casco: un anillo o unos lóbulos
+      // tienen huecos en la panza.
+      for (const k of [0.62, 0.5, 0.38, 0.26, 0.14]) {
+        const x = cx + sx * rx * k
+        const z = cz + sz * rz * k * 0.7
+        rayoPata.set(group.localToWorld(_origenPata.set(x, -5, z)), _arriba)
+        const golpe = rayoPata.intersectObject(casco, true).find(h => h.object.isMesh)
+        if (!golpe) continue
+        const y = group.worldToLocal(golpe.point.clone()).y
+        if (y < 0.8 || y > 6) continue
+        p.x = x
+        p.z = z
+        p.techo = y
+        hecha = true
+        break
+      }
+      if (!hecha) {
+        p.x = cx + sx * 2
+        p.z = cz + sz * 1.5
+        p.techo = SUELO
+      }
+    })
+  }
+
+  // k = 0 recogidas contra la panza, k = 1 apoyadas en el suelo.
+  function desplegarPatas (k) {
+    for (const p of patas) {
+      const largo = Math.max(0.05, p.techo * k)
+      p.pata.scale.y = largo
+      p.pata.position.set(p.x, p.techo - largo / 2, p.z)
+      p.pie.position.set(p.x, p.techo - largo + 0.13, p.z)
+      p.pie.visible = k > 0.6
+    }
   }
 
   // --- compuerta -----------------------------------------------------------
@@ -534,6 +589,8 @@ export function createDropship (alFase) {
     LUZ_RAMPA.emissive.setHex(luz)
     INTERIOR.color.setHex(luz)
     INTERIOR.emissive.setHex(luz)
+    ajustarPatas()
+    desplegarPatas(1)
   }
   vestir(0)
 
@@ -567,6 +624,7 @@ export function createDropship (alFase) {
       group.visible = true
       group.position.y = ALTURA
       bisagra.rotation.x = CERRADA
+      desplegarPatas(0)
     },
 
     // No cierra en el acto: solo anota que ya no queda nadie dentro. Las
@@ -603,6 +661,8 @@ export function createDropship (alFase) {
           // Arranca a la mitad del descenso y termina justo al posarse.
           const abre = Math.max(0, (t / T_BAJADA - 0.45) / 0.55)
           bisagra.rotation.x = CERRADA + (ABIERTA - CERRADA) * easeInOut(Math.min(1, abre))
+          // Las patas salen en la segunda mitad de la bajada y tocan el suelo al posarse.
+          desplegarPatas(easeInOut(Math.min(1, Math.max(0, (t / T_BAJADA - 0.4) / 0.55))))
           // Un balanceo que se va calmando: una nave que baja recta como un
           // ascensor parece un decorado bajando por un raíl.
           const resto = Math.max(0, 1 - t / T_BAJADA)
@@ -639,6 +699,8 @@ export function createDropship (alFase) {
         }
         case 'subiendo': {
           group.position.y = ALTURA * easeInOut(Math.min(1, t / T_SUBIDA))
+          // Se recogen nada más despegar, antes de que la nave empiece a girar.
+          desplegarPatas(1 - Math.min(1, t / (T_SUBIDA * 0.35)))
           group.rotation.y += dt * 0.35
           if (t >= T_SUBIDA) { estado = 'oculta'; group.visible = false; group.rotation.set(0, 0, 0) }
           break

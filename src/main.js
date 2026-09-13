@@ -890,6 +890,7 @@ function separarHuespedes () {
 function damageBase (amount) {
   baseHp = Math.max(0, baseHp - amount)
   ui.setBase(baseHp / BASE.hp)
+  vibrar(40)
   audio.thud()
   if (baseHp <= 0) lose()
 }
@@ -1262,6 +1263,7 @@ function reventarBase (objetivo) {
     a.base.position.copy(a.sitio)
   }
   ui.banner('BASE DESTRUIDA')
+  vibrar([80, 40, 140])
   for (const s of a.tiradores) { s.hasTarget = false; s.targetPos = null }
 }
 
@@ -1326,6 +1328,7 @@ function win () {
   running = false
   audio.stopMusic()
   cerrarCuentas()
+  vibrar([50, 40, 50])
   const nivel = NIVELES[nivelActual]
   const antes = cargarProgreso()
   const porcentaje = Math.round(baseHp / BASE.hp * 100)
@@ -1502,7 +1505,10 @@ elPausa.addEventListener('click', () => pausar(!pausado))
 // pausa, que es donde está abandonar: un toque sin querer no debe tirar la misión.
 const elAtras = document.getElementById('atras')
 const elHud = document.getElementById('hud')
+const elEngranaje = document.getElementById('ir-ajustes')
 const CAPAS_ATRAS = [
+  ['ajustes-capa', 'ajustes-volver'],
+  ['enemigos-capa', 'enemigos-volver'],
   ['pausa-capa', 'pausa-seguir'],
   ['parte-capa', 'parte-volver'],
   ['tienda-capa', 'tienda-volver'],
@@ -1522,8 +1528,14 @@ function destinoAtras () {
 function pintarAtras () {
   const hay = !!destinoAtras()
   elAtras.classList.toggle('hidden', !hay)
-  // En partida el contador de monedas se aparta para dejarle sitio.
-  elHud.classList.toggle('con-atras', hay)
+  // En partida el botón va en su propia franja arriba y el marcador baja debajo.
+  elHud.classList.toggle('con-atras', hay && running)
+  // El engranaje solo en la portada: con otra capa encima, o en la victoria y la
+  // derrota (que reescriben #overlay y ya no llevan el botón del mapa), se oculta.
+  const enPortada = !document.getElementById('overlay').classList.contains('hidden') &&
+    !!document.getElementById('ir-mapa') &&
+    !CAPAS_ATRAS.some(([capa]) => !document.getElementById(capa)?.classList.contains('hidden'))
+  elEngranaje.classList.toggle('hidden', !enPortada)
 }
 elAtras.addEventListener('click', () => {
   destinoAtras()?.()
@@ -1537,6 +1549,7 @@ for (const id of ['overlay', ...CAPAS_ATRAS.map(([capa]) => capa)]) {
   const el = document.getElementById(id)
   if (el) vigiaAtras.observe(el, { attributes: true, attributeFilter: ['class'] })
 }
+pintarAtras()
 document.getElementById('pausa-seguir').addEventListener('click', () => pausar(false))
 document.getElementById('pausa-salir').addEventListener('click', () => {
   pausar(false)
@@ -1611,7 +1624,7 @@ function pintarCalidad () {
 pintarCalidad()
 // El escalón puede cambiar solo mientras se juega, así que la etiqueta se
 // refresca al abrir los ajustes en vez de quedarse con lo que había al cargar.
-document.getElementById('ajustes').addEventListener('toggle', pintarCalidad)
+
 
 // --- tema claro / oscuro ------------------------------------------------------
 // El valor real lo pone un guion en el <head>, antes de la primera pintada.
@@ -1666,6 +1679,68 @@ pintarTema()
 matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
   if (temaGuardado() === 'auto') aplicarTema('auto')
 })
+
+// --- sonido, música y vibración ---------------------------------------------------
+// Se guardan juntos y se aplican al cargar. La vibración la consultan todos los
+// sitios que vibran a través del atributo del documento, así ui.js no tiene que
+// saber nada de la cartera de preferencias.
+const CLAVE_SONIDO = 'alienz-sonido-v1'
+function sonidoGuardado () {
+  try {
+    const v = JSON.parse(localStorage.getItem(CLAVE_SONIDO) || '{}')
+    return { efectos: v.efectos ?? 100, musica: v.musica ?? 100, vibracion: v.vibracion ?? true }
+  } catch { return { efectos: 100, musica: 100, vibracion: true } }
+}
+function guardarSonido (s) {
+  try { localStorage.setItem(CLAVE_SONIDO, JSON.stringify(s)) } catch { /* modo privado */ }
+}
+function aplicarSonido (s) {
+  audio.setVolumen('efectos', s.efectos / 100)
+  audio.setVolumen('musica', s.musica / 100)
+  document.documentElement.dataset.vibracion = s.vibracion ? 'si' : 'no'
+}
+function vibrar (patron) {
+  if (document.documentElement.dataset.vibracion === 'no') return
+  try { navigator.vibrate?.(patron) } catch { /* sin permiso aún */ }
+}
+aplicarSonido(sonidoGuardado())
+
+const elVolEfectos = document.getElementById('vol-efectos')
+const elVolMusica = document.getElementById('vol-musica')
+const elVibracionOps = document.getElementById('vibracion-ops')
+function pintarSonido () {
+  const s = sonidoGuardado()
+  elVolEfectos.value = s.efectos
+  elVolMusica.value = s.musica
+  document.getElementById('vol-efectos-valor').textContent = s.efectos ? `${s.efectos} %` : 'apagado'
+  document.getElementById('vol-musica-valor').textContent = s.musica ? `${s.musica} %` : 'apagada'
+  elVibracionOps.innerHTML = ''
+  for (const [valor, nombre] of [[true, 'Sí'], [false, 'No']]) {
+    const b = document.createElement('button')
+    b.type = 'button'
+    b.className = 'ajuste-op'
+    b.textContent = nombre
+    b.classList.toggle('elegida', s.vibracion === valor)
+    b.addEventListener('click', () => {
+      const nuevo = { ...sonidoGuardado(), vibracion: valor }
+      guardarSonido(nuevo)
+      aplicarSonido(nuevo)
+      pintarSonido()
+      if (valor) vibrar(30)
+    })
+    elVibracionOps.appendChild(b)
+  }
+}
+for (const [el, clave] of [[elVolEfectos, 'efectos'], [elVolMusica, 'musica']]) {
+  el.addEventListener('input', () => {
+    const nuevo = { ...sonidoGuardado(), [clave]: Number(el.value) }
+    guardarSonido(nuevo)
+    aplicarSonido(nuevo)
+    pintarSonido()
+    // Al mover los efectos suena uno, para oír a qué volumen queda.
+    if (clave === 'efectos') { audio.unlock(); audio.coin() }
+  })
+}
 
 // --- informe de amenazas ----------------------------------------------------
 // Nueve fichas con la cara del bicho. Lo que dice cada una NO es su vida ni su
@@ -1727,6 +1802,23 @@ function pintarAmenazas (caras = null) {
 }
 
 pintarAmenazas()
+
+// --- pantallas de ajustes y enemigos --------------------------------------------
+// Salen de la portada: el engranaje arriba a la derecha y el botón ENEMIGOS.
+const elAjustesCapa = document.getElementById('ajustes-capa')
+const elEnemigosCapa = document.getElementById('enemigos-capa')
+document.getElementById('ir-ajustes').addEventListener('click', () => {
+  audio.unlock()
+  pintarCalidad()
+  pintarSonido()
+  elAjustesCapa.classList.remove('hidden')
+})
+document.getElementById('ajustes-volver').addEventListener('click', () => elAjustesCapa.classList.add('hidden'))
+document.getElementById('ir-enemigos').addEventListener('click', () => {
+  audio.unlock()
+  elEnemigosCapa.classList.remove('hidden')
+})
+document.getElementById('enemigos-volver').addEventListener('click', () => elEnemigosCapa.classList.add('hidden'))
 
 // --- selector de niveles ----------------------------------------------------
 // --- segunda pantalla: el mapa del mundo --------------------------------------
