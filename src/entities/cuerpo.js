@@ -144,11 +144,14 @@ const AGARRES_PIEZAS = {
   rifle: { mano: [0, -0.11, 0.13], apoyo: [0, -0.03, -0.36] },
   shotgun: { mano: [0, -0.11, 0.11], apoyo: [0, -0.05, -0.3] },
   sniper: { mano: [0, -0.11, 0.16], apoyo: [0, -0.04, -0.3] },
-  gunner: { mano: [0, -0.11, 0.2], apoyo: [0, -0.06, -0.3] },
+  // La ametralladora es más larga que el brazo: la de apoyo no llega bajo el
+  // cañón (0,8 del hombro para 0,62 de brazo). Se dispara desde la cadera
+  // cogida del asa de transporte, que es como se lleva de verdad.
+  gunner: { mano: [0, -0.11, 0.2], apoyo: [0, 0.09, 0.02] },
   flamer: { mano: [0, -0.11, 0.1], apoyo: [0, -0.03, -0.34] },
   // El arco: la izquierda en la empuñadura y la derecha tensando la cuerda.
   archer: { mano: [0, 0.02, 0.1], apoyo: [0, 0, -0.1] },
-  mortar: { mano: [0.05, 0.3, -0.25], apoyo: [-0.05, 0.1, 0.05] }
+  mortar: { mano: [0.04, 0.2, -0.16], apoyo: [-0.05, 0.1, 0.05] }
 }
 const CARGADOR_PIEZAS = new THREE.Vector3(0, -0.19, -0.09)
 const POLO_R = new THREE.Vector3(0.3, -0.45, 0.3)
@@ -182,9 +185,32 @@ export function crearManosDePiezas ({ figure, limbs, weapon, key, rest }) {
         brazo.userData.lower.rotation.set(brazo.userData.lower.rotation.x, 0, 0)
       }
       figure.updateMatrixWorld(true)
-      weapon.updateMatrixWorld(true)
-      weapon.localToWorld(objR.copy(puntoMano))
-      weapon.localToWorld(objL.copy(puntoApoyo).lerp(CARGADOR_PIEZAS, recarga))
+      const objetivos = () => {
+        weapon.updateMatrixWorld(true)
+        weapon.localToWorld(objR.copy(puntoMano))
+        weapon.localToWorld(objL.copy(puntoApoyo).lerp(CARGADOR_PIEZAS, recarga))
+      }
+      objetivos()
+      // Si un agarre queda fuera del alcance —en reposo el arma cae a la cadera,
+      // el mortero apunta el tubo lejos—, el arma se acerca a ese hombro lo que
+      // falte. Dos pasadas, una por mano. Mejor un arma algo más recogida que
+      // una mano en el aire. El bucle vuelve a colocar el arma cada fotograma,
+      // así que esto no se acumula.
+      for (let pasada = 0; pasada < 2; pasada++) {
+        for (const [n, obj] of [['armR', objR], ['armL', objL]]) {
+          const brazo = limbs[n]
+          brazo.getWorldPosition(_a)
+          brazo.userData.lower.getWorldPosition(_b)
+          puntas[n].getWorldPosition(_c)
+          const falta = _a.distanceTo(obj) - (_a.distanceTo(_b) + _b.distanceTo(_c)) * 0.97
+          if (falta <= 0) continue
+          _d.subVectors(_a, obj).normalize().multiplyScalar(falta)
+          weapon.getWorldPosition(_e).add(_d)
+          weapon.parent.worldToLocal(_e)
+          weapon.position.copy(_e)
+          objetivos()
+        }
+      }
       figure.localToWorld(poloR.copy(limbs.armR.position).add(POLO_R))
       figure.localToWorld(poloL.copy(limbs.armL.position).add(POLO_L))
       dosHuesos(limbs.armR, limbs.armR.userData.lower, puntas.armR, objR, poloR)
