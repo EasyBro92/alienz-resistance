@@ -1601,6 +1601,86 @@ export function baseAlien (variante = 0) {
 // Más grandes que los de código y más cerca: en el móvil solo se ve la parte de
 // abajo, pero una pata de la Eiffel se reconoce y un bloque de cuatro cajas no.
 // Entero se ve en el vuelo de presentación del principio.
+// La playa. Arena clara a los dos lados del campo; en uno el mar —arena mojada,
+// espuma de la orilla, olas y la torre del socorrista— y en el otro palmeras
+// inclinadas, sombrillas de paja y hamacas. El lado del mar queda despejado de
+// árboles y restos.
+function playa (lado = 1) {
+  const g = new THREE.Group()
+  const plano = (ancho, largo, material, x, y, z = -80) => {
+    const p = pon(g, new THREE.PlaneGeometry(ancho, largo), material, x, y, z)
+    p.rotation.x = -Math.PI / 2
+    return p
+  }
+  const agua = new THREE.MeshStandardMaterial({ color: 0x27a9c2, roughness: 0.12, metalness: 0.15 })
+  plano(240, 340, agua, lado * 133, 0.04)
+  plano(9, 340, mat(0xf1e4c2, 1), lado * 8.6, 0.02)
+  plano(2.2, 340, mat(0xcdb487, 1), lado * 12, 0.03)
+  plano(0.7, 340, mat(0xf5faf8, 0.9), lado * 13.1, 0.05)
+  for (let i = 0; i < 7; i++) plano(0.3, 340, mat(0x8fdde6, 0.5), lado * (16 + i * 5.5), 0.05)
+  plano(12, 340, mat(0xf1e4c2, 1), -lado * 12.8, 0.02)
+  const otro = -lado
+  const troncoMat = mat(0x8a6a48, 0.95)
+  const hojaMat = mat(0x3f7f3a, 0.8)
+  for (let z = 6; z > -120; z -= 8 + Math.random() * 4) {
+    const palmera = new THREE.Group()
+    for (let k = 0; k < 6; k++) pon(palmera, geoCil(0.16 - k * 0.012, 0.2 - k * 0.012, 1.1, 7), troncoMat, 0, 0.55 + k * 1.05, 0)
+    for (let k = 0; k < 7; k++) {
+      const hoja = pon(palmera, geoCaja(0.5, 0.06, 2.6), hojaMat, 0, 6.5, 0)
+      hoja.rotation.set(0.45, (k / 7) * Math.PI * 2, 0)
+      hoja.translateZ(1.1)
+    }
+    palmera.position.set(otro * azar(14, 21), 0, z)
+    palmera.rotation.set(0, Math.random() * Math.PI, otro * azar(0.12, 0.3))
+    g.add(palmera)
+  }
+  for (let z = 0; z > -90; z -= 11) {
+    const x = otro * azar(9.5, 12)
+    pon(g, geoCil(0.05, 0.05, 2.4, 6), mat(0x7a5a3a, 0.9), x, 1.2, z)
+    pon(g, geoCil(0.02, 1.4, 0.7, 12), mat(0xc9a15a, 1), x, 2.5, z)
+    pon(g, geoCaja(0.7, 0.15, 1.8), mat(0xf2f2ee, 0.8), x + otro * 1.1, 0.35, z + 0.4)
+  }
+  const tx = lado * 10.8
+  for (const [dx, dz] of [[-0.6, -0.6], [0.6, -0.6], [-0.6, 0.6], [0.6, 0.6]]) pon(g, geoCil(0.06, 0.06, 2.2, 6), mat(0xe8e2d4, 0.8), tx + dx, 1.1, -34 + dz)
+  pon(g, geoCaja(1.6, 1.1, 1.6), mat(0xd2452f, 0.7), tx, 2.75, -34)
+  pon(g, geoTronco(0, 1.2, 0.7), mat(0xe8e2d4, 0.8), tx, 3.65, -34)
+  pon(g, geoCil(0.03, 0.03, 1.6, 5), mat(0x777777, 0.6), tx, 4.6, -34)
+  pon(g, geoCaja(0.6, 0.35, 0.03), mat(0xf2d22e, 0.7), tx + 0.3, 5.1, -34)
+  g.userData.lados = [lado]
+  g.userData.despejar = [lado]
+  g.userData.acompaña = true
+  return g
+}
+
+// El Alcázar de Colón, a la izquierda: el palacio de piedra coralina con sus dos
+// pisos de galerías mirando a la plaza, los torreones de los extremos y la
+// estatua delante.
+function alcazarColon () {
+  const g = new THREE.Group()
+  const coral = mat(0xd8c7a3, 0.95)
+  const oscuro = mat(0x3a3128, 1)
+  pon(g, geoCaja(4, 8, 22), coral, 0, 4, 0)
+  for (const y of [0.3, 4.4]) arcada(g, oscuro, { ancho: 18, alto: 3.2, n: 6, x: 2.02, y, giro: Math.PI / 2 })
+  pon(g, geoCaja(4.4, 0.4, 22.4), coral, 0, 4.1, 0)
+  pon(g, geoCaja(4.4, 0.5, 22.4), coral, 0, 8.2, 0)
+  for (const z of [-11, 11]) pon(g, geoCaja(4.6, 9, 3), coral, 0.2, 4.5, z)
+  pon(g, geoCaja(1.2, 1.6, 1.2), mat(0xb9b2a6, 0.9), 5, 0.8, 0)
+  pon(g, geoCil(0.25, 0.4, 1.8, 8), mat(0x3f4a3f, 0.5, 0.5), 5, 2.5, 0)
+  return colocar(g, 1, -15, -62, -1)
+}
+
+// El Faro a Colón, a la derecha: la cruz tumbada de hormigón escalonado y el haz
+// de luz que sube al cielo desde el cruce.
+function faroColon () {
+  const g = new THREE.Group()
+  const hormigon = mat(0xa39d92, 0.95)
+  for (let k = 0; k < 5; k++) pon(g, geoCaja(8 - k * 1.2, 1.6, 40 - k * 5), hormigon, 0, 0.8 + k * 1.6, 0)
+  for (let k = 0; k < 4; k++) pon(g, geoCaja(22 - k * 3.5, 1.6, 6 - k * 0.9), hormigon, 0, 0.8 + k * 1.6, -6)
+  const luz = new THREE.MeshBasicMaterial({ color: 0xfff6d8, transparent: true, opacity: 0.35, depthWrite: false })
+  pon(g, geoCil(0.35, 0.8, 30, 8), luz, 0, 23, -6)
+  return colocar(g, 0.8, 18, -66, 1)
+}
+
 // El Campo de Marte. La misión de París no va por carretera: va por el césped
 // que lleva a la torre. Aquí está todo el parque —paseos de albero a los lados,
 // el seto bajo que enmarca el césped, dos hileras de plátanos podados en caja
@@ -1680,7 +1760,7 @@ function conModelo (nombre, respaldo, { altura, x, z, giro = 0 }) {
 }
 
 export const HITOS = {
-  campoDeMarte,
+  campoDeMarte, playa, alcazarColon, faroColon,
   // La torre al fondo del parque, centrada: sus patas enmarcan el final del
   // césped y la base alienígena queda debajo, entre ellas.
   eiffelFondo: () => conModelo('monumento-eiffel', torreEiffel(), { altura: 42, x: 0, z: -92 }),
@@ -1717,7 +1797,7 @@ export const BIOMAS = {
   mediterraneo: {
     restos: [['camioneta', 0x9a6a4a, 2]],
     asfalto: 0x83807a, raya: 0xe8dcc0, bordillo: 0xbdb6a8,
-    tierra: 0xd8bd8a, cerro: 0xb99a72, meseta: 0xc7ab86,
+    terreno: 'hierba', tierra: 0xaab27c, cerro: 0xb99a72, meseta: 0xc7ab86,
     cielo: 0x7cb6e0, niebla: 0xc2d6dd, sol: 0xfff2d8, ambiente: 0xd6a86f,
     flora: [['pino', 0x4e6b3c, 16], ['olivo', 0x8a9b78, 10]]
   },
@@ -1727,21 +1807,21 @@ export const BIOMAS = {
   parque: {
     restos: [],
     asfalto: 0x8fb46a, raya: 0x8fb46a, bordillo: 0xd9c9a0,
-    tierra: 0x86ad62, cerro: 0x4a6b3a, meseta: 0x5a7c46,
+    terreno: 'hierba', tierra: 0x86ad62, cerro: 0x4a6b3a, meseta: 0x5a7c46,
     cielo: 0x8cc0ea, niebla: 0xd5e3e6, sol: 0xfff3e0, ambiente: 0xbfc8ae,
     flora: []
   },
   costa: {
     restos: [['contenedor', 0xa8563f, 2]],
     asfalto: 0x8e8b83, raya: 0xf0e8d2, bordillo: 0xd2cbb8,
-    tierra: 0xe2d3ae, cerro: 0xc9bda4, meseta: 0xd6cdb6,
+    terreno: 'hierba', tierra: 0xa2b47e, cerro: 0xc9bda4, meseta: 0xd6cdb6,
     cielo: 0x6fb2e8, niebla: 0xd2e2ea, sol: 0xfff6e4, ambiente: 0xc9c2ac,
     flora: [['cipres', 0x33532f, 14], ['pino', 0x4e6b3c, 10]]
   },
   volcanico: {
     restos: [['autobus', 0xc4923a, 2]],
     asfalto: 0x4a453f, raya: 0xd8cdae, bordillo: 0x6e675c,
-    tierra: 0x6e6258, cerro: 0x574c45, meseta: 0x4a413a,
+    terreno: 'roca', tierra: 0x8a7e74, cerro: 0x574c45, meseta: 0x4a413a,
     cielo: 0x9ab4c4, niebla: 0xa8a49c, sol: 0xffe6c4, ambiente: 0x6b5f52,
     flora: [['cipres', 0x2c4a2b, 16], ['pino', 0x3f5c34, 8]],
     hito: ['volcan', 0x4a3f38, false]
@@ -1749,7 +1829,7 @@ export const BIOMAS = {
   egeo: {
     restos: [['contenedor', 0x3f6f92, 3]],
     asfalto: 0x939086, raya: 0xf2ead0, bordillo: 0xd8d0b8,
-    tierra: 0xdcd2b6, cerro: 0xc3bda6, meseta: 0xd0c9b0,
+    terreno: 'tierra', tierra: 0xd9c8a6, cerro: 0xc3bda6, meseta: 0xd0c9b0,
     cielo: 0x59a8e6, niebla: 0xdae8ee, sol: 0xfff4dc, ambiente: 0xcfc7ae,
     flora: [['olivo', 0x94a184, 18], ['cipres', 0x3a5836, 6]],
     hito: ['columnas', 0xddd6c2]
@@ -1757,7 +1837,7 @@ export const BIOMAS = {
   desierto: {
     restos: [['autobus', 0xd8b45c, 2]],
     asfalto: 0x9c927e, raya: 0xefe2be, bordillo: 0xc9bb96,
-    tierra: 0xf2d48f, cerro: 0xdcb877, meseta: 0xe8c98d,
+    terreno: 'arena', tierra: 0xf2d48f, cerro: 0xdcb877, meseta: 0xe8c98d,
     cielo: 0x86c2e8, niebla: 0xf0dcb4, sol: 0xfff0c8, ambiente: 0xe0b878,
     flora: [['palmera', 0x4f7a3a, 12]],
     hito: ['piramides', 0xd9bd88]
@@ -1765,21 +1845,21 @@ export const BIOMAS = {
   sabana: {
     restos: [['camioneta', 0xb4703a, 3]],
     asfalto: 0x9b7742, raya: 0xc9a86a, bordillo: 0xa8894f,
-    tierra: 0xd9b757, cerro: 0xc0a054, meseta: 0xcdae5c,
+    terreno: 'tierra', tierra: 0xc99a5c, cerro: 0xc0a054, meseta: 0xcdae5c,
     cielo: 0x8fc4dd, niebla: 0xe6d6a0, sol: 0xffe8b0, ambiente: 0xd2ab5c,
     flora: [['acacia', 0x6d7f42, 18], ['palmera', 0x5c7a3c, 6]]
   },
   monzon: {
     restos: [['autobus', 0x5a8f6a, 2]],
     asfalto: 0x6f7269, raya: 0xdcd8c4, bordillo: 0x8e9084,
-    tierra: 0x9aa565, cerro: 0x7f8c58, meseta: 0x8b9760,
+    terreno: 'hierba', tierra: 0x8fa860, cerro: 0x7f8c58, meseta: 0x8b9760,
     cielo: 0xa8bcc8, niebla: 0xc4cdd0, sol: 0xf2eddc, ambiente: 0x8a9470,
     flora: [['palmera', 0x3f6b33, 16], ['ceiba', 0x40663a, 8]]
   },
   karstico: {
     restos: [['contenedor', 0x8a5a4a, 3]],
     asfalto: 0x787d76, raya: 0xe0dcc8, bordillo: 0x969a90,
-    tierra: 0x8a9478, cerro: 0x6f7c66, meseta: 0x7b876f,
+    terreno: 'hierba', tierra: 0x88a06e, cerro: 0x6f7c66, meseta: 0x7b876f,
     cielo: 0xb6c4ca, niebla: 0xcdd6d6, sol: 0xf0ead8, ambiente: 0x7f8a74,
     flora: [['bambu', 0x5d8046, 20]],
     hito: ['karst', 0x76836c]
@@ -1787,21 +1867,21 @@ export const BIOMAS = {
   taiga: {
     restos: [['oruga', 0x5c6350, 2]],
     asfalto: 0x8d9298, raya: 0xdde4ea, bordillo: 0xb4bcc4,
-    tierra: 0xdfe6ea, cerro: 0xc2cdd4, meseta: 0xd2dade,
+    terreno: 'nieve', tierra: 0xeef3f6, cerro: 0xc2cdd4, meseta: 0xd2dade,
     cielo: 0x9db4c4, niebla: 0xd8e2e8, sol: 0xeaf0f8, ambiente: 0xb8c6d0,
     flora: [['abeto', 0x2b402f, 22]]
   },
   artico: {
     restos: [['oruga', 0x6a6f5e, 2]],
     asfalto: 0xa6aeb6, raya: 0xe8eef4, bordillo: 0xc8d0d8,
-    tierra: 0xeef3f6, cerro: 0xd4dee6, meseta: 0xe2e9ee,
+    terreno: 'nieve', tierra: 0xf4f8fb, cerro: 0xd4dee6, meseta: 0xe2e9ee,
     cielo: 0x8fa8bc, niebla: 0xe4ecf2, sol: 0xe6f0fa, ambiente: 0xc4d2de,
     flora: [['abeto', 0x24382b, 18]]
   },
   altiplano: {
     restos: [['autobus', 0xd4a03c, 2]],
     asfalto: 0x8a7f70, raya: 0xe6d8ac, bordillo: 0xb0a288,
-    tierra: 0xc9a173, cerro: 0xa8855e, meseta: 0xb89267,
+    terreno: 'tierra', tierra: 0xcaa67b, cerro: 0xa8855e, meseta: 0xb89267,
     cielo: 0x74b0e0, niebla: 0xd8cdb2, sol: 0xfff0d0, ambiente: 0xc09468,
     flora: [['cactus', 0x5f7a48, 16], ['acacia', 0x7a8450, 6]],
     hito: ['volcan', 0x5a4a40, true]
@@ -1811,14 +1891,23 @@ export const BIOMAS = {
   ciudad: {
     restos: [['camioneta', 0x8a8f96, 2]],
     asfalto: 0x5e5f62, raya: 0xf2f2ee, bordillo: 0xcfcac0,
-    tierra: 0xb3aea4, cerro: 0x9a958c, meseta: 0xa6a198,
+    terreno: 'losas', tierra: 0xc9c4ba, cerro: 0x9a958c, meseta: 0xa6a198,
     cielo: 0x8fbfe6, niebla: 0xcfd8de, sol: 0xfff4e0, ambiente: 0xb8b0a0,
     flora: [['olivo', 0x55783f, 14]]
+  },
+  // El Caribe: arena blanca, palmeras y cerros verdes al fondo. Sin restos: lo
+  // que hay abandonado en la playa lo pone el hito `playa`.
+  caribe: {
+    restos: [],
+    asfalto: 0x8e8b83, raya: 0xf0e8d2, bordillo: 0xd2cbb8,
+    terreno: 'arena', tierra: 0xf3e6c4, cerro: 0x3f7a45, meseta: 0x4f8a4f,
+    cielo: 0x5fb8f0, niebla: 0xd6eef4, sol: 0xfff6e0, ambiente: 0xd8d0b0,
+    flora: [['palmera', 0x3f8a3a, 18]]
   },
   selva: {
     restos: [['barcaza', 0x7a6a52, 2]],
     asfalto: 0x6b6f5e, raya: 0xd4d6b8, bordillo: 0x878a74,
-    tierra: 0x6b7c48, cerro: 0x4f6339, meseta: 0x5a6d40,
+    terreno: 'hierba', tierra: 0x5f7a40, cerro: 0x4f6339, meseta: 0x5a6d40,
     cielo: 0x9cb8b0, niebla: 0xb4c8ba, sol: 0xeef2da, ambiente: 0x6f8055,
     flora: [['ceiba', 0x2f5730, 20], ['palmera', 0x3a6b38, 10]]
   }

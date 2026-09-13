@@ -17,9 +17,9 @@ Publicado en https://easybro92.github.io/alienz-resistance/ (repo `EasyBro92/ali
 |---|---|
 | `src/main.js` | Bucle, colocación y arrastre, combate, asalto final a la base (`empezarAsalto` → `win`), `cerrarCuentas` (monedas sobrantes a la cartera), `win`/`lose`, pantallas de mapa, país y parte, conexión de tienda y cofre, `window.__zr` (solo DEV) |
 | `src/config.js` | `FIELD`, `BASE`, `ECONOMY`, `SOLDIERS`, `DEFENSES`, `STRIKES`, `UPGRADES`, `ZOMBIES`, `INICIALES` (solo el arquero). `NIVELES` se reexporta de `campana.js` |
-| `src/campana.js` | `PAISES` (12 países × 3 misiones), `DESTINOS` aplanado (= `NIVELES`), peaje de estrellas (6 por país), `dureza` de 0,06 a 0,56, bioma por misión, `suelo: 'parque'` (sin carretera: césped y sin marcas de carril; París) |
+| `src/campana.js` | `PAISES` (13 países × 3 misiones; República Dominicana va entre México y Brasil), `DESTINOS` aplanado (= `NIVELES`), peaje de estrellas (6 por país), `dureza` de 0,06 a 0,56, bioma por misión, `suelo` por misión (`carretera`, `parque`, `adoquin`, `losas`, `arena`, `playa`, `tierra`, `nieve`; todo lo que no es carretera apaga rayas, baches, bordillos y vallas) y `tonoSuelo` opcional |
 | `src/oleadas.js` | Las 6 tablas de oleadas compartidas |
-| `src/biomas.js` | `BIOMAS` (paleta, calzada, flora, restos, hito), `FLORA`, `HITOS` (de región, y de ciudad: todas las misiones llevan el suyo; `castellana` sirve de avenida genérica con `conTorres = false`), piezas `pon`/`aguas`/`colocar`/`barra`/`arcada`, `conModelo` (monumento de Meshy con respaldo de código: `eiffel3d`, `coliseo3d`, `libertad3d`), `baseAlien(variante)` (base del fondo con antena animada, sin niebla), `RESTOS` |
+| `src/biomas.js` | `BIOMAS` (paleta, `terreno` de alrededor —hierba, tierra, nieve, roca, losas o arena—, calzada, flora, restos, hito), hito `playa(lado)` (mar en ese lado), `FLORA`, `HITOS` (de región, y de ciudad: todas las misiones llevan el suyo; `castellana` sirve de avenida genérica con `conTorres = false`), piezas `pon`/`aguas`/`colocar`/`barra`/`arcada`, `conModelo` (monumento de Meshy con respaldo de código: `eiffel3d`, `coliseo3d`, `libertad3d`), `baseAlien(variante)` (base del fondo con antena animada, sin niebla), `RESTOS` |
 | `src/world.js` | Escena, carretera y decorado. `world.vestir(bioma, hitos)` retiñe sin reconstruir; los `hitos` de la misión (campo `hitos` en `campana.js`) esconden la nave estrellada; `agrandar` los hace crecer hacia la barandilla (salvo en ciudades con avenida); `focoMonumento()` para el vuelo; `baseActual()` |
 | `src/mapa.js` | Mapa del mundo en SVG (`pintarMapa`) |
 | `src/assets.js` | Figuras procedurales, `bake()`, `MODELS` (Meshy), `armarPersona` (huesos manejados con mandos), `buildWeapon` |
@@ -59,7 +59,7 @@ Ganar y perder recargan la página; `window.volverA('mapa' | 'pais:N' | 'portada
 ## Equilibrio medido (no cambiar sin volver a medir)
 
 - Tarragona solo con arqueros: 10 ganan con el perímetro al 74 %; 6 pierden.
-- Peaje de estrellas: con 3★ o 2★ de media se llega a las 36 misiones; con 1,5★ te atascas a la entrada de Francia.
+- Peaje de estrellas: con 3★ o 2★ de media se llega a las 36 misiones; con 1,5★ te atascas a la entrada de Francia. (Medido con 12 países; ahora son 13 y 39 misiones: falta volver a medir.)
 - Billetes por partida cobrando todas las monedas: de 27 (Tarragona) a 237 (misiones finales).
 - **Todo lo anterior se midió con el botín de cada huésped al 100 %.** Ahora está al 75 % (`ECONOMY.botinHuesped`) y el goteo también cuenta para el billete: falta volver a medir.
 - Monedas: 1 billete cada 30 que entran en partida (`MONEDAS_POR_BILLETE`); las que sobran al acabar van a la cartera y cada 100 guardadas son 1 billete (`MONEDAS_POR_DOLAR`, cambio automático en `cerrarCuentas`).

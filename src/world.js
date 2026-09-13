@@ -478,11 +478,152 @@ export function createWorld (canvas) {
     return t
   })()
   cesped.repeat.set(2, 38)
-  const cespedArena = cesped.clone()
-  cespedArena.repeat.set(70, 70)
-  cespedArena.needsUpdate = true
   const pielCarretera = { map: road.material.map, normalMap: road.material.normalMap }
   const pielArena = { map: sand.material.map, normalMap: sand.material.normalMap }
+
+  // --- suelos y terrenos -----------------------------------------------------------
+  // Antes todo era asfalto rodeado de arena, y todos los sitios parecían el mismo
+  // desierto. Ahora hay dos cosas distintas:
+  //   - el TERRENO de alrededor, que es de la región (`terreno` en el bioma):
+  //     hierba, tierra, nieve, roca volcánica, losas de ciudad o arena;
+  //   - el SUELO que se pisa, que es de la misión (`suelo` en la campaña):
+  //     carretera, parque, adoquín, losas, arena, playa, tierra o nieve.
+  // Las texturas se pintan en lienzo la primera vez que hacen falta. Van en tonos
+  // claros para que el color del bioma, o el `tonoSuelo` de la misión, las tiña.
+  const texturasSuelo = new Map()
+  const lienzo = (clave, pintar, rx, ry) => {
+    if (texturasSuelo.has(clave)) return texturasSuelo.get(clave)
+    const c = document.createElement('canvas')
+    c.width = c.height = 256
+    pintar(c.getContext('2d'), 256)
+    const t = new THREE.CanvasTexture(c)
+    t.wrapS = t.wrapT = THREE.RepeatWrapping
+    t.colorSpace = THREE.SRGBColorSpace
+    t.anisotropy = 4
+    t.repeat.set(rx, ry)
+    texturasSuelo.set(clave, t)
+    return t
+  }
+  const mancha = (x, n, color, cuantas, rMin, rMax) => {
+    for (let k = 0; k < cuantas; k++) {
+      x.fillStyle = color(Math.random())
+      x.beginPath()
+      x.arc(Math.random() * n, Math.random() * n, rMin + Math.random() * (rMax - rMin), 0, Math.PI * 2)
+      x.fill()
+    }
+  }
+  const PINTORES = {
+    hierba (x, n) {
+      x.fillStyle = '#dfe8d2'
+      x.fillRect(0, 0, n, n)
+      mancha(x, n, a => `rgba(90,110,60,${a * 0.08})`, 600, 6, 24)
+      for (let k = 0; k < 9000; k++) {
+        const v = 150 + Math.random() * 100
+        x.fillStyle = `rgba(${(v * 0.75) | 0},${v | 0},${(v * 0.6) | 0},0.45)`
+        x.fillRect(Math.random() * n, Math.random() * n, 1, 2 + Math.random() * 4)
+      }
+    },
+    tierra (x, n) {
+      x.fillStyle = '#e8ddcb'
+      x.fillRect(0, 0, n, n)
+      mancha(x, n, a => `rgba(120,90,60,${a * 0.1})`, 500, 4, 22)
+      for (let k = 0; k < 1400; k++) {
+        const v = 120 + Math.random() * 110
+        x.fillStyle = `rgb(${v | 0},${(v * 0.9) | 0},${(v * 0.8) | 0})`
+        x.fillRect(Math.random() * n, Math.random() * n, 1 + Math.random() * 2.5, 1 + Math.random() * 2)
+      }
+    },
+    nieve (x, n) {
+      x.fillStyle = '#ffffff'
+      x.fillRect(0, 0, n, n)
+      mancha(x, n, a => `rgba(150,175,200,${a * 0.09})`, 400, 6, 30)
+      for (let k = 0; k < 900; k++) {
+        x.fillStyle = `rgba(120,150,180,${0.1 + Math.random() * 0.15})`
+        x.fillRect(Math.random() * n, Math.random() * n, 1, 1)
+      }
+    },
+    roca (x, n) {
+      x.fillStyle = '#c9c4be'
+      x.fillRect(0, 0, n, n)
+      mancha(x, n, () => {
+        const v = 60 + Math.random() * 150
+        return `rgb(${v | 0},${(v * 0.96) | 0},${(v * 0.92) | 0})`
+      }, 2600, 0.8, 3.5)
+    },
+    // Sampietrini: filas de cantos cuadrados corridas media pieza, la junta
+    // oscura y cada piedra de su tono. Dieciséis filas pares: empalma sin corte.
+    adoquin (x, n) {
+      x.fillStyle = '#5f5a52'
+      x.fillRect(0, 0, n, n)
+      const p = 16
+      for (let f = 0; f < n / p; f++) {
+        const desfase = f % 2 ? p / 2 : 0
+        for (let c = -1; c <= n / p; c++) {
+          const v = 125 + Math.random() * 60
+          x.fillStyle = `rgb(${v | 0},${(v * 0.95) | 0},${(v * 0.88) | 0})`
+          const px = c * p + desfase + 1.2
+          const py = f * p + 1.2
+          x.beginPath()
+          if (x.roundRect) x.roundRect(px, py, p - 2.4, p - 2.4, 3)
+          else x.rect(px, py, p - 2.4, p - 2.4)
+          x.fill()
+          x.fillStyle = 'rgba(255,255,255,0.08)'
+          x.fillRect(px + 2, py + 2, p - 8, 3)
+        }
+      }
+    },
+    // Losas a matajunta, claras y con motas.
+    losas (x, n) {
+      x.fillStyle = '#9a9388'
+      x.fillRect(0, 0, n, n)
+      const p = 64
+      for (let f = 0; f < 4; f++) {
+        const desfase = f % 2 ? p / 2 : 0
+        for (let c = -1; c < 5; c++) {
+          const v = 200 + Math.random() * 35
+          x.fillStyle = `rgb(${v | 0},${(v * 0.97) | 0},${(v * 0.92) | 0})`
+          x.fillRect(c * p + desfase + 1.5, f * p + 1.5, p - 3, p - 3)
+        }
+      }
+      for (let k = 0; k < 2500; k++) {
+        x.fillStyle = `rgba(90,85,78,${Math.random() * 0.18})`
+        x.fillRect(Math.random() * n, Math.random() * n, 1, 1)
+      }
+    },
+    // Arena fina y clara, con las ondas suaves del viento.
+    arena (x, n) {
+      x.fillStyle = '#f3e7c9'
+      x.fillRect(0, 0, n, n)
+      for (let k = 0; k < 7000; k++) {
+        const v = 200 + Math.random() * 55
+        x.fillStyle = `rgba(${v | 0},${(v * 0.92) | 0},${(v * 0.78) | 0},0.5)`
+        x.fillRect(Math.random() * n, Math.random() * n, 1, 1)
+      }
+      x.strokeStyle = 'rgba(180,150,110,0.12)'
+      x.lineWidth = 2
+      for (let y = 8; y < n; y += 22) {
+        x.beginPath()
+        for (let px = 0; px <= n; px += 16) x.lineTo(px, y + Math.sin((px / n) * Math.PI * 4 + y) * 3)
+        x.stroke()
+      }
+    }
+  }
+  // Unidades de mundo que ocupa cada baldosa de textura. Ninguna es 2,4, el
+  // ancho del carril: si coincidiera, las juntas dibujarían los carriles.
+  const LADO_CAMPO = { adoquin: 2.1, losas: 3.3, arena: 6, playa: 6, tierra: 5, nieve: 6 }
+  const PINTOR_CAMPO = { playa: 'arena' }
+  const COLOR_CAMPO = { parque: 0x8fb46a, arena: 0xf2dca8, playa: 0xffffff }
+  function texturaCampo (suelo) {
+    if (suelo === 'parque') return cesped
+    const lado = LADO_CAMPO[suelo]
+    if (!lado) return null
+    const pintor = PINTOR_CAMPO[suelo] ?? suelo
+    return lienzo('campo:' + pintor, PINTORES[pintor], (fieldWidth + 1.6) / lado, roadLength / lado)
+  }
+  function texturaTerreno (tipo) {
+    const lado = { hierba: 9, tierra: 10, nieve: 12, roca: 8, losas: 6 }[tipo] ?? 10
+    return lienzo('terreno:' + tipo, PINTORES[tipo], 480 / lado, 480 / lado)
+  }
 
   // Los materiales que cambian con la región. Se crean aquí y se le pasan a
   // `decorate`, que los usa en vez de inventarse los suyos: así reteñir un
@@ -712,17 +853,20 @@ export function createWorld (canvas) {
   let bosqueVisible = null
   let bioma = null
 
-  function poblar (clave, b, hitosMision = []) {
+  function poblar (clave, b, hitosMision = [], suelo = 'carretera') {
     const g = new THREE.Group()
     const borde = fieldWidth / 2 + 3.4
     // Los hitos de la misión se construyen ANTES que la vegetación, para saber
     // qué lados de la carretera ocupan.
     const deMision = []
     const ocupado = { '-1': false, '1': false }
+    // Lados donde no va nada suelto: el del mar en una playa.
+    const despejado = {}
     for (const [tipo, ...args] of hitosMision ?? []) {
       if (!HITOS[tipo]) continue
       const h = HITOS[tipo](...args)
       for (const l of h.userData.lados ?? []) ocupado[l] = true
+      for (const l of h.userData.despejar ?? []) despejado[l] = true
       deMision.push(h)
     }
     for (const [tipo, tono, cuantos] of b.flora ?? []) {
@@ -733,6 +877,7 @@ export function createWorld (canvas) {
         // A los lados de la carretera y nunca encima: el corredor central es por
         // donde se juega, y un árbol ahí tapa media partida.
         const lado = Math.random() < 0.5 ? -1 : 1
+        if (despejado[lado]) continue
         // En el lado de un hito de ciudad, los árboles se quedan en la acera,
         // entre la calzada y los edificios: sueltos por el campo acababan
         // saliendo de dentro de un estanque o de una fachada.
@@ -748,7 +893,9 @@ export function createWorld (canvas) {
     }
     // Los restos van más pegados a la calzada que los árboles: lo que se quedó
     // tirado se quedó tirado EN la carretera o al borde, no en mitad del campo.
-    for (const [tipo, tono, cuantos] of b.restos ?? []) {
+    // Coches y contenedores abandonados en la arena o en el césped no pintan nada.
+    const sinRestos = suelo === 'playa' || suelo === 'parque'
+    for (const [tipo, tono, cuantos] of sinRestos ? [] : (b.restos ?? [])) {
       const hacer = RESTOS[tipo]
       if (!hacer) continue
       for (let i = 0; i < cuantos; i++) {
@@ -779,7 +926,9 @@ export function createWorld (canvas) {
     for (const h of deMision) if (!h.userData.aparte) g.add(h)
     // El monumento principal, para el vuelo de presentación: el primero que no
     // sea acompañamiento (la avenida, los microbuses, un cerro).
-    const principal = deMision.find(h => !h.userData.acompaña) ?? deMision[0]
+    // Sin monumento no hay vuelo: enfocar una playa entera o una avenida ponía la
+    // cámara a cientos de metros.
+    const principal = deMision.find(h => !h.userData.acompaña) ?? null
     let foco = null
     if (principal) {
       principal.updateMatrixWorld(true)
@@ -818,9 +967,9 @@ export function createWorld (canvas) {
   // `hitosMision` son los monumentos de una ciudad concreta. Forman parte de la
   // llave del bosque: Valencia y Tarragona comparten bioma pero no paisaje.
   // `suelo`: 'parque' quita la carretera (París, el Campo de Marte).
-  function vestir (clave, hitosMision = [], suelo = 'carretera') {
+  function vestir (clave, hitosMision = [], suelo = 'carretera', tonoSuelo = null) {
     const b = BIOMAS[clave]
-    const llave = clave + '|' + (hitosMision ?? []).map(h => h.join(':')).join(',') + '|' + suelo
+    const llave = clave + '|' + (hitosMision ?? []).map(h => h.join(':')).join(',') + '|' + suelo + '|' + tonoSuelo
     if (!b || llave === bioma) return
     bioma = llave
     // La nave estrellada tapaba justo el sitio de los monumentos.
@@ -844,14 +993,20 @@ export function createWorld (canvas) {
     // Parque: fuera el asfalto y todo lo que solo existe sobre asfalto —rayas de
     // carril, baches, bordillos, vallas—; la calzada y el arenal pasan a césped.
     // Los carriles siguen estando, pero ya no se ven.
-    const parque = suelo === 'parque'
-    for (const m of soloCarretera) m.visible = !parque
-    road.material.map = parque ? cesped : pielCarretera.map
-    road.material.normalMap = parque ? null : pielCarretera.normalMap
-    sand.material.map = parque ? cespedArena : pielArena.map
-    sand.material.normalMap = parque ? null : pielArena.normalMap
+    const campo = texturaCampo(suelo)
+    for (const m of soloCarretera) m.visible = !campo
+    road.material.map = campo ?? pielCarretera.map
+    road.material.normalMap = campo ? null : pielCarretera.normalMap
+    if (campo) road.material.color.setHex(tonoSuelo ?? COLOR_CAMPO[suelo] ?? 0xffffff)
+    // El terreno de alrededor es de la región: arena solo en desierto y playa.
+    const terreno = b.terreno ?? 'arena'
+    const tierraTex = terreno === 'arena' ? null : texturaTerreno(terreno)
+    sand.material.map = tierraTex ?? pielArena.map
+    sand.material.normalMap = tierraTex ? null : pielArena.normalMap
     road.material.needsUpdate = true
     sand.material.needsUpdate = true
+    // Los matojos secos del borde, fuera de la playa: no crecen en la arena del mar.
+    pintables.matojo.visible = suelo !== 'playa'
     pintables.raya.color.setHex(b.raya)
     pintables.bordillo.color.setHex(b.bordillo)
     // El bordillo salpicado va un escalón más oscuro que el suyo, no a un gris
@@ -871,7 +1026,7 @@ export function createWorld (canvas) {
     cielo.groundColor.setHex(b.ambiente)
 
     for (const [k, g] of bosques) g.visible = k === llave
-    const mio = bosques.get(llave) ?? poblar(llave, b, hitosMision)
+    const mio = bosques.get(llave) ?? poblar(llave, b, hitosMision, suelo)
     mio.visible = true
     bosqueVisible = mio
   }

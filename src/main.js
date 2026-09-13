@@ -1366,10 +1366,10 @@ function win () {
     ui.showOverlay(`
       <p class="eyebrow">Mando del búnker · informe de cierre</p>
       <h1>PLANETA LIMPIO</h1>
-      <p class="tagline">Doce países. Treinta y seis campamentos. No queda ninguno en pie.</p>
+      <p class="tagline">Trece países. Treinta y nueve campamentos. No queda ninguno en pie.</p>
       ${sello}
       <p class="cierre">${nivel.cierre ?? ''} Los búnkeres abren y la gente
-      empieza a salir. Pero los túneles siguen bajando en los doce sitios, y
+      empieza a salir. Pero los túneles siguen bajando en los trece sitios, y
       nadie de los que firmamos aquello sabe hasta dónde.</p>
       <ol class="marcas">${marcas}</ol>
       ${htmlBotin()}
@@ -1436,7 +1436,7 @@ function start (indice = nivelActual) {
   limpiarPartida()
   // El paisaje de la región, antes de enseñar nada: si se vistiera después, el
   // primer fotograma del nivel saldría con la tierra del destino anterior.
-  world.vestir(NIVELES[nivelActual].bioma, NIVELES[nivelActual].hitos, NIVELES[nivelActual].suelo)
+  world.vestir(NIVELES[nivelActual].bioma, NIVELES[nivelActual].hitos, NIVELES[nivelActual].suelo, NIVELES[nivelActual].tonoSuelo)
   billetesPartida = 0
   pintarBilletes()
   cuentas = null
@@ -1774,7 +1774,7 @@ function relatoDelMundo (limpios) {
   if (limpios < 4) return `${limpios} de ${PAISES.length} países limpios. Por primera vez en dos años se abren trampillas de búnker, y sale gente a mirar el cielo.`
   if (limpios < 8) return `${limpios} de ${PAISES.length} países limpios. En la sala de Gizeh hay un mapa con puntos encendidos, y los vamos apagando uno a uno.`
   if (limpios < PAISES.length) return `${limpios} de ${PAISES.length} países limpios. Todo lo que les queda está bajando hacia el Amazonas.`
-  return 'Los doce países están limpios y los búnkeres, abiertos. Pero los túneles siguen bajando, y nadie sabe hasta dónde.'
+  return 'Los trece países están limpios y los búnkeres, abiertos. Pero los túneles siguen bajando, y nadie sabe hasta dónde.'
 }
 
 function abrirMapa () {
