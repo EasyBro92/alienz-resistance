@@ -264,8 +264,10 @@ export function crearCuerpo ({ figure, cuerpo, arma, key, clips = [] }) {
       figure.worldToLocal(b.brazoR.getWorldPosition(hombro))
       figure.worldToLocal(b.brazoL.getWorldPosition(hombroL))
       // En reposo: baja, cruzada por delante y la boca hacia el suelo.
-      c1.set(-0.05, -0.2, -0.08).add(hombro)
-      d1.set(-0.3, -0.72, -0.62).normalize()
+      // Menos caída que un arma colgando del todo: con la boca casi vertical el
+      // brocal del cargador quedaba fuera del alcance de la mano izquierda.
+      c1.set(-0.08, -0.15, -0.1).add(hombro)
+      d1.set(-0.35, -0.52, -0.78).normalize()
       // Corriendo: cruzada sobre el pecho, sujeta con las dos manos.
       c2.set(-0.08, -0.14, -0.1).add(hombro)
       d2.set(-0.55, -0.4, -0.72).normalize()
@@ -275,7 +277,7 @@ export function crearCuerpo ({ figure, cuerpo, arma, key, clips = [] }) {
       // El hueso del brazo está en la articulación, más baja que el hueco del
       // hombro: con la culata ahí el cañón iba a la altura del estómago. Arriba y
       // hacia la barbilla, la línea de tiro queda a la altura de la mejilla.
-      c3.set(-0.09, 0.07, -0.05).add(hombro)
+      c3.set(-0.09, 0.11, -0.05).add(hombro)
       if (e.objetivo) {
         blanco.copy(e.objetivo)
         if (blanco.y < 0.6) blanco.y += 1
