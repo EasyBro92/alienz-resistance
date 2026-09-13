@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { brilla, apagarEmision } from './systems/resplandor.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { crearCuerpo } from './entities/cuerpo.js'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { clone as clonarConHuesos } from 'three/examples/jsm/utils/SkeletonUtils.js'
@@ -185,19 +186,11 @@ async function armarPersona (key, spec, urls) {
   let mano = null
   cuerpo.traverse(o => { if (!mano && o.name === 'RightHand') mano = o })
   const arma = buildWeapon(key, spec)
-  if (mano) {
-    mano.add(arma)
-    // La mano viene en la escala del esqueleto, que no es la del mundo: se
-    // deshace para que el arma salga del tamaño que se construyó.
-    const k = new THREE.Vector3()
-    mano.getWorldScale(k)
-    arma.scale.setScalar(1 / (k.x || 1))
-    arma.position.set(0, 0.02, 0)
-    arma.rotation.set(0, Math.PI, 0)
-  } else {
-    figure.add(arma)
-    arma.position.set(0.2, 1.26, -0.42)
-  }
+  // El arma ya no cuelga de la mano: va en la figura y la coloca `cuerpo.js`
+  // cada fotograma, y son las manos las que van a ella. Colgada de la mano
+  // apuntaba adonde cayera el brazo, no adonde miraba el soldado.
+  figure.add(arma)
+  arma.position.set(0.2, 1.26, -0.42)
 
   g.add(contactShadow(0.85))
 
@@ -254,6 +247,9 @@ async function armarPersona (key, spec, urls) {
   g.userData.build = 1
   g.userData.animado = true
   g.userData.clips = gltf.animations ?? []
+  // Ciclo de andar del modelo + arma al hombro por cinemática inversa. Si al
+  // esqueleto le faltara algún hueso, `null` y sigue el sistema de mandos.
+  g.userData.cuerpo = mano ? crearCuerpo({ figure, cuerpo, arma, key, clips: g.userData.clips }) : null
   return g
 }
 

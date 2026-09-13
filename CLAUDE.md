@@ -23,7 +23,8 @@ Publicado en https://easybro92.github.io/alienz-resistance/ (repo `EasyBro92/ali
 | `src/world.js` | Escena, carretera y decorado. `world.vestir(bioma, hitos)` retiñe sin reconstruir; los `hitos` de la misión (campo `hitos` en `campana.js`) esconden la nave estrellada; `agrandar` los hace crecer hacia la barandilla (salvo en ciudades con avenida); `focoMonumento()` para el vuelo; `baseActual()` |
 | `src/mapa.js` | Mapa del mundo en SVG (`pintarMapa`) |
 | `src/assets.js` | Figuras procedurales, `bake()`, `MODELS` (Meshy), `armarPersona` (huesos manejados con mandos), `buildWeapon` |
-| `src/entities/soldier.js` | Soldado. Mandos → huesos; mejoras de tienda aplicadas en `damage` y `fireRate` |
+| `src/entities/soldier.js` | Soldado. Mandos → huesos (figuras de piezas); mejoras de tienda aplicadas en `damage` y `fireRate` |
+| `src/entities/cuerpo.js` | Animación de las figuras de Meshy: ciclo de andar del modelo (más zancada al correr), arma colocada en la figura (hombro/objetivo, baja, cruzada) y manos por cinemática inversa. `AGARRES` por arma |
 | `src/entities/zombie.js` | Huésped. `suelo` (altura de la rampa) y reparto a su carril |
 | `src/entities/dropship.js` | Nave: casco (Meshy o procedural) + bodega y rampa procedurales; `alturaRampa(z)` |
 | `src/systems/cartera.js` | Billetes, monedas guardadas, desbloqueos, mejoras, `PRECIOS` (clave `alienz-cartera-v1`) |

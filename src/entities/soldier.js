@@ -107,7 +107,7 @@ export async function createSoldier (key, spec, lane, row) {
   // buscarlos cada fotograma sería recorrer el esqueleto entero cuarenta veces
   // por segundo.
   const mandos = []
-  if (mesh.userData.animado) {
+  if (mesh.userData.animado && !mesh.userData.cuerpo) {
     const ud = mesh.userData
     for (const m of [...Object.values(ud.limbs), ud.head, ud.weapon]) {
       if (m?.userData.hueso) mandos.push(m)
@@ -448,7 +448,8 @@ export async function createSoldier (key, spec, lane, row) {
       } else {
         // Bamboleo del paso: el cuerpo sube en cada zancada. Sin esto la figura
         // mueve las piernas pero se desliza como sobre raíles.
-        this.mesh.position.y = this.andando ? Math.abs(Math.sin(this.pasoFase)) * 0.06 : 0
+        // Las de Meshy ya suben y bajan con la cadera de su propio ciclo.
+        this.mesh.position.y = this.andando && !ud.cuerpo ? Math.abs(Math.sin(this.pasoFase)) * 0.06 : 0
       }
 
       if (this.recoil > 0) {
@@ -494,6 +495,24 @@ export async function createSoldier (key, spec, lane, row) {
         this.flashTime = Math.max(0, this.flashTime - dt)
         flash.visible = this.flashTime > 0
         if (flash.visible) flash.scale.set(1 + Math.random() * 0.5, 1 + Math.random() * 0.5, 1.8)
+      }
+
+      // Figuras de Meshy: el cuerpo entero se anima en `cuerpo.js`, con la figura
+      // ya colocada y girada. Los mandos de arriba siguen escribiéndose, pero en
+      // estas figuras no llegan a ningún hueso.
+      if (ud.cuerpo) {
+        this.mesh.updateMatrixWorld(true)
+        ud.cuerpo.actualizar(dt, {
+          andando: this.andando,
+          velocidad: this.andando ? PASO * (this.entrando ? 2 : 1) : 0,
+          apuntar: this.aim,
+          objetivo: this.targetPos,
+          retroceso: this.recoil,
+          recarga: this.reloading > 0 ? 1 - this.reloading / (this.spec.reloadTime ?? 1.1) : 0,
+          encogido: this.flinch,
+          mirar: this.scanTarget,
+          t: this.idle
+        })
       }
 
       // Y ahora, al hueso. Lo último del fotograma, cuando ya está escrito todo:
