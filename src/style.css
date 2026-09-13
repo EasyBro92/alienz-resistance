@@ -1544,3 +1544,19 @@ html, body {
   padding: 13px 32px;
   font-size: 15px;
 }
+
+/* ---------- botón de atrás ---------- */
+/* Encima de todas las capas y siempre en la misma esquina. Va al final del
+   archivo a propósito: las capas redefinen su relleno más arriba y este tiene
+   que ganar para que el botón no tape el título. */
+.atras {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 10px);
+  left: 12px;
+  z-index: 40;
+}
+.atras.hidden { display: none; }
+#hud.con-atras { padding-left: 64px; }
+.mapa-capa, .pais-capa, .tienda-capa, .parte-capa, .pausa-capa {
+  padding-top: calc(env(safe-area-inset-top) + 62px);
+}

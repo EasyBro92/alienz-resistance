@@ -1213,6 +1213,7 @@ function empezarAsalto () {
   // con `running` en falso los billetes que soltaran no se apuntarían.
   for (const p of [...economy.pickups]) economy.collect(p)
   running = false
+  pintarAtras()
   ui.closeInspector()
   ui.banner('¡A POR LA BASE!')
   const base = world.baseActual()
@@ -1465,6 +1466,7 @@ function start (indice = nivelActual) {
   running = true
   last = performance.now()
   empezarVuelo()
+  pintarAtras()
 }
 
 // --- pausa --------------------------------------------------------------------
@@ -1488,6 +1490,49 @@ function pausar (v) {
 }
 
 elPausa.addEventListener('click', () => pausar(!pausado))
+
+// --- botón de atrás ------------------------------------------------------------
+// Arriba a la izquierda y siempre en el mismo sitio. Cada capa ya tenía su botón
+// de volver, pero abajo del todo, a veces tras un desplazamiento largo. Este no
+// inventa rutas: pulsa el volver de la capa que esté encima. En partida abre la
+// pausa, que es donde está abandonar: un toque sin querer no debe tirar la misión.
+const elAtras = document.getElementById('atras')
+const elHud = document.getElementById('hud')
+const CAPAS_ATRAS = [
+  ['pausa-capa', 'pausa-seguir'],
+  ['parte-capa', 'parte-volver'],
+  ['tienda-capa', 'tienda-volver'],
+  ['pais-capa', 'pais-volver'],
+  ['mapa-capa', 'mapa-volver']
+]
+function destinoAtras () {
+  for (const [capa, boton] of CAPAS_ATRAS) {
+    if (!document.getElementById(capa)?.classList.contains('hidden')) {
+      return () => document.getElementById(boton)?.click()
+    }
+  }
+  // Portada, victoria y derrota tienen sus propios botones: ahí no hay "atrás".
+  if (!document.getElementById('overlay').classList.contains('hidden')) return null
+  return running ? () => pausar(true) : null
+}
+function pintarAtras () {
+  const hay = !!destinoAtras()
+  elAtras.classList.toggle('hidden', !hay)
+  // En partida el contador de monedas se aparta para dejarle sitio.
+  elHud.classList.toggle('con-atras', hay)
+}
+elAtras.addEventListener('click', () => {
+  destinoAtras()?.()
+  pintarAtras()
+})
+// Se entera solo de qué pantalla está encima: todas se abren y cierran con la
+// clase `hidden`, así que basta vigilar esa clase en vez de avisar desde cada
+// función que abre o cierra algo.
+const vigiaAtras = new MutationObserver(pintarAtras)
+for (const id of ['overlay', ...CAPAS_ATRAS.map(([capa]) => capa)]) {
+  const el = document.getElementById(id)
+  if (el) vigiaAtras.observe(el, { attributes: true, attributeFilter: ['class'] })
+}
 document.getElementById('pausa-seguir').addEventListener('click', () => pausar(false))
 document.getElementById('pausa-salir').addEventListener('click', () => {
   pausar(false)
