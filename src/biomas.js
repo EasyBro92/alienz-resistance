@@ -17,6 +17,7 @@
 // Todo procedural, como el resto del juego: ni un archivo de imagen.
 
 import * as THREE from 'three'
+import { brilla } from './systems/resplandor.js'
 
 // Un material por color, compartido. Sin caché, cada árbol se fabricaba los
 // suyos y `bake` no podía fundirlos: doce palmeras salían con noventa y seis
@@ -476,12 +477,12 @@ function torreEiffel () {
 
 // Coliseo, a la derecha y con el lado roto mirando a la carretera: tres pisos
 // de arcos en óvalo y el ático, que falta en el tramo derrumbado.
-function coliseo () {
+// Roma lleva los cuatro pisos; Tarragona, un anfiteatro más bajo y más redondo.
+function coliseo (pisosAltos = 4, rx = 6.5, rz = 10) {
   const g = new THREE.Group()
   const piedra = mat(0xcdb994, 0.9)
   const arena = mat(0xc2a878, 1)
-  const rx = 6.5
-  const rz = 10
+
   const n = 30
   const suelo = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.3, 24), arena)
   suelo.scale.set(rx - 1.2, 1, rz - 1.2)
@@ -492,7 +493,7 @@ function coliseo () {
     const z = Math.sin(a) * rz
     // El tramo que da a la calzada (x negativo) está caído: solo el primer piso.
     const roto = Math.cos(a) < -0.55
-    const pisos = roto ? 1 + (i % 2) : 4
+    const pisos = roto ? Math.min(pisosAltos, 1 + (i % 2)) : pisosAltos
     const giro = -Math.atan2(Math.cos(a) * rz, -Math.sin(a) * rx)
     for (let p = 0; p < pisos; p++) {
       const alto = p === 3 ? 1.6 : 2.3
@@ -722,10 +723,553 @@ function angel () {
   return g
 }
 
+// --- piezas para montar monumentos -------------------------------------------
+// Con veinte monumentos más, repetir `new THREE.Mesh` + posición + `add` en cada
+// pieza triplicaba el código sin decir nada.
+const geoCaja = (ancho, alto, fondo) => new THREE.BoxGeometry(ancho, alto, fondo)
+const geoCil = (arriba, abajo, alto, lados = 10) => new THREE.CylinderGeometry(arriba, abajo, alto, lados)
+const geoBola = (r, a = 12, b = 8) => new THREE.SphereGeometry(r, a, b)
+const geoCupula = r => new THREE.SphereGeometry(r, 18, 9, 0, Math.PI * 2, 0, Math.PI / 2)
+// Tronco de pirámide de base cuadrada (pilonos, obeliscos): un cilindro de
+// cuatro caras girado en la propia geometría, para que escalarlo dé un
+// rectángulo y no un rombo.
+const geoTronco = (arriba, abajo, alto) => new THREE.CylinderGeometry(arriba * 1.414, abajo * 1.414, alto, 4).rotateY(Math.PI / 4)
+const pon = (g, geo, material, x = 0, y = 0, z = 0) => {
+  const o = new THREE.Mesh(geo, material)
+  o.position.set(x, y, z)
+  g.add(o)
+  return o
+}
+// Tejado a dos aguas a lo largo de z: un prisma triangular con la arista arriba.
+// `y` es la altura del alero.
+const aguas = (g, material, ancho, alto, largo, x, y, z) => {
+  const t = pon(g, geoCil(1, 1, largo, 3), material, x, y + alto / 3, z)
+  t.rotation.x = -Math.PI / 2
+  t.scale.set(ancho / 1.732, 1, alto / 1.5)
+  return t
+}
+const almenas = (g, material, radio, y, n, cx = 0, cz = 0) => {
+  for (let k = 0; k < n; k++) {
+    const a = (k / n) * Math.PI * 2
+    pon(g, geoCaja(0.55, 0.7, 0.55), material, cx + Math.cos(a) * radio, y, cz + Math.sin(a) * radio).rotation.y = -a
+  }
+}
+const cerrito = (g, radio, alto, color, x = 0, z = 0) => pon(g, geoCil(radio * 0.35, radio, alto, 9), mat(color, 1), x, alto / 2, z)
+// Escala y sitio en la cuña visible (ver el encuadre en CLAUDE.md).
+const colocar = (g, escala, x, z, lado) => {
+  g.scale.setScalar(escala)
+  g.position.set(x, 0, z)
+  g.userData.lados = lado ? [lado] : []
+  return g
+}
+
+// Castillo de torres redondas almenadas. Nápoles: el Maschio Angioino, con el
+// arco de triunfo blanco entre las torres. Sin torres es la fortaleza del
+// puerto de Heraclión, sobre su dique.
+function castillo (color = 0x6a6258, torres = 4, arco = false, lado = -1) {
+  const g = new THREE.Group()
+  const piedra = mat(color, 0.95)
+  pon(g, geoCaja(12, 5, 9), piedra, 0, 2.5, 0)
+  for (let x = -5.5; x <= 5.5; x += 1.25) {
+    pon(g, geoCaja(0.6, 0.7, 0.6), piedra, x, 5.35, 4.2)
+    pon(g, geoCaja(0.6, 0.7, 0.6), piedra, x, 5.35, -4.2)
+  }
+  for (const [x, z] of [[-6, 4.5], [6, 4.5], [-6, -4.5], [6, -4.5]].slice(0, torres)) {
+    pon(g, geoCil(2, 2.4, 8, 12), piedra, x, 4, z)
+    almenas(g, piedra, 2, 8.4, 8, x, z)
+  }
+  if (arco) {
+    pon(g, geoCaja(3, 7, 0.8), mat(0xe8e2d4, 0.8), 0, 3.5, 4.8)
+    pon(g, geoCaja(1.4, 3, 0.1), mat(0x2a221c, 1), 0, 1.5, 5.25)
+  }
+  if (!torres) pon(g, geoCaja(16, 0.8, 30), mat(0x8d877c, 1), 0, 0.4, -4)
+  return colocar(g, 0.9, lado * 17, -66, lado)
+}
+
+// Notre-Dame de la Garde, a la derecha: la basílica a rayas en lo alto de su
+// colina y la Virgen dorada sobre el campanario.
+function notreDameGarde () {
+  const g = new THREE.Group()
+  const blanca = mat(0xe6dcc8, 0.8)
+  const verde = mat(0x5d7a5a, 0.8)
+  cerrito(g, 9, 6, 0x8a8470)
+  pon(g, geoCaja(3, 2.6, 7), blanca, 0, 7.3, 0)
+  pon(g, geoCaja(3.05, 0.35, 7.05), verde, 0, 7.6, 0)
+  pon(g, geoCil(1.2, 1.2, 1.4, 12), blanca, 0, 9.3, -1.5)
+  pon(g, geoCupula(1.2), verde, 0, 10, -1.5)
+  pon(g, geoCaja(1.8, 7, 1.8), blanca, 0, 9.5, 3)
+  pon(g, geoCaja(1.85, 0.3, 1.85), verde, 0, 8, 3)
+  pon(g, geoCaja(1.85, 0.3, 1.85), verde, 0, 10.5, 3)
+  pon(g, geoCil(0.4, 0.9, 1.2, 8), blanca, 0, 13.6, 3)
+  pon(g, geoCil(0.15, 0.3, 2.2, 8), mat(0xd9b04a, 0.35, 0.6), 0, 15.3, 3)
+  return colocar(g, 0.72, 16, -72, 1)
+}
+
+// Fourvière, a la izquierda: la basílica blanca de cuatro torres sobre la colina
+// y, al lado, la torre metálica que parece una Eiffel pequeña.
+function fourviere () {
+  const g = new THREE.Group()
+  const blanca = mat(0xefe9dc, 0.75)
+  cerrito(g, 10, 5, 0x6d7f52)
+  pon(g, geoCaja(4, 4, 8), blanca, 0, 7, 0)
+  aguas(g, blanca, 4, 1.8, 8, 0, 9, 0)
+  for (const [x, z] of [[-2.2, -4.2], [2.2, -4.2], [-2.2, 4.2], [2.2, 4.2]]) {
+    pon(g, geoCil(0.9, 0.9, 7, 8), blanca, x, 8.5, z)
+    almenas(g, blanca, 0.9, 12.3, 6, x, z)
+  }
+  pon(g, geoCil(0.15, 1.3, 12, 4), mat(0x8c8f93, 0.5, 0.6), 7, 11, 3)
+  return colocar(g, 0.7, -17, -70, -1)
+}
+
+// El Duomo de Milán, a la derecha: mármol blanco rosado erizado de pináculos
+// y la aguja mayor con la Madonnina dorada.
+function duomo () {
+  const g = new THREE.Group()
+  const marmol = mat(0xeee4dc, 0.7)
+  pon(g, geoCaja(8, 6, 16), marmol, 0, 3, 0)
+  aguas(g, marmol, 8, 2.6, 16, 0, 6, 0)
+  pon(g, geoCaja(8.4, 8.5, 0.8), marmol, 0, 4.25, 8)
+  for (let z = -7; z <= 7; z += 2) {
+    for (const x of [-4, 4]) pon(g, geoCil(0.02, 0.22, 2.6, 6), marmol, x, 7.3, z)
+  }
+  for (const x of [-4, -2, 0, 2, 4]) pon(g, geoCil(0.02, 0.25, 3, 6), marmol, x, 10, 8)
+  pon(g, geoCil(0.05, 0.7, 7, 8), marmol, 0, 12, -1)
+  pon(g, geoCil(0.1, 0.2, 0.8, 6), mat(0xd9b04a, 0.35, 0.6), 0, 15.8, -1)
+  return colocar(g, 0.75, 16, -70, 1)
+}
+
+// El Partenón, a la derecha, sobre la meseta de la Acrópolis. Le faltan
+// columnas: está en ruinas desde mucho antes de la invasión.
+function partenon () {
+  const g = new THREE.Group()
+  const marmol = mat(0xe2d9c4, 0.8)
+  pon(g, geoCil(8, 11, 5, 7), mat(0xa39a86, 1), 0, 2.5, 0)
+  pon(g, geoCaja(7, 0.6, 12), marmol, 0, 5.3, 0)
+  const columna = geoCil(0.3, 0.36, 3.6, 8)
+  const puestos = []
+  for (let i = 0; i < 6; i++) puestos.push([-3 + i * 1.2, -5.6], [-3 + i * 1.2, 5.6])
+  for (let j = 1; j < 8; j++) puestos.push([-3, -5.6 + j * 1.4], [3, -5.6 + j * 1.4])
+  puestos.forEach(([x, z], i) => { if (i % 7 !== 3) pon(g, columna, marmol, x, 7.4, z) })
+  pon(g, geoCaja(6.8, 0.9, 11.6), marmol, 0, 9.6, 0)
+  aguas(g, marmol, 6.8, 1.4, 11.6, 0, 10.05, 0)
+  return colocar(g, 0.75, 17, -72, 1)
+}
+
+// La Torre Blanca de Salónica, a la izquierda: el cilindro almenado del paseo
+// marítimo y su torreón de arriba.
+function torreBlanca () {
+  const g = new THREE.Group()
+  const blanco = mat(0xf1eee6, 0.8)
+  const hueco = mat(0x3a3a3a, 1)
+  pon(g, geoCil(3, 3.2, 9, 16), blanco, 0, 4.5, 0)
+  almenas(g, blanco, 3, 9.35, 14)
+  pon(g, geoCil(1.6, 1.6, 2.6, 12), blanco, 0, 10.3, 0)
+  almenas(g, blanco, 1.6, 11.9, 8)
+  for (const y of [3, 6]) {
+    for (let k = 0; k < 6; k++) {
+      const a = (k / 6) * Math.PI * 2
+      pon(g, geoCaja(0.45, 0.9, 0.1), hueco, Math.cos(a) * 3.08, y, Math.sin(a) * 3.08).rotation.y = Math.PI / 2 - a
+    }
+  }
+  return colocar(g, 0.85, -15, -66, -1)
+}
+
+// La Biblioteca de Alejandría, a la derecha: el disco de cristal inclinado que
+// sale del agua y el muro curvo de granito.
+function bibliotecaAlejandria () {
+  const g = new THREE.Group()
+  pon(g, geoCil(10.5, 10.5, 0.2, 32), mat(0x3fa3cc, 0.12, 0.15), 0, 0.1, 0)
+  pon(g, geoCil(9, 9, 1.4, 32), mat(0x6f9fb6, 0.2, 0.4), 0, 1.8, 0).rotation.x = 0.3
+  pon(g, new THREE.CylinderGeometry(9.3, 9.3, 2.2, 32, 1, true, -Math.PI / 2, Math.PI), mat(0x8e8a84, 0.7), 0, 1.1, 0)
+  return colocar(g, 0.8, 18, -68, 1)
+}
+
+// Templo de Luxor, a la izquierda: los dos pilonos, la puerta, los obeliscos
+// delante y la hilera de columnas de papiro detrás.
+function temploEgipcio () {
+  const g = new THREE.Group()
+  const arenisca = mat(0xcfae78, 0.95)
+  for (const x of [-3.6, 3.6]) pon(g, geoTronco(1.1, 1.6, 8), arenisca, x, 4, 0).scale.set(2, 1, 1)
+  pon(g, geoCaja(1.6, 5, 2), arenisca, 0, 2.5, 0)
+  pon(g, geoCaja(1, 3.4, 0.1), mat(0x3a2e22, 1), 0, 1.7, 1.05)
+  for (const x of [-1.8, 1.8]) {
+    pon(g, geoTronco(0.25, 0.45, 9), mat(0xb07a5a, 0.9), x, 4.5, 3.2)
+    pon(g, geoTronco(0, 0.25, 0.8), mat(0xd9b04a, 0.35, 0.6), x, 9.4, 3.2)
+  }
+  for (let i = 0; i < 4; i++) {
+    for (const x of [-2, 2]) {
+      pon(g, geoCil(0.55, 0.45, 5, 10), arenisca, x, 2.5, -3 - i * 2.2)
+      pon(g, geoCil(0.8, 0.5, 0.6, 10), arenisca, x, 5.3, -3 - i * 2.2)
+    }
+  }
+  return colocar(g, 0.9, -16, -66, -1)
+}
+
+// La Esfinge, a la derecha, mirando a la carretera, con una pirámide detrás.
+function esfinge () {
+  const g = new THREE.Group()
+  const caliza = mat(0xd4b27a, 0.95)
+  pon(g, geoCaja(4, 3.4, 11), caliza, 0, 1.7, 0)
+  pon(g, geoCaja(1.3, 1, 5), caliza, -1.2, 0.5, 7)
+  pon(g, geoCaja(1.3, 1, 5), caliza, 1.2, 0.5, 7)
+  pon(g, geoCaja(3.2, 3.6, 3.4), caliza, 0, 4.4, 4.2)
+  pon(g, geoTronco(1.3, 2.3, 2.6), caliza, 0, 5.6, 3.8)
+  pon(g, geoCaja(1.6, 1.8, 1), caliza, 0, 5.2, 5.6)
+  pon(g, geoTronco(0, 7, 8), mat(0xc9a66e, 1), 3, 4, -14)
+  return colocar(g, 0.9, 16, -62, 1)
+}
+
+// Los danfos de Lagos: los microbuses amarillos con franja negra, aparcados en
+// fila en la acera izquierda.
+function danfos () {
+  const g = new THREE.Group()
+  const amarillo = mat(0xf2c230, 0.6)
+  const negro = mat(0x1d1d1d, 0.8)
+  const vidrio = mat(0x2f3a42, 0.3, 0.3)
+  for (let i = 0; i < 6; i++) {
+    const bus = new THREE.Group()
+    pon(bus, geoCaja(2, 2, 4.6), amarillo, 0, 1.3, 0)
+    pon(bus, geoCaja(2.02, 0.25, 4.62), negro, 0, 1.2, 0)
+    pon(bus, geoCaja(2.04, 0.7, 3.4), vidrio, 0, 1.9, -0.3)
+    for (const [x, z] of [[-1, 1.5], [1, 1.5], [-1, -1.5], [1, -1.5]]) {
+      pon(bus, geoCil(0.4, 0.4, 0.3, 10), negro, x, 0.4, z).rotation.z = Math.PI / 2
+    }
+    bus.position.set(-11.2, 0, -22 - i * 9 - azar(0, 3))
+    bus.rotation.y = azar(-0.15, 0.15)
+    g.add(bus)
+  }
+  g.userData.lados = []
+  return g
+}
+
+// La Mezquita Nacional de Abuja, a la derecha: cúpula dorada y cuatro minaretes.
+function mezquitaNacional () {
+  const g = new THREE.Group()
+  const blanca = mat(0xefeae0, 0.8)
+  const oro = mat(0xd9b04a, 0.3, 0.7)
+  pon(g, geoCaja(9, 4, 9), blanca, 0, 2, 0)
+  pon(g, geoCil(3.2, 3.2, 1.2, 16), blanca, 0, 4.6, 0)
+  pon(g, geoCupula(3.4), oro, 0, 5.2, 0).scale.y = 1.15
+  pon(g, geoCil(0.1, 0.1, 1.4, 6), oro, 0, 9.4, 0)
+  for (const [x, z] of [[-5.5, -5.5], [5.5, -5.5], [-5.5, 5.5], [5.5, 5.5]]) {
+    pon(g, geoCil(0.45, 0.55, 12, 10), blanca, x, 6, z)
+    pon(g, geoCil(0.75, 0.75, 0.4, 10), blanca, x, 9, z)
+    pon(g, geoCil(0.02, 0.5, 1.6, 10), oro, x, 12.8, z)
+  }
+  return colocar(g, 0.75, 16, -70, 1)
+}
+
+// Aso Rock, a la izquierda: el monolito que domina Abuja.
+function asoRock () {
+  const g = new THREE.Group()
+  pon(g, new THREE.DodecahedronGeometry(10, 1), mat(0x6e6258, 1), 0, 4, 0).scale.set(1.3, 0.9, 1.6)
+  return colocar(g, 1, -26, -84, -1)
+}
+
+// Puerta de la muralla de Kano, a la izquierda: adobe rojizo con los cuernos
+// de las esquinas que remata la arquitectura hausa, y los pozos de tinte añil.
+function puertaAdobe () {
+  const g = new THREE.Group()
+  const adobe = mat(0xb9793f, 1)
+  pon(g, geoCaja(12, 5.5, 3), adobe, 0, 2.75, 0)
+  pon(g, geoCaja(4.4, 7.5, 3.6), adobe, 0, 3.75, 0)
+  pon(g, geoCaja(1.8, 3.4, 0.1), mat(0x3a2414, 1), 0, 1.7, 1.85)
+  for (const x of [-2.2, 2.2]) pon(g, geoCil(0.05, 0.45, 1.6, 6), adobe, x, 8.3, 1.4)
+  for (const x of [-6, 6]) pon(g, geoCil(0.05, 0.45, 1.6, 6), adobe, x, 6.3, 1.2)
+  for (let i = 0; i < 5; i++) pon(g, geoCil(0.9, 0.9, 0.12, 12), mat(0x2b3f8f, 0.6), -4 + i * 2, 0.06, 4.5)
+  return colocar(g, 0.9, -16, -64, -1)
+}
+
+// Puente atirantado junto a la carretera. Bombay: el pilono en Y griega del
+// enlace de Bandra. Vladivostok: los mástiles en V del puente de Zolotói.
+function puenteAtirantado (forma = 'Y', lado = 1) {
+  const g = new THREE.Group()
+  const hormigon = mat(0xd8d4cc, 0.8)
+  const cable = mat(0xf2f2f2, 0.5, 0.3)
+  const alto = 22
+  pon(g, geoCaja(4, 0.8, 70), mat(0x6b6d70, 0.9), 0, 6, 0)
+  if (forma === 'Y') {
+    for (const s of [-1, 1]) pon(g, geoCaja(0.9, 10.4, 0.9), hormigon, s * 1.5, 5, 0).rotation.z = s * 0.29
+    pon(g, geoCaja(1, alto - 10, 1), hormigon, 0, 10 + (alto - 10) / 2, 0)
+  } else {
+    for (const s of [-1, 1]) pon(g, geoCaja(0.9, alto, 0.9), hormigon, s * 2.5, alto / 2, 0).rotation.z = -s * 0.12
+  }
+  for (const dir of [-1, 1]) {
+    for (let i = 1; i <= 6; i++) {
+      const zFin = dir * i * 5
+      const dy = alto - 1 - i * 0.6 - 6
+      pon(g, geoCaja(0.08, Math.hypot(dy, zFin), 0.08), cable, 0, 6 + dy / 2, zFin / 2).rotation.x = Math.atan2(-zFin, dy)
+    }
+  }
+  return colocar(g, 0.55, lado * 17, -72, lado)
+}
+
+// El Victoria Memorial de Calcuta, a la izquierda: mármol blanco, cúpula
+// central con el ángel negro y cuatro cupulinos en las esquinas.
+function victoriaMemorial () {
+  const g = new THREE.Group()
+  const marmol = mat(0xf2efe8, 0.6)
+  pon(g, geoCaja(14, 4, 6), marmol, 0, 2, 0)
+  pon(g, geoCaja(5, 5.5, 6.4), marmol, 0, 2.75, 0)
+  pon(g, geoCil(2.4, 2.6, 1.8, 16), marmol, 0, 6.4, 0)
+  pon(g, geoCupula(2.5), marmol, 0, 7.3, 0).scale.y = 1.25
+  pon(g, geoCil(0.12, 0.3, 1.2, 6), mat(0x2a2a2a, 0.5, 0.4), 0, 11, 0)
+  for (const x of [-6.2, 6.2]) {
+    for (const z of [-2.2, 2.2]) {
+      pon(g, geoCil(0.8, 0.8, 1.6, 8), marmol, x, 4.8, z)
+      pon(g, geoCupula(0.85), marmol, x, 5.6, z)
+    }
+  }
+  return colocar(g, 0.75, -17, -70, -1)
+}
+
+// La Perla Oriental de Shanghái, a la derecha: trípode, fuste y las esferas
+// rosas ensartadas.
+function perlaOriental () {
+  const g = new THREE.Group()
+  const rosa = mat(0xc2456e, 0.35, 0.3)
+  const hormigon = mat(0xd4d0c8, 0.8)
+  for (let k = 0; k < 3; k++) {
+    const a = (k / 3) * Math.PI * 2
+    pon(g, geoCil(0.35, 0.45, 9, 8), hormigon, Math.cos(a) * 1.6, 4.3, Math.sin(a) * 1.6)
+      .rotation.set(-Math.sin(a) * 0.35, 0, Math.cos(a) * 0.35)
+  }
+  pon(g, geoCil(0.5, 0.6, 26, 10), hormigon, 0, 13, 0)
+  pon(g, geoBola(3, 18, 12), rosa, 0, 9, 0)
+  pon(g, geoBola(2, 16, 10), rosa, 0, 19, 0)
+  pon(g, geoBola(0.8, 12, 8), rosa, 0, 24, 0)
+  pon(g, geoCil(0.04, 0.25, 5, 6), hormigon, 0, 28, 0)
+  return colocar(g, 0.5, 15, -66, 1)
+}
+
+// Hongyadong, a la izquierda: las casas sobre pilotes pegadas al acantilado de
+// Chongqing, piso sobre piso, con aleros oscuros y farolillos.
+function hongyadong () {
+  const g = new THREE.Group()
+  const madera = mat(0x5a3a26, 0.9)
+  const teja = mat(0x2e2b2a, 0.8)
+  const farol = mat(0xffb04a, 0.5)
+  pon(g, geoCaja(10, 14, 30), mat(0x6f6a5e, 1), -3, 7, 0)
+  for (let piso = 0; piso < 4; piso++) {
+    const y = 1.6 + piso * 3
+    const x = 3.2 - piso * 0.9
+    pon(g, geoCaja(3, 2.4, 26), madera, x, y, 0)
+    aguas(g, teja, 3.8, 0.9, 26.4, x, y + 1.2, 0)
+    for (let z = -12; z <= 12; z += 3) pon(g, geoBola(0.22, 8, 6), farol, x + 1.6, y + 0.6, z)
+  }
+  return colocar(g, 0.7, -17, -70, -1)
+}
+
+// Teatro de cúpula con pórtico. Novosibirsk: la cúpula plateada de la Ópera.
+// Manaos: el Teatro Amazonas, fachada rosa y cúpula de azulejos a rayas.
+function teatroCupula (colorCupula = 0xb9c2c8, colorFachada = 0xe8e0cf, rayas = false, lado = 1) {
+  const g = new THREE.Group()
+  const fachada = mat(colorFachada, 0.85)
+  const blanco = mat(0xf4f1ea, 0.8)
+  pon(g, geoCaja(12, 5, 10), fachada, 0, 2.5, 0)
+  for (let i = 0; i < 6; i++) pon(g, geoCil(0.3, 0.3, 4.4, 8), blanco, -lado * 6.6, 2.2, -3.75 + i * 1.5)
+  pon(g, geoCaja(1.6, 0.6, 9), blanco, -lado * 6.6, 4.7, 0)
+  pon(g, geoCil(3.6, 3.8, 2, 20), fachada, 0, 6, 0)
+  const alto = rayas ? 1.1 : 0.8
+  pon(g, geoCupula(3.7), mat(colorCupula, 0.35, rayas ? 0.1 : 0.7), 0, 7, 0).scale.y = alto
+  if (rayas) {
+    for (let k = 0; k < 8; k++) {
+      const franja = pon(g, new THREE.TorusGeometry(3.72, 0.12, 4, 16, Math.PI), mat(k % 2 ? 0x2f7a4a : 0x2d5fa8, 0.5), 0, 7, 0)
+      franja.rotation.y = (k / 8) * Math.PI
+      franja.scale.y = alto
+    }
+  }
+  pon(g, geoCil(0.1, 0.5, 1.4, 8), blanco, 0, 7 + 3.7 * alto + 0.6, 0)
+  return colocar(g, 0.75, lado * 16, -70, lado)
+}
+
+// Tótems de Anchorage, a la derecha, y la avioneta de flotadores que es como se
+// viaja por Alaska.
+function totems () {
+  const g = new THREE.Group()
+  const colores = [0xb8342a, 0x1f1f1f, 0x2f8f88, 0xe8d9b0]
+  for (let t = 0; t < 3; t++) {
+    const x = t * 3.5 - 3.5
+    const z = -t * 5
+    const alto = 7 + t
+    for (let k = 0; k < alto; k += 1.4) {
+      pon(g, geoCil(0.55, 0.6, 1.4, 10), mat(colores[(Math.round(k / 1.4) + t) % 4], 0.8), x, k + 0.7, z)
+    }
+    pon(g, geoCaja(3.4, 0.4, 0.5), mat(colores[(t + 2) % 4], 0.8), x, alto - 0.6, z)
+    pon(g, geoCaja(0.4, 0.9, 1.1), mat(0xe8d9b0, 0.8), x, alto - 1.8, z + 0.6)
+  }
+  const avion = new THREE.Group()
+  const blanco = mat(0xe8e2d4, 0.6)
+  pon(avion, geoCaja(1, 1.1, 5), mat(0xd23a2a, 0.6), 0, 2, 0)
+  pon(avion, geoCaja(8, 0.18, 1.3), blanco, 0, 2.6, 0.5)
+  for (const s of [-1, 1]) pon(avion, geoCaja(0.5, 0.5, 4.6), blanco, s * 1.4, 0.35, 0)
+  avion.position.set(4, 0, -14)
+  avion.rotation.y = 0.6
+  g.add(avion)
+  return colocar(g, 1, 15, -60, 1)
+}
+
+// La Space Needle de Seattle, a la izquierda: patas en reloj de arena y el
+// platillo dorado arriba.
+function spaceNeedle () {
+  const g = new THREE.Group()
+  const blanco = mat(0xeeeeea, 0.6, 0.2)
+  const pata = (r, y, alto, inclina, a) => {
+    pon(g, geoCil(0.18, 0.25, alto, 6), blanco, Math.cos(a) * r, y, Math.sin(a) * r)
+      .rotation.set(-Math.sin(a) * inclina, 0, Math.cos(a) * inclina)
+  }
+  for (let k = 0; k < 3; k++) {
+    const a = (k / 3) * Math.PI * 2
+    pata(1.95, 7, 14.2, 0.18, a)
+    pata(1.35, 18.5, 9.1, -0.14, a)
+  }
+  pon(g, geoCil(3.2, 4.6, 1.2, 24), blanco, 0, 22.6, 0)
+  pon(g, geoCil(5, 3, 1.6, 24), mat(0xd9912e, 0.5, 0.3), 0, 23.8, 0)
+  pon(g, geoCil(0.05, 0.3, 4, 6), blanco, 0, 27, 0)
+  return colocar(g, 0.4, -13, -50, -1)
+}
+
+// El Cerro de la Silla de Monterrey, al fondo a la izquierda: la montaña con
+// sus dos cuernos.
+function cerroSilla () {
+  const g = new THREE.Group()
+  const roca = mat(0x7d7a62, 1)
+  pon(g, geoCil(2, 14, 7, 9), roca, 0, 3.5, 0).scale.z = 0.6
+  pon(g, geoCil(0.4, 4.5, 7, 7), roca, -6.5, 9.5, 0)
+  pon(g, geoCil(0.4, 4.5, 6, 7), roca, 6, 9, 0)
+  return colocar(g, 0.6, -18, -88, -1)
+}
+
+// El Faro del Comercio, a la derecha: la lámina naranja con el láser verde
+// que barre la ciudad.
+function faroComercio () {
+  const g = new THREE.Group()
+  pon(g, geoCaja(1.4, 26, 4.5), mat(0xd9652b, 0.8), 0, 13, 0)
+  const laser = new THREE.MeshBasicMaterial({ color: 0x5dff7a, transparent: true, opacity: 0.5 })
+  pon(g, geoCil(0.08, 0.08, 40, 6), laser, -12, 24, 0).rotation.z = 1.2
+  return colocar(g, 0.5, 14, -60, 1)
+}
+
+// La catedral de Guadalajara, a la derecha: las dos agujas de azulejo amarillo.
+function catedralGdl () {
+  const g = new THREE.Group()
+  const cantera = mat(0xe6d9b8, 0.85)
+  const amarillo = mat(0xe8b92e, 0.5, 0.1)
+  pon(g, geoCaja(8, 7, 14), cantera, 0, 3.5, 0)
+  aguas(g, cantera, 8, 2, 14, 0, 7, 0)
+  for (const x of [-3.2, 3.2]) {
+    pon(g, geoCaja(2.4, 11, 2.4), cantera, x, 5.5, 6)
+    pon(g, geoCil(0.05, 1.5, 6, 8), amarillo, x, 14, 6)
+  }
+  pon(g, geoCil(2, 2, 1.5, 12), cantera, 0, 8.4, -2)
+  pon(g, geoCupula(2), amarillo, 0, 9.1, -2)
+  return colocar(g, 0.62, 16, -70, 1)
+}
+
+// El MASP de São Paulo, a la izquierda: los dos pórticos rojos y la caja de
+// cristal colgada con el vano libre debajo.
+function masp () {
+  const g = new THREE.Group()
+  const rojo = mat(0xc8231e, 0.6)
+  for (const z of [-9, 9]) {
+    for (const x of [-2.8, 2.8]) pon(g, geoCaja(1, 8, 1.4), rojo, x, 4, z)
+    pon(g, geoCaja(6.6, 1.2, 1.4), rojo, 0, 8.6, z)
+  }
+  pon(g, geoCaja(5.2, 3.4, 20), mat(0x2b3237, 0.25, 0.4), 0, 5.2, 0)
+  pon(g, geoCaja(12, 0.3, 26), mat(0x9a9a96, 0.9), 0, 0.15, 0)
+  return colocar(g, 0.8, -16, -64, -1)
+}
+
+// --- la base alienígena -------------------------------------------------------
+// Al fondo de la carretera en cada misión: es lo que venimos a limpiar y de
+// donde salen las naves. Tres cuerpos (cúpula, colmena, trípode) y la misma
+// antena encima, con anillos que giran y el haz que sube al cielo.
+//
+// Materiales propios y sin niebla: a z = -80 la niebla la dejaba en un borrón
+// claro, y tiene que leerse como algo oscuro y ajeno recortado en el horizonte.
+export function baseAlien (variante = 0) {
+  const g = new THREE.Group()
+  const casco = new THREE.MeshStandardMaterial({ color: 0x353a47, roughness: 0.45, metalness: 0.6, fog: false })
+  const carne = new THREE.MeshStandardMaterial({ color: 0x4a3552, roughness: 0.75, metalness: 0.1, fog: false })
+  const plato = new THREE.MeshStandardMaterial({ color: 0x4a505c, roughness: 0.4, metalness: 0.7, side: THREE.DoubleSide, fog: false })
+  const luz = new THREE.MeshStandardMaterial({ color: 0x2bd47a, emissive: 0x2bd47a, emissiveIntensity: 1.6, fog: false })
+  const haz = new THREE.MeshBasicMaterial({ color: 0x5dffa6, transparent: true, opacity: 0.16, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })
+  const brillan = []
+  const aro = (radio, grueso, y) => {
+    const a = pon(g, new THREE.TorusGeometry(radio, grueso, 4, 40), luz, 0, y, 0)
+    a.rotation.x = Math.PI / 2
+    brillan.push(a)
+  }
+
+  pon(g, geoCil(15, 17, 1.6, 8), casco, 0, 0.8, 0)
+  aro(16, 0.22, 1.7)
+  let tope
+  if (variante === 0) {
+    pon(g, new THREE.SphereGeometry(8, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), casco, 0, 1.6, 0).scale.y = 0.72
+    aro(8.05, 0.2, 2.6)
+    for (let k = 0; k < 4; k++) {
+      const a = (k / 4) * Math.PI * 2 + Math.PI / 4
+      pon(g, geoCil(0.12, 1.1, 10, 6), casco, Math.cos(a) * 11.5, 6.5, Math.sin(a) * 11.5)
+        .rotation.set(Math.sin(a) * 0.25, 0, -Math.cos(a) * 0.25)
+      brillan.push(pon(g, geoBola(0.45), luz, Math.cos(a) * 12.8, 11.4, Math.sin(a) * 12.8))
+    }
+    tope = 1.6 + 8 * 0.72
+  } else if (variante === 1) {
+    for (const [x, z, r] of [[0, 0, 4], [-7, 3, 3.6], [6.5, 2, 4], [-3, -6, 3.4], [4, -6, 3]]) {
+      pon(g, geoBola(r, 16, 12), carne, x, 1.6 + r * 0.5, z).scale.y = 1.25
+      brillan.push(pon(g, geoBola(r * 0.16, 8, 6), luz, x + r * 0.7, 1.6 + r * 0.9, z + r * 0.5))
+    }
+    tope = 8.6
+  } else {
+    for (let k = 0; k < 3; k++) {
+      const a = (k / 3) * Math.PI * 2
+      pon(g, geoCil(0.35, 0.6, 8.6, 8), casco, Math.cos(a) * 4.5, 4.8, Math.sin(a) * 4.5)
+        .rotation.set(-Math.sin(a) * 0.62, 0, Math.cos(a) * 0.62)
+    }
+    pon(g, geoCil(9, 5, 2.2, 20), casco, 0, 8.4, 0)
+    brillan.push(pon(g, geoCil(5.2, 5.2, 0.25, 20), luz, 0, 7.2, 0))
+    tope = 9.5
+  }
+
+  // La antena.
+  // Corta a propósito: en el móvil en vertical el marcador tapa todo lo que
+  // pase de unos 7 de alto a esta distancia, y una antena alta no se veía nunca.
+  pon(g, geoCil(0.3, 0.9, 7, 8), casco, 0, tope + 3.5, 0)
+  pon(g, new THREE.SphereGeometry(2.6, 18, 6, 0, Math.PI * 2, 0, 0.9), plato, 0, tope + 6.2, 0).rotation.x = Math.PI
+  const anillos = [2.4, 1.7].map((r, i) => {
+    const a = pon(g, new THREE.TorusGeometry(r, 0.12, 6, 32), luz, 0, tope + 6.4 + i * 1.1, 0)
+    brillan.push(a)
+    return a
+  })
+  const orbe = pon(g, geoBola(0.75, 14, 10), luz, 0, tope + 8.4, 0)
+  brillan.push(orbe)
+  pon(g, new THREE.CylinderGeometry(0.4, 1.8, 70, 14, 1, true), haz, 0, tope + 8.4 + 35, 0)
+  // Se anima sola al dibujarse: así no hace falta que el bucle del juego sepa
+  // que existe.
+  orbe.onBeforeRender = () => {
+    const t = performance.now() / 1000
+    anillos[0].rotation.set(Math.PI / 2 + Math.sin(t * 0.7) * 0.5, t * 1.3, 0)
+    anillos[1].rotation.set(Math.PI / 2 - Math.sin(t * 0.9) * 0.6, 0, -t * 1.7)
+    orbe.scale.setScalar(1 + Math.sin(t * 4) * 0.25)
+    haz.opacity = 0.13 + Math.sin(t * 4) * 0.05
+  }
+  for (const b of brillan) brilla(b)
+  // Medido: a z = -80 la franja entre el final de la calzada y el marcador da
+  // unos 7 de alto. A escala 0,45 la base entera cabe ahí, tan ancha como la
+  // carretera, y queda detrás de donde se posa la nave.
+  g.scale.setScalar(0.45)
+  g.position.set(0, 0, -80)
+  return g
+}
+
 export const HITOS = {
   piramides, volcan, karst, columnas,
   artesYCiencias, castellana, bernabeu,
-  torreEiffel, coliseo, sanBasilio, libertad, cristo, ciudadProhibida, puertaIndia, angel
+  torreEiffel, coliseo, sanBasilio, libertad, cristo, ciudadProhibida, puertaIndia, angel,
+  castillo, notreDameGarde, fourviere, duomo, partenon, torreBlanca, bibliotecaAlejandria,
+  temploEgipcio, esfinge, danfos, mezquitaNacional, asoRock, puertaAdobe, puenteAtirantado,
+  victoriaMemorial, perlaOriental, hongyadong, teatroCupula, totems, spaceNeedle,
+  cerroSilla, faroComercio, catedralGdl, masp
 }
 
 // --- las doce regiones -------------------------------------------------------

@@ -3,7 +3,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { FIELD } from './config.js'
 import { texturasDelSuelo } from './systems/texturas.js'
 import { bake } from './assets.js'
-import { BIOMAS, FLORA, HITOS, RESTOS } from './biomas.js'
+import { BIOMAS, FLORA, HITOS, RESTOS, baseAlien } from './biomas.js'
 
 export const laneX = i => (i - (FIELD.lanes - 1) / 2) * FIELD.laneWidth
 export const rowZ = r => FIELD.frontRowZ - r * FIELD.rowDepth
@@ -647,6 +647,8 @@ export function createWorld (canvas) {
   // empezar cada nivel costaría la misma pausa que costaba generar las texturas,
   // y ya sabemos lo que se nota eso en un móvil viejo.
   const bosques = new Map()
+  // Las bases alienígenas del fondo: tres modelos, uno visible cada vez.
+  const bases = new Map()
   let bioma = null
 
   function poblar (clave, b, hitosMision = []) {
@@ -723,6 +725,17 @@ export function createWorld (canvas) {
     // La nave estrellada tapaba justo el sitio de los monumentos.
     const estrellada = scene.getObjectByName('nave-estrellada')
     if (estrellada) estrellada.visible = !(hitosMision?.length)
+    // Al fondo, la base que venimos a limpiar. El modelo sale del nombre de la
+    // misión: cada sitio tiene la suya y no cambia al repetir.
+    let semilla = 7
+    for (const c of llave) semilla = (semilla * 31 + c.charCodeAt(0)) >>> 0
+    const variante = semilla % 3
+    if (!bases.has(variante)) {
+      const base = baseAlien(variante)
+      scene.add(base)
+      bases.set(variante, base)
+    }
+    for (const [v, base] of bases) base.visible = v === variante
 
     sand.material.color.setHex(b.tierra)
     road.material.color.setHex(b.asfalto)

@@ -19,7 +19,7 @@ Publicado en https://easybro92.github.io/alienz-resistance/ (repo `EasyBro92/ali
 | `src/config.js` | `FIELD`, `BASE`, `ECONOMY`, `SOLDIERS`, `DEFENSES`, `STRIKES`, `UPGRADES`, `ZOMBIES`, `INICIALES` (solo el arquero). `NIVELES` se reexporta de `campana.js` |
 | `src/campana.js` | `PAISES` (12 países × 3 misiones), `DESTINOS` aplanado (= `NIVELES`), peaje de estrellas (6 por país), `dureza` de 0,06 a 0,56, bioma por misión |
 | `src/oleadas.js` | Las 6 tablas de oleadas compartidas |
-| `src/biomas.js` | `BIOMAS` (paleta, calzada, flora, restos, hito), `FLORA`, `HITOS` (de región, y de ciudad: Valencia, Madrid, París, Roma, Delhi, Pekín, Moscú, Nueva York, Ciudad de México, Río; `castellana` sirve de avenida genérica con `conTorres = false`), `RESTOS` |
+| `src/biomas.js` | `BIOMAS` (paleta, calzada, flora, restos, hito), `FLORA`, `HITOS` (de región, y de ciudad: todas las misiones llevan el suyo; `castellana` sirve de avenida genérica con `conTorres = false`), piezas `pon`/`aguas`/`colocar`, `baseAlien(variante)` (base del fondo con antena animada, sin niebla), `RESTOS` |
 | `src/world.js` | Escena, carretera y decorado. `world.vestir(bioma, hitos)` retiñe sin reconstruir; los `hitos` de la misión (campo `hitos` en `campana.js`) esconden la nave estrellada |
 | `src/mapa.js` | Mapa del mundo en SVG (`pintarMapa`) |
 | `src/assets.js` | Figuras procedurales, `bake()`, `MODELS` (Meshy), `armarPersona` (huesos manejados con mandos), `buildWeapon` |

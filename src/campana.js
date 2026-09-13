@@ -61,7 +61,7 @@ export const PAISES = [
     cierre: 'España queda limpia. La primera trampilla de búnker se abre en Madrid, y sale gente que llevaba dos años sin ver el cielo.',
     misiones: [
       {
-        name: 'Tarragona', lugar: 'Carretera 7 · kilómetro 12', mapa: sitio(41.12, 1.25),
+        name: 'Tarragona', lugar: 'Carretera 7 · kilómetro 12', mapa: sitio(41.12, 1.25), hitos: [['coliseo', 2, 7, 9]],
         resumen: 'El primer contacto. Vienen de frente y poco más.',
         parte: ['Doce kilómetros de asfalto entre su campamento y lo que queda de la ciudad. La orden es de una línea: que no pasen.',
           'Los primeros llegan sin método. Caminan hacia el ruido porque es lo único que les dejaron saber hacer.'],
@@ -100,7 +100,7 @@ export const PAISES = [
     cierre: 'París responde por fin con otra frase. Es la primera vez en dieciocho meses que dice algo distinto.',
     misiones: [
       {
-        name: 'Marsella', lugar: 'Puerto viejo · dique norte', mapa: sitio(43.30, 5.37),
+        name: 'Marsella', lugar: 'Puerto viejo · dique norte', mapa: sitio(43.30, 5.37), hitos: [['notreDameGarde']],
         resumen: 'Escupen a distancia, saltan las barreras y revientan al caer.',
         parte: ['El campamento del puerto lleva más tiempo montado, y se nota: los huéspedes ya no vienen todos iguales.',
           'No están improvisando. Están probando qué funciona contra nosotros.'],
@@ -108,7 +108,7 @@ export const PAISES = [
         waves: OLEADAS.formas
       },
       {
-        name: 'Lyon', lugar: 'Confluencia del Ródano', mapa: sitio(45.76, 4.84),
+        name: 'Lyon', lugar: 'Confluencia del Ródano', mapa: sitio(45.76, 4.84), hitos: [['fourviere']],
         resumen: 'Se cosen entre ellos mientras les disparas.',
         parte: ['Encontramos la primera sala de experimentos entera. Camillas, correas, y un olor que no se va de la ropa.',
           'Los de aquí se curan unos a otros. Hay que elegir a quién matar primero.'],
@@ -137,7 +137,7 @@ export const PAISES = [
     cierre: 'Bajo Milán, el túnel sigue. Hacia el este. Hacia el mar.',
     misiones: [
       {
-        name: 'Nápoles', lugar: 'Bajo el Vesubio · anillo sur', mapa: sitio(40.85, 14.26),
+        name: 'Nápoles', lugar: 'Bajo el Vesubio · anillo sur', mapa: sitio(40.85, 14.26), hitos: [['castillo', 0x6a6258, 4, true, -1]],
         resumen: 'Todo llega deprisa. Lo que dispara lento no llega a tiempo.',
         parte: ['La ciudad se vació en cuatro días. En el anillo todo llega deprisa.',
           'Lo que dispara lento no llega a tiempo.'],
@@ -153,7 +153,7 @@ export const PAISES = [
         waves: OLEADAS.colmena
       },
       {
-        name: 'Milán', lugar: 'Tangenziale Est', mapa: sitio(45.46, 9.19), bioma: 'mediterraneo',
+        name: 'Milán', lugar: 'Tangenziale Est', mapa: sitio(45.46, 9.19), hitos: [['duomo']], bioma: 'mediterraneo',
         resumen: 'Formas nuevas. Aquí prueban cosas.',
         parte: ['Milán era su laboratorio de diseño. Lo que funcionaba aquí lo copiaban en el resto de Europa.',
           'Espera formas que no has visto nunca.'],
@@ -174,7 +174,7 @@ export const PAISES = [
     cierre: 'Los registros acaban en una fecha: la del último barco. Iba a Alejandría.',
     misiones: [
       {
-        name: 'Atenas', lugar: 'Pireo · terminal de contenedores', mapa: sitio(37.94, 23.65),
+        name: 'Atenas', lugar: 'Pireo · terminal de contenedores', mapa: sitio(37.94, 23.65), hitos: [['partenon']],
         resumen: 'Se curan entre ellos y el caparazón devuelve las balas.',
         parte: ['La terminal está llena. No de cuerpos: de estructura.',
           'Han dejado de fabricar soldados y han empezado a fabricar oficio.'],
@@ -182,7 +182,7 @@ export const PAISES = [
         waves: OLEADAS.colmena
       },
       {
-        name: 'Salónica', lugar: 'Carretera del puerto', mapa: sitio(40.64, 22.94),
+        name: 'Salónica', lugar: 'Carretera del puerto', mapa: sitio(40.64, 22.94), hitos: [['torreBlanca']],
         resumen: 'Todo llega deprisa por la costa.',
         parte: ['El puerto del norte sirvió de apoyo. Cuando Atenas cayó, todo lo que quedaba vino hacia aquí.',
           'Llegan en columna por la carretera de la costa.'],
@@ -190,7 +190,7 @@ export const PAISES = [
         waves: OLEADAS.contraflujo
       },
       {
-        name: 'Heraclión', lugar: 'Creta · base naval', mapa: sitio(35.34, 25.14),
+        name: 'Heraclión', lugar: 'Creta · base naval', mapa: sitio(35.34, 25.14), hitos: [['castillo', 0xc9b48a, 0, false, 1]],
         resumen: 'La base de la isla, y lo que la guarda.',
         parte: ['La base naval de Creta coordinaba los barcos. Si cae, cortamos el puente con África.',
           'La guarda algo grande. Lo hemos visto moverse desde el agua.'],
@@ -211,7 +211,7 @@ export const PAISES = [
     cierre: 'Bajo la meseta hay una sala más grande que las pirámides. Y en las paredes hay un mapa del mundo con puntos encendidos.',
     misiones: [
       {
-        name: 'Alejandría', lugar: 'Corniche · puerto este', mapa: sitio(31.20, 29.92), bioma: 'costa',
+        name: 'Alejandría', lugar: 'Corniche · puerto este', mapa: sitio(31.20, 29.92), hitos: [['bibliotecaAlejandria']], bioma: 'costa',
         resumen: 'Subimos al barco. De frente y en masa.',
         parte: ['El barco de Creta lleva a bordo lo mismo que los contenedores de Valencia: gente dormida en literas.',
           'Los del puerto bajan todos a la vez para que no lleguemos.'],
@@ -219,7 +219,7 @@ export const PAISES = [
         waves: OLEADAS.avanzadilla
       },
       {
-        name: 'Luxor', lugar: 'Carretera del Nilo', mapa: sitio(25.69, 32.64),
+        name: 'Luxor', lugar: 'Carretera del Nilo', mapa: sitio(25.69, 32.64), hitos: [['temploEgipcio']],
         resumen: 'El valle está lleno de formas nuevas.',
         parte: ['El valle del Nilo es donde crían las formas del desierto. Aguantan el calor mejor que nosotros.',
           'Espera algo que no has visto en Europa.'],
@@ -227,7 +227,7 @@ export const PAISES = [
         waves: OLEADAS.formas
       },
       {
-        name: 'El Cairo', lugar: 'Gizeh · carretera de la meseta', mapa: sitio(29.98, 31.13),
+        name: 'El Cairo', lugar: 'Gizeh · carretera de la meseta', mapa: sitio(29.98, 31.13), hitos: [['esfinge']],
         resumen: 'El campamento de la meseta, y lo que lo dirige.',
         parte: ['De aquí salió todo. Las naves se posan en la meseta a la vista de las pirámides.',
           'Lo que dirige el campamento es una MADRE, y esta ha tenido tiempo de aprender de la de París.'],
@@ -248,7 +248,7 @@ export const PAISES = [
     cierre: 'Por el paso elevado salieron cuatro mil personas mientras la compañía contaba oleadas. El punto de Lagos se apaga en el mapa.',
     misiones: [
       {
-        name: 'Lagos', lugar: 'Apapa · paso elevado', mapa: sitio(6.45, 3.39),
+        name: 'Lagos', lugar: 'Apapa · paso elevado', mapa: sitio(6.45, 3.39), hitos: [['castellana', 0, 0, 0, false], ['danfos']],
         resumen: 'Llegan deprisa. Hay que aguantar el puente.',
         parte: ['Si cae el paso elevado, aquí no vuelve a entrar nadie.',
           'El búnker dice que aguantemos hasta que evacúen. No dice cuánto.'],
@@ -256,7 +256,7 @@ export const PAISES = [
         waves: OLEADAS.contraflujo
       },
       {
-        name: 'Abuja', lugar: 'Autopista del aeropuerto', mapa: sitio(9.08, 7.40),
+        name: 'Abuja', lugar: 'Autopista del aeropuerto', mapa: sitio(9.08, 7.40), hitos: [['mezquitaNacional'], ['asoRock']],
         resumen: 'Se cosen y se blindan.',
         parte: ['El aeropuerto de la capital es la única pista larga que queda en la región. Hace falta para sacar a la gente.',
           'Lo protegen los que se curan entre ellos.'],
@@ -264,7 +264,7 @@ export const PAISES = [
         waves: OLEADAS.colmena
       },
       {
-        name: 'Kano', lugar: 'Carretera del desierto', mapa: sitio(12.00, 8.52),
+        name: 'Kano', lugar: 'Carretera del desierto', mapa: sitio(12.00, 8.52), hitos: [['puertaAdobe']],
         resumen: 'Todas las formas a la vez, y dos MADRES.',
         parte: ['El campamento del norte es de los grandes. Aquí juntaron todo lo que criaban en África.',
           'Bajarán todas las formas a la vez. Y al final no viene una MADRE: vienen dos.'],
@@ -285,7 +285,7 @@ export const PAISES = [
     cierre: 'Los tres puntos de la India se apagan. Queda uno en China más brillante que todos los que hemos visto.',
     misiones: [
       {
-        name: 'Bombay', lugar: 'Bandra · enlace del mar', mapa: sitio(19.08, 72.88),
+        name: 'Bombay', lugar: 'Bandra · enlace del mar', mapa: sitio(19.08, 72.88), hitos: [['puenteAtirantado', 'Y', 1]],
         resumen: 'Otra vez de frente, pero nada de esto es como en Tarragona.',
         parte: ['Catorce millones de personas y un campamento en medio.',
           'Vuelven a venir de frente, en masa. La diferencia es cuántos son y lo que aguanta cada uno.'],
@@ -301,7 +301,7 @@ export const PAISES = [
         waves: OLEADAS.colmena
       },
       {
-        name: 'Calcuta', lugar: 'Puente de Howrah', mapa: sitio(22.57, 88.36),
+        name: 'Calcuta', lugar: 'Puente de Howrah', mapa: sitio(22.57, 88.36), hitos: [['victoriaMemorial']],
         resumen: 'La MADRE del delta.',
         parte: ['El delta del Ganges es donde bajaron las primeras naves de Asia.',
           'Lo que dirige esto lleva aquí más tiempo que nadie.'],
@@ -322,7 +322,7 @@ export const PAISES = [
     cierre: 'Chongqing se apaga. Las naves siguen llegando igual. No las estábamos frenando: las estábamos entreteniendo.',
     misiones: [
       {
-        name: 'Shanghái', lugar: 'Puente de Nanpu', mapa: sitio(31.23, 121.47), bioma: 'monzon',
+        name: 'Shanghái', lugar: 'Puente de Nanpu', mapa: sitio(31.23, 121.47), hitos: [['castellana', 1, -54, -80, false], ['perlaOriental']], bioma: 'monzon',
         resumen: 'Formas nuevas en la costa.',
         parte: ['El puerto de Shanghái recibía lo que salía de Chongqing río abajo.',
           'Aquí llegan las formas terminadas. Espera cosas que no has visto.'],
@@ -338,7 +338,7 @@ export const PAISES = [
         waves: OLEADAS.contraflujo
       },
       {
-        name: 'Chongqing', lugar: 'Yuzhong · rampa del río', mapa: sitio(29.56, 106.55),
+        name: 'Chongqing', lugar: 'Yuzhong · rampa del río', mapa: sitio(29.56, 106.55), hitos: [['hongyadong']],
         resumen: 'El campamento más grande del mundo.',
         parte: ['Todas las formas a la vez, desde las torres del río.',
           'Si cae este, cae la mitad de lo que tienen en Asia.'],
@@ -358,7 +358,7 @@ export const PAISES = [
     cierre: 'En Moscú encontramos sus señales. No iban hacia arriba: iban hacia el otro lado del estrecho. Hacia América.',
     misiones: [
       {
-        name: 'Vladivostok', lugar: 'Puente de Zolotói · vano este', mapa: sitio(43.12, 131.89),
+        name: 'Vladivostok', lugar: 'Puente de Zolotói · vano este', mapa: sitio(43.12, 131.89), hitos: [['puenteAtirantado', 'V', -1]],
         resumen: 'Deprisa, y a cuarenta bajo cero.',
         parte: ['Llegan deprisa por el puente. Con la mitad de tu cuerpo dormido de frío.',
           'Lo que dispara lento no llega a tiempo.'],
@@ -366,7 +366,7 @@ export const PAISES = [
         waves: OLEADAS.contraflujo
       },
       {
-        name: 'Novosibirsk', lugar: 'Puente del Obi', mapa: sitio(55.03, 82.92),
+        name: 'Novosibirsk', lugar: 'Puente del Obi', mapa: sitio(55.03, 82.92), hitos: [['teatroCupula', 0xb9c2c8, 0xe8e0cf, false, 1]],
         resumen: 'Se curan en el hielo.',
         parte: ['El centro de Siberia. Aquí se refugiaron los que huyeron de China.',
           'Se cosen entre ellos y el caparazón aguanta el frío mejor que la carne.'],
@@ -394,7 +394,7 @@ export const PAISES = [
     cierre: 'Nueva York queda limpia. En la antena del edificio más alto encontramos el emisor que hablaba con Moscú. Apuntaba al sur.',
     misiones: [
       {
-        name: 'Anchorage', lugar: 'Ensenada de Turnagain', mapa: sitio(61.22, -149.90),
+        name: 'Anchorage', lugar: 'Ensenada de Turnagain', mapa: sitio(61.22, -149.90), hitos: [['totems']],
         resumen: 'Se curan, se blindan, y no viene nadie a relevarte.',
         parte: ['El búnker del Ártico está debajo de la ensenada.',
           'Se cosen entre ellos y el caparazón devuelve las balas.'],
@@ -402,7 +402,7 @@ export const PAISES = [
         waves: OLEADAS.colmena
       },
       {
-        name: 'Seattle', lugar: 'I-5 · puerto', mapa: sitio(47.61, -122.33), bioma: 'monzon',
+        name: 'Seattle', lugar: 'I-5 · puerto', mapa: sitio(47.61, -122.33), hitos: [['castellana', -1, -38, -64, false], ['spaceNeedle']], bioma: 'monzon',
         resumen: 'Formas nuevas bajo la lluvia.',
         parte: ['Llueve desde que llegamos. Las formas de aquí salen del agua del puerto.',
           'No se parecen a nada que hayamos visto en Europa ni en Asia.'],
@@ -431,7 +431,7 @@ export const PAISES = [
     cierre: 'México queda limpio. Pero antes de caer, la última MADRE mandó algo hacia el sur, y lo que mandó no era una nave.',
     misiones: [
       {
-        name: 'Monterrey', lugar: 'Carretera del norte', mapa: sitio(25.69, -100.32),
+        name: 'Monterrey', lugar: 'Carretera del norte', mapa: sitio(25.69, -100.32), hitos: [['cerroSilla'], ['faroComercio']],
         resumen: 'Llegan deprisa desde la frontera.',
         parte: ['Lo que huyó de Estados Unidos entró por aquí.',
           'Llegan deprisa por la carretera del norte.'],
@@ -439,7 +439,7 @@ export const PAISES = [
         waves: OLEADAS.contraflujo
       },
       {
-        name: 'Guadalajara', lugar: 'Periférico · salida sur', mapa: sitio(20.66, -103.35),
+        name: 'Guadalajara', lugar: 'Periférico · salida sur', mapa: sitio(20.66, -103.35), hitos: [['catedralGdl']],
         resumen: 'Se curan y se blindan.',
         parte: ['La ciudad es su segundo hospital: aquí reparan lo que les rompemos.',
           'Los que la guardan se cosen entre ellos.'],
@@ -476,7 +476,7 @@ export const PAISES = [
         waves: OLEADAS.formas
       },
       {
-        name: 'São Paulo', lugar: 'Marginal Tietê', mapa: sitio(-23.55, -46.63), bioma: 'monzon',
+        name: 'São Paulo', lugar: 'Marginal Tietê', mapa: sitio(-23.55, -46.63), hitos: [['castellana', -1, -46, -82, false], ['masp']], bioma: 'monzon',
         resumen: 'Se curan, y son todos.',
         parte: ['La ciudad más grande del sur es su último hospital.',
           'Todo lo que les queda protege el camino hacia el Amazonas.'],
@@ -484,7 +484,7 @@ export const PAISES = [
         waves: OLEADAS.colmena
       },
       {
-        name: 'Manaos', lugar: 'El nido · confluencia de los ríos', mapa: sitio(-3.12, -60.02),
+        name: 'Manaos', lugar: 'El nido · confluencia de los ríos', mapa: sitio(-3.12, -60.02), hitos: [['teatroCupula', 0xe0b53a, 0xe4a7a0, true, -1]],
         resumen: 'Todo a la vez, y al final no viene una MADRE: vienen dos.',
         parte: ['No queda nadie detrás de nosotros y no hay otro sitio al que ir.',
           'Bajarán todas las formas a la vez, y al final no viene una MADRE: vienen dos.'],
