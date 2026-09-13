@@ -116,7 +116,7 @@ export const PAISES = [
         waves: OLEADAS.colmena
       },
       {
-        name: 'París', lugar: 'Périphérique · porte de Bagnolet', mapa: sitio(48.86, 2.35),
+        name: 'París', lugar: 'Quai Branly · al pie de la torre', mapa: sitio(48.86, 2.35), hitos: [['torreEiffel']],
         resumen: 'El primer jefe. Le llaman LA MADRE.',
         parte: ['Todo lo que hemos visto en Francia salió de algo que vive debajo de la ciudad.',
           'Detrás de la horda viene algo que nadie ha visto entero. Le llaman LA MADRE porque no supieron llamarla de otra forma.'],
@@ -145,7 +145,7 @@ export const PAISES = [
         waves: OLEADAS.contraflujo
       },
       {
-        name: 'Roma', lugar: 'Grande Raccordo Anulare', mapa: sitio(41.90, 12.50), bioma: 'mediterraneo',
+        name: 'Roma', lugar: 'Via dei Fori Imperiali', mapa: sitio(41.90, 12.50), hitos: [['coliseo']], bioma: 'mediterraneo',
         resumen: 'Se curan y el caparazón devuelve las balas.',
         parte: ['Han instalado algo dentro del estadio olímpico. Desde el aire se ve la luz verde por las gradas.',
           'Los que protegen la zona vienen blindados. Hace falta con qué atravesarlos.'],
@@ -293,11 +293,11 @@ export const PAISES = [
         waves: OLEADAS.avanzadilla
       },
       {
-        name: 'Delhi', lugar: 'Ring Road · puente del Yamuna', mapa: sitio(28.61, 77.21),
+        name: 'Delhi', lugar: 'Rajpath · Puerta de la India', mapa: sitio(28.61, 77.21), hitos: [['puertaIndia']],
         resumen: 'Se curan, se blindan, y son muchos.',
-        parte: ['El campamento de la capital está montado alrededor del río. Cruzar el puente es la única entrada.',
-          'Los que guardan el puente se cosen entre ellos.'],
-        cierre: 'El puente es nuestro. Al otro lado, la ciudad está en silencio.',
+        parte: ['El campamento de la capital está montado alrededor de la Puerta de la India. El Rajpath es la única entrada.',
+          'Los que guardan la avenida se cosen entre ellos.'],
+        cierre: 'La avenida es nuestra. Al otro lado, la ciudad está en silencio.',
         waves: OLEADAS.colmena
       },
       {
@@ -330,10 +330,10 @@ export const PAISES = [
         waves: OLEADAS.formas
       },
       {
-        name: 'Pekín', lugar: 'Tercer anillo', mapa: sitio(39.90, 116.41), bioma: 'mediterraneo',
-        resumen: 'Llegan deprisa por los anillos.',
+        name: 'Pekín', lugar: 'Avenida Chang\'an · Tiananmén', mapa: sitio(39.90, 116.41), hitos: [['ciudadProhibida']], bioma: 'mediterraneo',
+        resumen: 'Llegan deprisa por Chang’an.',
         parte: ['El búnker de Pekín es el más grande del mundo. Lleva un año pidiendo que alguien abra la superficie.',
-          'Todo lo que hay en la zona baja por los anillos, y baja deprisa.'],
+          'Todo lo que hay en la zona baja por la avenida hacia la puerta, y baja deprisa.'],
         cierre: 'La trampilla se abre. Salen once mil personas. Tardan un día entero.',
         waves: OLEADAS.contraflujo
       },
@@ -374,7 +374,7 @@ export const PAISES = [
         waves: OLEADAS.colmena
       },
       {
-        name: 'Moscú', lugar: 'MKAD · anillo exterior', mapa: sitio(55.76, 37.62),
+        name: 'Moscú', lugar: 'Plaza Roja · puente Bolshoi Moskvoretski', mapa: sitio(55.76, 37.62), hitos: [['sanBasilio']],
         resumen: 'La MADRE del norte.',
         parte: ['La señal que emiten sale de debajo del Kremlin.',
           'Lo que la emite es una MADRE, y es la primera que no sale a pelear: espera.'],
@@ -410,7 +410,7 @@ export const PAISES = [
         waves: OLEADAS.formas
       },
       {
-        name: 'Nueva York', lugar: 'Puente de Brooklyn', mapa: sitio(40.71, -74.01), bioma: 'costa',
+        name: 'Nueva York', lugar: 'Puente de Brooklyn · frente a la bahía', mapa: sitio(40.71, -74.01), hitos: [['castellana', -1, -52, -88, false], ['libertad']], bioma: 'costa',
         resumen: 'Todas las formas y dos MADRES.',
         parte: ['La isla es su centro de mando en el norte. Cruzar el puente es la única forma de entrar.',
           'Bajarán todas las formas a la vez, y al final vienen dos.'],
@@ -426,7 +426,7 @@ export const PAISES = [
     mapa: sitio(23.0, -102.0),
     intro: [
       'La voz de Nueva York venía de México. El altiplano es su última gran base antes del Amazonas.',
-      'La calzada de Tlalpan baja recta hasta el centro de la capital, y la han convertido en su avenida.'
+      'El Paseo de la Reforma baja recto hasta el centro de la capital, y la han convertido en su avenida.'
     ],
     cierre: 'México queda limpio. Pero antes de caer, la última MADRE mandó algo hacia el sur, y lo que mandó no era una nave.',
     misiones: [
@@ -447,7 +447,7 @@ export const PAISES = [
         waves: OLEADAS.colmena
       },
       {
-        name: 'Ciudad de México', lugar: 'Calzada de Tlalpan', mapa: sitio(19.43, -99.13),
+        name: 'Ciudad de México', lugar: 'Paseo de la Reforma', mapa: sitio(19.43, -99.13), hitos: [['castellana', -1, -46, -76, false], ['angel']],
         resumen: 'La MADRE del altiplano.',
         parte: ['Veinte kilómetros de campamento a lo largo de la calzada.',
           'Al fondo hay otra MADRE, y ha tenido tiempo de aprender de todas las anteriores.'],
@@ -468,7 +468,7 @@ export const PAISES = [
     cierre: 'Se acabó.',
     misiones: [
       {
-        name: 'Río de Janeiro', lugar: 'Puente Río-Niterói', mapa: sitio(-22.91, -43.17), bioma: 'costa',
+        name: 'Río de Janeiro', lugar: 'Botafogo · bajo el Corcovado', mapa: sitio(-22.91, -43.17), hitos: [['cristo']], bioma: 'costa',
         resumen: 'La costa, y formas que no hemos visto.',
         parte: ['Entramos por la costa. Lo que guarda la entrada al continente no se parece a nada anterior.',
           'Es lo último que han diseñado.'],

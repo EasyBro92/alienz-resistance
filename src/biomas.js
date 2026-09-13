@@ -330,7 +330,9 @@ function artesYCiencias () {
 // El paseo de la Castellana: oficinas a los dos lados de la avenida, con sus
 // bandas de ventanas mirando a la calzada, y al fondo las Cuatro Torres. Puede
 // dejar un hueco en un lado para otro hito, que es donde va el estadio.
-function castellana (huecoLado = 0, desde = 0, hasta = 0) {
+// `conTorres` en falso la deja como avenida de oficinas cualquiera: sirve para
+// cualquier ciudad grande.
+function castellana (huecoLado = 0, desde = 0, hasta = 0, conTorres = true) {
   const g = new THREE.Group()
   const fachadas = [0xd9d2c4, 0xc6c1b6, 0xb6ae9f, 0xe4ded1, 0xa9abaf, 0xcfc4b0]
   const ventana = mat(0x3b4955, 0.25, 0.4)
@@ -384,7 +386,7 @@ function castellana (huecoLado = 0, desde = 0, hasta = 0) {
   // Detrás del final de la calzada. En el móvil en vertical solo asoman las
   // bases bajo el marcador; en pantallas más anchas se ven enteras.
   torres.position.set(0, 0, -105)
-  g.add(torres)
+  if (conTorres) g.add(torres)
 
   g.userData.lados = [-1, 1]
   return g
@@ -431,7 +433,300 @@ function bernabeu () {
   return g
 }
 
-export const HITOS = { piramides, volcan, karst, columnas, artesYCiencias, castellana, bernabeu }
+// --- más monumentos de ciudad ------------------------------------------------
+// Todos siguen la misma regla de encuadre que los de arriba: centro a unos 14-19
+// de la calzada, entre z = -55 y z = -80, y lo importante por debajo de 10 de
+// alto. Lo que sobresale por arriba lo tapa el marcador en el móvil.
+
+// Torre Eiffel, a la derecha: cuatro patas que se juntan, dos plataformas y el
+// fuste afilado. Del color bronce oscuro de la pintura real.
+function torreEiffel () {
+  const g = new THREE.Group()
+  const hierro = mat(0x6f5f4c, 0.65, 0.35)
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
+      const pata = new THREE.Mesh(new THREE.BoxGeometry(0.9, 9, 0.9), hierro)
+      pata.position.set(sx * 2.6, 4.2, sz * 2.6)
+      pata.rotation.set(-sz * 0.26, 0, sx * 0.26)
+      g.add(pata)
+    }
+    // Los arcos de la base, de pata a pata, en las dos caras que se ven.
+    const arco = new THREE.Mesh(new THREE.TorusGeometry(2.6, 0.22, 5, 14, Math.PI), hierro)
+    arco.position.set(0, 1, sx * 2.9)
+    g.add(arco)
+  }
+  const primera = new THREE.Mesh(new THREE.BoxGeometry(6.4, 0.55, 6.4), hierro)
+  primera.position.y = 3.8
+  g.add(primera)
+  const segunda = new THREE.Mesh(new THREE.BoxGeometry(3.3, 0.45, 3.3), hierro)
+  segunda.position.y = 8.3
+  g.add(segunda)
+  const fuste = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 1.6, 9, 4), hierro)
+  fuste.rotation.y = Math.PI / 4
+  fuste.position.y = 12.9
+  g.add(fuste)
+  const aguja = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.3, 2.6, 4), hierro)
+  aguja.position.y = 18.6
+  g.add(aguja)
+  g.scale.setScalar(0.62)
+  g.position.set(16, 0, -76)
+  g.userData.lados = [1]
+  return g
+}
+
+// Coliseo, a la derecha y con el lado roto mirando a la carretera: tres pisos
+// de arcos en óvalo y el ático, que falta en el tramo derrumbado.
+function coliseo () {
+  const g = new THREE.Group()
+  const piedra = mat(0xcdb994, 0.9)
+  const arena = mat(0xc2a878, 1)
+  const rx = 6.5
+  const rz = 10
+  const n = 30
+  const suelo = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.3, 24), arena)
+  suelo.scale.set(rx - 1.2, 1, rz - 1.2)
+  g.add(suelo)
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2
+    const x = Math.cos(a) * rx
+    const z = Math.sin(a) * rz
+    // El tramo que da a la calzada (x negativo) está caído: solo el primer piso.
+    const roto = Math.cos(a) < -0.55
+    const pisos = roto ? 1 + (i % 2) : 4
+    const giro = -Math.atan2(Math.cos(a) * rz, -Math.sin(a) * rx)
+    for (let p = 0; p < pisos; p++) {
+      const alto = p === 3 ? 1.6 : 2.3
+      const y = p * 2.5 + alto / 2
+      const pilar = new THREE.Mesh(new THREE.BoxGeometry(p === 3 ? 2.1 : 0.7, alto, 1.1), piedra)
+      pilar.position.set(x, y, z)
+      pilar.rotation.y = giro
+      g.add(pilar)
+      if (p < 3) {
+        const dintel = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.4, 1.2), piedra)
+        dintel.position.set(x, y + alto / 2, z)
+        dintel.rotation.y = giro
+        g.add(dintel)
+      }
+    }
+  }
+  g.position.set(17, 0, -62)
+  g.userData.lados = [1]
+  return g
+}
+
+// San Basilio, a la izquierda: el cuerpo de ladrillo, la torre central con su
+// chapitel y las cúpulas de cebolla de colores alrededor.
+function sanBasilio () {
+  const g = new THREE.Group()
+  const ladrillo = mat(0xa8432f, 0.9)
+  const oro = mat(0xd9b04a, 0.35, 0.6)
+  const base = new THREE.Mesh(new THREE.BoxGeometry(8, 3, 8), ladrillo)
+  base.position.y = 1.5
+  g.add(base)
+  const central = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.6, 8, 8), ladrillo)
+  central.position.y = 7
+  g.add(central)
+  const chapitel = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 1.4, 4, 8), mat(0x3f8a5a, 0.6))
+  chapitel.position.y = 13
+  g.add(chapitel)
+  const colores = [0x2f7a4a, 0xd9b12f, 0x2d5fa8, 0xc8483a]
+  ;[[-2.9, -2.9], [2.9, -2.9], [-2.9, 2.9], [2.9, 2.9]].forEach(([x, z], i) => {
+    const torre = new THREE.Mesh(new THREE.CylinderGeometry(1, 1.1, 4.5, 8), ladrillo)
+    torre.position.set(x, 5.2, z)
+    g.add(torre)
+    const cebolla = new THREE.Mesh(new THREE.SphereGeometry(1.35, 10, 8), mat(colores[i], 0.55))
+    cebolla.scale.set(1, 1.2, 1)
+    cebolla.position.set(x, 8.4, z)
+    g.add(cebolla)
+    const punta = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.55, 1.7, 8), mat(colores[i], 0.55))
+    punta.position.set(x, 10.3, z)
+    g.add(punta)
+    const cruz = new THREE.Mesh(new THREE.SphereGeometry(0.2, 6, 5), oro)
+    cruz.position.set(x, 11.2, z)
+    g.add(cruz)
+  })
+  g.scale.setScalar(0.8)
+  g.position.set(-16, 0, -70)
+  g.userData.lados = [-1]
+  return g
+}
+
+// Estatua de la Libertad, a la izquierda sobre su isla: pedestal de piedra,
+// cobre verde, la corona de puntas y la antorcha dorada en alto.
+function libertad () {
+  const g = new THREE.Group()
+  const piedra = mat(0xb9ae98, 0.9)
+  const cobre = mat(0x6fa596, 0.6, 0.2)
+  const isla = new THREE.Mesh(new THREE.CylinderGeometry(5, 5.6, 0.6, 12), piedra)
+  isla.position.y = 0.3
+  g.add(isla)
+  const zocalo = new THREE.Mesh(new THREE.BoxGeometry(4, 2.5, 4), piedra)
+  zocalo.position.y = 1.85
+  g.add(zocalo)
+  const pedestal = new THREE.Mesh(new THREE.BoxGeometry(2.6, 3, 2.6), piedra)
+  pedestal.position.y = 4.6
+  g.add(pedestal)
+  const cuerpo = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.95, 4, 8), cobre)
+  cuerpo.position.y = 8.1
+  g.add(cuerpo)
+  const cabeza = new THREE.Mesh(new THREE.SphereGeometry(0.45, 8, 6), cobre)
+  cabeza.position.y = 10.5
+  g.add(cabeza)
+  for (let i = 0; i < 7; i++) {
+    const a = (i / 7) * Math.PI - Math.PI / 2
+    const rayo = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.1, 0.8, 4), cobre)
+    rayo.position.set(Math.sin(a) * 0.45, 10.9, Math.cos(a) * 0.45)
+    rayo.rotation.set(Math.cos(a) * 0.9, 0, -Math.sin(a) * 0.9)
+    g.add(rayo)
+  }
+  const brazo = new THREE.Mesh(new THREE.BoxGeometry(0.3, 2.3, 0.3), cobre)
+  brazo.position.set(0.55, 11.1, 0)
+  brazo.rotation.z = -0.15
+  g.add(brazo)
+  const antorcha = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.14, 0.5, 8), mat(0xe2b23e, 0.35, 0.6))
+  antorcha.position.set(0.72, 12.4, 0)
+  g.add(antorcha)
+  const tablilla = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.9, 0.6), cobre)
+  tablilla.position.set(-0.65, 8.4, 0.2)
+  g.add(tablilla)
+  g.scale.setScalar(0.85)
+  g.position.set(-16, 0, -68)
+  g.userData.lados = [-1]
+  return g
+}
+
+// Cristo Redentor, a la derecha: el morro del Corcovado y la figura con los
+// brazos abiertos arriba.
+function cristo () {
+  const g = new THREE.Group()
+  const monte = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 9, 11, 9), mat(0x4f7a3e, 1))
+  monte.position.y = 5.5
+  g.add(monte)
+  const roca = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 3.2, 3, 7), mat(0x7a7468, 1))
+  roca.position.set(0.8, 9.6, 0.5)
+  g.add(roca)
+  const blanco = mat(0xe8e4da, 0.6)
+  const pedestal = new THREE.Mesh(new THREE.BoxGeometry(1, 1.2, 1), blanco)
+  pedestal.position.y = 11.6
+  g.add(pedestal)
+  const cuerpo = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.55, 2.7, 8), blanco)
+  cuerpo.position.y = 13.5
+  g.add(cuerpo)
+  const brazos = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.35, 0.35), blanco)
+  brazos.position.y = 14.5
+  g.add(brazos)
+  const cabeza = new THREE.Mesh(new THREE.SphereGeometry(0.26, 8, 6), blanco)
+  cabeza.position.y = 15.1
+  g.add(cabeza)
+  g.scale.setScalar(0.6)
+  g.position.set(15.5, 0, -70)
+  g.userData.lados = [1]
+  return g
+}
+
+// Puerta de Tiananmén, a la izquierda: el muro rojo con sus cinco pasos, la sala
+// de arriba y el tejado dorado de dos aleros. De frente a la calzada.
+function ciudadProhibida () {
+  const g = new THREE.Group()
+  const rojo = mat(0xa3312a, 0.85)
+  const tejado = mat(0xd6a13a, 0.5, 0.25)
+  const hueco = mat(0x2a1d18, 1)
+  const muro = new THREE.Mesh(new THREE.BoxGeometry(14, 4, 5), rojo)
+  muro.position.y = 2
+  g.add(muro)
+  for (let i = -2; i <= 2; i++) {
+    const paso = new THREE.Mesh(new THREE.BoxGeometry(1.3, 2.4, 0.1), hueco)
+    paso.position.set(i * 2.6, 1.2, 2.52)
+    g.add(paso)
+  }
+  const sala = new THREE.Mesh(new THREE.BoxGeometry(11, 3, 3.6), rojo)
+  sala.position.y = 5.5
+  g.add(sala)
+  // Un cilindro de cuatro caras girado 45° es un tejado a cuatro aguas.
+  const alero = (rArriba, rAbajo, alto, y, ancho, fondo) => {
+    const t = new THREE.Mesh(new THREE.CylinderGeometry(rArriba, rAbajo, alto, 4), tejado)
+    t.rotation.y = Math.PI / 4
+    t.scale.set(ancho / (rAbajo * 1.414), 1, fondo / (rAbajo * 1.414))
+    t.position.y = y
+    g.add(t)
+  }
+  alero(4, 8, 1.4, 7.7, 13, 5.4)
+  const alta = new THREE.Mesh(new THREE.BoxGeometry(8, 1.3, 2.6), rojo)
+  alta.position.y = 8.9
+  g.add(alta)
+  alero(2.5, 6, 1.3, 10.1, 10, 4)
+  g.rotation.y = Math.PI / 2
+  g.position.set(-15, 0, -66)
+  g.userData.lados = [-1]
+  return g
+}
+
+// Puerta de la India, a la derecha: el arco de arenisca, la cornisa y la
+// cúpula baja de arriba.
+function puertaIndia () {
+  const g = new THREE.Group()
+  const arenisca = mat(0xc99a6b, 0.9)
+  for (const x of [-3.2, 3.2]) {
+    const pilar = new THREE.Mesh(new THREE.BoxGeometry(2.4, 9, 2.6), arenisca)
+    pilar.position.set(x, 4.5, 0)
+    g.add(pilar)
+  }
+  const arco = new THREE.Mesh(new THREE.TorusGeometry(2, 0.5, 6, 14, Math.PI), arenisca)
+  arco.position.y = 7
+  g.add(arco)
+  const dintel = new THREE.Mesh(new THREE.BoxGeometry(9, 2.5, 2.6), arenisca)
+  dintel.position.y = 10.25
+  g.add(dintel)
+  const cornisa = new THREE.Mesh(new THREE.BoxGeometry(9.6, 0.5, 3), arenisca)
+  cornisa.position.y = 11.7
+  g.add(cornisa)
+  const cupula = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.6, 1, 12), arenisca)
+  cupula.position.y = 12.4
+  g.add(cupula)
+  g.scale.setScalar(0.8)
+  g.position.set(16, 0, -72)
+  g.userData.lados = [1]
+  return g
+}
+
+// Ángel de la Independencia, a la izquierda: basamento redondo, columna y la
+// victoria dorada con las alas abiertas.
+function angel () {
+  const g = new THREE.Group()
+  const piedra = mat(0xbdb6a6, 0.85)
+  const oro = mat(0xe2b23e, 0.35, 0.6)
+  const escalon = new THREE.Mesh(new THREE.CylinderGeometry(5, 5.6, 1.5, 16), piedra)
+  escalon.position.y = 0.75
+  g.add(escalon)
+  const basa = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 3.6, 2.4, 16), piedra)
+  basa.position.y = 2.7
+  g.add(basa)
+  const columna = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.75, 13, 12), piedra)
+  columna.position.y = 10.4
+  g.add(columna)
+  const capitel = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 0.65, 0.9, 12), piedra)
+  capitel.position.y = 17.3
+  g.add(capitel)
+  const figura = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.4, 1.8, 8), oro)
+  figura.position.y = 18.6
+  g.add(figura)
+  for (const s of [-1, 1]) {
+    const ala = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.5, 1), oro)
+    ala.position.set(s * 0.45, 19.3, -0.2)
+    ala.rotation.z = s * 0.5
+    g.add(ala)
+  }
+  g.scale.setScalar(0.55)
+  g.position.set(-15, 0, -60)
+  g.userData.lados = [-1]
+  return g
+}
+
+export const HITOS = {
+  piramides, volcan, karst, columnas,
+  artesYCiencias, castellana, bernabeu,
+  torreEiffel, coliseo, sanBasilio, libertad, cristo, ciudadProhibida, puertaIndia, angel
+}
 
 // --- las doce regiones -------------------------------------------------------
 //
