@@ -904,6 +904,7 @@ function simulate (dt) {
   // solo la partida y dejar el humo subiendo se lee como que el juego se ha
   // colgado, no como una pausa.
   if (pausado) return
+  if (vuelo) { actualizarVuelo(dt); return }
   if (running) {
     if (economy.update(dt)) audio.coin()
     director.update(dt, zombies.length)
@@ -1112,6 +1113,71 @@ function simulate (dt) {
   // terminar de irse en vez de quedarse congelada sobre la carretera.
   dropship.update(dt)
 }
+
+// --- vuelo de presentación ---------------------------------------------------------
+// Al llegar a una misión la cámara empieza junto al monumento, lo rodea despacio
+// y vuela hasta su sitio de juego. En la partida el monumento se ve a medias
+// —en vertical no cabe más—, así que este es el momento de verlo entero. Un
+// toque lo salta, y mientras dura la partida no avanza.
+let vuelo = null
+const VUELO = 3.4
+const tmpVueloMira = new THREE.Vector3()
+const suave = k => k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2
+
+function empezarVuelo () {
+  const foco = world.focoMonumento()
+  if (!foco || foco.isEmpty()) return
+  world.resize()
+  const centro = foco.getCenter(new THREE.Vector3())
+  const tam = foco.getSize(new THREE.Vector3())
+  vuelo = {
+    t: 0,
+    fin: { pos: camera.position.clone(), rot: camera.quaternion.clone() },
+    centro,
+    alto: tam.y,
+    lado: Math.sign(centro.x) || 1,
+    distancia: Math.max(tam.x, tam.y, tam.z) * 1.3 + 6
+  }
+  ui.banner(NIVELES[nivelActual].name.toUpperCase())
+  actualizarVuelo(0)
+}
+
+function actualizarVuelo (dt) {
+  const v = vuelo
+  v.t += dt
+  const k = Math.min(1, v.t / VUELO)
+  // Por encima de la carretera, acercándose al monumento. La carretera es lo
+  // único despejado: desde el descampado de al lado, en las ciudades con
+  // avenida, la cámara acababa detrás de un edificio.
+  const acerca = 1 - Math.min(1, k / 0.5) * 0.3
+  camera.position.set(
+    v.centro.x * 0.25,
+    Math.max(6, v.alto * 0.6),
+    v.centro.z + v.distancia * acerca
+  )
+  camera.lookAt(tmpVueloMira.set(v.centro.x, v.alto * 0.45, v.centro.z))
+  // La segunda mitad se funde con la posición de juego.
+  const mezcla = k < 0.5 ? 0 : suave((k - 0.5) / 0.5)
+  if (mezcla > 0) {
+    camera.position.lerp(v.fin.pos, mezcla)
+    camera.quaternion.slerp(v.fin.rot, mezcla)
+  }
+  if (k >= 1) terminarVuelo()
+}
+
+function terminarVuelo () {
+  vuelo = null
+  world.resize()
+}
+
+// Un toque durante el vuelo lo salta, y no llega a nada más: no debe colocar un
+// soldado ni abrir la pausa sin querer.
+window.addEventListener('pointerdown', e => {
+  if (!vuelo) return
+  terminarVuelo()
+  e.stopPropagation()
+  e.preventDefault()
+}, true)
 
 function frame (now) {
   requestAnimationFrame(frame)
@@ -1371,6 +1437,7 @@ function start (indice = nivelActual) {
   pintarBilletes()
   cuentas = null
   asalto = null
+  vuelo = null
   // El asalto de la partida anterior dejó la base reventada.
   const baseFondo = world.baseActual()
   if (baseFondo) baseFondo.visible = true
@@ -1394,6 +1461,7 @@ function start (indice = nivelActual) {
   )
   running = true
   last = performance.now()
+  empezarVuelo()
 }
 
 // --- pausa --------------------------------------------------------------------
@@ -1917,6 +1985,7 @@ if (import.meta.env.DEV) {
     // --- atajos de prueba: cada comprobación en una línea ----------------------
     ganarYa: () => { if (running) win() },
     asaltarYa: () => { if (running) empezarAsalto() },
+    sinVuelo: () => { if (vuelo) terminarVuelo() },
     perderYa: () => { if (running) lose() },
     darBilletes: n => { sumarBilletes(n); pintarBilletes(); return cargarCartera().billetes },
     desbloquearTodo: () => {

@@ -45,6 +45,16 @@ const ESTILO = [
   'no gold trim, no ornate decoration, no filigree, no fantasy ornament'
 ].join(', ')
 
+// Para los monumentos el encargo es el contrario: que se reconozcan al primer
+// vistazo. Se pide fidelidad al original y textura realista; `--realista`
+// cambia la estética común por esta.
+const ESTILO_REAL = [
+  'highly detailed realistic 3D landmark model',
+  'accurate real-world proportions and architecture',
+  'realistic PBR materials and textures',
+  'clean game-ready asset, isolated, no ground plane, no people'
+].join(', ')
+
 const RAIZ = path.resolve(import.meta.dirname, '..')
 const DESTINO = path.join(RAIZ, 'public', 'models')
 const API = 'https://api.meshy.ai'
@@ -150,6 +160,9 @@ if (!o.prompt || !o.nombre) {
 
 const polys = Number(o.polys ?? 4000)
 const antes = await saldo(clave)
+// Suelo de créditos: si el saldo no llega, no se empieza. Una pieza con textura
+// cuesta hasta unos 40, así que con --minimo 240 nunca se baja de 200.
+if (o.minimo && antes < Number(o.minimo)) salir(`Saldo ${antes} por debajo del mínimo ${o.minimo}: no genero nada.`)
 console.log(`\nSaldo antes: ${antes} créditos`)
 console.log(`Pieza: ${o.nombre}   (${polys} polígonos objetivo)`)
 
@@ -163,7 +176,7 @@ const previo = await pedir(clave, '/openapi/v2/text-to-3d', {
     mode: 'preview',
     // El prompt del encargo y, detrás, la estética común. En este orden: lo
     // primero pesa más, así que el QUÉ manda sobre el CÓMO.
-    prompt: `${o.prompt}. ${ESTILO}`,
+    prompt: `${o.prompt}. ${o.realista ? ESTILO_REAL : ESTILO}`,
     art_style: 'realistic',
     model_type: 'lowpoly',
     ai_model: 'latest',
@@ -194,7 +207,7 @@ if (o.refinar) {
       // tocaba: las cinco naves salieron del mismo rojo y oro pese a que cada
       // prompt pedía su paleta. El color se decide al texturizar, así que es
       // aquí donde hay que repetirlo.
-      texture_prompt: `${o.prompt}. ${ESTILO}`,
+      texture_prompt: `${o.prompt}. ${o.realista ? ESTILO_REAL : ESTILO}`,
       // 2k y no 4k: la pieza se ve de lejos y en un móvil, y cada salto de
       // resolución multiplica por cuatro lo que hay que descargar y subir a la
       // tarjeta gráfica.

@@ -104,6 +104,26 @@ function paintRoad (scene, pintables) {
 // Lo que hay que poder reteñir al cambiar de región. Se recogen los materiales
 // al construir en vez de buscarlos después recorriendo la escena: son siempre
 // los mismos cuatro y así el cambio de bioma es asignar colores, no una batida.
+// Agranda un monumento sin meterlo en la calzada: crece y se reubica para que su
+// borde más cercano quede junto a la barandilla, a media distancia. En el móvil
+// se ve solo la parte de abajo, pero se reconoce mejor que entero en miniatura.
+function agrandar (h) {
+  const lado = h.userData.lados[0]
+  h.updateMatrixWorld(true)
+  const caja = new THREE.Box3().setFromObject(h)
+  const tam = caja.getSize(new THREE.Vector3())
+  const factor = Math.min(1.8, 70 / Math.max(tam.z, 1), 60 / Math.max(tam.x, 1))
+  if (factor > 1.02) h.scale.multiplyScalar(factor)
+  h.updateMatrixWorld(true)
+  caja.setFromObject(h)
+  const cerca = lado > 0 ? caja.min.x : caja.max.x
+  h.position.x += lado * 11.5 - cerca
+  // El centro entre z = -50 y -75: más cerca se sale por abajo de la pantalla y
+  // más lejos lo tapa el marcador.
+  const cz = (caja.min.z + caja.max.z) / 2
+  h.position.z += Math.max(-75, Math.min(-50, cz)) - cz
+}
+
 // `aparte` recibe la nave estrellada y su surco: no se funden con el resto
 // para poder esconderlos en las misiones con monumento.
 function decorate (scene, pintables, aparte = scene) {
@@ -650,6 +670,7 @@ export function createWorld (canvas) {
   // Las bases alienígenas del fondo: tres modelos, uno visible cada vez.
   const bases = new Map()
   let baseVisible = null
+  let bosqueVisible = null
   let bioma = null
 
   function poblar (clave, b, hitosMision = []) {
@@ -706,10 +727,45 @@ export function createWorld (canvas) {
       const [tipo, ...args] = b.hito
       if (HITOS[tipo]) g.add(HITOS[tipo](...args))
     }
-    for (const h of deMision) g.add(h)
+    // Los que llevan modelo de Meshy van aparte: llegan tarde y no se pueden
+    // fundir con lo demás.
+    // En las ciudades con avenida los huecos entre edificios ya están medidos
+    // para el monumento; agrandarlo lo metería dentro de las fachadas.
+    const conAvenida = deMision.some(h => (h.userData.lados?.length ?? 0) === 2)
+    for (const h of deMision) {
+      if (conAvenida || h.userData.acompaña || h.userData.aparte || (h.userData.lados?.length ?? 0) !== 1) continue
+      agrandar(h)
+    }
+    const aparte = deMision.filter(h => h.userData.aparte)
+    for (const h of deMision) if (!h.userData.aparte) g.add(h)
+    // El monumento principal, para el vuelo de presentación: el primero que no
+    // sea acompañamiento (la avenida, los microbuses, un cerro).
+    const principal = deMision.find(h => !h.userData.acompaña) ?? deMision[0]
+    let foco = null
+    if (principal) {
+      principal.updateMatrixWorld(true)
+      foco = new THREE.Box3().setFromObject(principal)
+    }
     // Se funden en un puñado de mallas, igual que el resto del decorado: veinte
     // árboles sueltos son veinte llamadas de dibujo por nada.
     const fundido = bake(g, false)
+    // El respaldo de código de los monumentos de Meshy también se funde: la
+    // Eiffel de celosía son cientos de barras, y sin fundir serían cientos de
+    // llamadas de dibujo si el modelo no llegara.
+    for (const h of aparte) {
+      const respaldo = h.children[0]
+      if (respaldo) {
+        const sitio = h.position.clone()
+        h.position.set(0, 0, 0)
+        h.updateMatrixWorld(true)
+        const cocido = bake(respaldo, false)
+        h.position.copy(sitio)
+        h.remove(respaldo)
+        h.add(cocido)
+      }
+      fundido.add(h)
+    }
+    fundido.userData.foco = foco
     fundido.visible = false
     scene.add(fundido)
     bosques.set(clave, fundido)
@@ -762,6 +818,7 @@ export function createWorld (canvas) {
     for (const [k, g] of bosques) g.visible = k === llave
     const mio = bosques.get(llave) ?? poblar(llave, b, hitosMision)
     mio.visible = true
+    bosqueVisible = mio
   }
 
   return {
@@ -770,6 +827,8 @@ export function createWorld (canvas) {
     renderer, scene, camera, sun, resize, slots, setSlotsVisible, resaltarSlot, vestir,
     // La base del fondo de esta misión: el asalto final la hace reventar.
     baseActual: () => baseVisible,
+    // La caja del monumento de esta misión, para el vuelo de presentación.
+    focoMonumento: () => bosqueVisible?.userData.foco ?? null,
     onResize (fn) { oyentesTam.push(fn) }
   }
 }

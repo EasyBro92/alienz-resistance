@@ -19,8 +19,8 @@ Publicado en https://easybro92.github.io/alienz-resistance/ (repo `EasyBro92/ali
 | `src/config.js` | `FIELD`, `BASE`, `ECONOMY`, `SOLDIERS`, `DEFENSES`, `STRIKES`, `UPGRADES`, `ZOMBIES`, `INICIALES` (solo el arquero). `NIVELES` se reexporta de `campana.js` |
 | `src/campana.js` | `PAISES` (12 países × 3 misiones), `DESTINOS` aplanado (= `NIVELES`), peaje de estrellas (6 por país), `dureza` de 0,06 a 0,56, bioma por misión |
 | `src/oleadas.js` | Las 6 tablas de oleadas compartidas |
-| `src/biomas.js` | `BIOMAS` (paleta, calzada, flora, restos, hito), `FLORA`, `HITOS` (de región, y de ciudad: todas las misiones llevan el suyo; `castellana` sirve de avenida genérica con `conTorres = false`), piezas `pon`/`aguas`/`colocar`, `baseAlien(variante)` (base del fondo con antena animada, sin niebla), `RESTOS` |
-| `src/world.js` | Escena, carretera y decorado. `world.vestir(bioma, hitos)` retiñe sin reconstruir; los `hitos` de la misión (campo `hitos` en `campana.js`) esconden la nave estrellada |
+| `src/biomas.js` | `BIOMAS` (paleta, calzada, flora, restos, hito), `FLORA`, `HITOS` (de región, y de ciudad: todas las misiones llevan el suyo; `castellana` sirve de avenida genérica con `conTorres = false`), piezas `pon`/`aguas`/`colocar`/`barra`/`arcada`, `conModelo` (monumento de Meshy con respaldo de código: `eiffel3d`, `coliseo3d`, `libertad3d`), `baseAlien(variante)` (base del fondo con antena animada, sin niebla), `RESTOS` |
+| `src/world.js` | Escena, carretera y decorado. `world.vestir(bioma, hitos)` retiñe sin reconstruir; los `hitos` de la misión (campo `hitos` en `campana.js`) esconden la nave estrellada; `agrandar` los hace crecer hacia la barandilla (salvo en ciudades con avenida); `focoMonumento()` para el vuelo; `baseActual()` |
 | `src/mapa.js` | Mapa del mundo en SVG (`pintarMapa`) |
 | `src/assets.js` | Figuras procedurales, `bake()`, `MODELS` (Meshy), `armarPersona` (huesos manejados con mandos), `buildWeapon` |
 | `src/entities/soldier.js` | Soldado. Mandos → huesos; mejoras de tienda aplicadas en `damage` y `fireRate` |
@@ -34,7 +34,7 @@ Publicado en https://easybro92.github.io/alienz-resistance/ (repo `EasyBro92/ali
 | `src/ui.js` | Marcador y armería |
 | `src/audio.js` | Todo el sonido, sintetizado |
 | `src/systems/` | `calidad.js`, `detalle.js`, `resplandor.js` (halo; `apagarEmision` para modelos de fuera), `texturas.js`, `golpes.js` |
-| `herramientas/` | `meshy.mjs` (generar), `adelgazar.mjs` (reducir texturas) |
+| `herramientas/` | `meshy.mjs` (generar; `--realista` para monumentos, `--minimo N` no empieza si el saldo no llega), `adelgazar.mjs` (reducir texturas; `--color 1024` en monumentos) |
 
 ## Pantallas (capas de `index.html`)
 
@@ -47,6 +47,8 @@ Ganar y perder recargan la página; `window.volverA('mapa' | 'pais:N' | 'portada
 - `window.__zr` (solo en desarrollo):
   - `start(i)`, `place(clave, carril, fila)`, `state()`, `soldiers`, `zombies`, `economy`, `director`, `collectAll()`, `strikeAt(x, z, clave)`.
   - `run(segundos, dt)`: llamarlo **de una tirada**. Encadenado en trozos cortos, el estado que se lee va desfasado.
+  - Al empezar una misión hay un vuelo de cámara de 3,4 s (`sinVuelo()` lo salta); `run()` lo consume antes de simular la partida.
+  - Con el panel oculto las capturas salen de la pantalla de carga: quitar `#carga` con la clase `hidden` y llamar a `render()` antes de capturar.
   - Atajos: `asaltarYa()` (salta al asalto final), `ganarYa()`, `perderYa()`, `darBilletes(n)`, `desbloquearTodo()`, `borrarTodo()`, `abrir('mapa' | 'tienda' | 'pais:N')`, `cartera()`.
 - `place()` solo funciona con cartas desbloqueadas: `desbloquearTodo()` y recargar.
 - Con el panel del navegador oculto no llega `requestAnimationFrame`: lo que dependa de él no avanza. Usar `setTimeout`.

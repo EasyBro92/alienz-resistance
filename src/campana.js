@@ -116,7 +116,7 @@ export const PAISES = [
         waves: OLEADAS.colmena
       },
       {
-        name: 'París', lugar: 'Quai Branly · al pie de la torre', mapa: sitio(48.86, 2.35), hitos: [['torreEiffel']],
+        name: 'París', lugar: 'Quai Branly · al pie de la torre', mapa: sitio(48.86, 2.35), hitos: [['eiffel3d']],
         resumen: 'El primer jefe. Le llaman LA MADRE.',
         parte: ['Todo lo que hemos visto en Francia salió de algo que vive debajo de la ciudad.',
           'Detrás de la horda viene algo que nadie ha visto entero. Le llaman LA MADRE porque no supieron llamarla de otra forma.'],
@@ -145,7 +145,7 @@ export const PAISES = [
         waves: OLEADAS.contraflujo
       },
       {
-        name: 'Roma', lugar: 'Via dei Fori Imperiali', mapa: sitio(41.90, 12.50), hitos: [['coliseo']], bioma: 'mediterraneo',
+        name: 'Roma', lugar: 'Via dei Fori Imperiali', mapa: sitio(41.90, 12.50), hitos: [['coliseo3d']], bioma: 'mediterraneo',
         resumen: 'Se curan y el caparazón devuelve las balas.',
         parte: ['Han instalado algo dentro del estadio olímpico. Desde el aire se ve la luz verde por las gradas.',
           'Los que protegen la zona vienen blindados. Hace falta con qué atravesarlos.'],
@@ -410,7 +410,7 @@ export const PAISES = [
         waves: OLEADAS.formas
       },
       {
-        name: 'Nueva York', lugar: 'Puente de Brooklyn · frente a la bahía', mapa: sitio(40.71, -74.01), hitos: [['castellana', -1, -52, -88, false], ['libertad']], bioma: 'costa',
+        name: 'Nueva York', lugar: 'Puente de Brooklyn · frente a la bahía', mapa: sitio(40.71, -74.01), hitos: [['castellana', -1, -36, -72, false], ['libertad3d']], bioma: 'costa',
         resumen: 'Todas las formas y dos MADRES.',
         parte: ['La isla es su centro de mando en el norte. Cruzar el puente es la única forma de entrar.',
           'Bajarán todas las formas a la vez, y al final vienen dos.'],
