@@ -134,6 +134,65 @@ function amplificar (hueso, reposo, k) {
   hueso.quaternion.copy(reposo).multiply(_q)
 }
 
+// --- figuras de piezas ------------------------------------------------------------
+// Arquero, ametrallador, mortero (y cualquier soldado cuyo modelo no cargue) no
+// tienen esqueleto ni ciclo de andar, pero sí brazos de dos tramos. El arma la
+// sigue moviendo el bucle de siempre; aquí se llevan las manos a ella. Era lo
+// que las hacía de juguete: los brazos iban por un lado y el arma flotaba por
+// otro, delante del pecho.
+const AGARRES_PIEZAS = {
+  rifle: { mano: [0, -0.11, 0.13], apoyo: [0, -0.03, -0.36] },
+  shotgun: { mano: [0, -0.11, 0.11], apoyo: [0, -0.05, -0.3] },
+  sniper: { mano: [0, -0.11, 0.16], apoyo: [0, -0.04, -0.3] },
+  gunner: { mano: [0, -0.11, 0.2], apoyo: [0, -0.06, -0.3] },
+  flamer: { mano: [0, -0.11, 0.1], apoyo: [0, -0.03, -0.34] },
+  // El arco: la izquierda en la empuñadura y la derecha tensando la cuerda.
+  archer: { mano: [0, 0.02, 0.1], apoyo: [0, 0, -0.1] },
+  mortar: { mano: [0.05, 0.3, -0.25], apoyo: [-0.05, 0.1, 0.05] }
+}
+const CARGADOR_PIEZAS = new THREE.Vector3(0, -0.19, -0.09)
+const POLO_R = new THREE.Vector3(0.3, -0.45, 0.3)
+const POLO_L = new THREE.Vector3(-0.25, -0.5, -0.1)
+
+export function crearManosDePiezas ({ figure, limbs, weapon, key, rest }) {
+  if (!limbs?.armL?.userData.lower || !limbs?.armR?.userData.lower || !weapon) return null
+  const agarre = AGARRES_PIEZAS[key] ?? AGARRES_PIEZAS.rifle
+  const puntoMano = new THREE.Vector3(...agarre.mano)
+  const puntoApoyo = new THREE.Vector3(...agarre.apoyo)
+  // La mano es la punta del segundo tramo del brazo: `limb` la cuelga a media
+  // longitud por debajo del codo, un poco adelantada.
+  const puntas = {}
+  for (const n of ['armL', 'armR']) {
+    const p = new THREE.Object3D()
+    p.position.set(0, -0.316, -0.03)
+    limbs[n].userData.lower.add(p)
+    puntas[n] = p
+  }
+  const objR = new THREE.Vector3()
+  const objL = new THREE.Vector3()
+  const poloR = new THREE.Vector3()
+  const poloL = new THREE.Vector3()
+  return {
+    actualizar (recarga = 0) {
+      // Se parte cada vez de un giro sin torsión: la cinemática inversa es
+      // exacta, pero sin esto el brazo iría acumulando giro sobre su eje.
+      for (const n of ['armL', 'armR']) {
+        const brazo = limbs[n]
+        brazo.rotation.set(brazo.rotation.x, 0, rest?.armRoll?.[n] ?? 0)
+        brazo.userData.lower.rotation.set(brazo.userData.lower.rotation.x, 0, 0)
+      }
+      figure.updateMatrixWorld(true)
+      weapon.updateMatrixWorld(true)
+      weapon.localToWorld(objR.copy(puntoMano))
+      weapon.localToWorld(objL.copy(puntoApoyo).lerp(CARGADOR_PIEZAS, recarga))
+      figure.localToWorld(poloR.copy(limbs.armR.position).add(POLO_R))
+      figure.localToWorld(poloL.copy(limbs.armL.position).add(POLO_L))
+      dosHuesos(limbs.armR, limbs.armR.userData.lower, puntas.armR, objR, poloR)
+      dosHuesos(limbs.armL, limbs.armL.userData.lower, puntas.armL, objL, poloL)
+    }
+  }
+}
+
 export function crearCuerpo ({ figure, cuerpo, arma, key, clips = [] }) {
   const hueso = nombre => {
     let h = null

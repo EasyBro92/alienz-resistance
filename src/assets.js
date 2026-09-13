@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { brilla, apagarEmision } from './systems/resplandor.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
-import { crearCuerpo } from './entities/cuerpo.js'
+import { crearCuerpo, crearManosDePiezas } from './entities/cuerpo.js'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { clone as clonarConHuesos } from 'three/examples/jsm/utils/SkeletonUtils.js'
@@ -1157,6 +1157,8 @@ function placeholderSoldier (key, spec) {
   figure.rotation.y = g.userData.stance
   g.userData.headYaw = -g.userData.stance * 0.75 + (Math.random() - 0.5) * 0.14
   head.rotation.y = g.userData.headYaw
+  // Las manos van al arma cada fotograma (ver `cuerpo.js`).
+  g.userData.manos = crearManosDePiezas({ figure, limbs, weapon, key, rest: g.userData.rest })
   return g
 }
 

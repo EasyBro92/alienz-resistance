@@ -375,14 +375,22 @@ export async function createSoldier (key, spec, lane, row) {
       // Se pinta ENCIMA de la pose de reposo, no en lugar de ella: la
       // respiración y el balanceo siguen por debajo, y al llegar el andar se
       // apaga solo sin ningún salto de postura.
+      if (ud.figure && !ud.cuerpo) ud.figure.rotation.x = 0
       if (rumbo !== null && limbs && rest) {
         const p = Math.sin(this.pasoFase)
         const lag = Math.sin(this.pasoFase - 0.7)      // la rodilla va con retraso
-        limbs.legL.rotation.x = rest.leg.legL + p * 0.62
-        limbs.legR.rotation.x = rest.leg.legR - p * 0.62
-        // Solo se dobla la rodilla de la pierna que va hacia atrás, como al andar.
-        limbs.legL.userData.lower.rotation.x = rest.legBend.legL - Math.max(0, -lag) * 0.85
-        limbs.legR.userData.lower.rotation.x = rest.legBend.legR - Math.max(0, lag) * 0.85
+        // Zancada de persona y no de tijera: el muslo no sale de la postura
+        // ladeada de tirador sino de estar recto, y la rodilla se dobla sobre
+        // todo mientras la pierna VUELA hacia delante, que es cuando el pie tiene
+        // que despegarse del suelo. Corriendo, más amplitud y más doblez.
+        const amplitud = this.entrando ? 0.72 : 0.5
+        const doblez = this.entrando ? 1.5 : 1.05
+        limbs.legL.rotation.x = p * amplitud
+        limbs.legR.rotation.x = -p * amplitud
+        limbs.legL.userData.lower.rotation.x = -0.12 - Math.max(0, Math.sin(this.pasoFase + 1.4)) * doblez
+        limbs.legR.userData.lower.rotation.x = -0.12 - Math.max(0, Math.sin(this.pasoFase + 1.4 + Math.PI)) * doblez
+        if (ud.figure && !ud.cuerpo) ud.figure.rotation.x = this.entrando ? 0.2 : 0.08
+        void lag
         // Los brazos van a contrafase de las piernas, con el arma recogida.
         limbs.armL.rotation.x = rest.arm.armL - 0.5 - p * 0.32
         limbs.armR.rotation.x = rest.arm.armR - 0.5 + p * 0.32
@@ -513,6 +521,13 @@ export async function createSoldier (key, spec, lane, row) {
           mirar: this.scanTarget,
           t: this.idle
         })
+      }
+
+      // Figuras de piezas: las manos al arma, sobre todo lo escrito arriba.
+      if (ud.manos) {
+        this.mesh.updateMatrixWorld(true)
+        const total = this.spec.reloadTime ?? 1.1
+        ud.manos.actualizar(this.reloading > 0 ? Math.sin((1 - this.reloading / total) * Math.PI) : 0)
       }
 
       // Y ahora, al hueso. Lo último del fotograma, cuando ya está escrito todo:
