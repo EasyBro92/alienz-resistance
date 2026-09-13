@@ -1082,8 +1082,12 @@ export function createWorld (canvas) {
         }
       }
       if (baseVisible?.visible) {
-        const c = new THREE.Box3().setFromObject(baseVisible)
-        if (c.max.z >= zMin && c.min.z <= zMax && c.max.x >= xMin && c.min.x <= xMax) h = Math.max(h, c.max.y)
+        // Sin el haz de luz: es transparente y sube setenta unidades, y con él en
+        // la cuenta todo lo que volaba acababa por encima del encuadre.
+        const c = new THREE.Box3()
+        baseVisible.updateMatrixWorld(true)
+        baseVisible.traverse(o => { if (o.isMesh && !o.material.transparent) c.expandByObject(o) })
+        if (!c.isEmpty() && c.max.z >= zMin && c.min.z <= zMax && c.max.x >= xMin && c.min.x <= xMax) h = Math.max(h, c.max.y)
       }
       return h
     },
