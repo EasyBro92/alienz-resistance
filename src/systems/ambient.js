@@ -99,27 +99,95 @@ export function createAmbient (scene) {
     })
   }
 
-  // --- rodadoras --------------------------------------------------------------
-  // Cruzan la carretera empujadas por el viento. Ruedan de verdad y rebotan.
-  const weedMat = new THREE.MeshStandardMaterial({ color: 0xa28f4e, roughness: 1, wireframe: true })
-  const weedGeo = new THREE.IcosahedronGeometry(0.55, 1)
+  // --- lo que arrastra el viento -----------------------------------------------
+  // Antes era una rodadora en todos los mapas, también en la nieve o en París.
+  // Ahora cada sitio tiene lo suyo: rodadoras solo en el desierto, una pelota en
+  // la playa, hojas de periódico en la ciudad, bolas de nieve en la nieve y hojas
+  // secas en parques, bosques y costa. En la zona volcánica, nada.
+  const VIENTO = {
+    rodadora: () => new THREE.Mesh(
+      new THREE.IcosahedronGeometry(0.55, 1),
+      new THREE.MeshStandardMaterial({ color: 0xa28f4e, roughness: 1, wireframe: true })
+    ),
+    pelota: () => {
+      const g = new THREE.Group()
+      const colores = [0xe8402f, 0xf2f2ee, 0x2f7fd8, 0xf2c230]
+      for (let k = 0; k < 4; k++) {
+        g.add(new THREE.Mesh(
+          new THREE.SphereGeometry(0.42, 12, 10, (k / 4) * Math.PI * 2, Math.PI / 2),
+          new THREE.MeshStandardMaterial({ color: colores[k], roughness: 0.5 })
+        ))
+      }
+      return g
+    },
+    hojas: () => {
+      const g = new THREE.Group()
+      const tonos = [0xc9772e, 0xd9a13a, 0x9a4f2a, 0x7a8f3a]
+      for (let k = 0; k < 7; k++) {
+        const hoja = new THREE.Mesh(
+          new THREE.PlaneGeometry(0.22, 0.14),
+          new THREE.MeshStandardMaterial({ color: tonos[k % 4], roughness: 0.9, side: THREE.DoubleSide })
+        )
+        hoja.position.set(rand(-0.6, 0.6), rand(-0.3, 0.5), rand(-0.6, 0.6))
+        hoja.rotation.set(rand(0, 3), rand(0, 3), rand(0, 3))
+        g.add(hoja)
+      }
+      return g
+    },
+    periodico: () => {
+      const g = new THREE.Group()
+      g.add(new THREE.Mesh(
+        new THREE.PlaneGeometry(0.7, 0.5),
+        new THREE.MeshStandardMaterial({ color: 0xe8e4da, roughness: 0.95, side: THREE.DoubleSide })
+      ))
+      const tinta = new THREE.MeshBasicMaterial({ color: 0x6a6a66, side: THREE.DoubleSide })
+      for (let k = 0; k < 4; k++) {
+        const linea = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 0.03), tinta)
+        linea.position.set(0, -0.15 + k * 0.1, 0.002)
+        g.add(linea)
+      }
+      return g
+    },
+    bolaNieve: () => new THREE.Mesh(
+      new THREE.IcosahedronGeometry(0.4, 2),
+      new THREE.MeshStandardMaterial({ color: 0xf4f8fb, roughness: 0.9 })
+    )
+  }
+  // Cómo va cada cosa: cuánto bota, cuánto pesa, a qué altura rueda, cuánto gira.
+  const VUELO = {
+    rodadora: { bote: [2.5, 4.5], gravedad: 16, suelo: 0.5, giro: [4, 8], velocidad: [5, 9], sombra: true },
+    pelota: { bote: [4, 6], gravedad: 14, suelo: 0.42, giro: [2, 4], velocidad: [3, 6], sombra: true },
+    hojas: { bote: [0.8, 1.6], gravedad: 3, suelo: 0.4, giro: [1, 3], velocidad: [4, 7], sombra: false },
+    periodico: { bote: [1.2, 2.2], gravedad: 5, suelo: 0.3, giro: [3, 6], velocidad: [4, 8], sombra: false },
+    bolaNieve: { bote: [0, 0.4], gravedad: 16, suelo: 0.4, giro: [3, 6], velocidad: [3, 5], sombra: true }
+  }
+  const cacheViento = new Map()
+  let tipoViento = 'rodadora'
   const weeds = []
-  for (let i = 0; i < 3; i++) {
-    const m = new THREE.Mesh(weedGeo, weedMat)
-    m.visible = false
-    m.castShadow = true
-    scene.add(m)
-    weeds.push({ mesh: m, timer: rand(2, 18), active: false, vx: 0, vy: 0, spin: 0 })
+  for (let i = 0; i < 3; i++) weeds.push({ mesh: null, timer: rand(2, 18), active: false, vx: 0, vy: 0, spin: 0 })
+  function mallaViento (tipo, i) {
+    const clave = tipo + i
+    if (!cacheViento.has(clave)) {
+      const m = VIENTO[tipo]()
+      m.visible = false
+      m.traverse(o => { if (o.isMesh) o.castShadow = VUELO[tipo].sombra })
+      scene.add(m)
+      cacheViento.set(clave, m)
+    }
+    return cacheViento.get(clave)
   }
 
-  function launchWeed (w) {
+  function launchWeed (w, i) {
+    if (!VIENTO[tipoViento]) return
+    const v = VUELO[tipoViento]
+    w.mesh = mallaViento(tipoViento, i)
     const dir = Math.random() < 0.5 ? 1 : -1
-    w.mesh.position.set(dir * -(half + 9), 0.55, rand(FIELD.spawnZ + 4, FIELD.baseZ + 2))
+    w.mesh.position.set(dir * -(half + 9), v.suelo + 0.05, rand(FIELD.spawnZ + 4, FIELD.baseZ + 2))
     w.mesh.visible = true
     w.active = true
-    w.vx = dir * rand(5, 9)
+    w.vx = dir * rand(...v.velocidad)
     w.vy = 0
-    w.spin = rand(4, 8)
+    w.spin = rand(...v.giro)
     w.mesh.scale.setScalar(rand(0.7, 1.3))
   }
 
@@ -233,6 +301,13 @@ export function createAmbient (scene) {
   mother.rotation.z = 0.07
   scene.add(mother)
 
+  // Por dónde vuelan las naves de paso en esta misión. Lo decide `vestir` con la
+  // altura del decorado: antes cruzaban siempre a la misma altura y atravesaban
+  // los edificios y los monumentos.
+  let vueloExplorador = { z: -70, y: 4.2 }
+  let alturaNodriza = 6
+  let zNodriza = -100
+
   // Exploradores que cruzan el cielo de vez en cuando, con el haz encendido.
   const scouts = []
   for (let i = 0; i < 2; i++) {
@@ -242,13 +317,16 @@ export function createAmbient (scene) {
     scouts.push({ ship: s, timer: rand(6, 22), active: false, speed: 0, dir: 1 })
   }
 
+  // A lo largo de la carretera, desde el fondo hacia la cámara. Cruzando de lado
+  // a lado atravesaban edificios, colinas y monumentos; por encima del campo no
+  // hay nada contra lo que chocar, y así además se ven enteros.
   function launchScout (sc) {
     sc.dir = Math.random() < 0.5 ? 1 : -1
-    sc.ship.position.set(sc.dir * -120, rand(3, 5.5), rand(-88, -52))
+    sc.ship.position.set(sc.dir * rand(1.5, 4), vueloExplorador.y + rand(-0.4, 0.4), -150)
     sc.ship.visible = true
     sc.active = true
-    sc.speed = sc.dir * rand(13, 22)
-    if (sc.ship.userData.beam) sc.ship.userData.beam.visible = Math.random() < 0.6
+    sc.speed = rand(14, 22)
+    if (sc.ship.userData.beam) sc.ship.userData.beam.visible = false
   }
 
   // Cápsulas de siembra: caen del cielo con estela verde y revientan en el
@@ -298,6 +376,53 @@ export function createAmbient (scene) {
   let clock = 0
 
   return {
+    // Al empezar cada misión: qué arrastra el viento y por dónde vuelan las naves
+    // de paso. `alturaEn(zMin, zMax)` la da el mundo.
+    vestir (destino = {}, alturaEn = null) {
+      const { bioma, suelo, hitos = [] } = destino
+      const conAvenida = hitos.some(h => h[0] === 'castellana')
+      let tipo = 'hojas'
+      if (suelo === 'playa') tipo = 'pelota'
+      else if (conAvenida || bioma === 'ciudad' || suelo === 'losas' || suelo === 'adoquin') tipo = 'periodico'
+      else if (bioma === 'desierto' || bioma === 'altiplano' || suelo === 'arena') tipo = 'rodadora'
+      else if (bioma === 'taiga' || bioma === 'artico' || suelo === 'nieve') tipo = 'bolaNieve'
+      else if (bioma === 'volcanico') tipo = null
+      if (tipo !== tipoViento) {
+        tipoViento = tipo
+        for (const w of weeds) {
+          if (w.mesh) w.mesh.visible = false
+          w.mesh = null
+          w.active = false
+          w.timer = rand(2, 12)
+        }
+      }
+      if (alturaEn) {
+        // El carril con el decorado más bajo, y por encima de él. En una ciudad
+        // de rascacielos eso las saca del encuadre: mejor que verlas atravesar
+        // una fachada.
+        // Exploradores: por encima del campo, que nunca tiene decorado, y lo
+        // bastante altos para no rozar la nave que aterriza.
+        vueloExplorador = { z: -70, y: Math.max(8.5, alturaEn(-150, -6, -6, 6) + 2) }
+        // Nodriza: patrulla detrás entre x -40 y 40 (con sus doce de radio,
+        // -52 a 52), en la franja de profundidad con el decorado más bajo. Si ni
+        // así queda bajo el marcador, ese mapa se queda sin nodriza antes que
+        // verla atravesar una colina.
+        let mejor = null
+        for (const z of [-96, -104, -112, -120]) {
+          const h = alturaEn(z - 12, z + 12, -52, 52)
+          if (!mejor || h < mejor.h) mejor = { z, h }
+        }
+        zNodriza = mejor.z
+        alturaNodriza = Math.max(6, mejor.h + 3)
+        mother.visible = alturaNodriza <= 11
+        if (mother.position.x < -40 || mother.position.x > 40) mother.position.x = -40
+        for (const sc of scouts) {
+          sc.active = false
+          sc.ship.visible = false
+          sc.timer = rand(6, 22)
+        }
+      }
+    },
     update (dt) {
       clock += dt
 
@@ -314,8 +439,9 @@ export function createAmbient (scene) {
 
       blink(mother, 0.35)
       mother.position.x += dt * 0.55
-      mother.position.y = 6 + Math.sin(clock * 0.25) * 0.5
-      if (mother.position.x > 90) mother.position.x = -90
+      mother.position.y = alturaNodriza + Math.sin(clock * 0.25) * 0.5
+      mother.position.z = zNodriza
+      if (mother.position.x > 40) mother.position.x = -40
 
       for (const sc of scouts) {
         if (!sc.active) {
@@ -324,10 +450,11 @@ export function createAmbient (scene) {
           continue
         }
         blink(sc.ship, 1.2)
-        sc.ship.position.x += sc.speed * dt
+        sc.ship.position.z += sc.speed * dt
         sc.ship.position.y += Math.sin(clock * 1.6 + sc.speed) * 0.012
-        sc.ship.rotation.z = -sc.speed * 0.008
-        if (Math.abs(sc.ship.position.x) > 130) {
+        sc.ship.rotation.x = sc.speed * 0.006
+        sc.ship.rotation.z = Math.sin(clock * 0.9 + sc.speed) * 0.08
+        if (sc.ship.position.z > -6) {
           sc.active = false
           sc.ship.visible = false
           sc.timer = rand(10, 30)
@@ -405,17 +532,21 @@ export function createAmbient (scene) {
         flap(v.bird)
       }
 
-      // rodadoras
-      for (const w of weeds) {
+      // lo que arrastra el viento
+      weeds.forEach((w, i) => {
         if (!w.active) {
           w.timer -= dt
-          if (w.timer <= 0) launchWeed(w)
-          continue
+          if (w.timer <= 0) {
+            w.timer = rand(6, 22)
+            launchWeed(w, i)
+          }
+          return
         }
-        w.vy -= 16 * dt
+        const v = VUELO[tipoViento] ?? VUELO.rodadora
+        w.vy -= v.gravedad * dt
         w.mesh.position.x += w.vx * dt
         w.mesh.position.y += w.vy * dt
-        if (w.mesh.position.y < 0.5) { w.mesh.position.y = 0.5; w.vy = rand(2.5, 4.5) }  // botes
+        if (w.mesh.position.y < v.suelo) { w.mesh.position.y = v.suelo; w.vy = rand(...v.bote) }
         w.mesh.rotation.z -= Math.sign(w.vx) * w.spin * dt
         w.mesh.rotation.x += w.spin * 0.4 * dt
         if (Math.abs(w.mesh.position.x) > half + 11) {
@@ -423,7 +554,7 @@ export function createAmbient (scene) {
           w.mesh.visible = false
           w.timer = rand(6, 22)
         }
-      }
+      })
 
       // polvo arrastrado
       const arr = dustGeo.attributes.position.array

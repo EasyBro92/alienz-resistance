@@ -89,6 +89,9 @@ const GESTURE_KEYS = Object.keys(GESTURES)
 // por menos de un segundo, y el peor caso —de esquina a esquina— por algo más de
 // tres, que es lo que debe costar mover una pieza sin que deje de compensar.
 const PASO = 3.2
+// Cómo cruza el campo, según lo que decidió Isidro: corriendo si viene de atrás
+// o va lejos, agachado a la casilla de al lado, y el tirador a gatas.
+const VELOCIDAD_PASO = { correr: 1.7, agachado: 0.75, gatear: 0.42 }
 
 export async function createSoldier (key, spec, lane, row) {
   const mesh = spec.blocker ? buildSandbagsMesh(spec) : await buildSoldierMesh(key, spec)
@@ -171,6 +174,9 @@ export async function createSoldier (key, spec, lane, row) {
     // frente se mueve andando. Sin esto, comprar un mortero para la última fila
     // costaba cinco segundos de figura cruzando el asfalto sin disparar.
     entrando: false,
+    modoPaso: 'correr',
+    // En el asalto final todos van de pie, también el tirador.
+    enAsalto: false,
     destX: laneX(lane),
     destZ: rowZ(row),
     pasoFase: 0,
@@ -197,6 +203,9 @@ export async function createSoldier (key, spec, lane, row) {
     // le asigna en el acto —para que nadie más la ocupe mientras cruza— pero su
     // posición real tarda lo que tarde en llegar.
     moveTo (newLane, newRow, entrando = false) {
+      const celdas = Math.abs(newLane - this.lane) + Math.abs(newRow - this.row)
+      this.modoPaso = entrando || celdas > 1 ? 'correr' : 'agachado'
+      if (this.key === 'sniper' && !entrando) this.modoPaso = 'gatear'
       this.lane = newLane
       this.row = newRow
       this.destX = laneX(newLane)
@@ -248,7 +257,7 @@ export async function createSoldier (key, spec, lane, row) {
         const dx = this.destX - this.px
         const dz = this.destZ - this.pz
         const falta = Math.hypot(dx, dz)
-        const avance = PASO * (this.entrando ? 2 : 1) * dt
+        const avance = PASO * (VELOCIDAD_PASO[this.modoPaso] ?? (this.entrando ? 2 : 1)) * dt
         if (falta <= avance || falta < 1e-4) {
           this.px = this.destX
           this.pz = this.destZ
@@ -294,7 +303,12 @@ export async function createSoldier (key, spec, lane, row) {
         }
 
         const k = this.sizeBoost
-        this.mesh.scale.set(k * (1 + breath * 0.035), k * ud.build * (1 + breath * 0.05), k * (1 + breath * 0.035))
+        // Escala SIEMPRE uniforme. Aquí estaba el "se derriten": la respiración
+        // estiraba la figura más en alto que en ancho, y una escala desigual
+        // sobre huesos girados cizalla la malla —al girarse, al disparar, al
+        // andar—. En las de Meshy la respiración ya la hace la columna.
+        const respiro = ud.cuerpo ? 1 : 1 + breath * 0.02
+        this.mesh.scale.setScalar(k * (ud.build ?? 1) * respiro)
         // El peso se desplaza de verdad: el cuerpo se va de lado, no solo se inclina.
         this.mesh.position.x = this.px + shift * 0.05 * (0.5 + relax)
         this.mesh.rotation.z = shift * 0.06 * (0.4 + relax)
@@ -375,7 +389,10 @@ export async function createSoldier (key, spec, lane, row) {
       // Se pinta ENCIMA de la pose de reposo, no en lugar de ella: la
       // respiración y el balanceo siguen por debajo, y al llegar el andar se
       // apaga solo sin ningún salto de postura.
-      if (ud.figure && !ud.cuerpo) ud.figure.rotation.x = 0
+      if (ud.figure && !ud.cuerpo) {
+        ud.figure.rotation.x = 0
+        ud.figure.position.y = 0
+      }
       if (rumbo !== null && limbs && rest) {
         const p = Math.sin(this.pasoFase)
         const lag = Math.sin(this.pasoFase - 0.7)      // la rodilla va con retraso
@@ -390,6 +407,11 @@ export async function createSoldier (key, spec, lane, row) {
         limbs.legL.userData.lower.rotation.x = -0.12 - Math.max(0, Math.sin(this.pasoFase + 1.4)) * doblez
         limbs.legR.userData.lower.rotation.x = -0.12 - Math.max(0, Math.sin(this.pasoFase + 1.4 + Math.PI)) * doblez
         if (ud.figure && !ud.cuerpo) ud.figure.rotation.x = this.entrando ? 0.2 : 0.08
+        // Las figuras de piezas también van agachadas a la casilla de al lado.
+        if (ud.figure && !ud.cuerpo && this.modoPaso === 'agachado') {
+          ud.figure.position.y = -0.14
+          ud.figure.rotation.x = 0.24
+        }
         void lag
         // Los brazos van a contrafase de las piernas, con el arma recogida.
         limbs.armL.rotation.x = rest.arm.armL - 0.5 - p * 0.32
@@ -451,8 +473,9 @@ export async function createSoldier (key, spec, lane, row) {
         const s = this.spawnT
         this.mesh.position.y = s * s * 2.2
         // Rebote al tocar el suelo: se aplasta y se recupera.
-        const squash = 1 + Math.sin(s * Math.PI) * 0.22
-        this.mesh.scale.y *= (s < 0.35 ? 2 - squash : squash)
+        // Sin aplastar en alto: el mismo motivo que la respiración. El golpe de
+        // llegada se nota igual con un encogimiento uniforme y pequeño.
+        this.mesh.scale.multiplyScalar(1 - Math.sin(s * Math.PI) * 0.06)
       } else {
         // Bamboleo del paso: el cuerpo sube en cada zancada. Sin esto la figura
         // mueve las piernas pero se desliza como sobre raíles.
@@ -512,7 +535,9 @@ export async function createSoldier (key, spec, lane, row) {
         this.mesh.updateMatrixWorld(true)
         ud.cuerpo.actualizar(dt, {
           andando: this.andando,
-          velocidad: this.andando ? PASO * (this.entrando ? 2 : 1) : 0,
+          velocidad: this.andando ? PASO * (VELOCIDAD_PASO[this.modoPaso] ?? 1) : 0,
+          modo: this.modoPaso,
+          forzarPie: this.enAsalto,
           apuntar: this.aim,
           objetivo: this.targetPos,
           retroceso: this.recoil,

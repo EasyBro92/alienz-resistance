@@ -1226,6 +1226,8 @@ function empezarAsalto () {
     s.destZ = FIELD.spawnZ + 10 - (i % 3) * 2.5
     s.andando = true
     s.entrando = true
+    s.modoPaso = 'correr'
+    s.enAsalto = true
     s.gesture = null
     s.hasTarget = false
     s.targetPos = null
@@ -1437,6 +1439,8 @@ function start (indice = nivelActual) {
   // El paisaje de la región, antes de enseñar nada: si se vistiera después, el
   // primer fotograma del nivel saldría con la tierra del destino anterior.
   world.vestir(NIVELES[nivelActual].bioma, NIVELES[nivelActual].hitos, NIVELES[nivelActual].suelo, NIVELES[nivelActual].tonoSuelo)
+  // Lo que arrastra el viento en este sitio, y por dónde vuelan las naves de paso.
+  ambient.vestir(NIVELES[nivelActual], world.alturaEn)
   billetesPartida = 0
   pintarBilletes()
   cuentas = null

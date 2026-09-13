@@ -3,19 +3,23 @@ import * as THREE from 'three'
 // El cuerpo de las figuras de Meshy.
 //
 // Antes se movían sumando giros sueltos a cada hueso sobre la pose A del
-// montador: las piernas con una sinusoide y el fusil colgado de la mano derecha.
-// El resultado era un muñeco articulado —el arma apuntaba adonde caía la mano,
-// no adonde miraba el soldado, y al andar las piernas iban como tijeras—.
+// montador: el arma apuntaba adonde caía la mano y las piernas iban como
+// tijeras. Ahora se anima por capas, todo por código (sin animaciones de pago):
+//   1. Postura de base: de pie, agachado, rodilla en tierra o cuerpo a tierra.
+//      Se mezclan con suavidad, así que se ve arrodillarse y tumbarse.
+//   2. Piernas: el ciclo de andar que trae el modelo al correr; a gatas, un
+//      ciclo propio; y en cualquier postura los pies vuelven al suelo por
+//      cinemática inversa, que es lo que permite agacharse sin hundirse.
+//   3. El arma se coloca en la figura según el estilo de cada uno (al hombro,
+//      desde la cadera, a la cintura) y las manos van a ella.
 //
-// Ahora se hace como se hace un personaje de verdad, en tres capas:
-//   1. Piernas y cadera: el ciclo de andar que trae el propio modelo, al ritmo
-//      de la velocidad real y con más zancada cuando corre.
-//   2. El arma se coloca primero, en el espacio de la figura: culata al hombro y
-//      boca al objetivo al apuntar, baja y cruzada en reposo, sobre el pecho al
-//      correr. El retroceso y la recarga mueven el ARMA.
-//   3. Las manos van al arma por cinemática inversa de dos huesos (hombro-codo),
-//      con el codo guiado hacia fuera y abajo. Así las manos siguen al arma y
-//      no al revés, y el disparo empuja todo el brazo.
+// Posturas decididas con Isidro:
+//   - tirador: de rodilla mientras espera, cuerpo a tierra al empezar a
+//     disparar, a gatas al cambiar de casilla y de pie para el asalto final;
+//   - fusilero: de pie, al hombro; escopetero: desde la cadera;
+//   - lanzallamas: de pie, bien plantado y echado hacia delante;
+//   - para moverse: agachados a la casilla de al lado, corriendo si es lejos o
+//     si entran desde atrás.
 //
 // Se escribe en huesos por espacio de mundo, sin suponer hacia dónde apuntan
 // sus ejes locales: el montador de Meshy no es simétrico y adivinar signos fue
@@ -26,21 +30,37 @@ import * as THREE from 'three'
 //
 // Medido sobre el esqueleto: estas figuras tienen el brazo cortísimo, 0,48 de
 // hombro a muñeca para 1,7 de alto. Con el arma a su tamaño, la mano de apoyo
-// no llega al guardamanos desde ninguna postura —como mucho a 0,36 de la
-// culata— y el brazo se quedaba estirado en el aire. Así que en estas figuras
-// el arma va a tamaño de carabina y la mano de apoyo agarra el brocal del
-// cargador, que es un agarre de verdad y queda a su alcance.
+// no llega al guardamanos desde ninguna postura, así que en estas figuras el
+// arma va a tamaño de carabina y la mano de apoyo agarra el brocal del cargador.
 const AGARRES = {
   rifle: { mano: [0, -0.11, 0.15], apoyo: [0, -0.12, -0.09], culata: 0.45, escala: 0.65 },
   shotgun: { mano: [0, -0.11, 0.13], apoyo: [0, -0.07, -0.05], culata: 0.47, escala: 0.65 },
   sniper: { mano: [0, -0.11, 0.18], apoyo: [0, -0.08, 0.05], culata: 0.62, escala: 0.6 },
   flamer: { mano: [0, -0.11, 0.12], apoyo: [0, -0.05, -0.1], culata: 0.3, escala: 0.7 }
 }
+// Cómo dispara cada uno: dónde va la culata respecto al hombro, cuánto se echa
+// hacia delante el tronco y cuánto abre las piernas.
+const ESTILOS = {
+  rifle: { culata: [-0.09, 0.11, -0.05], inclina: 0.06, abre: 0 },
+  sniper: { culata: [-0.09, 0.11, -0.05], inclina: 0.06, abre: 0 },
+  shotgun: { culata: [-0.1, -0.3, -0.06], inclina: 0.12, abre: 0.1 },
+  flamer: { culata: [-0.12, -0.34, -0.05], inclina: 0.24, abre: 0.2 }
+}
 const CARGADOR = new THREE.Vector3(0, -0.28, -0.09)
 const ARRIBA = new THREE.Vector3(0, 1, 0)
 const CERO = new THREE.Vector3()
 const EJE_Z = new THREE.Vector3(0, 0, 1)
 const IDENTIDAD = new THREE.Quaternion()
+
+// Cuánto baja la cadera agachado y de rodilla, y cuánto se inclina tumbado.
+const BAJADA_AGACHADO = 0.2
+const BAJADA_RODILLA = 0.46
+// Algo menos de horizontal: apoyado en los codos, como tira un francotirador. Del
+// todo plano la cabeza y el pecho se hundían en el suelo.
+const TUMBADO = 1.35
+// Segundos que el tirador sigue tumbado tras perder el objetivo: sin esto se
+// levantaba y se tumbaba entre disparo y disparo.
+const MEMORIA_TUMBADO = 4
 
 // Temporales compartidos: esto corre por soldado y por fotograma.
 const _a = new THREE.Vector3()
@@ -75,8 +95,8 @@ function orientar (hueso, desde, hacia, destino) {
   girarEnMundo(hueso, _q)
 }
 
-// Cinemática inversa de dos huesos: lleva la mano a `objetivo` doblando el codo
-// hacia `polo`. Las longitudes se leen de la pose, no se suponen.
+// Cinemática inversa de dos huesos: lleva la punta a `objetivo` doblando la
+// articulación del medio hacia `polo`. Las longitudes se leen de la pose.
 function dosHuesos (brazo, antebrazo, mano, objetivo, polo) {
   brazo.getWorldPosition(_a)
   antebrazo.getWorldPosition(_b)
@@ -89,8 +109,6 @@ function dosHuesos (brazo, antebrazo, mano, objetivo, polo) {
   const alcance = (l1 + l2) * 0.999
   dist = Math.min(dist, alcance)
   _d.normalize()
-  // El codo: a lo largo de la recta hombro→mano y separado hacia el polo lo que
-  // pida el triángulo de los dos huesos.
   const x = (l1 * l1 - l2 * l2 + dist * dist) / (2 * dist)
   const h = Math.sqrt(Math.max(0, l1 * l1 - x * x))
   _p.subVectors(polo, _a)
@@ -104,11 +122,17 @@ function dosHuesos (brazo, antebrazo, mano, objetivo, polo) {
   orientar(antebrazo, _b, _c, _f)
 }
 
-// Inclina un hueso alrededor del eje lateral de la figura. Positivo = hacia
-// delante.
+// Inclina un hueso alrededor del eje lateral de la figura. Positivo = delante.
 function inclinar (hueso, figure, angulo) {
   _eje.set(1, 0, 0).transformDirection(figure.matrixWorld)
   _q.setFromAxisAngle(_eje, -angulo)
+  girarEnMundo(hueso, _q)
+}
+
+// Gira un hueso alrededor del eje vertical de la figura.
+function girarVertical (hueso, figure, angulo) {
+  _eje.set(0, 1, 0).transformDirection(figure.matrixWorld)
+  _q.setFromAxisAngle(_eje, angulo)
   girarEnMundo(hueso, _q)
 }
 
@@ -121,8 +145,8 @@ function mirarHacia (hueso, adelanteLocal, deseado, cuanto) {
   girarEnMundo(hueso, _q)
 }
 
-// Estira un giro del ciclo de andar: la misma pierna, más zancada. Es lo que
-// convierte el andar del modelo en carrera sin tener otra animación.
+// Estira un giro del ciclo de andar: un poco más de zancada al correr. Solo en
+// el muslo y poco: estirar también la rodilla dejaba los pies de gelatina.
 function amplificar (hueso, reposo, k) {
   _q.copy(reposo).invert().multiply(hueso.quaternion)
   if (_q.w < 0) _q.set(-_q.x, -_q.y, -_q.z, -_q.w)
@@ -136,20 +160,16 @@ function amplificar (hueso, reposo, k) {
 
 // --- figuras de piezas ------------------------------------------------------------
 // Arquero, ametrallador, mortero (y cualquier soldado cuyo modelo no cargue) no
-// tienen esqueleto ni ciclo de andar, pero sí brazos de dos tramos. El arma la
-// sigue moviendo el bucle de siempre; aquí se llevan las manos a ella. Era lo
-// que las hacía de juguete: los brazos iban por un lado y el arma flotaba por
-// otro, delante del pecho.
+// tienen esqueleto, pero sí brazos de dos tramos: aquí se llevan las manos al
+// arma que mueve el bucle de siempre.
 const AGARRES_PIEZAS = {
   rifle: { mano: [0, -0.11, 0.13], apoyo: [0, -0.03, -0.36] },
   shotgun: { mano: [0, -0.11, 0.11], apoyo: [0, -0.05, -0.3] },
   sniper: { mano: [0, -0.11, 0.16], apoyo: [0, -0.04, -0.3] },
-  // La ametralladora es más larga que el brazo: la de apoyo no llega bajo el
-  // cañón (0,8 del hombro para 0,62 de brazo). Se dispara desde la cadera
+  // La ametralladora es más larga que el brazo: se dispara desde la cadera
   // cogida del asa de transporte, que es como se lleva de verdad.
   gunner: { mano: [0, -0.11, 0.2], apoyo: [0, 0.09, 0.02] },
   flamer: { mano: [0, -0.11, 0.1], apoyo: [0, -0.03, -0.34] },
-  // El arco: la izquierda en la empuñadura y la derecha tensando la cuerda.
   archer: { mano: [0, 0.02, 0.1], apoyo: [0, 0, -0.1] },
   mortar: { mano: [0.04, 0.2, -0.16], apoyo: [-0.05, 0.1, 0.05] }
 }
@@ -162,8 +182,6 @@ export function crearManosDePiezas ({ figure, limbs, weapon, key, rest }) {
   const agarre = AGARRES_PIEZAS[key] ?? AGARRES_PIEZAS.rifle
   const puntoMano = new THREE.Vector3(...agarre.mano)
   const puntoApoyo = new THREE.Vector3(...agarre.apoyo)
-  // La mano es la punta del segundo tramo del brazo: `limb` la cuelga a media
-  // longitud por debajo del codo, un poco adelantada.
   const puntas = {}
   for (const n of ['armL', 'armR']) {
     const p = new THREE.Object3D()
@@ -177,8 +195,6 @@ export function crearManosDePiezas ({ figure, limbs, weapon, key, rest }) {
   const poloL = new THREE.Vector3()
   return {
     actualizar (recarga = 0) {
-      // Se parte cada vez de un giro sin torsión: la cinemática inversa es
-      // exacta, pero sin esto el brazo iría acumulando giro sobre su eje.
       for (const n of ['armL', 'armR']) {
         const brazo = limbs[n]
         brazo.rotation.set(brazo.rotation.x, 0, rest?.armRoll?.[n] ?? 0)
@@ -191,11 +207,8 @@ export function crearManosDePiezas ({ figure, limbs, weapon, key, rest }) {
         weapon.localToWorld(objL.copy(puntoApoyo).lerp(CARGADOR_PIEZAS, recarga))
       }
       objetivos()
-      // Si un agarre queda fuera del alcance —en reposo el arma cae a la cadera,
-      // el mortero apunta el tubo lejos—, el arma se acerca a ese hombro lo que
-      // falte. Dos pasadas, una por mano. Mejor un arma algo más recogida que
-      // una mano en el aire. El bucle vuelve a colocar el arma cada fotograma,
-      // así que esto no se acumula.
+      // Si un agarre queda fuera del alcance, el arma se acerca a ese hombro lo
+      // que falte. Mejor un arma algo más recogida que una mano en el aire.
       for (let pasada = 0; pasada < 2; pasada++) {
         for (const [n, obj] of [['armR', objR], ['armL', objL]]) {
           const brazo = limbs[n]
@@ -237,23 +250,40 @@ export function crearCuerpo ({ figure, cuerpo, arma, key, clips = [] }) {
     manoL: hueso('LeftHand'),
     musloL: hueso('LeftUpLeg'),
     rodillaL: hueso('LeftLeg'),
+    pieL: hueso('LeftFoot'),
     musloR: hueso('RightUpLeg'),
     rodillaR: hueso('RightLeg'),
-    pieL: hueso('LeftFoot')
+    pieR: hueso('RightFoot')
   }
   if (!b.brazoR || !b.antebrazoR || !b.manoR || !b.brazoL || !b.antebrazoL || !b.manoL) return null
+  const conPiernas = !!(b.musloL && b.rodillaL && b.pieL && b.musloR && b.rodillaR && b.pieR)
 
   const agarre = AGARRES[key] ?? AGARRES.rifle
+  const estilo = ESTILOS[key] ?? ESTILOS.rifle
   const puntoMano = new THREE.Vector3(...agarre.mano)
   const puntoApoyo = new THREE.Vector3(...agarre.apoyo)
+  const culataEstilo = new THREE.Vector3(...estilo.culata)
+  // Tumbado todos llevan el arma al hombro, sea cual sea su estilo de pie.
+  const culataHombro = new THREE.Vector3(...ESTILOS.rifle.culata)
   arma.scale.setScalar(agarre.escala)
+  const esTirador = key === 'sniper'
 
   cuerpo.updateMatrixWorld(true)
   const reposo = new Map()
   cuerpo.traverse(o => { if (o.isBone) reposo.set(o, { q: o.quaternion.clone(), p: o.position.clone() }) })
+  // Los huesos que se giran cada fotograma. Vuelven a su reposo al empezar cada
+  // uno: la inclinación del tronco y la mirada giran SOBRE lo que tenga el hueso.
+  const tocados = [b.columna, b.cabeza, b.brazoR, b.antebrazoR, b.manoR, b.brazoL, b.antebrazoL, b.manoL, b.musloL, b.rodillaL, b.pieL, b.musloR, b.rodillaR, b.pieR]
+    .filter(h => h && reposo.has(h))
+  const basePos = cuerpo.position.clone()
+  const baseRot = cuerpo.rotation.clone()
 
-  // Hacia dónde mira la cabeza en su propio sistema. Al crearla la figura mira
-  // a -Z, así que basta deshacer su giro de mundo.
+  // Medidas de la pose de reposo, en el espacio de la figura: la altura de la
+  // cadera (sobre la que se tumba) y dónde pisa cada pie.
+  const alturaCadera = b.cadera ? figure.worldToLocal(b.cadera.getWorldPosition(new THREE.Vector3())).y : 0.85
+  const pieL0 = conPiernas ? figure.worldToLocal(b.pieL.getWorldPosition(new THREE.Vector3())) : new THREE.Vector3()
+  const pieR0 = conPiernas ? figure.worldToLocal(b.pieR.getWorldPosition(new THREE.Vector3())) : new THREE.Vector3()
+
   const adelanteCabeza = new THREE.Vector3(0, 0, -1)
   if (b.cabeza) adelanteCabeza.applyQuaternion(b.cabeza.getWorldQuaternion(new THREE.Quaternion()).invert())
 
@@ -261,10 +291,8 @@ export function crearCuerpo ({ figure, cuerpo, arma, key, clips = [] }) {
   const clip = clips.find(c => /walk/i.test(c.name)) ?? clips[0] ?? null
   const mixer = clip ? new THREE.AnimationMixer(cuerpo) : null
   const accion = clip ? mixer.clipAction(clip) : null
-  // A qué velocidad avanza el ciclo tal cual, medido sobre el propio pie: lo que
-  // se desplaza respecto a la cadera en medio ciclo es lo que recorre el suelo.
-  // Con eso el ritmo de la animación sale de la velocidad de verdad y los pies
-  // no patinan.
+  // A qué velocidad avanza el ciclo tal cual, medido sobre el propio pie: con eso
+  // el ritmo sale de la velocidad de verdad y los pies no patinan.
   let pasoNatural = 1.2
   if (accion) {
     accion.play()
@@ -290,7 +318,15 @@ export function crearCuerpo ({ figure, cuerpo, arma, key, clips = [] }) {
     cuerpo.updateMatrixWorld(true)
   }
 
+  // Mezclas de postura, de 0 a 1.
   let andar = 0
+  let agache = 0
+  let rodilla = 0
+  let tumbado = 0
+  let gateo = 0
+  let faseGateo = 0
+  let memoriaTumbado = 0
+
   const ultimaDir = new THREE.Vector3(0, -0.05, -1).normalize()
   const culata = new THREE.Vector3()
   const dir = new THREE.Vector3()
@@ -308,79 +344,155 @@ export function crearCuerpo ({ figure, cuerpo, arma, key, clips = [] }) {
   const poloL = new THREE.Vector3()
   const deseo = new THREE.Vector3()
   const dirMundo = new THREE.Vector3()
+  const pieActual = new THREE.Vector3()
+  const sitioPie = new THREE.Vector3()
+  const poloPie = new THREE.Vector3()
+  const mundoPie = new THREE.Vector3()
+  const mundoPolo = new THREE.Vector3()
+
+  const acercar = (v, obj, vel, dt) => v + THREE.MathUtils.clamp(obj - v, -dt * vel, dt * vel)
 
   return {
-    // e: { andando, velocidad, apuntar (0-1), objetivo (mundo o null),
-    //      retroceso (0-1), recarga (0-1), encogido (0-1), mirar, t }
+    // e: { andando, velocidad, modo ('correr' | 'agachado' | 'gatear'),
+    //      apuntar (0-1), objetivo (mundo o null), retroceso, recarga,
+    //      encogido, mirar, t, forzarPie }
     actualizar (dt, e) {
-      andar += ((e.andando ? 1 : 0) - andar) * Math.min(1, dt * 7)
-      // 0 = paso vivo, 1 = carrera: el traslado normal ya va a paso ligero, y
-      // entrar al tablero o salir al asalto es correr.
+      // --- 1. postura ---------------------------------------------------------------
+      const moviendose = !!e.andando
+      const modo = moviendose ? (e.modo ?? 'correr') : null
+      if (e.objetivo) memoriaTumbado = MEMORIA_TUMBADO
+      else memoriaTumbado = Math.max(0, memoriaTumbado - dt)
+      let quiereAgache = 0
+      let quiereRodilla = 0
+      let quiereTumbado = 0
+      if (moviendose) {
+        if (modo === 'agachado') quiereAgache = 1
+        if (modo === 'gatear') quiereTumbado = 1
+      } else if (esTirador && !e.forzarPie) {
+        if (memoriaTumbado > 0) quiereTumbado = 1
+        else quiereRodilla = 1
+      }
+      agache = acercar(agache, quiereAgache, 4, dt)
+      rodilla = acercar(rodilla, quiereRodilla, 2.5, dt)
+      tumbado = acercar(tumbado, quiereTumbado, 1.6, dt)
+      gateo = acercar(gateo, modo === 'gatear' ? 1 : 0, 3, dt)
+      andar += ((moviendose && modo !== 'gatear' ? 1 : 0) - andar) * Math.min(1, dt * 7)
+      const deRodilla = rodilla * (1 - tumbado)
+      const agachado = agache * (1 - tumbado)
       const carrera = THREE.MathUtils.clamp((e.velocidad - 3) / 3.4, 0, 1)
 
-      // 1. Piernas y cadera.
+      // Aquí estaba el escopetero doblado por la mitad: quieto, sin ciclo de
+      // andar que sobrescribiera la columna, la inclinación se sumaba fotograma
+      // a fotograma hasta plegarlo. Todo a reposo antes de posar.
+      for (const h of tocados) h.quaternion.copy(reposo.get(h).q)
+
+      // --- 2. ciclo de andar (no tumbado) --------------------------------------
       if (accion) {
-        const amplitud = 1 + carrera * 0.5
-        accion.setEffectiveWeight(andar)
-        if (andar > 0.01) {
-          accion.timeScale = THREE.MathUtils.clamp(Math.max(e.velocidad, 1.5) / (pasoNatural * amplitud), 0.5, 3.2)
+        const peso = andar * (1 - tumbado)
+        const amplitud = 1 + carrera * 0.25
+        accion.setEffectiveWeight(peso)
+        if (peso > 0.01) {
+          accion.timeScale = THREE.MathUtils.clamp(Math.max(e.velocidad, 1.5) / (pasoNatural * amplitud), 0.5, 2.2)
           mixer.update(dt)
           if (amplitud > 1.01) {
-            for (const h of [b.musloL, b.rodillaL, b.musloR, b.rodillaR]) {
-              if (h) amplificar(h, reposo.get(h).q, 1 + (amplitud - 1) * andar)
-            }
+            for (const h of [b.musloL, b.musloR]) if (h) amplificar(h, reposo.get(h).q, 1 + (amplitud - 1) * peso)
           }
         } else {
           mixer.update(0)
         }
       }
 
-      // 2. Tronco: de perfil para disparar, echado hacia delante al correr,
-      // hacia atrás al encajar un mordisco, y respirando.
+      // --- 3. el cuerpo entero: bajar la cadera y tumbarse ---------------------
+      // Tumbarse es girar la figura hacia delante sobre los pies y correrla para
+      // que la cadera quede en su casilla y no a medio metro por delante.
       const apunta = e.apuntar * (1 - andar)
-      figure.rotation.y = -0.38 * apunta
+      const angulo = TUMBADO * tumbado
+      cuerpo.position.copy(basePos)
+      cuerpo.rotation.copy(baseRot)
+      cuerpo.position.y -= BAJADA_AGACHADO * agachado + BAJADA_RODILLA * deRodilla
+      cuerpo.rotation.x = -angulo
+      cuerpo.position.z += alturaCadera * Math.sin(angulo)
+      cuerpo.position.y += 0.22 * tumbado
+      if (gateo > 0.01) {
+        faseGateo += dt * 5
+        cuerpo.rotation.z = Math.sin(faseGateo) * 0.08 * gateo
+      }
+      figure.rotation.y = -0.38 * apunta * (1 - tumbado)
       figure.updateMatrixWorld(true)
+
+      // --- 4. tronco -----------------------------------------------------------------
       if (b.columna) {
         const respira = Math.sin(e.t * 1.3) * 0.015
-        inclinar(b.columna, figure, andar * (0.08 + carrera * 0.22) + apunta * 0.06 + respira - e.encogido * 0.3)
+        const inclina = andar * (0.08 + carrera * 0.22) + agachado * 0.25 + apunta * estilo.inclina + deRodilla * 0.05
+        inclinar(b.columna, figure, (inclina + respira - e.encogido * 0.3) * (1 - tumbado * 0.8))
       }
 
-      // 3. El arma.
+      // --- 5. piernas ---------------------------------------------------------------
+      if (conPiernas && tumbado < 0.6) {
+        const abre = estilo.abre * apunta
+        if (agachado + deRodilla + abre > 0.01) {
+          for (const [lado, muslo, rod, pie, pie0] of [[-1, b.musloL, b.rodillaL, b.pieL, pieL0], [1, b.musloR, b.rodillaR, b.pieR, pieR0]]) {
+            // Donde pisa ahora el pie (lo que haya dejado el ciclo de andar),
+            // devuelto al suelo lo que haya bajado la cadera.
+            figure.worldToLocal(pie.getWorldPosition(pieActual))
+            sitioPie.set(pieActual.x, Math.max(pieActual.y + BAJADA_AGACHADO * agachado + BAJADA_RODILLA * deRodilla, pie0.y), pieActual.z)
+            // Plantado: pies separados y el izquierdo adelantado.
+            sitioPie.x += lado * abre
+            if (lado < 0) sitioPie.z -= abre
+            // De rodilla: el derecho atrás con la rodilla en el suelo y el
+            // izquierdo delante con la rodilla arriba.
+            if (deRodilla > 0) {
+              if (lado > 0) sitioPie.lerp(_u.set(pie0.x, pie0.y + 0.04, 0.42), deRodilla)
+              else sitioPie.lerp(_u.set(pie0.x - 0.02, pie0.y, -0.4), deRodilla)
+            }
+            if (lado > 0 && deRodilla > 0.3) poloPie.set(pie0.x, -0.3, -1)
+            else poloPie.set(pie0.x + lado * 0.1, 0.9, -1.2)
+            figure.localToWorld(mundoPie.copy(sitioPie))
+            figure.localToWorld(mundoPolo.copy(poloPie))
+            dosHuesos(muslo, rod, pie, mundoPie, mundoPolo)
+          }
+        }
+      }
+      // A gatas: las piernas se abren y encogen por turnos, como una rana.
+      if (conPiernas && gateo > 0.01) {
+        const s = Math.sin(faseGateo)
+        girarVertical(b.musloL, figure, Math.max(0, s) * 0.7 * gateo)
+        girarVertical(b.rodillaL, figure, -Math.max(0, s) * 1.1 * gateo)
+        girarVertical(b.musloR, figure, -Math.max(0, -s) * 0.7 * gateo)
+        girarVertical(b.rodillaR, figure, Math.max(0, -s) * 1.1 * gateo)
+      }
+
+      // --- 6. el arma -------------------------------------------------------------------
       figure.worldToLocal(b.brazoR.getWorldPosition(hombro))
       figure.worldToLocal(b.brazoL.getWorldPosition(hombroL))
-      // En reposo: baja, cruzada por delante y la boca hacia el suelo.
-      // Menos caída que un arma colgando del todo: con la boca casi vertical el
-      // brocal del cargador quedaba fuera del alcance de la mano izquierda.
+      // En reposo: baja y cruzada por delante.
       c1.set(-0.08, -0.15, -0.1).add(hombro)
       d1.set(-0.35, -0.52, -0.78).normalize()
-      // Corriendo: cruzada sobre el pecho, sujeta con las dos manos.
+      // Corriendo: cruzada sobre el pecho.
       c2.set(-0.08, -0.14, -0.1).add(hombro)
       d2.set(-0.55, -0.4, -0.72).normalize()
       c1.lerp(c2, andar)
       d1.lerp(d2, andar).normalize()
-      // Apuntando: la culata en el hueco del hombro y la boca al objetivo.
-      // El hueso del brazo está en la articulación, más baja que el hueco del
-      // hombro: con la culata ahí el cañón iba a la altura del estómago. Arriba y
-      // hacia la barbilla, la línea de tiro queda a la altura de la mejilla.
-      c3.set(-0.09, 0.11, -0.05).add(hombro)
+      // Disparando: según el estilo; tumbado, al hombro.
+      c3.copy(culataEstilo).lerp(culataHombro, tumbado).add(hombro)
       if (e.objetivo) {
         blanco.copy(e.objetivo)
-        if (blanco.y < 0.6) blanco.y += 1
+        if (blanco.y < 0.6) blanco.y += 1 - tumbado * 0.7
         figure.worldToLocal(blanco)
         ultimaDir.subVectors(blanco, c3).normalize()
         ultimaDir.y = THREE.MathUtils.clamp(ultimaDir.y, -0.3, 0.2)
         ultimaDir.normalize()
       }
-      culata.copy(c1).lerp(c3, apunta)
-      dir.copy(d1).lerp(ultimaDir, apunta).normalize()
+      // Tumbado el arma va siempre lista; de pie y de rodilla se baja sin blanco.
+      const lista = Math.max(apunta, tumbado)
+      culata.copy(c1).lerp(c3, lista)
+      dir.copy(d1).lerp(ultimaDir, lista).normalize()
 
-      // Culatazo: el arma entra en el hombro y la boca trepa.
       const golpe = e.retroceso * e.retroceso
       culata.addScaledVector(dir, -golpe * 0.07)
       dir.y += golpe * 0.14
       dir.normalize()
-      culata.y += Math.sin(e.t * 1.3) * 0.006 * (1 - apunta * 0.6)
-      // Recarga: boca abajo y el arma girada hacia el cargador.
+      culata.y += Math.sin(e.t * 1.3) * 0.006 * (1 - lista * 0.6)
       const recarga = Math.sin(e.recarga * Math.PI)
       if (recarga > 0) {
         dir.y -= recarga * 0.5
@@ -388,6 +500,8 @@ export function crearCuerpo ({ figure, cuerpo, arma, key, clips = [] }) {
         culata.y -= recarga * 0.06
       }
       culata.z += e.encogido * 0.06
+      // A gatas el arma va arrastrada con la mano derecha, que avanza y retrocede.
+      if (gateo > 0.01) culata.z -= Math.sin(faseGateo + Math.PI) * 0.12 * gateo
 
       _m.lookAt(CERO, dir, ARRIBA)
       arma.quaternion.setFromRotationMatrix(_m)
@@ -395,24 +509,46 @@ export function crearCuerpo ({ figure, cuerpo, arma, key, clips = [] }) {
       arma.position.copy(culata).addScaledVector(dir, agarre.culata * agarre.escala)
       arma.updateMatrixWorld(true)
 
-      // 4. Las manos al arma. La de apoyo se va al cargador durante la recarga.
+      // --- 7. manos ------------------------------------------------------------------
       b.manoR.quaternion.copy(reposo.get(b.manoR).q)
       b.manoL.quaternion.copy(reposo.get(b.manoL).q)
       arma.localToWorld(objR.copy(puntoMano))
       arma.localToWorld(objL.copy(puntoApoyo).lerp(CARGADOR, recarga))
-      // Codos: el derecho hacia fuera y atrás, el izquierdo por debajo del arma.
+      // Si un agarre queda fuera del alcance del brazo, el arma se acerca a ese
+      // hombro lo que falte, una pasada por mano. Con estos brazos tan cortos, desde
+      // la cadera la mano de apoyo se quedaba a diez centímetros del arma.
+      for (let pasada = 0; pasada < 2; pasada++) {
+        for (const [brazo, antebrazo, manoHueso, obj] of [[b.brazoR, b.antebrazoR, b.manoR, objR], [b.brazoL, b.antebrazoL, b.manoL, objL]]) {
+          brazo.getWorldPosition(_a)
+          antebrazo.getWorldPosition(_b)
+          manoHueso.getWorldPosition(_c)
+          const falta = _a.distanceTo(obj) - (_a.distanceTo(_b) + _b.distanceTo(_c)) * 0.97
+          if (falta <= 0) continue
+          _d.subVectors(_a, obj).normalize()
+          arma.getWorldPosition(_e).addScaledVector(_d, falta)
+          figure.worldToLocal(_e)
+          arma.position.copy(_e)
+          arma.updateMatrixWorld(true)
+          arma.localToWorld(objR.copy(puntoMano))
+          arma.localToWorld(objL.copy(puntoApoyo).lerp(CARGADOR, recarga))
+        }
+      }
+      // A gatas la izquierda no sujeta el arma: se apoya en el suelo por delante,
+      // a su alcance (antes la ponía medio metro por delante y no llegaba).
+      if (gateo > 0.5) figure.localToWorld(objL.set(hombroL.x - 0.05, 0.06, hombroL.z - 0.15 - Math.sin(faseGateo) * 0.12))
       figure.localToWorld(poloR.set(0.4, -0.55, 0.35).add(hombro))
       figure.localToWorld(poloL.set(-0.25, -0.75, 0.05).add(hombroL))
       dosHuesos(b.brazoR, b.antebrazoR, b.manoR, objR, poloR)
       dosHuesos(b.brazoL, b.antebrazoL, b.manoL, objL, poloL)
 
-      // 5. La cabeza: por las miras al apuntar; en reposo, vigilando.
+      // --- 8. cabeza -----------------------------------------------------------------
       if (b.cabeza) {
         deseo.set(0, 0, -1).transformDirection(figure.matrixWorld)
-        deseo.applyAxisAngle(ARRIBA, (e.mirar ?? 0) * (1 - apunta) * (1 - andar) * 0.8)
+        deseo.applyAxisAngle(ARRIBA, (e.mirar ?? 0) * (1 - lista) * (1 - andar) * 0.8)
         dirMundo.copy(dir).transformDirection(figure.matrixWorld)
-        deseo.lerp(dirMundo, apunta * 0.9).normalize()
-        mirarHacia(b.cabeza, adelanteCabeza, deseo, 0.8)
+        deseo.lerp(dirMundo, lista * 0.9).normalize()
+        // Tumbado, la cabeza se levanta para mirar al frente y no al suelo.
+        mirarHacia(b.cabeza, adelanteCabeza, deseo, 0.8 + tumbado * 0.15)
       }
     }
   }

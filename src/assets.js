@@ -1147,7 +1147,7 @@ function placeholderSoldier (key, spec) {
   if (built.userData.canon) brilla(built.userData.canon)
   g.userData.rest = { arm: armPose, leg: legPose, armBend, legBend, armRoll, weaponRest, headY: 1.66 }
   g.userData.build = 0.96 + Math.random() * 0.1
-  g.scale.set(1, g.userData.build, 1)
+  g.scale.setScalar(g.userData.build)
 
   // Postura de perfil, con la cabeza girada de vuelta hacia el objetivo.
   // Ladeo hacia el otro lado: así la mano de disparo va atrás y afuera y la de

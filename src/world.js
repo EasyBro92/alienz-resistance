@@ -128,6 +128,21 @@ function agrandar (h) {
   h.position.z += Math.max(-75, Math.min(-50, cz)) - cz
 }
 
+// Apunta lo que sobresale del decorado (a más de 3,5 de alto y fuera de la
+// calzada), pieza a pieza y antes de fundir: las naves que cruzan el escenario
+// lo consultan para volar por encima en vez de atravesar edificios.
+const _cajaAlto = new THREE.Box3()
+function medirAltos (raiz, lista) {
+  raiz.updateMatrixWorld(true)
+  raiz.traverse(o => {
+    if (!o.isMesh) return
+    _cajaAlto.setFromObject(o)
+    if (_cajaAlto.max.y < 3.5) return
+    if (_cajaAlto.max.x > -7 && _cajaAlto.min.x < 7) return
+    lista.push({ minX: _cajaAlto.min.x, maxX: _cajaAlto.max.x, minZ: _cajaAlto.min.z, maxZ: _cajaAlto.max.z, maxY: _cajaAlto.max.y })
+  })
+}
+
 // `aparte` recibe la nave estrellada y su surco: no se funden con el resto
 // para poder esconderlos en las misiones con monumento.
 function decorate (scene, pintables, aparte = scene) {
@@ -782,6 +797,8 @@ export function createWorld (canvas) {
   const soloCarretera = [...marcasAsfalto, bacheMat, lineMat, grava, postMat, pintables.raya, pintables.bordillo, pintables.bordilloOscuro]
   // Sin oclusión: son piezas sueltas repartidas por el descampado, no hay
   // rincones entre ellas, y cocerla costaría media carga a cambio de nada.
+  const obstaculosFijos = []
+  medirAltos(decor, obstaculosFijos)
   scene.add(bake(decor, false))
 
   // --- rejilla de colocación --------------------------------------------------
@@ -946,6 +963,9 @@ export function createWorld (canvas) {
     }
     // Se funden en un puñado de mallas, igual que el resto del decorado: veinte
     // árboles sueltos son veinte llamadas de dibujo por nada.
+    const obstaculos = []
+    medirAltos(g, obstaculos)
+    for (const h of aparte) medirAltos(h, obstaculos)
     const fundido = bake(g, false)
     // El respaldo de código de los monumentos de Meshy también se funde: la
     // Eiffel de celosía son cientos de barras, y sin fundir serían cientos de
@@ -964,6 +984,7 @@ export function createWorld (canvas) {
       fundido.add(h)
     }
     fundido.userData.foco = foco
+    fundido.userData.obstaculos = obstaculos
     // Si el principal es de Meshy su caja se mide al pedirla: el modelo llega
     // después y no ocupa lo mismo que el respaldo (el Coliseo de verdad es casi
     // el doble de ancho que el de código).
@@ -1051,6 +1072,21 @@ export function createWorld (canvas) {
     // La base del fondo de esta misión: el asalto final la hace reventar.
     baseActual: () => baseVisible,
     // La caja del monumento de esta misión, para el vuelo de presentación.
+    // Lo más alto del decorado entre dos profundidades (colinas, edificios,
+    // monumentos y la base del fondo), para que lo que vuela pase por encima.
+    alturaEn (zMin, zMax, xMin = -Infinity, xMax = Infinity) {
+      let h = 0
+      for (const lista of [obstaculosFijos, bosqueVisible?.userData.obstaculos ?? []]) {
+        for (const o of lista) {
+          if (o.maxZ >= zMin && o.minZ <= zMax && o.maxX >= xMin && o.minX <= xMax) h = Math.max(h, o.maxY)
+        }
+      }
+      if (baseVisible?.visible) {
+        const c = new THREE.Box3().setFromObject(baseVisible)
+        if (c.max.z >= zMin && c.min.z <= zMax && c.max.x >= xMin && c.min.x <= xMax) h = Math.max(h, c.max.y)
+      }
+      return h
+    },
     focoMonumento: () => {
       const vivo = bosqueVisible?.userData.vivo
       if (vivo) {
