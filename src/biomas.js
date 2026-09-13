@@ -1636,7 +1636,7 @@ function conModelo (nombre, respaldo, { altura, x, z, giro = 0 }) {
 
 export const HITOS = {
   eiffel3d: () => conModelo('monumento-eiffel', torreEiffel(), { altura: 34, x: 18, z: -70 }),
-  coliseo3d: () => conModelo('monumento-coliseo', coliseo(), { altura: 8, x: 23, z: -64 }),
+  coliseo3d: () => conModelo('monumento-coliseo', coliseo(), { altura: 8, x: 24.5, z: -64 }),
   libertad3d: () => conModelo('monumento-libertad', libertad(), { altura: 22, x: -14, z: -52 }),
   piramides, volcan, karst, columnas,
   artesYCiencias, castellana, bernabeu,

@@ -1135,6 +1135,9 @@ function empezarVuelo () {
     fin: { pos: camera.position.clone(), rot: camera.quaternion.clone() },
     centro,
     alto: tam.y,
+    // Siempre por encima del monumento. Con la altura sacada solo de lo alto, en
+    // uno bajo y ancho como el Coliseo la cámara pasaba rozando el muro.
+    altura: Math.max(8, tam.y * 0.55, Math.max(tam.x, tam.z) * 0.4),
     lado: Math.sign(centro.x) || 1,
     distancia: Math.max(tam.x, tam.y, tam.z) * 1.3 + 6
   }
@@ -1152,7 +1155,7 @@ function actualizarVuelo (dt) {
   const acerca = 1 - Math.min(1, k / 0.5) * 0.3
   camera.position.set(
     v.centro.x * 0.25,
-    Math.max(6, v.alto * 0.6),
+    v.altura,
     v.centro.z + v.distancia * acerca
   )
   camera.lookAt(tmpVueloMira.set(v.centro.x, v.alto * 0.45, v.centro.z))

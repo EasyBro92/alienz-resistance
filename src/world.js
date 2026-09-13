@@ -766,6 +766,10 @@ export function createWorld (canvas) {
       fundido.add(h)
     }
     fundido.userData.foco = foco
+    // Si el principal es de Meshy su caja se mide al pedirla: el modelo llega
+    // después y no ocupa lo mismo que el respaldo (el Coliseo de verdad es casi
+    // el doble de ancho que el de código).
+    fundido.userData.vivo = principal?.userData.aparte ? principal : null
     fundido.visible = false
     scene.add(fundido)
     bosques.set(clave, fundido)
@@ -828,7 +832,14 @@ export function createWorld (canvas) {
     // La base del fondo de esta misión: el asalto final la hace reventar.
     baseActual: () => baseVisible,
     // La caja del monumento de esta misión, para el vuelo de presentación.
-    focoMonumento: () => bosqueVisible?.userData.foco ?? null,
+    focoMonumento: () => {
+      const vivo = bosqueVisible?.userData.vivo
+      if (vivo) {
+        vivo.updateMatrixWorld(true)
+        return new THREE.Box3().setFromObject(vivo)
+      }
+      return bosqueVisible?.userData.foco ?? null
+    },
     onResize (fn) { oyentesTam.push(fn) }
   }
 }
