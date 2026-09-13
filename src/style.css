@@ -1590,3 +1590,98 @@ html, body {
 /* En partida el botón de atrás va en su propia franja, arriba del todo, y el
    marcador baja justo debajo en vez de apartarse a un lado. */
 #hud.con-atras { padding-left: 12px; padding-top: calc(env(safe-area-inset-top) + 58px); }
+
+/* ---------- menú principal y enemigos a tres cuartos de pantalla ---------- */
+/* El contenido ocupa el 75 % de arriba y se reparte en ese alto; el 25 % de
+   abajo queda libre para el banner de publicidad que irá en los menús. Antes
+   todo se apretaba arriba, con letra y dibujos pequeños, y el menú parecía
+   vacío. `panel-portada` solo lo lleva la portada: la victoria y la derrota
+   reescriben #overlay y conservan su maquetación. */
+.overlay:has(> .panel-portada), .enemigos-capa { padding-top: 0; padding-bottom: 0; align-items: start; }
+.panel-portada, .panel-enemigos {
+  width: 100%;
+  max-width: 520px;
+  min-height: 75dvh;
+  box-sizing: border-box;
+  padding: calc(env(safe-area-inset-top) + 58px) 18px 12px;
+  display: flex; flex-direction: column; justify-content: space-evenly;
+}
+
+/* Portada: todo más grande. */
+.panel-portada .eyebrow { font-size: 12px; letter-spacing: 2.4px; margin: 0; }
+.panel-portada .logo-mark { width: clamp(64px, 19vw, 96px); }
+.panel-portada .logo-main { font-size: clamp(48px, 15vw, 76px); }
+.panel-portada .logo-sub { font-size: clamp(16px, 5vw, 24px); letter-spacing: clamp(5px, 2.4vw, 11px); }
+.panel-portada .tagline { font-size: 17px; margin: 0; }
+.panel-portada .firma { font-size: 11px; margin: 0; }
+.panel-portada .relato { max-width: 100%; gap: 10px; margin: 0; }
+.panel-portada .relato li { padding: 12px 8px 14px; gap: 6px; border-radius: 16px; }
+.panel-portada .relato svg { max-width: 104px; }
+.panel-portada .relato b { font-size: 12px; letter-spacing: 1.8px; }
+.panel-portada .relato em { font-size: 13.5px; line-height: 1.4; }
+.panel-portada .big-btn { width: 100%; padding: 20px 24px; font-size: 22px; letter-spacing: 2px; }
+.panel-portada .menu-fila { margin-top: 0; gap: 12px; }
+.panel-portada .menu-boton { min-height: 70px; font-size: 19px; border-radius: 18px; }
+.panel-portada .menu-boton svg { width: 26px; height: 26px; }
+
+/* Enemigos: reglas legibles y fichas grandes, tres por fila. */
+.panel-enemigos .eyebrow { font-size: 12px; margin: 0; }
+.panel-enemigos h2 { font-size: 30px; margin: 0; }
+.panel-enemigos .reglas-caja { margin: 0; }
+.panel-enemigos .reglas-tit { font-size: 14px; }
+.panel-enemigos .rules { font-size: 15px; line-height: 1.55; max-width: 100%; margin: 0; }
+.panel-enemigos .amenazas { max-width: 100%; margin: 0; }
+.panel-enemigos .amenazas-tit { font-size: 13px; }
+.panel-enemigos .amenazas-tit i { font-size: 13px; }
+.panel-enemigos .amenazas-rejilla { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.panel-enemigos .amenaza { padding: 8px 4px 7px; border-radius: 14px; gap: 4px; }
+.panel-enemigos .amenaza-cara { aspect-ratio: 1 / 1; }
+.panel-enemigos .amenaza b { font-size: 13px; }
+.panel-enemigos .amenazas-pie { font-size: 14px; min-height: 40px; }
+.panel-enemigos #enemigos-volver { align-self: center; }
+
+/* Ajuste medido en 375×812 y 360×640: el panel se salía por la derecha (la
+   rejilla de viñetas empujaba su ancho mínimo) y el contenido no cabía en el
+   75 %. Ahora el ancho no pasa de la pantalla y los tamaños siguen al ALTO de
+   la pantalla, para llenar ese 75 % igual en un móvil alto que en uno bajo. */
+.overlay:has(> .panel-portada), .enemigos-capa { padding-left: 12px; padding-right: 12px; }
+.panel-portada, .panel-enemigos {
+  max-width: min(520px, 100%);
+  min-width: 0;
+  min-height: 0;
+  height: 75dvh;
+  padding-top: calc(env(safe-area-inset-top) + 56px);
+  padding-bottom: 6px;
+}
+.panel-portada .relato { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.panel-portada .eyebrow { font-size: clamp(9px, 1.45dvh, 12px); }
+.panel-portada .logo-mark { width: clamp(46px, min(19vw, 8.5dvh), 96px); }
+.panel-portada .logo-main { font-size: clamp(34px, min(15vw, 6.6dvh), 76px); }
+.panel-portada .logo-sub { font-size: clamp(12px, min(5vw, 2.3dvh), 24px); }
+.panel-portada .tagline { font-size: clamp(13px, 2dvh, 18px); }
+.panel-portada .firma { font-size: clamp(8px, 1.3dvh, 12px); }
+.panel-portada .relato li { padding: clamp(6px, 1.1dvh, 12px) 5px; gap: 4px; }
+.panel-portada .relato svg { max-width: clamp(50px, 9.5dvh, 104px); }
+.panel-portada .relato b { font-size: clamp(9px, 1.45dvh, 13px); }
+.panel-portada .relato em { font-size: clamp(10.5px, 1.55dvh, 14px); line-height: 1.32; }
+.panel-portada .big-btn { padding: clamp(11px, 2.2dvh, 20px) 16px; font-size: clamp(16px, 2.6dvh, 22px); }
+.panel-portada .menu-fila { gap: 10px; }
+.panel-portada .menu-boton { min-height: clamp(46px, 8dvh, 70px); font-size: clamp(14px, 2.2dvh, 19px); }
+.panel-portada .menu-boton svg { width: clamp(18px, 3dvh, 26px); height: clamp(18px, 3dvh, 26px); }
+
+.panel-enemigos .eyebrow { font-size: clamp(9px, 1.45dvh, 12px); }
+.panel-enemigos h2 { font-size: clamp(21px, 3.5dvh, 30px); }
+.panel-enemigos .reglas-tit, .panel-enemigos .amenazas-tit { font-size: clamp(10px, 1.6dvh, 14px); }
+.panel-enemigos .rules { font-size: clamp(11.5px, 1.8dvh, 15px); line-height: 1.42; }
+.panel-enemigos .amenazas-rejilla { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.panel-enemigos .amenaza { padding: 6px 3px 5px; border-radius: 12px; }
+.panel-enemigos .amenaza-cara { aspect-ratio: 4 / 5; }
+.panel-enemigos .amenaza b { font-size: clamp(9px, 1.35dvh, 12px); }
+.panel-enemigos .amenazas-pie { font-size: clamp(11px, 1.7dvh, 14px); min-height: 0; }
+/* El botón de atrás de arriba hace lo mismo y deja el sitio para las fichas. */
+.panel-enemigos #enemigos-volver { display: none; }
+/* Con cinco fichas por fila, "Portador" o "Sembrador" se cortaban con puntos
+   suspensivos: letra algo menor y más apretada para que el nombre quepa entero. */
+.panel-enemigos .amenaza b { font-size: clamp(8.5px, 1.2dvh, 10.5px); letter-spacing: -0.2px; text-overflow: clip; }
+/* "Sembrador" aún se comía dos píxeles en 375 de ancho: menos relleno lateral en la ficha. */
+.panel-enemigos .amenaza { padding-left: 1px; padding-right: 1px; }
