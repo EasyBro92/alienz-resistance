@@ -17,7 +17,7 @@ Publicado en https://easybro92.github.io/alienz-resistance/ (repo `EasyBro92/ali
 |---|---|
 | `src/main.js` | Bucle, colocación y arrastre, combate, asalto final a la base (`empezarAsalto` → `win`), `cerrarCuentas` (monedas sobrantes a la cartera), `win`/`lose`, pantallas de mapa, país y parte, conexión de tienda y cofre, `window.__zr` (solo DEV) |
 | `src/config.js` | `FIELD`, `BASE`, `ECONOMY`, `SOLDIERS`, `DEFENSES`, `STRIKES`, `UPGRADES`, `ZOMBIES`, `INICIALES` (solo el arquero). `NIVELES` se reexporta de `campana.js` |
-| `src/campana.js` | `PAISES` (12 países × 3 misiones), `DESTINOS` aplanado (= `NIVELES`), peaje de estrellas (6 por país), `dureza` de 0,06 a 0,56, bioma por misión |
+| `src/campana.js` | `PAISES` (12 países × 3 misiones), `DESTINOS` aplanado (= `NIVELES`), peaje de estrellas (6 por país), `dureza` de 0,06 a 0,56, bioma por misión, `suelo: 'parque'` (sin carretera: césped y sin marcas de carril; París) |
 | `src/oleadas.js` | Las 6 tablas de oleadas compartidas |
 | `src/biomas.js` | `BIOMAS` (paleta, calzada, flora, restos, hito), `FLORA`, `HITOS` (de región, y de ciudad: todas las misiones llevan el suyo; `castellana` sirve de avenida genérica con `conTorres = false`), piezas `pon`/`aguas`/`colocar`/`barra`/`arcada`, `conModelo` (monumento de Meshy con respaldo de código: `eiffel3d`, `coliseo3d`, `libertad3d`), `baseAlien(variante)` (base del fondo con antena animada, sin niebla), `RESTOS` |
 | `src/world.js` | Escena, carretera y decorado. `world.vestir(bioma, hitos)` retiñe sin reconstruir; los `hitos` de la misión (campo `hitos` en `campana.js`) esconden la nave estrellada; `agrandar` los hace crecer hacia la barandilla (salvo en ciudades con avenida); `focoMonumento()` para el vuelo; `baseActual()` |

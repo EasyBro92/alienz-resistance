@@ -116,7 +116,8 @@ export const PAISES = [
         waves: OLEADAS.colmena
       },
       {
-        name: 'París', lugar: 'Quai Branly · al pie de la torre', mapa: sitio(48.86, 2.35), hitos: [['eiffel3d']],
+        name: 'París', lugar: 'Campo de Marte · al pie de la torre', mapa: sitio(48.86, 2.35),
+        bioma: 'parque', suelo: 'parque', hitos: [['campoDeMarte'], ['eiffelFondo']],
         resumen: 'El primer jefe. Le llaman LA MADRE.',
         parte: ['Todo lo que hemos visto en Francia salió de algo que vive debajo de la ciudad.',
           'Detrás de la horda viene algo que nadie ha visto entero. Le llaman LA MADRE porque no supieron llamarla de otra forma.'],

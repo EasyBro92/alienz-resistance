@@ -83,11 +83,13 @@ function paintRoad (scene, pintables) {
     }
   }
   // tapas de alcantarilla
+  const tapaMat = flat(0x4a4742, 0.55)
+  const aroMat = flat(0x6a665f, 0.5)
   for (let i = 0; i < 4; i++) {
     const x = rand(-half + 0.6, half - 0.6)
     const z = rand(FIELD.spawnZ - 14, FIELD.baseZ)
-    put(new THREE.Mesh(new THREE.CircleGeometry(0.42, 14), flat(0x4a4742, 0.55)), x, z)
-    put(new THREE.Mesh(new THREE.RingGeometry(0.3, 0.36, 14), flat(0x6a665f, 0.5)), x, z, 0, 0.015)
+    put(new THREE.Mesh(new THREE.CircleGeometry(0.42, 14), tapaMat), x, z)
+    put(new THREE.Mesh(new THREE.RingGeometry(0.3, 0.36, 14), aroMat), x, z, 0, 0.015)
   }
   // flechas de dirección descoloridas, apuntando hacia la base
   for (let i = 0; i < 3; i++) {
@@ -96,6 +98,8 @@ function paintRoad (scene, pintables) {
     put(new THREE.Mesh(new THREE.PlaneGeometry(0.3, 2.2), paintMat), x, z)
     put(new THREE.Mesh(new THREE.CircleGeometry(0.55, 3), paintMat), x, z + 1.4, -Math.PI / 2)
   }
+  // Lo que solo tiene sentido sobre asfalto, para poder apagarlo en un parque.
+  return [patchMat, crackMat, skidMat, stainMat, tapaMat, aroMat]
 }
 
 // Decorado del borde de la carretera. Nada de esto interviene en el juego: está
@@ -449,6 +453,37 @@ export function createWorld (canvas) {
   road.receiveShadow = true
   scene.add(road)
 
+  // Césped para las misiones de parque. Siega en damero de cuadros de unas 3,4
+  // unidades: no coinciden con los carriles de 2,4, así que no los delatan.
+  const cesped = (() => {
+    const c = document.createElement('canvas')
+    c.width = c.height = 256
+    const x = c.getContext('2d')
+    for (let i = 0; i < 2; i++) {
+      for (let j = 0; j < 2; j++) {
+        x.fillStyle = (i + j) % 2 ? '#c9d9b0' : '#b3c796'
+        x.fillRect(i * 128, j * 128, 128, 128)
+      }
+    }
+    // La hierba: miles de trazos cortos de verdes distintos.
+    for (let k = 0; k < 9000; k++) {
+      const v = 150 + Math.random() * 90
+      x.fillStyle = `rgba(${(v * 0.55) | 0},${v | 0},${(v * 0.45) | 0},0.35)`
+      x.fillRect(Math.random() * 256, Math.random() * 256, 1, 2 + Math.random() * 3)
+    }
+    const t = new THREE.CanvasTexture(c)
+    t.wrapS = t.wrapT = THREE.RepeatWrapping
+    t.colorSpace = THREE.SRGBColorSpace
+    t.anisotropy = 4
+    return t
+  })()
+  cesped.repeat.set(2, 38)
+  const cespedArena = cesped.clone()
+  cespedArena.repeat.set(70, 70)
+  cespedArena.needsUpdate = true
+  const pielCarretera = { map: road.material.map, normalMap: road.material.normalMap }
+  const pielArena = { map: sand.material.map, normalMap: sand.material.normalMap }
+
   // Los materiales que cambian con la región. Se crean aquí y se le pasan a
   // `decorate`, que los usa en vez de inventarse los suyos: así reteñir un
   // bioma entero es asignar cuatro colores, sin recorrer la escena buscando
@@ -525,6 +560,7 @@ export function createWorld (canvas) {
   }
 
   // Arcén: línea continua y grava a los lados. Enmarca el campo de juego.
+  const grava = new THREE.MeshStandardMaterial({ color: 0xa8a196, roughness: 1 })
   for (const side of [-1, 1]) {
     const edgeLine = new THREE.Mesh(new THREE.PlaneGeometry(0.16, roadLength), lineMat)
     edgeLine.rotation.x = -Math.PI / 2
@@ -533,7 +569,7 @@ export function createWorld (canvas) {
 
     const gravel = new THREE.Mesh(
       new THREE.PlaneGeometry(1.5, roadLength),
-      new THREE.MeshStandardMaterial({ color: 0xa8a196, roughness: 1 })
+      grava
     )
     gravel.rotation.x = -Math.PI / 2
     gravel.position.set(side * (fieldWidth / 2 + 1.5), 0.008, road.position.z)
@@ -589,7 +625,10 @@ export function createWorld (canvas) {
   estrellada.name = 'nave-estrellada'
   decorate(decor, pintables, estrellada)
   scene.add(estrellada)
-  paintRoad(decor, pintables)
+  const marcasAsfalto = paintRoad(decor, pintables)
+  // Todo lo que es de carretera y desaparece en un parque. `bake` agrupa por
+  // material, así que apagar el material apaga su parte de la malla fundida.
+  const soloCarretera = [...marcasAsfalto, bacheMat, lineMat, grava, postMat, pintables.raya, pintables.bordillo, pintables.bordilloOscuro]
   // Sin oclusión: son piezas sueltas repartidas por el descampado, no hay
   // rincones entre ellas, y cocerla costaría media carga a cambio de nada.
   scene.add(bake(decor, false))
@@ -778,9 +817,10 @@ export function createWorld (canvas) {
 
   // `hitosMision` son los monumentos de una ciudad concreta. Forman parte de la
   // llave del bosque: Valencia y Tarragona comparten bioma pero no paisaje.
-  function vestir (clave, hitosMision = []) {
+  // `suelo`: 'parque' quita la carretera (París, el Campo de Marte).
+  function vestir (clave, hitosMision = [], suelo = 'carretera') {
     const b = BIOMAS[clave]
-    const llave = clave + '|' + (hitosMision ?? []).map(h => h.join(':')).join(',')
+    const llave = clave + '|' + (hitosMision ?? []).map(h => h.join(':')).join(',') + '|' + suelo
     if (!b || llave === bioma) return
     bioma = llave
     // La nave estrellada tapaba justo el sitio de los monumentos.
@@ -801,6 +841,17 @@ export function createWorld (canvas) {
 
     sand.material.color.setHex(b.tierra)
     road.material.color.setHex(b.asfalto)
+    // Parque: fuera el asfalto y todo lo que solo existe sobre asfalto —rayas de
+    // carril, baches, bordillos, vallas—; la calzada y el arenal pasan a césped.
+    // Los carriles siguen estando, pero ya no se ven.
+    const parque = suelo === 'parque'
+    for (const m of soloCarretera) m.visible = !parque
+    road.material.map = parque ? cesped : pielCarretera.map
+    road.material.normalMap = parque ? null : pielCarretera.normalMap
+    sand.material.map = parque ? cespedArena : pielArena.map
+    sand.material.normalMap = parque ? null : pielArena.normalMap
+    road.material.needsUpdate = true
+    sand.material.needsUpdate = true
     pintables.raya.color.setHex(b.raya)
     pintables.bordillo.color.setHex(b.bordillo)
     // El bordillo salpicado va un escalón más oscuro que el suyo, no a un gris

@@ -1601,6 +1601,51 @@ export function baseAlien (variante = 0) {
 // Más grandes que los de código y más cerca: en el móvil solo se ve la parte de
 // abajo, pero una pata de la Eiffel se reconoce y un bloque de cuatro cajas no.
 // Entero se ve en el vuelo de presentación del principio.
+// El Campo de Marte. La misión de París no va por carretera: va por el césped
+// que lleva a la torre. Aquí está todo el parque —paseos de albero a los lados,
+// el seto bajo que enmarca el césped, dos hileras de plátanos podados en caja
+// por lado, farolas de hierro, bancos, parterres de flores y los paseos que
+// cruzan—. La torre va aparte (`eiffelFondo`).
+function campoDeMarte () {
+  const g = new THREE.Group()
+  const albero = mat(0xd9c9a0, 1)
+  const seto = mat(0x3f6a34, 0.95)
+  const copa = mat(0x4d7a3a, 0.9)
+  const tronco = mat(0x6b5a48, 0.9)
+  const hierro = mat(0x2f4a3a, 0.5, 0.4)
+  const madera = mat(0x3f6b4a, 0.7)
+  const plano = (ancho, largo, material, x, z, y = 0.012) => {
+    const p = pon(g, new THREE.PlaneGeometry(ancho, largo), material, x, y, z)
+    p.rotation.x = -Math.PI / 2
+    return p
+  }
+  for (const s of [-1, 1]) {
+    plano(5, 150, albero, s * 9.5, -55)
+    for (let z = 8; z > -128; z -= 9) pon(g, geoCaja(0.6, 0.55, 7.6), seto, s * 7.1, 0.27, z - 3.8)
+    for (const fila of [13.5, 18]) {
+      for (let z = 4; z > -130; z -= 6.5) {
+        pon(g, geoCil(0.16, 0.22, 2.6, 6), tronco, s * fila, 1.3, z)
+        pon(g, geoCaja(3.2, 2.6, 5.6), copa, s * fila, 3.9, z)
+      }
+    }
+    for (let z = 2; z > -125; z -= 12) {
+      pon(g, geoCil(0.07, 0.1, 3.4, 6), hierro, s * 11.6, 1.7, z)
+      pon(g, geoCaja(0.45, 0.55, 0.45), mat(0xf4ecd0, 0.6), s * 11.6, 3.6, z)
+      pon(g, geoCaja(0.5, 0.08, 1.8), madera, s * 11.6, 0.45, z - 6)
+      pon(g, geoCaja(0.08, 0.5, 1.8), madera, s * 11.85, 0.75, z - 6)
+    }
+    for (let k = 0; k < 3; k++) {
+      pon(g, geoCil(1, 1, 0.25, 14), mat(k % 2 ? 0xd8454a : 0xf2efe6, 0.8), s * 9.5, 0.13, -2 - k * 5).scale.set(1.3, 1, 1.8)
+    }
+  }
+  // Paseos que cruzan el césped: anchos y pálidos, caminos y no marcas.
+  plano(40, 2.2, albero, 0, -24, 0.015)
+  plano(40, 2.2, albero, 0, -70, 0.015)
+  g.userData.lados = [-1, 1]
+  g.userData.acompaña = true
+  return g
+}
+
 const cargadorMonumentos = new GLTFLoader()
 function conModelo (nombre, respaldo, { altura, x, z, giro = 0 }) {
   const g = new THREE.Group()
@@ -1635,6 +1680,10 @@ function conModelo (nombre, respaldo, { altura, x, z, giro = 0 }) {
 }
 
 export const HITOS = {
+  campoDeMarte,
+  // La torre al fondo del parque, centrada: sus patas enmarcan el final del
+  // césped y la base alienígena queda debajo, entre ellas.
+  eiffelFondo: () => conModelo('monumento-eiffel', torreEiffel(), { altura: 42, x: 0, z: -92 }),
   eiffel3d: () => conModelo('monumento-eiffel', torreEiffel(), { altura: 34, x: 18, z: -70 }),
   coliseo3d: () => conModelo('monumento-coliseo', coliseo(), { altura: 8, x: 24.5, z: -64 }),
   libertad3d: () => conModelo('monumento-libertad', libertad(), { altura: 22, x: -14, z: -52 }),
@@ -1671,6 +1720,16 @@ export const BIOMAS = {
     tierra: 0xd8bd8a, cerro: 0xb99a72, meseta: 0xc7ab86,
     cielo: 0x7cb6e0, niebla: 0xc2d6dd, sol: 0xfff2d8, ambiente: 0xd6a86f,
     flora: [['pino', 0x4e6b3c, 16], ['olivo', 0x8a9b78, 10]]
+  },
+  // París no es una región, es un jardín. Sin restos ni flora suelta: el parque
+  // lo pone el hito `campoDeMarte`. Los cerros del fondo, en verde oscuro, se
+  // leen como arboledas lejanas.
+  parque: {
+    restos: [],
+    asfalto: 0x8fb46a, raya: 0x8fb46a, bordillo: 0xd9c9a0,
+    tierra: 0x86ad62, cerro: 0x4a6b3a, meseta: 0x5a7c46,
+    cielo: 0x8cc0ea, niebla: 0xd5e3e6, sol: 0xfff3e0, ambiente: 0xbfc8ae,
+    flora: []
   },
   costa: {
     restos: [['contenedor', 0xa8563f, 2]],

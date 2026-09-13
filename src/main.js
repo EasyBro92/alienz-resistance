@@ -1435,7 +1435,7 @@ function start (indice = nivelActual) {
   limpiarPartida()
   // El paisaje de la región, antes de enseñar nada: si se vistiera después, el
   // primer fotograma del nivel saldría con la tierra del destino anterior.
-  world.vestir(NIVELES[nivelActual].bioma, NIVELES[nivelActual].hitos)
+  world.vestir(NIVELES[nivelActual].bioma, NIVELES[nivelActual].hitos, NIVELES[nivelActual].suelo)
   billetesPartida = 0
   pintarBilletes()
   cuentas = null
