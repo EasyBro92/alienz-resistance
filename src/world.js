@@ -296,16 +296,21 @@ function decorate (scene, pintables, aparte = scene) {
     scene.add(tyre)
   }
 
+  // Materiales de la señal compartidos por las tres: así se pueden apagar de una
+  // vez en los mapas sin carretera.
+  const signPostMat = std(0x8d8f92, 0.5, 0.4)
+  const signBoardMat = std(0xb9ac7e, 0.8)
+  const signStripeMat = std(0x6d2a22, 0.8)
   for (let i = 0; i < 3; i++) {
     const side = i % 2 ? 1 : -1
     const sign = new THREE.Group()
-    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.4, 8), std(0x8d8f92, 0.5, 0.4))
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.4, 8), signPostMat)
     post.position.y = 1.2
     sign.add(post)
-    const board = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.8, 0.06), std(0xb9ac7e, 0.8))
+    const board = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.8, 0.06), signBoardMat)
     board.position.y = 2.1
     sign.add(board)
-    const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.14, 0.03), std(0x6d2a22, 0.8))
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.14, 0.03), signStripeMat)
     stripe.position.set(0, 2.1, -0.05)
     sign.add(stripe)
     sign.position.set(side * (fieldWidth / 2 + 2.1), 0, FIELD.baseZ - 9 - i * 13)
@@ -316,6 +321,11 @@ function decorate (scene, pintables, aparte = scene) {
 
   // Postes de luz caídos y en pie: dan altura al horizonte.
   const poleMat = std(0x6d6963, 0.7, 0.3)
+  // Mobiliario de carretera, para que `vestir` lo apague donde no hay carretera:
+  // conos, neumáticos y señales en una playa o en una plaza no pintan nada. Las
+  // farolas van aparte porque en adoquín y losas sí tienen sentido.
+  pintables.mobiliarioVia = [coneMat, coneBase, tyreMat, signPostMat, signBoardMat, signStripeMat]
+  pintables.farolas = [poleMat]
   for (let i = 0; i < 8; i++) {
     const side = i % 2 ? 1 : -1
     const pole = new THREE.Group()
@@ -995,6 +1005,9 @@ export function createWorld (canvas) {
     // Los carriles siguen estando, pero ya no se ven.
     const campo = texturaCampo(suelo)
     for (const m of soloCarretera) m.visible = !campo
+    for (const m of pintables.mobiliarioVia ?? []) m.visible = !campo
+    const conFarolas = !campo || suelo === 'adoquin' || suelo === 'losas'
+    for (const m of pintables.farolas ?? []) m.visible = conFarolas
     road.material.map = campo ?? pielCarretera.map
     road.material.normalMap = campo ? null : pielCarretera.normalMap
     if (campo) road.material.color.setHex(tonoSuelo ?? COLOR_CAMPO[suelo] ?? 0xffffff)
