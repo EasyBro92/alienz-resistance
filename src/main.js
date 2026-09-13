@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import './style.css'
-import { FIELD, BASE, NIVELES, SOLDIERS, DEFENSES, STRIKES, ZOMBIES } from './config.js'
+import { FIELD, BASE, NIVELES, SOLDIERS, DEFENSES, STRIKES, ZOMBIES, ECONOMY } from './config.js'
 import { createWorld, rowZ, laneX } from './world.js'
 import { createSoldier, upgradeCost, muzzleWorld, ejectorWorld } from './entities/soldier.js'
 import { createEconomy } from './systems/economy.js'
@@ -12,7 +12,7 @@ import { createAudio } from './audio.js'
 import { createUI } from './ui.js'
 import { renderPortraits } from './portraits.js'
 import { pintarMapa } from './mapa.js'
-import { cargarCartera, sumarBilletes, PRECIOS } from './systems/cartera.js'
+import { cargarCartera, sumarBilletes, sumarMonedas, canjear, PRECIOS, MONEDAS_POR_DOLAR } from './systems/cartera.js'
 import { tirarCofre, girarCarrusel } from './cofre.js'
 import { crearTienda } from './tienda.js'
 import { escenaDe, PAISES, paisDe } from './campana.js'
@@ -828,7 +828,7 @@ function killZombie (z, index) {
   }
   z.bar.group.visible = false
   dropCorpse(z.mesh, -1)          // cae de espaldas, hacia donde venía
-  economy.drop(z.mesh.position, z.spec.coins)
+  economy.drop(z.mesh.position, Math.max(1, Math.round(z.spec.coins * ECONOMY.botinHuesped)))
   effects.burst(z.mesh.position, 0x8fbf4a, z.spec.boss ? 30 : 8, z.spec.boss ? 2.4 : 1)
   audio.groan(z.spec.boss || (z.spec.scale ?? 1) > 1.5)
   if (z.spec.boss) ui.banner('NIDO PURGADO')
@@ -1102,6 +1102,7 @@ function simulate (dt) {
     audio.setIntensity(Math.min(1, zombies.length / 14 + (1 - baseHp / BASE.hp) * 0.6))
   }
 
+  if (asalto) actualizarAsalto(dt)
   effects.update(dt)
   golpes.update(dt)
   updateCorpses(dt)
@@ -1127,9 +1128,132 @@ function frame (now) {
 // ---------------------------------------------------------------------------
 // arranque y final
 // ---------------------------------------------------------------------------
+// --- asalto a la base ----------------------------------------------------------
+// Limpiada la última oleada la partida no se corta en seco: la tropa sale del
+// perímetro hacia la base del fondo, la acribilla y la base revienta. Solo
+// entonces llega el informe. Es lo que cuenta de qué va esto: venimos a
+// quitarles las bases, no solo a aguantar.
+let asalto = null
+const ASALTO = { andar: 6, fuego: 3.8, trasExplosion: 1.8 }
+const tmpObjetivo = new THREE.Vector3()
+const tmpChispa = new THREE.Vector3()
+
+function empezarAsalto () {
+  if (!running) return
+  // Las monedas que quedan por el suelo se cobran ANTES de cerrar la partida:
+  // con `running` en falso los billetes que soltaran no se apuntarían.
+  for (const p of [...economy.pickups]) economy.collect(p)
+  running = false
+  ui.closeInspector()
+  ui.banner('¡A POR LA BASE!')
+  const base = world.baseActual()
+  const tiradores = soldiers.filter(s => !s.dead && !s.spec.blocker)
+  asalto = { t: 0, fase: 'andar', base, tiradores, sitio: base ? base.position.clone() : null }
+  // Cada uno sale por su carril y se para en la franja donde se posaban las
+  // naves, a tres profundidades distintas para que no parezca un desfile.
+  tiradores.forEach((s, i) => {
+    s.destX = s.px * 0.8
+    s.destZ = FIELD.spawnZ + 10 - (i % 3) * 2.5
+    s.andando = true
+    s.entrando = true
+    s.gesture = null
+    s.hasTarget = false
+    s.targetPos = null
+    s.bar.group.visible = false
+  })
+}
+
+function dispararALaBase (s, objetivo) {
+  const from = muzzleWorld(s, tmpA)
+  const to = tmpB.set(objetivo.x + (Math.random() - 0.5) * 6, objetivo.y + (Math.random() - 0.5) * 3, objetivo.z)
+  s.onFire()
+  audio.shot(s.key)
+  if (s.spec.projectile === 'arrow') effects.arrow(from, to)
+  else if (s.spec.projectile === 'mortar') effects.mortar(from.clone(), to.clone(), p => { audio.boom(); effects.burst(p, 0xffb03a, 14, 3) })
+  else effects.tracer(from, to)
+}
+
+function reventarBase (objetivo) {
+  const a = asalto
+  const centro = objetivo.clone()
+  // Varios golpes seguidos —fogonazo, bola de fuego, llamarada y humo negro—:
+  // uno solo se leía como un disparo más.
+  ;[[0xffffff, 30, 5], [0xffb03a, 44, 6.5], [0xff5a2a, 32, 5], [0x2e2e2e, 26, 4]].forEach(([color, n, fuerza], i) => {
+    setTimeout(() => {
+      effects.burst(tmpChispa.set(centro.x + (Math.random() - 0.5) * 4, centro.y + i * 0.8, centro.z), color, n, fuerza)
+      audio.boom()
+    }, i * 150)
+  })
+  effects.smoke(centro, 10, 0x2a2a2a)
+  if (a.base) {
+    a.base.visible = false
+    a.base.position.copy(a.sitio)
+  }
+  ui.banner('BASE DESTRUIDA')
+  for (const s of a.tiradores) { s.hasTarget = false; s.targetPos = null }
+}
+
+function actualizarAsalto (dt) {
+  const a = asalto
+  a.t += dt
+  const objetivo = a.sitio
+    ? tmpObjetivo.set(a.sitio.x, 2.2, a.sitio.z)
+    : tmpObjetivo.set(0, 2, FIELD.spawnZ - 60)
+
+  for (const s of a.tiradores) {
+    if (a.fase === 'fuego' && !s.andando) {
+      s.hasTarget = true
+      s.targetPos = objetivo
+    }
+    s.update(dt, camera)
+  }
+
+  if (a.fase === 'andar') {
+    // Sin esperar a los rezagados más de la cuenta: el que no llegó dispara
+    // desde donde esté.
+    if (a.tiradores.every(s => !s.andando) || a.t > ASALTO.andar) {
+      for (const s of a.tiradores) s.andando = false
+      a.fase = 'fuego'
+      a.t = 0
+    }
+    return
+  }
+
+  if (a.fase === 'fuego') {
+    for (const s of a.tiradores) {
+      s.cooldown -= dt
+      if (s.cooldown > 0 || s.aim < 0.8) continue
+      s.cooldown = (1 / s.fireRate) * (0.7 + Math.random() * 0.6)
+      dispararALaBase(s, objetivo)
+    }
+    // La base encaja: tiembla cada vez más y le saltan chispas por todas partes.
+    const k = Math.min(1, a.t / ASALTO.fuego)
+    if (a.base) {
+      a.base.position.set(a.sitio.x + (Math.random() - 0.5) * 0.6 * k, a.sitio.y, a.sitio.z + (Math.random() - 0.5) * 0.4 * k)
+    }
+    if (Math.random() < dt * (4 + k * 10)) {
+      const p = tmpChispa.set(objetivo.x + (Math.random() - 0.5) * 9, 0.5 + Math.random() * 4, objetivo.z + (Math.random() - 0.5) * 3)
+      effects.burst(p, Math.random() < 0.5 ? 0xffb03a : 0x7dffe4, 8, 2.4)
+      if (Math.random() < 0.3) effects.smoke(p, 2, 0x3a3a3a)
+    }
+    if (a.t > ASALTO.fuego) {
+      reventarBase(objetivo)
+      a.fase = 'fin'
+      a.t = 0
+    }
+    return
+  }
+
+  if (a.t > ASALTO.trasExplosion) {
+    asalto = null
+    win()
+  }
+}
+
 function win () {
   running = false
   audio.stopMusic()
+  cerrarCuentas()
   const nivel = NIVELES[nivelActual]
   const antes = cargarProgreso()
   const porcentaje = Math.round(baseHp / BASE.hp * 100)
@@ -1200,6 +1324,7 @@ function win () {
 function lose () {
   running = false
   audio.stopMusic()
+  cerrarCuentas()
   ui.banner('DESBORDADOS')
   setTimeout(() => {
     ui.showOverlay(`
@@ -1244,6 +1369,11 @@ function start (indice = nivelActual) {
   world.vestir(NIVELES[nivelActual].bioma, NIVELES[nivelActual].hitos)
   billetesPartida = 0
   pintarBilletes()
+  cuentas = null
+  asalto = null
+  // El asalto de la partida anterior dejó la base reventada.
+  const baseFondo = world.baseActual()
+  if (baseFondo) baseFondo.visible = true
   ui.hideOverlay()
   // Las pantallas de campaña van en capas propias y no las cierra hideOverlay.
   document.getElementById('mapa-capa')?.classList.add('hidden')
@@ -1258,7 +1388,7 @@ function start (indice = nivelActual) {
       ui.banner(boss ? 'LA MADRE' : `OLEADA ${n}`)
       if (boss) audio.groan(true)
     },
-    () => setTimeout(win, 1200),
+    () => setTimeout(empezarAsalto, 1200),
     (n, jefe) => { dropship.llegar(n, jefe); audio.nave(jefe) },
     () => dropship.partir()
   )
@@ -1700,11 +1830,29 @@ document.getElementById('mapa-tienda').addEventListener('click', () => { audio.u
 
 // El botín de la partida: lo sacado en billetes y el cofre. Va igual en la
 // victoria, en la derrota y en el cierre de campaña.
+// Al terminar, las monedas sin gastar pasan a la cartera y cada 100 guardadas se
+// cambian solas por un billete. Una vez por partida, antes de pintar el botín,
+// para poder contarlo en él.
+let cuentas = null
+function cerrarCuentas () {
+  if (cuentas) return cuentas
+  const sobran = Math.max(0, Math.floor(economy.coins))
+  sumarMonedas(sobran)
+  const cambio = canjear()
+  cuentas = { sobran, cambiados: cambio.billetes, guardadas: cargarCartera().monedas }
+  pintarBilletes()
+  return cuentas
+}
+
 function htmlBotin () {
   const sacados = billetesPartida
     ? `<p class="botin-billetes"><svg aria-hidden="true"><use href="#i-billete"></use></svg><b>+${billetesPartida}</b> billetes en esta partida</p>`
     : ''
-  return `<div class="botin">${sacados}<div class="cofre" id="cofre"></div></div>`
+  const c = cerrarCuentas()
+  const ahorro = c.sobran || c.cambiados
+    ? `<p class="botin-billetes"><svg aria-hidden="true"><use href="#i-moneda"></use></svg><b>+${c.sobran}</b> monedas a la cartera${c.cambiados ? ` · <b>+${c.cambiados}</b> billete${c.cambiados === 1 ? '' : 's'} del cambio` : ''} <small>(${c.guardadas}/${MONEDAS_POR_DOLAR})</small></p>`
+    : ''
+  return `<div class="botin">${sacados}${ahorro}<div class="cofre" id="cofre"></div></div>`
 }
 
 // El premio se decide y se GUARDA antes de girar: la tira es solo el espectáculo.
@@ -1768,6 +1916,7 @@ if (import.meta.env.DEV) {
     // Cede el turno cada paso para que se resuelvan las creaciones asíncronas.
     // --- atajos de prueba: cada comprobación en una línea ----------------------
     ganarYa: () => { if (running) win() },
+    asaltarYa: () => { if (running) empezarAsalto() },
     perderYa: () => { if (running) lose() },
     darBilletes: n => { sumarBilletes(n); pintarBilletes(); return cargarCartera().billetes },
     desbloquearTodo: () => {

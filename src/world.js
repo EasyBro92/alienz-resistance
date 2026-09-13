@@ -649,6 +649,7 @@ export function createWorld (canvas) {
   const bosques = new Map()
   // Las bases alienígenas del fondo: tres modelos, uno visible cada vez.
   const bases = new Map()
+  let baseVisible = null
   let bioma = null
 
   function poblar (clave, b, hitosMision = []) {
@@ -736,6 +737,7 @@ export function createWorld (canvas) {
       bases.set(variante, base)
     }
     for (const [v, base] of bases) base.visible = v === variante
+    baseVisible = bases.get(variante)
 
     sand.material.color.setHex(b.tierra)
     road.material.color.setHex(b.asfalto)
@@ -766,6 +768,8 @@ export function createWorld (canvas) {
     // `sun` sale fuera porque el ajuste de calidad cambia el tamaño de su mapa
     // de sombras, y ese mapa es lo más caro que hay en la escena.
     renderer, scene, camera, sun, resize, slots, setSlotsVisible, resaltarSlot, vestir,
+    // La base del fondo de esta misión: el asalto final la hace reventar.
+    baseActual: () => baseVisible,
     onResize (fn) { oyentesTam.push(fn) }
   }
 }

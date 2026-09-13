@@ -15,7 +15,7 @@ Publicado en https://easybro92.github.io/alienz-resistance/ (repo `EasyBro92/ali
 
 | Archivo | Qué hay |
 |---|---|
-| `src/main.js` | Bucle, colocación y arrastre, combate, `win`/`lose`, pantallas de mapa, país y parte, conexión de tienda y cofre, `window.__zr` (solo DEV) |
+| `src/main.js` | Bucle, colocación y arrastre, combate, asalto final a la base (`empezarAsalto` → `win`), `cerrarCuentas` (monedas sobrantes a la cartera), `win`/`lose`, pantallas de mapa, país y parte, conexión de tienda y cofre, `window.__zr` (solo DEV) |
 | `src/config.js` | `FIELD`, `BASE`, `ECONOMY`, `SOLDIERS`, `DEFENSES`, `STRIKES`, `UPGRADES`, `ZOMBIES`, `INICIALES` (solo el arquero). `NIVELES` se reexporta de `campana.js` |
 | `src/campana.js` | `PAISES` (12 países × 3 misiones), `DESTINOS` aplanado (= `NIVELES`), peaje de estrellas (6 por país), `dureza` de 0,06 a 0,56, bioma por misión |
 | `src/oleadas.js` | Las 6 tablas de oleadas compartidas |
@@ -47,7 +47,7 @@ Ganar y perder recargan la página; `window.volverA('mapa' | 'pais:N' | 'portada
 - `window.__zr` (solo en desarrollo):
   - `start(i)`, `place(clave, carril, fila)`, `state()`, `soldiers`, `zombies`, `economy`, `director`, `collectAll()`, `strikeAt(x, z, clave)`.
   - `run(segundos, dt)`: llamarlo **de una tirada**. Encadenado en trozos cortos, el estado que se lee va desfasado.
-  - Atajos: `ganarYa()`, `perderYa()`, `darBilletes(n)`, `desbloquearTodo()`, `borrarTodo()`, `abrir('mapa' | 'tienda' | 'pais:N')`, `cartera()`.
+  - Atajos: `asaltarYa()` (salta al asalto final), `ganarYa()`, `perderYa()`, `darBilletes(n)`, `desbloquearTodo()`, `borrarTodo()`, `abrir('mapa' | 'tienda' | 'pais:N')`, `cartera()`.
 - `place()` solo funciona con cartas desbloqueadas: `desbloquearTodo()` y recargar.
 - Con el panel del navegador oculto no llega `requestAnimationFrame`: lo que dependa de él no avanza. Usar `setTimeout`.
 - Las capturas son caras y a veces salen del fotograma anterior: comprobar con JavaScript siempre que se pueda.
@@ -58,6 +58,8 @@ Ganar y perder recargan la página; `window.volverA('mapa' | 'pais:N' | 'portada
 - Tarragona solo con arqueros: 10 ganan con el perímetro al 74 %; 6 pierden.
 - Peaje de estrellas: con 3★ o 2★ de media se llega a las 36 misiones; con 1,5★ te atascas a la entrada de Francia.
 - Billetes por partida cobrando todas las monedas: de 27 (Tarragona) a 237 (misiones finales).
+- **Todo lo anterior se midió con el botín de cada huésped al 100 %.** Ahora está al 75 % (`ECONOMY.botinHuesped`) y el goteo también cuenta para el billete: falta volver a medir.
+- Monedas: 1 billete cada 30 que entran en partida (`MONEDAS_POR_BILLETE`); las que sobran al acabar van a la cartera y cada 100 guardadas son 1 billete (`MONEDAS_POR_DOLAR`, cambio automático en `cerrarCuentas`).
 
 ## Encuadre en el móvil vertical (375×812)
 

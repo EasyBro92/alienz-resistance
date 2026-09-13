@@ -108,7 +108,7 @@ export function girarCarrusel (caja, premio, audio) {
     tira.children[GANADORA]?.classList.add('gana')
     resultado.innerHTML = premio.tipo === 'billetes'
       ? `<span class="r-${premio.rareza}">${RAREZAS[premio.rareza]}</span> · <b>+${premio.cantidad} billetes</b>`
-      : `<span class="r-${premio.rareza}">${RAREZAS[premio.rareza]}</span> · <b>+${premio.cantidad} monedas</b> guardadas: cada 30 son un billete en la tienda`
+      : `<span class="r-${premio.rareza}">${RAREZAS[premio.rareza]}</span> · <b>+${premio.cantidad} monedas</b> guardadas: cada 100 son un billete en la tienda`
     if (premio.rareza === 'raro' || premio.rareza === 'epico' || premio.rareza === 'legendario') audio?.desbloqueo?.()
     else audio?.coin?.()
   }

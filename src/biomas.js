@@ -1185,13 +1185,14 @@ function masp () {
 // donde salen las naves. Tres cuerpos (cúpula, colmena, trípode) y la misma
 // antena encima, con anillos que giran y el haz que sube al cielo.
 //
-// Materiales propios y sin niebla: a z = -80 la niebla la dejaba en un borrón
-// claro, y tiene que leerse como algo oscuro y ajeno recortado en el horizonte.
+// Materiales propios y sin niebla: a esa distancia la niebla la borraba del
+// todo. Para que se lea lejana va pequeña y en tonos grises azulados, como vista
+// a través de la bruma, pero con las luces verdes nítidas.
 export function baseAlien (variante = 0) {
   const g = new THREE.Group()
-  const casco = new THREE.MeshStandardMaterial({ color: 0x353a47, roughness: 0.45, metalness: 0.6, fog: false })
-  const carne = new THREE.MeshStandardMaterial({ color: 0x4a3552, roughness: 0.75, metalness: 0.1, fog: false })
-  const plato = new THREE.MeshStandardMaterial({ color: 0x4a505c, roughness: 0.4, metalness: 0.7, side: THREE.DoubleSide, fog: false })
+  const casco = new THREE.MeshStandardMaterial({ color: 0x7a8292, roughness: 0.6, metalness: 0.3, fog: false })
+  const carne = new THREE.MeshStandardMaterial({ color: 0x86778f, roughness: 0.8, metalness: 0.1, fog: false })
+  const plato = new THREE.MeshStandardMaterial({ color: 0x8b919c, roughness: 0.55, metalness: 0.3, side: THREE.DoubleSide, fog: false })
   const luz = new THREE.MeshStandardMaterial({ color: 0x2bd47a, emissive: 0x2bd47a, emissiveIntensity: 1.6, fog: false })
   const haz = new THREE.MeshBasicMaterial({ color: 0x5dffa6, transparent: true, opacity: 0.16, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })
   const brillan = []
@@ -1254,11 +1255,10 @@ export function baseAlien (variante = 0) {
     haz.opacity = 0.13 + Math.sin(t * 4) * 0.05
   }
   for (const b of brillan) brilla(b)
-  // Medido: a z = -80 la franja entre el final de la calzada y el marcador da
-  // unos 7 de alto. A escala 0,45 la base entera cabe ahí, tan ancha como la
-  // carretera, y queda detrás de donde se posa la nave.
-  g.scale.setScalar(0.45)
-  g.position.set(0, 0, -80)
+  // Bien al fondo, más allá de donde acaba la calzada. Ahí la franja libre bajo
+  // el marcador da unos 5 de alto: el cuerpo cabe entero y la antena asoma.
+  g.scale.setScalar(0.36)
+  g.position.set(0, 0, -108)
   return g
 }
 

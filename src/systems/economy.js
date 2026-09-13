@@ -51,6 +51,15 @@ export function createEconomy (scene) {
   // cuentan las que se recogen de un huésped abatido: el goteo gratis no, porque
   // un billete tiene que costar jugar, no esperar.
   let ganadas = 0
+  // Toda moneda que entra cuenta para el billete, también la del goteo. Con el
+  // goteo fuera, el marcador subía de 30 en 30 sin soltar billete y parecía roto.
+  function contar (valor) {
+    ganadas += valor
+    while (ganadas >= MONEDAS_POR_BILLETE) {
+      ganadas -= MONEDAS_POR_BILLETE
+      for (const fn of alBillete) fn()
+    }
+  }
   const alBillete = new Set()
   let dripTimer = ECONOMY.dripEvery
   let auto = ECONOMY.autoCollect
@@ -100,7 +109,7 @@ export function createEconomy (scene) {
       notify()
     },
     onChange (fn) { listeners.add(fn); fn(coins) },
-    // Un billete cada 30 monedas cobradas. Lo escucha el juego para guardarlo.
+    // Un billete cada 30 monedas que entran. Lo escucha el juego para guardarlo.
     onBillete (fn) { alBillete.add(fn) },
 
     canAfford: cost => coins >= cost,
@@ -120,11 +129,7 @@ export function createEconomy (scene) {
       pickups.splice(i, 1)
       scene.remove(pickup.mesh)
       coins += pickup.value
-      ganadas += pickup.value
-      while (ganadas >= MONEDAS_POR_BILLETE) {
-        ganadas -= MONEDAS_POR_BILLETE
-        for (const fn of alBillete) fn()
-      }
+      contar(pickup.value)
       notify()
       return pickup.value
     },
@@ -134,6 +139,7 @@ export function createEconomy (scene) {
       if (dripTimer <= 0) {
         dripTimer += ECONOMY.dripEvery
         coins += ECONOMY.dripValue
+        contar(ECONOMY.dripValue)
         notify()
         return ECONOMY.dripValue
       }

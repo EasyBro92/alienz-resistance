@@ -11,7 +11,7 @@
 import { SOLDIERS, DEFENSES, STRIKES, UPGRADES } from './config.js'
 import {
   cargarCartera, PRECIOS, comprar, canjear, precioMejora, comprarMejora,
-  MEJORAS, NIVEL_MAX, MONEDAS_POR_BILLETE
+  MEJORAS, NIVEL_MAX, MONEDAS_POR_DOLAR
 } from './systems/cartera.js'
 
 const PESTANAS = [
@@ -105,10 +105,10 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
     elBilletes.textContent = c.billetes
     elMonedas.textContent = c.monedas
 
-    const cambiables = Math.floor(c.monedas / MONEDAS_POR_BILLETE)
+    const cambiables = Math.floor(c.monedas / MONEDAS_POR_DOLAR)
     elCanjear.textContent = cambiables
-      ? `Cambiar ${cambiables * MONEDAS_POR_BILLETE} monedas por ${cambiables} billete${cambiables === 1 ? '' : 's'}`
-      : `Cada ${MONEDAS_POR_BILLETE} monedas guardadas son un billete`
+      ? `Cambiar ${cambiables * MONEDAS_POR_DOLAR} monedas por ${cambiables} billete${cambiables === 1 ? '' : 's'}`
+      : `Cada ${MONEDAS_POR_DOLAR} monedas guardadas son un billete`
     elCanjear.disabled = !cambiables
 
     elPestanas.innerHTML = PESTANAS.map(p => `

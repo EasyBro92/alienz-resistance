@@ -19,6 +19,9 @@ import { INICIALES } from '../config.js'
 const CLAVE = 'alienz-cartera-v1'
 
 export const MONEDAS_POR_BILLETE = 30
+// Las monedas GUARDADAS valen menos: hacen falta 100 para un billete. Si valieran
+// lo mismo que las de partida, dejar monedas sin gastar rendiría tanto como jugar.
+export const MONEDAS_POR_DOLAR = 100
 
 // Precio en billetes para desbloquear cada cosa. El arquero no está: viene de
 // serie.
@@ -124,15 +127,15 @@ export function sumarMonedas (n) {
 }
 
 // Cambia todas las monedas guardadas que se puedan por billetes. Las que sobran
-// —menos de 30— se quedan para la próxima.
+// —menos de 100— se quedan para la próxima.
 export function canjear () {
   const c = cargarCartera()
-  const billetes = Math.floor(c.monedas / MONEDAS_POR_BILLETE)
+  const billetes = Math.floor(c.monedas / MONEDAS_POR_DOLAR)
   if (!billetes) return { billetes: 0, monedas: 0 }
-  c.monedas -= billetes * MONEDAS_POR_BILLETE
+  c.monedas -= billetes * MONEDAS_POR_DOLAR
   c.billetes += billetes
   guardar(c)
-  return { billetes, monedas: billetes * MONEDAS_POR_BILLETE }
+  return { billetes, monedas: billetes * MONEDAS_POR_DOLAR }
 }
 
 export function comprar (clave) {

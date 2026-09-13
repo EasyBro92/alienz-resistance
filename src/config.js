@@ -15,6 +15,9 @@ export const BASE = { hp: 100 }
 // Economía: el goteo automático te da aire, las bajas te dan el sueldo de verdad.
 export const ECONOMY = {
   startCoins: 200,
+  // Parte de las `coins` de su ficha que suelta cada huésped al morir. Bajado un
+  // 25 %: los billetes salen de las monedas y tienen que costar partidas.
+  botinHuesped: 0.75,
   dripEvery: 4.5,     // segundos entre monedas gratis: es un salvavidas, no un sueldo
   dripValue: 15,
   pickupLifetime: 9,  // segundos antes de que una moneda del suelo se pierda
