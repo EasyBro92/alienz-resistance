@@ -1685,3 +1685,9 @@ html, body {
 .panel-enemigos .amenaza b { font-size: clamp(8.5px, 1.2dvh, 10.5px); letter-spacing: -0.2px; text-overflow: clip; }
 /* "Sembrador" aún se comía dos píxeles en 375 de ancho: menos relleno lateral en la ficha. */
 .panel-enemigos .amenaza { padding-left: 1px; padding-right: 1px; }
+
+/* Botones de la portada más contenidos: con el reparto a tres cuartos quedaban
+   demasiado gruesos, sobre todo el del mapa. */
+.panel-portada .big-btn { width: 88%; align-self: center; padding: clamp(9px, 1.5dvh, 14px) 16px; font-size: clamp(15px, 2.1dvh, 18px); letter-spacing: 1.5px; }
+.panel-portada .menu-boton { min-height: clamp(40px, 6dvh, 54px); font-size: clamp(13px, 1.85dvh, 16px); border-radius: 14px; }
+.panel-portada .menu-boton svg { width: clamp(16px, 2.4dvh, 21px); height: clamp(16px, 2.4dvh, 21px); }
