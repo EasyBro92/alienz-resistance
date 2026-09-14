@@ -111,15 +111,23 @@ function paintRoad (scene, pintables) {
 // Agranda un monumento sin meterlo en la calzada: crece y se reubica para que su
 // borde más cercano quede junto a la barandilla, a media distancia. En el móvil
 // se ve solo la parte de abajo, pero se reconoce mejor que entero en miniatura.
+// La caja de un monumento sin su agua (mar, río, puerto): el agua ocupa mucho
+// y no es lo que hay que encuadrar ni arrimar a la barandilla.
+function cajaMonumento (h, caja = new THREE.Box3()) {
+  caja.makeEmpty()
+  h.updateMatrixWorld(true)
+  h.traverse(o => { if (o.isMesh && !o.userData.sinFoco) caja.expandByObject(o) })
+  if (caja.isEmpty()) caja.setFromObject(h)
+  return caja
+}
+
 function agrandar (h) {
   const lado = h.userData.lados[0]
-  h.updateMatrixWorld(true)
-  const caja = new THREE.Box3().setFromObject(h)
+  const caja = cajaMonumento(h)
   const tam = caja.getSize(new THREE.Vector3())
   const factor = Math.min(1.8, 70 / Math.max(tam.z, 1), 60 / Math.max(tam.x, 1))
   if (factor > 1.02) h.scale.multiplyScalar(factor)
-  h.updateMatrixWorld(true)
-  caja.setFromObject(h)
+  cajaMonumento(h, caja)
   const cerca = lado > 0 ? caja.min.x : caja.max.x
   h.position.x += lado * 11.5 - cerca
   // El centro entre z = -50 y -75: más cerca se sale por abajo de la pantalla y
@@ -957,10 +965,7 @@ export function createWorld (canvas) {
     // cámara a cientos de metros.
     const principal = deMision.find(h => !h.userData.acompaña) ?? null
     let foco = null
-    if (principal) {
-      principal.updateMatrixWorld(true)
-      foco = new THREE.Box3().setFromObject(principal)
-    }
+    if (principal) foco = cajaMonumento(principal)
     // Se funden en un puñado de mallas, igual que el resto del decorado: veinte
     // árboles sueltos son veinte llamadas de dibujo por nada.
     const obstaculos = []
@@ -984,8 +989,27 @@ export function createWorld (canvas) {
       fundido.add(h)
     }
     fundido.userData.foco = foco
-    // Desde dónde lo mira el vuelo, si el monumento lo pide (relativo a su centro).
-    fundido.userData.vista = principal?.userData.vista ?? null
+    // Desde dónde lo mira el vuelo. Si el monumento no pide un ángulo propio, uno
+    // aéreo: por encima de la carretera, por delante y en diagonal, como una foto
+    // de dron. Los de Meshy siguen con el vuelo de siempre: su caja cambia cuando
+    // llega el modelo.
+    let vista = principal?.userData.vista ?? null
+    if (!vista && foco && !principal.userData.aparte) {
+      const c = foco.getCenter(new THREE.Vector3())
+      const t = foco.getSize(new THREE.Vector3())
+      const lado = Math.sign(c.x) || 1
+      // Con el ancho topado: un conjunto de cien metros ponía la cámara tan lejos
+      // que la niebla se lo comía entero.
+      const ancho = Math.min(80, Math.max(t.x, t.z))
+      // Los muy altos (rascacielos, torres) se miran desde más atrás y más
+      // arriba, o la cámara se quedaba a media altura del fuste.
+      const altoExtra = Math.max(0, t.y - 30)
+      vista = {
+        desde: [c.x - lado * (ancho * 0.5 + 10 + altoExtra * 0.2), Math.min(64, Math.max(conAvenida ? 40 : 26, t.y * 1.1 + 16)), c.z + ancho * 0.85 + 20 + altoExtra * 0.6],
+        mira: [c.x, t.y * 0.3, c.z]
+      }
+    }
+    fundido.userData.vista = vista
     fundido.userData.obstaculos = obstaculos
     // Si el principal es de Meshy su caja se mide al pedirla: el modelo llega
     // después y no ocupa lo mismo que el respaldo (el Coliseo de verdad es casi

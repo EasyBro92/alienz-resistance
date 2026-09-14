@@ -2141,6 +2141,17 @@ if (import.meta.env.DEV) {
     ganarYa: () => { if (running) win() },
     asaltarYa: () => { if (running) empezarAsalto() },
     sinVuelo: () => { if (vuelo) terminarVuelo() },
+    // Para capturar el vuelo: pone la cámara donde empieza y dibuja.
+    verVuelo: (k = 0) => {
+      const v = world.vistaMonumento()
+      if (!v) return null
+      const [dx, dy, dz] = v.desde
+      const [mx, my, mz] = v.mira
+      camera.position.set(dx + (mx - dx) * k, dy + (my - dy) * k, dz + (mz - dz) * k)
+      camera.lookAt(mx, my, mz)
+      world.renderer.render(scene, camera)
+      return v
+    },
     perderYa: () => { if (running) lose() },
     darBilletes: n => { sumarBilletes(n); pintarBilletes(); return cargarCartera().billetes },
     desbloquearTodo: () => {

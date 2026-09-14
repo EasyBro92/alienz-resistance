@@ -19,6 +19,19 @@
 import * as THREE from 'three'
 import { brilla, apagarEmision } from './systems/resplandor.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import * as ESPANA from './monumentos/espana.js'
+import * as FRANCIA from './monumentos/francia.js'
+import * as ITALIA from './monumentos/italia.js'
+import * as GRECIA from './monumentos/grecia.js'
+import * as EGIPTO from './monumentos/egipto.js'
+import * as NIGERIA from './monumentos/nigeria.js'
+import * as INDIA from './monumentos/india.js'
+import * as CHINA from './monumentos/china.js'
+import * as RUSIA from './monumentos/rusia.js'
+import * as USA from './monumentos/usa.js'
+import * as MEXICO from './monumentos/mexico.js'
+import * as DOMINICANA from './monumentos/dominicana.js'
+import * as BRASIL from './monumentos/brasil.js'
 
 // Un material por color, compartido. Sin caché, cada árbol se fabricaba los
 // suyos y `bake` no podía fundirlos: doce palmeras salían con noventa y seis
@@ -1975,7 +1988,45 @@ export const HITOS = {
   castillo, notreDameGarde, fourviere, duomo, partenon, torreBlanca, bibliotecaAlejandria,
   temploEgipcio, esfinge, danfos, mezquitaNacional, asoRock, puertaAdobe, puenteAtirantado,
   victoriaMemorial, perlaOriental, hongyadong, teatroCupula, totems, spaceNeedle,
-  cerroSilla, faroComercio, catedralGdl, masp
+  cerroSilla, faroComercio, catedralGdl, masp,
+  // Los monumentos detallados, con su entorno (src/monumentos/). Donde
+  // comparten nombre con uno de arriba, lo sustituyen.
+  tarraco: ESPANA.tarraco,
+  artesYCiencias: ESPANA.artesValencia,
+  notreDameGarde: FRANCIA.notreDame,
+  fourviere: FRANCIA.fourviere,
+  maschioAngioino: ITALIA.maschioAngioino,
+  duomo: ITALIA.duomo,
+  partenon: GRECIA.partenon,
+  torreBlanca: GRECIA.torreBlanca,
+  koules: GRECIA.koules,
+  bibliotecaAlejandria: EGIPTO.bibliotecaAlejandria,
+  temploEgipcio: EGIPTO.temploEgipcio,
+  esfinge: EGIPTO.esfinge,
+  teatroNacional: NIGERIA.teatroNacional,
+  mezquitaNacional: NIGERIA.mezquitaNacional,
+  puertaAdobe: NIGERIA.puertaAdobe,
+  puenteAtirantado: INDIA.puenteAtirantado,
+  puertaIndia: INDIA.puertaIndia,
+  victoriaMemorial: INDIA.victoriaMemorial,
+  perlaOriental: CHINA.perlaOriental,
+  ciudadProhibida: CHINA.ciudadProhibida,
+  hongyadong: CHINA.hongyadong,
+  sanBasilio: RUSIA.sanBasilio,
+  operaNovosibirsk: RUSIA.operaNovosibirsk,
+  puenteZolotoi: RUSIA.puenteZolotoi,
+  totems: USA.totems,
+  spaceNeedle: USA.spaceNeedle,
+  faroComercio: MEXICO.faroComercio,
+  catedralGdl: MEXICO.catedralGdl,
+  angel: MEXICO.angel,
+  bavaro: DOMINICANA.bavaro,
+  alcazarColon: DOMINICANA.alcazarColon,
+  faroColon: DOMINICANA.faroColon,
+  sanFelipe: DOMINICANA.sanFelipe,
+  cristo: BRASIL.cristo,
+  masp: BRASIL.masp,
+  teatroAmazonas: BRASIL.teatroAmazonas
 }
 
 // --- las doce regiones -------------------------------------------------------
