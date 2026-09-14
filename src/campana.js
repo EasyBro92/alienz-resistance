@@ -79,7 +79,7 @@ export const PAISES = [
       },
       {
         name: 'Madrid', lugar: 'Paseo de la Castellana · Chamartín', mapa: sitio(40.42, -3.70),
-        bioma: 'ciudad', hitos: [['castellana', -1, -52, -92], ['bernabeu']],
+        bioma: 'ciudad', hitos: [['castellana', 1, -8, -92], ['bernabeu']],
         resumen: 'Llegan deprisa. Hay que aguantar hasta que abran el búnker.',
         parte: ['El búnker del gobierno está debajo. Para abrir la trampilla hay que dejar la superficie limpia durante una hora entera.',
           'Todo lo que tienen en la zona viene hacia aquí, y viene deprisa.'],

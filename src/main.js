@@ -1140,7 +1140,9 @@ function empezarVuelo () {
     // uno bajo y ancho como el Coliseo la cámara pasaba rozando el muro.
     altura: Math.max(8, tam.y * 0.55, Math.max(tam.x, tam.z) * 0.4),
     lado: Math.sign(centro.x) || 1,
-    distancia: Math.max(tam.x, tam.y, tam.z) * 1.3 + 6
+    distancia: Math.max(tam.x, tam.y, tam.z) * 1.3 + 6,
+    // Algunos monumentos piden su ángulo (el Bernabéu, desde arriba de la avenida).
+    vista: world.vistaMonumento()
   }
   ui.banner(NIVELES[nivelActual].name.toUpperCase())
   actualizarVuelo(0)
@@ -1154,12 +1156,21 @@ function actualizarVuelo (dt) {
   // único despejado: desde el descampado de al lado, en las ciudades con
   // avenida, la cámara acababa detrás de un edificio.
   const acerca = 1 - Math.min(1, k / 0.5) * 0.3
-  camera.position.set(
-    v.centro.x * 0.25,
-    v.altura,
-    v.centro.z + v.distancia * acerca
-  )
-  camera.lookAt(tmpVueloMira.set(v.centro.x, v.alto * 0.45, v.centro.z))
+  if (v.vista) {
+    // Desde su punto, acercándose hacia lo que mira.
+    const [dx, dy, dz] = v.vista.desde
+    const [mx, my, mz] = v.vista.mira
+    const f = 1 - acerca
+    camera.position.set(dx + (mx - dx) * f, dy + (my - dy) * f, dz + (mz - dz) * f)
+    camera.lookAt(tmpVueloMira.set(mx, my, mz))
+  } else {
+    camera.position.set(
+      v.centro.x * 0.25,
+      v.altura,
+      v.centro.z + v.distancia * acerca
+    )
+    camera.lookAt(tmpVueloMira.set(v.centro.x, v.alto * 0.45, v.centro.z))
+  }
   // La segunda mitad se funde con la posición de juego.
   const mezcla = k < 0.5 ? 0 : suave((k - 0.5) / 0.5)
   if (mezcla > 0) {

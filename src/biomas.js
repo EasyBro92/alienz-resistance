@@ -404,48 +404,250 @@ function castellana (huecoLado = 0, desde = 0, hasta = 0, conTorres = true) {
   return g
 }
 
-// El Bernabéu, a la izquierda: el óvalo con la piel de lamas metálicas de la
-// reforma, el remate de la cubierta y las cuatro torres de las esquinas. Con el
-// lado largo mirando a la avenida, que es como se ve desde la Castellana.
+// Contorno del Bernabéu reformado: ni óvalo ni rectángulo, un rectángulo de
+// esquinas muy redondeadas (superelipse). Con un óvalo parecía una plaza de
+// toros; lo que lo hace reconocible es esa forma de almohada.
+const superelipse = (u, n) => {
+  const c = Math.cos(u)
+  const s = Math.sin(u)
+  return [Math.sign(c) * Math.pow(Math.abs(c), 2 / n), Math.sign(s) * Math.pow(Math.abs(s), 2 / n)]
+}
+
+// Una piel que da la vuelta al contorno siguiendo un perfil. Cada fila es un
+// anillo: `k` escala el contorno (0 lo cierra en el centro, para cubiertas), `d`
+// lo separa hacia fuera y `y` es su altura. `ola(u)` sube o baja la fila según
+// por dónde pase.
+function geoContorno (rx, rz, n, filas, { columnas = 96, ola = null } = {}) {
+  const pos = []
+  const idx = []
+  for (const { k = 1, d = 0, y } of filas) {
+    for (let j = 0; j <= columnas; j++) {
+      const u = (j / columnas) * Math.PI * 2
+      const [ex, ez] = superelipse(u, n)
+      pos.push((rx * k + d) * ex, y + (ola ? ola(u) : 0), (rz * k + d) * ez)
+    }
+  }
+  const paso = columnas + 1
+  for (let f = 0; f < filas.length - 1; f++) {
+    for (let j = 0; j < columnas; j++) {
+      const a = f * paso + j
+      // Con este orden la normal mira hacia fuera (y hacia arriba en la cubierta).
+      idx.push(a, a + paso, a + 1, a + 1, a + paso, a + paso + 1)
+    }
+  }
+  const geo = new THREE.BufferGeometry()
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
+  geo.setIndex(idx)
+  geo.computeVertexNormals()
+  return geo
+}
+
+// El rótulo de la fachada, pintado en un lienzo: letras de palo seco blancas y
+// una insignia redonda. Va aparte de lo fundido, que pierde las coordenadas de
+// textura.
+function rotuloBernabeu () {
+  const lienzo = document.createElement('canvas')
+  lienzo.width = 1024
+  lienzo.height = 96
+  const c = lienzo.getContext('2d')
+  c.fillStyle = '#f3f5f7'
+  c.strokeStyle = '#f3f5f7'
+  c.font = '600 54px Arial, Helvetica, sans-serif'
+  c.textBaseline = 'middle'
+  const texto = 'ESTADIO SANTIAGO BERNABÉU'
+  c.fillText(texto, 10, 50)
+  const cx = c.measureText(texto).width + 62
+  c.lineWidth = 5
+  c.beginPath()
+  c.arc(cx, 50, 34, 0, Math.PI * 2)
+  c.stroke()
+  // Una corona sencilla dentro del círculo.
+  c.beginPath()
+  c.moveTo(cx - 17, 60)
+  c.lineTo(cx - 19, 34)
+  c.lineTo(cx - 8, 46)
+  c.lineTo(cx, 30)
+  c.lineTo(cx + 8, 46)
+  c.lineTo(cx + 19, 34)
+  c.lineTo(cx + 17, 60)
+  c.closePath()
+  c.fill()
+  const tex = new THREE.CanvasTexture(lienzo)
+  tex.colorSpace = THREE.SRGBColorSpace
+  tex.anisotropy = 4
+  const ancho = 15
+  const m = new THREE.Mesh(
+    new THREE.PlaneGeometry(ancho, ancho * lienzo.height / lienzo.width),
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false })
+  )
+  m.renderOrder = 3
+  return m
+}
+
+// El Bernabéu reformado, a la DERECHA de la Castellana, con el lado largo
+// mirando a la avenida, como en la foto aérea desde Nuevos Ministerios:
+//   · la piel de lamas de acero en bandas horizontales que ondulan, abombada
+//     a media altura y recogida arriba en el remate de la cubierta;
+//   · abajo, metida hacia dentro, la planta baja oscura de vidrio y los
+//     machones de bronce de las esquinas;
+//   · la cubierta clara con su retícula;
+//   · el rótulo «ESTADIO SANTIAGO BERNABÉU» en la fachada de la avenida;
+//   · la explanada de losa clara con árboles, farolas, la rotonda ajardinada y
+//     gente, y bloques de viviendas detrás.
+// Medido para el móvil en vertical: la fachada queda en x ≈ 13-16, dentro de la
+// cuña visible entre z = -50 y z = -90; entero se ve en el vuelo del principio.
 function bernabeu () {
+  const h = new THREE.Group()
+  // Lo fundible va en el primer hijo; el rótulo, con textura, en otro.
   const g = new THREE.Group()
-  const piel = mat(0xc3c8cd, 0.3, 0.65)
-  const oscuro = mat(0x5d6166, 0.7, 0.3)
-
-  const cuerpo = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 24, 44), oscuro)
-  cuerpo.scale.set(20, 1, 26)
-  cuerpo.position.y = 12
-  g.add(cuerpo)
-
-  const n = 64
-  for (let i = 0; i < n; i++) {
-    const a = (i / n) * Math.PI * 2
-    const lama = new THREE.Mesh(new THREE.BoxGeometry(0.5, 25, 2.6), piel)
-    lama.position.set(Math.cos(a) * 20.6, 12.5, Math.sin(a) * 26.6)
-    lama.rotation.y = -a
-    g.add(lama)
+  h.add(g)
+  const CX = 26
+  const CZ = -70
+  // Todo el conjunto se adelanta hacia la cámara: más al fondo lo tapaba el
+  // marcador y en la partida solo asomaba una esquina.
+  const ADELANTE = 12
+  const RX = 13
+  const RZ = 20
+  const N = 5
+  const lamina = (o) => new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, ...o })
+  const piel = lamina({ color: 0xaab1b8, roughness: 0.22, metalness: 0.72 })
+  const nucleo = mat(0x252a30, 0.65, 0.3)
+  const vidrio = lamina({ color: 0x1b2229, roughness: 0.12, metalness: 0.6 })
+  const bronce = lamina({ color: 0x4d3f33, roughness: 0.5, metalness: 0.4 })
+  const techo = lamina({ color: 0xc9d0d6, roughness: 0.3, metalness: 0.35 })
+  const nervio = mat(0x8a929a, 0.35, 0.55)
+  const contorno = (material, filas, opciones) => {
+    const m = pon(g, geoContorno(RX, RZ, N, filas, opciones), material, CX, 0, CZ)
+    return m
   }
 
-  const cubierta = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1.4, 44), piel)
-  cubierta.scale.set(21.4, 1, 27.4)
-  cubierta.position.y = 25
-  g.add(cubierta)
+  // --- planta baja: vidrio oscuro metido bajo el vuelo de la piel ---
+  contorno(vidrio, [{ d: -1.9, y: 0 }, { d: -1.9, y: 2.5 }])
+  // Los machones de bronce: donde el edificio toca el suelo en las esquinas.
+  for (let q = 0; q < 4; q++) {
+    const u = Math.PI / 4 + q * Math.PI / 2
+    const [ex, ez] = superelipse(u, N)
+    const m = pon(g, geoCaja(4.6, 3.4, 1.4), bronce, CX + (RX - 1.4) * ex, 1.7, CZ + (RZ - 1.4) * ez)
+    m.rotation.y = -Math.atan2(RZ * ez, RX * ex) + Math.PI / 2
+  }
+  // El núcleo oscuro que asoma entre las lamas.
+  contorno(nucleo, [{ d: -2, y: 2.3 }, { d: -2, y: 12.4 }])
 
-  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
-    const torre = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 3.4, 28, 16), piel)
-    torre.position.set(sx * 15, 14, sz * 21)
-    g.add(torre)
+  // --- la piel de lamas ---
+  // Perfil de la fachada (separación, altura): entra abajo, se abomba a media
+  // altura y se recoge arriba hacia la cubierta.
+  const perfil = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-1.2, 2.4, 0),
+    new THREE.Vector3(-0.3, 4.4, 0),
+    new THREE.Vector3(0.55, 6.9, 0),
+    new THREE.Vector3(0.7, 9.4, 0),
+    new THREE.Vector3(0.25, 11.4, 0),
+    new THREE.Vector3(-0.8, 12.35, 0)
+  ])
+  const BANDAS = 32
+  for (let b = 0; b < BANDAS; b++) {
+    const s0 = b / BANDAS
+    const s1 = s0 + 0.74 / BANDAS
+    const sb = (s0 + s1) / 2
+    // Las bandas ondulan: bajan en el centro de los lados largos y suben en las
+    // esquinas, más en la mitad de la fachada que arriba o abajo.
+    const amplitud = Math.sin(Math.PI * sb)
+    const ola = u => amplitud * (-0.42 * Math.cos(2 * u) + 0.16 * Math.sin(4 * u + sb * 5))
+    const filas = [s0, (s0 + s1) / 2, s1].map(s => {
+      const p = perfil.getPointAt(s)
+      return { d: p.x, y: p.y }
+    })
+    contorno(piel, filas, { columnas: 120, ola })
   }
 
-  // Reducido para caber en la cuña visible junto a la barandilla (ver
-  // artesYCiencias): el borde del óvalo queda en x ≈ -12.
-  // La banda de pantalla alrededor, bajo el remate de la cubierta.
-  const pantalla = pon(g, new THREE.CylinderGeometry(1, 1, 2.2, 44, 1, true), mat(0x2a3a4a, 0.3, 0.4), 0, 21, 0)
-  pantalla.scale.set(20.9, 1, 26.9)
-  g.scale.setScalar(0.6)
-  g.position.set(-24, 0, -72)
-  g.userData.lados = [-1]
-  return g
+  // --- cubierta ---
+  // El borde metálico que remata la piel y, dentro, la cubierta clara.
+  contorno(piel, [{ d: -0.8, y: 12.35 }, { k: 0.97, d: -0.8, y: 12.6 }, { k: 0.88, d: -0.8, y: 12.78 }])
+  contorno(techo, [{ k: 0.88, d: -0.8, y: 12.78 }, { k: 0.6, d: -0.5, y: 12.95 }, { k: 0.3, d: -0.2, y: 13 }, { k: 0, d: 0, y: 13 }])
+  // La retícula: nervios en las dos direcciones, recortados al contorno.
+  const rxI = RX * 0.88 - 0.8
+  const rzI = RZ * 0.88 - 0.8
+  for (let x = -rxI + 1; x < rxI - 0.4; x += 1.5) {
+    const largo = 2 * rzI * Math.pow(1 - Math.pow(Math.abs(x / rxI), N), 1 / N)
+    pon(g, geoCaja(0.08, 0.1, largo * 0.96), nervio, CX + x, 13.02, CZ)
+  }
+  for (let z = -rzI + 1; z < rzI - 0.4; z += 2) {
+    const largo = 2 * rxI * Math.pow(1 - Math.pow(Math.abs(z / rzI), N), 1 / N)
+    pon(g, geoCaja(largo * 0.96, 0.1, 0.08), nervio, CX, 13.02, CZ + z)
+  }
+
+  // --- la explanada ---
+  const losa = mat(0xe4dfd3, 0.95)
+  const junta = mat(0xcbc4b5, 0.95)
+  pon(g, geoCaja(33, 0.1, 82), losa, 29.2, 0.05, -61)
+  // Las juntas en diagonal de la plaza del sur.
+  for (let i = 0; i < 9; i++) {
+    const r = pon(g, geoCaja(0.12, 0.02, 14), junta, 16 + i * 3.2, 0.11, -45)
+    r.rotation.y = 0.7
+  }
+  // La rotonda ajardinada de la esquina.
+  pon(g, geoCil(3.2, 3.3, 0.35, 20), mat(0x5b8742, 1), 18, 0.2, -44)
+  pon(g, geoCil(3.35, 3.35, 0.45, 20), mat(0xb9b3a6, 0.9), 18, 0.12, -44)
+
+  const tronco = mat(0x5f4a36)
+  const copas = [mat(0x4b7336, 0.95), mat(0x3f6530, 0.95), mat(0x58813d, 0.95)]
+  const arbol = (x, z, r = azar(1.1, 1.6)) => {
+    const alto = r * 2.2
+    pon(g, geoCil(0.12, 0.18, alto, 5), tronco, x, alto / 2, z)
+    const c = pon(g, geoBola(r, 8, 6), copas[Math.floor(Math.random() * copas.length)], x, alto + r * 0.5, z)
+    c.scale.y = 0.85
+  }
+  // Una fila junto a la avenida, espaciada para dejar ver la fachada, y un
+  // bosquete en la plaza del sur.
+  for (let z = -46; z > -98; z -= 13) arbol(13.4 + azar(-0.3, 0.3), z, azar(0.9, 1.2))
+  for (let i = 0; i < 9; i++) arbol(azar(22, 42), azar(-39, -47))
+  // La plaza sigue hacia la cámara: arboleda en cuadrícula, como la del paseo.
+  for (let x = 16; x < 44; x += 5) for (let z = -28; z > -36; z -= 5) arbol(x + azar(-0.6, 0.6), z + azar(-0.6, 0.6))
+  arbol(18, -44, 1.5)
+  for (let i = 0; i < 6; i++) arbol(azar(42, 44), azar(-52, -96))
+
+  // Farolas y los mástiles altos de la plaza.
+  const acero = mat(0x6d7278, 0.5, 0.6)
+  for (const [x, z, alto] of [[21, -41, 11], [30, -40.5, 11], [38, -42, 11], [14.8, -60, 5], [14.8, -80, 5], [42, -70, 5]]) {
+    pon(g, geoCil(0.08, 0.12, alto, 6), acero, x, alto / 2, z)
+    pon(g, geoCaja(0.9, 0.2, 0.3), acero, x, alto, z)
+  }
+
+  // La gente de la explanada: un puñado de figuras mínimas, que a esta
+  // distancia es lo que se ve.
+  const ropa = [mat(0x2f3338), mat(0x7a3434), mat(0x33507a), mat(0xd8d2c4), mat(0x4f6b3a)]
+  const cabeza = mat(0xc99b78)
+  for (let i = 0; i < 90; i++) {
+    const enPlaza = i < 60
+    const x = enPlaza ? azar(15, 40) : azar(14.2, 15.2)
+    const z = enPlaza ? azar(-39.5, -49) : azar(-52, -92)
+    pon(g, geoCaja(0.36, 0.95, 0.26), ropa[i % ropa.length], x, 0.57, z)
+    pon(g, geoBola(0.14, 6, 4), cabeza, x, 1.18, z)
+  }
+
+  // Bloques de viviendas detrás, como los de la calle de Concha Espina.
+  const ventana = mat(0x3b4955, 0.25, 0.4)
+  for (const [z, alto, fondo] of [[-47, 22, 12], [-62, 16, 13], [-78, 26, 12], [-94, 18, 12]]) {
+    const x = 54
+    pon(g, geoCaja(12, alto, fondo), mat([0xcfc4b0, 0xb8ab99, 0xd9d2c4, 0x9c8f80][Math.abs(z) % 4], 0.85), x, alto / 2, z)
+    for (let y = 2.6; y < alto - 1.5; y += 3) pon(g, geoCaja(0.12, 1.2, fondo * 0.8), ventana, x - 6.06, y, z)
+  }
+
+  // --- el rótulo ---
+  // En la fachada de la avenida, sobre la parte abombada de la piel.
+  const rotulo = rotuloBernabeu()
+  rotulo.rotation.y = -Math.PI / 2
+  rotulo.position.set(CX - (RX + 0.9), 8.6, CZ + 4)
+  h.add(rotulo)
+
+  h.userData.lados = [1]
+  // No se funde con el decorado (el rótulo necesita su textura).
+  h.userData.aparte = true
+  // El vuelo del principio lo mira desde arriba de la avenida, por el sur, que
+  // es el ángulo de la foto aérea: desde la carretera no se veía la cubierta.
+  h.userData.vista = { desde: [-3, 44, -12 + ADELANTE], mira: [CX, 3, CZ - 2 + ADELANTE] }
+  h.position.z = ADELANTE
+  return h
 }
 
 // --- más monumentos de ciudad ------------------------------------------------

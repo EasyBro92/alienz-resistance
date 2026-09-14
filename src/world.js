@@ -984,6 +984,8 @@ export function createWorld (canvas) {
       fundido.add(h)
     }
     fundido.userData.foco = foco
+    // Desde dónde lo mira el vuelo, si el monumento lo pide (relativo a su centro).
+    fundido.userData.vista = principal?.userData.vista ?? null
     fundido.userData.obstaculos = obstaculos
     // Si el principal es de Meshy su caja se mide al pedirla: el modelo llega
     // después y no ocupa lo mismo que el respaldo (el Coliseo de verdad es casi
@@ -1099,6 +1101,7 @@ export function createWorld (canvas) {
       }
       return bosqueVisible?.userData.foco ?? null
     },
+    vistaMonumento: () => bosqueVisible?.userData.vista ?? null,
     onResize (fn) { oyentesTam.push(fn) }
   }
 }
