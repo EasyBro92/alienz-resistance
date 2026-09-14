@@ -5,7 +5,7 @@
 
 import * as THREE from 'three'
 import {
-  mat, lamina, vidrio, azar, elige, pon, geoCaja, geoCil, geoBola, geoCupula, geoTronco, barra, V,
+  mat, lamina, vidrio, azar, elige, pon, geoCaja, geoCil, geoBola, geoCupula, geoTronco, geoArco, barra, V,
   aguas, arcada, ventanas, almenas, almenasRectas, columnata, explanada, cesped, estanque, arbol, gente,
   farola, bloques, coche, colocar, sub
 } from './piezas.js'
@@ -96,6 +96,195 @@ export function maschioAngioino () {
   bloques(g, fila, 1, { colores: fachadas })
 
   return colocar(g, -1, -62)
+}
+
+// Roma, a la derecha: el Coliseo desde la Via dei Fori Imperiali. Sustituye al
+// modelo de Meshy, que salía deformado —los arcos derretidos y un cuenco sin
+// forma—. El anillo exterior de travertino con sus ochenta arcos en tres
+// órdenes de semicolumnas y el ático con pilastras, ventanas y ménsulas; del
+// lado de la carretera el anillo exterior falta, como en el de verdad, y se ve
+// el interior con sus arcadas a distintas alturas y los contrafuertes de
+// ladrillo en los cortes; dentro, las gradas arruinadas con los muros radiales
+// y el hipogeo al descubierto con un trozo de arena reconstruida. Alrededor, la
+// plaza de travertino, el Arco de Constantino, la Meta Sudans, el templo de
+// Venus y Roma, el Palatino con sus pinos piñoneros, las calesas y los turistas.
+export function coliseoRoma () {
+  const g = new THREE.Group()
+  const trav = mat(0xd9c9a8, 0.9)
+  const travOsc = mat(0xbfab86, 0.95)
+  const ladrillo = mat(0xb5715a, 0.95)
+  const sombra = mat(0x4a3e32, 1)
+
+  const CX = 14
+  const CZ = 0
+  const RX = 14
+  const RZ = 17
+  const N = 80
+  const PISO = 2.9
+  const Y0 = 0.5
+  const punto = (a, off, y) => V(CX + (RX + off) * Math.cos(a), y, CZ + (RZ + off) * Math.sin(a))
+  // Local +z hacia fuera, perpendicular a la elipse.
+  const giro = (a, off) => Math.atan2(Math.cos(a) / (RX + off), Math.sin(a) / (RZ + off))
+  const poner = (geo, m, a, off, y) => {
+    const p = punto(a, off, y)
+    const o = pon(g, geo, m, p.x, p.y, p.z)
+    o.rotation.y = giro(a, off)
+    return o
+  }
+  const angulo = i => (i / N) * Math.PI * 2
+  // El lado que da a la carretera (x negativo) ha perdido el anillo exterior.
+  const entero = a => Math.cos(a) > -0.35
+
+  // --- el zócalo escalonado alrededor ---
+  for (let i = 0; i < N; i++) {
+    const a = angulo(i + 0.5)
+    const ancho = punto(angulo(i), 1.2, 0).distanceTo(punto(angulo(i + 1), 1.2, 0))
+    poner(geoCaja(ancho + 0.05, 0.25, 2.4), travOsc, a, 0.6, 0.12)
+    poner(geoCaja(ancho + 0.05, 0.25, 1.6), trav, a, 0.2, 0.37)
+  }
+
+  // Un arco de una arcada: pilar, semicolumna, arco y enjuta, en el anillo `off`.
+  const arcoDeArcada = (i, off, y, alto, orden, fondo = 1) => {
+    const a = angulo(i)
+    const am = angulo(i + 0.5)
+    const ancho = punto(a, off, 0).distanceTo(punto(angulo(i + 1), off, 0))
+    const r = Math.max(0.2, (ancho - 0.5) / 2)
+    poner(geoCaja(0.5, alto, fondo), trav, a, off, y + alto / 2)
+    if (orden >= 0) {
+      poner(geoCil(0.15, 0.17, alto - 0.35, 8), orden === 2 ? travOsc : trav, a, off + fondo / 2 + 0.08, y + (alto - 0.35) / 2)
+      poner(geoCaja(0.45, 0.18, 0.35), travOsc, a, off + fondo / 2 + 0.08, y + alto - 0.3)
+    }
+    const hueco = alto - 0.7
+    poner(geoArco(r, 0.14, fondo), trav, am, off, y + hueco - r)
+    poner(geoCaja(ancho + 0.02, alto - hueco, fondo), trav, am, off, y + hueco + (alto - hueco) / 2)
+    poner(geoCaja(ancho + 0.02, 0.22, fondo + 0.4), travOsc, am, off + 0.1, y + alto)
+  }
+
+  // --- el anillo exterior: tres órdenes de arcos y el ático ---
+  for (let i = 0; i < N; i++) {
+    const am = angulo(i + 0.5)
+    if (!entero(am)) continue
+    for (let p = 0; p < 3; p++) arcoDeArcada(i, 0, Y0 + p * PISO, PISO, p)
+    const yA = Y0 + 3 * PISO
+    const ancho = punto(angulo(i), 0, 0).distanceTo(punto(angulo(i + 1), 0, 0))
+    poner(geoCaja(ancho + 0.02, 2.5, 1), trav, am, 0, yA + 1.25)
+    poner(geoCaja(0.3, 2.3, 0.2), travOsc, angulo(i), 0.55, yA + 1.15)
+    if (i % 2) poner(geoCaja(0.42, 0.65, 0.1), sombra, am, 0.52, yA + 1.1)
+    poner(geoCaja(0.22, 0.28, 0.35), travOsc, am, 0.62, yA + 2.25)
+    poner(geoCaja(ancho + 0.05, 0.35, 1.3), travOsc, am, 0.05, yA + 2.65)
+  }
+  // Los contrafuertes de ladrillo en los dos cortes del anillo.
+  const corte = Math.acos(-0.35)
+  for (const dir of [-1, 1]) {
+    const a = dir > 0 ? corte : Math.PI * 2 - corte
+    for (let s = 0; s < 6; s++) {
+      const alto = Y0 + 3 * PISO + 2.8 - s * 2
+      poner(geoCaja(0.9, alto, 1.3), ladrillo, a + dir * (0.012 + s * 0.022), 0.1, alto / 2)
+    }
+  }
+
+  // --- el anillo interior, que se ve por el lado roto ---
+  const OFF_IN = -2.6
+  for (let i = 0; i < N; i++) {
+    const am = angulo(i + 0.5)
+    const pisos = entero(am) ? 3 : 1 + ((i * 7) % 3)
+    for (let p = 0; p < pisos; p++) arcoDeArcada(i, OFF_IN, Y0 + p * PISO, PISO, -1, 0.9)
+  }
+  // Las bóvedas del corredor entre los dos anillos, en el lado roto.
+  for (let i = 0; i < N; i++) {
+    const am = angulo(i + 0.5)
+    if (entero(am)) continue
+    const ancho = punto(angulo(i), -1.3, 0).distanceTo(punto(angulo(i + 1), -1.3, 0))
+    poner(geoCaja(ancho + 0.02, 0.3, 2.2), travOsc, am, -1.3, Y0 + PISO)
+    if (i % 3 === 0) poner(geoCaja(0.4, 2.6, 2), ladrillo, angulo(i), -1.3, Y0 + 1.3)
+  }
+  // El muro oscuro del fondo del corredor.
+  pon(g, new THREE.CylinderGeometry(1, 1, 8, 72, 1, true), lamina(0x4a3e32, 1), CX, 4.5, CZ).scale.set(RX - 3.6, 1, RZ - 3.6)
+
+  // --- las gradas arruinadas ---
+  const RXA = RX - 8.8
+  const RZA = RZ - 8.8
+  for (let t = 0; t < 5; t++) {
+    const f0 = 1 + (t * 1) / RXA
+    const f1 = 1 + ((t + 1) * 1) / RXA
+    const grada = pon(g, new THREE.RingGeometry(f0, f1, 64), lamina(t % 2 ? 0xc2ae88 : 0xb09a74, 0.95), CX, 1.6 + t * 1.25, CZ)
+    grada.rotation.x = -Math.PI / 2
+    grada.scale.set(RXA, RZA + t * 0.35, 1)
+  }
+  // Los muros radiales de las bóvedas que sostenían las gradas.
+  for (let i = 0; i < 64; i++) {
+    const a = (i / 64) * Math.PI * 2
+    const alto = 2 + ((i * 5) % 7) * 0.8
+    poner(geoCaja(0.35, alto, 5.4), i % 2 ? ladrillo : travOsc, a, -6.4, alto / 2 + 0.4)
+  }
+
+  // --- la arena y el hipogeo ---
+  pon(g, geoCil(1, 1, 0.1, 40), sombra, CX, 0.05, CZ).scale.set(RXA, 1, RZA)
+  pon(g, new THREE.CylinderGeometry(1, 1, 2.2, 48, 1, true), lamina(0xa38c66, 0.95), CX, 1.1, CZ).scale.set(RXA, 1, RZA)
+  for (let x = -RXA + 0.8; x < RXA - 0.5; x += 0.9) {
+    const largo = 2 * RZA * Math.sqrt(Math.max(0, 1 - (x / RXA) ** 2)) * 0.92
+    pon(g, geoCaja(0.28, 1.5, largo), ladrillo, CX + x, 0.8, CZ)
+  }
+  for (let z = -RZA + 1.5; z < RZA - 1; z += 2.2) {
+    const largo = 2 * RXA * Math.sqrt(Math.max(0, 1 - (z / RZA) ** 2)) * 0.9
+    pon(g, geoCaja(largo, 1.2, 0.25), ladrillo, CX, 0.65, CZ + z)
+  }
+  // El trozo de arena reconstruido, de tablones.
+  pon(g, geoCaja(RXA * 1.6, 0.25, RZA * 0.7), mat(0x9a7a52, 0.9), CX, 1.65, CZ + RZA * 0.5)
+  for (let x = -RXA * 0.8; x < RXA * 0.8; x += 0.6) pon(g, geoCaja(0.05, 0.02, RZA * 0.7), mat(0x7a5a3a, 0.9), CX + x, 1.79, CZ + RZA * 0.5)
+
+  // --- la plaza y la Via dei Fori Imperiali ---
+  explanada(g, { x: 12, z: 0, ancho: 50, fondo: 84, color: 0xd3c7ae, juntas: 0xbdb096, paso: 3 })
+  explanada(g, { x: -10, z: 0, ancho: 6, fondo: 84, color: 0x77716c, juntas: 0x5f5a56, paso: 1 })
+  gente(g, 140, { x0: -12, x1: 32, z0: 40, z1: -40, piel: 0xd9b48a })
+  for (let z = 36; z > -40; z -= 12) farola(g, -6.5, z, 5, 0x2a2a2a)
+  // Calesas.
+  for (let i = 0; i < 2; i++) {
+    const c = sub(g, -8, 0, 12 - i * 22, 0)
+    pon(c, geoCaja(1.4, 0.9, 2.6), mat(0x2a2a2a, 0.5), 0, 1.1, 0)
+    pon(c, geoCaja(1.4, 0.1, 1.6), mat(0x2a2a2a, 0.5), 0, 2.3, -0.5)
+    pon(c, geoCaja(0.6, 1.1, 2), mat(0xf2efe6, 0.8), 0, 1.2, 2.6)
+    pon(c, geoCaja(0.3, 0.6, 0.6), mat(0xf2efe6, 0.8), 0, 2, 3.7).rotation.x = -0.5
+  }
+
+  // --- el Arco de Constantino ---
+  // Detrás del Coliseo visto desde el vuelo: delante tapaba medio anfiteatro.
+  const AX = -1
+  const AZ = -34
+  const mármol = mat(0xe6dcc6, 0.8)
+  pon(g, geoCaja(3.6, 9, 16), mármol, AX, 4.5, AZ)
+  arcada(g, sombra, { ancho: 5, alto: 6.5, n: 1, x: AX - 1.82, y: 0, z: AZ, giro: -Math.PI / 2, hueco: 0.9 })
+  for (const dz of [-5.4, 5.4]) arcada(g, sombra, { ancho: 2.8, alto: 4, n: 1, x: AX - 1.82, y: 0, z: AZ + dz, giro: -Math.PI / 2, hueco: 0.9 })
+  for (const dz of [-7, -3.4, 3.4, 7]) {
+    pon(g, geoCaja(1.1, 1.6, 1.1), mármol, AX - 2.4, 0.8, AZ + dz)
+    pon(g, geoCil(0.35, 0.38, 5, 12), mat(0xd9c9a8, 0.7), AX - 2.4, 4.1, AZ + dz)
+    pon(g, geoCaja(0.9, 0.4, 0.9), mármol, AX - 2.4, 6.8, AZ + dz)
+    pon(g, geoCil(0.25, 0.3, 1.6, 8), mármol, AX - 2.4, 10.6, AZ + dz)
+  }
+  pon(g, geoCaja(4, 0.6, 16.4), travOsc, AX, 9.3, AZ)
+  pon(g, geoCaja(3.8, 3, 16), mármol, AX, 11.1, AZ)
+  pon(g, geoCaja(0.1, 2, 6), mat(0xcfc2a8, 0.8), AX - 1.95, 11.1, AZ)
+  for (const dz of [-5.4, 5.4]) pon(g, geoCaja(0.1, 1.6, 2.4), mat(0xb8ab92, 0.9), AX - 1.95, 11.1, AZ + dz)
+  // La Meta Sudans.
+  pon(g, geoCil(3, 3, 0.6, 20), travOsc, 6, 0.3, -24)
+
+  // --- el templo de Venus y Roma, bajo, delante ---
+  const TZ = 32
+  pon(g, geoCaja(10, 1.4, 22), travOsc, 2, 0.7, TZ)
+  columnata(g, mármol, { n: 9, largo: 18, alto: 4.5, r: 0.3, x: -2, y: 1.4, z: TZ, enZ: true })
+  for (const [dz, alto] of [[-6, 3], [2, 4.5], [7, 2]]) pon(g, geoCil(0.32, 0.34, alto, 10), mármol, 5, 1.4 + alto / 2, TZ + dz)
+
+  // --- el Palatino y los pinos ---
+  const fondo = m => { m.userData.sinFoco = true; return m }
+  fondo(pon(g, geoCil(20, 34, 10, 12), mat(0x6f8a4f, 1), 58, 5, -8)).scale.z = 1.6
+  for (let i = 0; i < 16; i++) fondo(pon(g, geoCaja(azar(2, 5), azar(2, 6), azar(2, 5)), ladrillo, azar(44, 66), 10 + azar(0, 2), azar(-40, 24)))
+  for (let i = 0; i < 26; i++) arbol(g, azar(34, 42), azar(-42, 42), elige(['pino', 'pino', 'cipres']), 1.2)
+  for (let i = 0; i < 10; i++) arbol(g, azar(-6, 2), elige([azar(-44, -24), azar(38, 44)]), 'pino', 1.2)
+  // La boca de metro con su M roja.
+  pon(g, geoCil(0.08, 0.08, 3.4, 6), mat(0x555555, 0.5, 0.5), -5, 1.7, -18)
+  pon(g, geoCaja(0.2, 1, 1), mat(0xd23a2a, 0.6), -5, 3.6, -18)
+
+  return colocar(g, 1, -62)
 }
 
 function cuatroTejado (g, x, z, ancho, fondo) {

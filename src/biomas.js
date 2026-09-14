@@ -1996,6 +1996,8 @@ export const HITOS = {
   notreDameGarde: FRANCIA.notreDame,
   fourviere: FRANCIA.fourviere,
   maschioAngioino: ITALIA.maschioAngioino,
+  // El Coliseo de Meshy salía deformado: Roma usa ya el de código.
+  coliseo3d: ITALIA.coliseoRoma,
   duomo: ITALIA.duomo,
   partenon: GRECIA.partenon,
   torreBlanca: GRECIA.torreBlanca,
