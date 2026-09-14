@@ -596,22 +596,44 @@ function buildWeapon (key) {
   }
 
   if (key === 'archer') {
-    // Arco de madera con la cuerda tensada y el carcaj lleno de flechas.
-    for (let i = 0; i < 9; i++) {
-      const a = -0.9 + (i / 8) * 1.8
-      piece(w, cap(0.022, 0.1, 3, 6), wood, 0, Math.sin(a) * 0.46, -Math.cos(a) * 0.14 - 0.1, a * 0.9)
+    // Arco largo recurvado de madera oscura, como el de la arquera de la
+    // referencia: casi tan alto como media figura, las palas que vuelven hacia
+    // la cuerda y las puntas que se abren hacia delante, la empuñadura forrada
+    // de cuero y la flecha montada con sus plumas. El carcaj va en la cadera.
+    const madera = mat(0x4a2e1c, 0.7)
+    const forro = mat(0x2e1f14, 0.9)
+    const LARGO = 0.64
+    const zArco = t => -0.13 + 0.17 * t * t - 0.1 * Math.max(0, Math.abs(t) - 0.78) / 0.22
+    const puntos = []
+    for (let i = 0; i <= 16; i++) {
+      const t = -1 + (i / 16) * 2
+      puntos.push([LARGO * t, zArco(t)])
     }
-    piece(w, box(0.05, 0.16, 0.07, 0.02), mat(0x6b4a2c, 0.85), 0, 0, -0.1)          // empuñadura
-    for (let i = 0; i < 7; i++) {                                                    // cuerda
-      piece(w, cap(0.007, 0.11, 3, 5), mat(0xd8cfae, 0.9), 0, -0.36 + i * 0.12, 0.02)
+    for (let i = 0; i < 16; i++) {
+      const [ya, za] = puntos[i]
+      const [yb, zb] = puntos[i + 1]
+      const largo = Math.hypot(yb - ya, zb - za)
+      const t = Math.abs(-1 + ((i + 0.5) / 16) * 2)
+      // Más grueso cerca de la empuñadura, afilado en las puntas.
+      piece(w, cap(0.024 - t * 0.012, largo, 3, 6), madera, 0, (ya + yb) / 2, (za + zb) / 2, Math.atan2(zb - za, yb - ya))
     }
-    piece(w, tube(0.014, 0.014, 0.62, 5), mat(0x6a4a2c, 0.8), 0, 0, -0.34, Math.PI / 2)  // flecha montada
-    piece(w, box(0.03, 0.09, 0.06, 0.01), mat(0xc9c2ad, 0.8), 0, 0.02, -0.02)
-    piece(w, tube(0.06, 0.07, 0.34, 8), mat(0x5b4028, 0.9), 0.22, -0.06, 0.34, 0.3)  // carcaj
-    for (let i = 0; i < 5; i++) {
-      piece(w, tube(0.01, 0.01, 0.24, 4), mat(0x6a4a2c, 0.8), 0.2 + (i % 3) * 0.03, 0.14, 0.3 + (i % 2) * 0.04, 0.3)
-      piece(w, box(0.02, 0.07, 0.05, 0.008), mat(0xb8563f, 0.85), 0.2 + (i % 3) * 0.03, 0.24, 0.31)
+    piece(w, tube(0.03, 0.03, 0.17, 8), forro, 0, 0, -0.13)                            // empuñadura
+    piece(w, box(0.02, 0.04, 0.03, 0.008), mat(0x8a6a48, 0.8), 0.028, 0.1, -0.13)      // reposaflechas
+    // La cuerda, tensada hasta la mejilla: dos tramos desde las puntas al culatín.
+    const cuerda = mat(0xd8cfae, 0.9)
+    const culatin = [0, 0.3]
+    for (const extremo of [puntos[0], puntos[16]]) {
+      const largo = Math.hypot(culatin[0] - extremo[0], culatin[1] - extremo[1])
+      piece(w, cap(0.006, largo, 3, 5), cuerda, 0, (extremo[0] + culatin[0]) / 2, (extremo[1] + culatin[1]) / 2,
+        Math.atan2(culatin[1] - extremo[1], culatin[0] - extremo[0]))
     }
+    // La flecha montada: asta, punta de hierro y plumas rojas junto al culatín.
+    piece(w, tube(0.009, 0.009, 0.78, 5), mat(0x8a6a48, 0.8), 0, 0.005, -0.08, Math.PI / 2)
+    piece(w, cap(0.018, 0.05, 3, 5), mat(0x3a3f45, 0.4, 0.6), 0, 0.005, -0.49, Math.PI / 2)
+    for (const lado of [-1, 1]) {
+      piece(w, box(0.004, 0.035, 0.09, 0.002), mat(0xb8563f, 0.85), lado * 0.012, 0.012, 0.24)
+    }
+    piece(w, box(0.004, 0.035, 0.09, 0.002), mat(0xe8e2d4, 0.85), 0, 0.03, 0.24)
   } else if (key === 'gunner') {
     // Ametralladora con bípode, cinta de munición y culata de asa.
     piece(w, box(0.085, 0.13, 0.62, 0.02), steel, 0, 0, -0.06)
@@ -780,44 +802,71 @@ function placeholderSoldier (key, spec) {
   const leather = mat(0x5e3d24, 0.88)
   const leatherDark = mat(0x3a2515, 0.9)
   const bronze = mat(0xb8873a, 0.48, 0.95)
-  // Lino claro y frío: si la túnica cae en la gama de la piel, la figura entera
-  // se lee como un bloque de un solo color.
-  const linen = mat(0xe6dfca, 0.96)
+  // La arquera va de cuero de arriba abajo, en tres marrones distintos: chaleco,
+  // pantalón y botas. Con uno solo la figura se leía como un bloque.
+  const chaleco = mat(0x6b4529, 0.82)
+  const calzas = mat(0x4e3524, 0.9)
+  const pelo = mat(0x5a3620, 0.85)
 
   // --- torso ------------------------------------------------------------------
-  const torso = piece(statics, lathe('torso', TORSO_PROFILE, 18), ancient ? linen : cloth, 0, 0.86, 0)
-  torso.scale.set(heavy ? 1.15 : lean ? 0.94 : 1, 1, heavy ? 0.95 : 0.85)
+  // De mujer: cintura más estrecha y cadera algo más ancha que la del soldado.
+  const torso = piece(statics, lathe('torso', TORSO_PROFILE, 18), ancient ? chaleco : cloth, 0, 0.86, 0)
+  torso.scale.set(heavy ? 1.15 : ancient ? 0.88 : lean ? 0.94 : 1, 1, heavy ? 0.95 : ancient ? 0.78 : 0.85)
 
   if (ancient) {
-    // Túnica corta ceñida, coraza de tiras de cuero y faldellín. Nada de kevlar.
-    const tunic = piece(statics, lathe('tunic', [
-      [0.001, 0.0], [0.19, 0.02], [0.235, 0.12], [0.245, 0.24], [0.2, 0.36], [0.16, 0.44], [0.001, 0.46]
-    ], 16), linen, 0, 0.78, 0)
-    tunic.scale.z = 0.88
-    for (let i = 0; i < 4; i++) {                                  // lorica de tiras
-      piece(statics, box(0.34, 0.055, 0.24, 0.02), leather, 0, 1.09 + i * 0.075, 0)
+    // La arquera de la referencia: chaleco de cuero ceñido sin mangas, con los
+    // cordones y las hebillas del frente, el cinturón ancho con la bolsa, los
+    // faldones del abrigo cayendo hasta el muslo, el carcaj de flechas en la
+    // cadera con su correa cruzada, y la melena castaña por la espalda.
+    const vest = piece(statics, lathe('chaleco', [
+      [0.001, 0.0], [0.17, 0.02], [0.2, 0.12], [0.19, 0.24], [0.2, 0.36], [0.17, 0.46], [0.12, 0.52], [0.001, 0.53]
+    ], 16), chaleco, 0, 0.9, 0)
+    vest.scale.z = 0.8
+    // Cordones cruzados y la fila de hebillas del frente.
+    for (let i = 0; i < 5; i++) {
+      const y = 1.02 + i * 0.075
+      piece(statics, box(0.1, 0.012, 0.012, 0.004), leatherDark, 0, y, -0.165, 0, 0, 0.5)
+      piece(statics, box(0.1, 0.012, 0.012, 0.004), leatherDark, 0, y, -0.165, 0, 0, -0.5)
+      piece(statics, box(0.035, 0.022, 0.012, 0.005), bronze, 0.075, y + 0.03, -0.16)
     }
-    piece(statics, box(0.1, 0.34, 0.22, 0.03), leatherDark, 0, 1.2, 0, 0, 0, 0.5)   // correa cruzada
-    piece(statics, tube(0.185, 0.185, 0.075, 16), leather, 0, 0.96, 0)              // cinturón ancho
-    piece(statics, box(0.09, 0.08, 0.03, 0.01), bronze, 0, 0.96, -0.19)             // hebilla
-    for (let i = 0; i < 7; i++) {                                                    // cíngulo colgante
-      const x = -0.12 + i * 0.04
-      piece(statics, box(0.03, 0.2, 0.02, 0.008), leatherDark, x, 0.85, -0.185)
-      piece(statics, ball(0.018, 6, 5), bronze, x, 0.74, -0.185)
+    // Costuras de los paneles del chaleco.
+    for (const side of [-1, 1]) piece(statics, box(0.012, 0.4, 0.012, 0.004), leatherDark, side * 0.11, 1.15, -0.155)
+    // Cinturón ancho con hebilla, bolsa y la correa del carcaj.
+    piece(statics, tube(0.172, 0.18, 0.08, 16), leatherDark, 0, 0.93, 0)
+    piece(statics, box(0.08, 0.07, 0.025, 0.01), bronze, 0, 0.93, -0.18)
+    piece(statics, box(0.09, 0.11, 0.06, 0.02), leather, 0.17, 0.88, -0.06)
+    piece(statics, box(0.07, 0.04, 0.065, 0.01), leatherDark, 0.17, 0.93, -0.06)
+    piece(statics, box(0.045, 0.55, 0.02, 0.01), leatherDark, 0, 1.18, -0.02, 0, 0, 0.62)
+    // Los faldones: tiras de cuero que caen del cinturón por los lados y detrás,
+    // abiertos por delante como el abrigo de la referencia.
+    for (let i = 0; i < 7; i++) {
+      const a = Math.PI * 0.25 + (i / 6) * Math.PI * 1.5
+      const largo = 0.26 + (i % 2) * 0.06
+      piece(statics, box(0.1, largo, 0.02, 0.01), i % 2 ? leather : chaleco,
+        Math.sin(a) * 0.19, 0.9 - largo / 2, Math.cos(a) * 0.16, Math.cos(a) * 0.18, a, 0)
     }
-    // Manto sujeto al hombro con un broche.
-    const cloak = piece(statics, lathe('cloak', [
-      [0.001, 0.0], [0.16, 0.03], [0.24, 0.2], [0.26, 0.42], [0.2, 0.56], [0.001, 0.6]
-    ], 12), mat(0xa8322a, 0.94), 0, 0.82, 0.13)
-    cloak.scale.set(1.05, 1, 0.5)
-    piece(statics, ball(0.045, 8, 6), bronze, -0.2, 1.4, 0.05)                      // broche
-    piece(statics, tube(0.075, 0.09, 0.3, 10), leatherDark, 0.2, 1.05, 0.16, 0.25)  // carcaj a la espalda
-    for (let i = 0; i < 4; i++) {
-      piece(statics, tube(0.011, 0.011, 0.26, 4), mat(0x6a4a2c, 0.85), 0.19 + (i % 2) * 0.035, 1.28, 0.13 + (i % 2) * 0.03, 0.25)
-      piece(statics, box(0.02, 0.07, 0.05, 0.008), mat(0xb8563f, 0.9), 0.19 + (i % 2) * 0.035, 1.4, 0.14)
+    // El carcaj en la cadera izquierda, inclinado hacia atrás, con flechas.
+    // En su propio grupo, casi vertical y con la boca hacia atrás: con cada
+    // pieza girada por separado sobresalía en horizontal de la cadera.
+    const carcaj = new THREE.Group()
+    carcaj.position.set(-0.21, 0.86, 0.1)
+    carcaj.rotation.set(0.45, 0, 0.18)
+    statics.add(carcaj)
+    piece(carcaj, tube(0.055, 0.065, 0.42, 10), leatherDark, 0, 0, 0)
+    piece(carcaj, tube(0.07, 0.07, 0.04, 10), leather, 0, 0.2, 0)
+    piece(carcaj, tube(0.068, 0.068, 0.03, 10), leather, 0, -0.12, 0)
+    for (let i = 0; i < 6; i++) {
+      const dx = ((i % 3) - 1) * 0.028
+      const dz = ((i % 2) - 0.5) * 0.04
+      piece(carcaj, tube(0.007, 0.007, 0.2, 4), mat(0x8a6a48, 0.85), dx, 0.3, dz)
+      piece(carcaj, box(0.01, 0.06, 0.035, 0.004), mat(i % 2 ? 0xb8563f : 0xe8e2d4, 0.9), dx, 0.38, dz)
     }
-    // Hombros dentro del fundido, con la tela de la manga: dos llamadas menos.
-    for (const side of [-1, 1]) piece(statics, ball(0.085, 12, 10), linen, side * shoulderX, SHOULDER, 0)
+    // La melena por la espalda, hasta media espalda, abriéndose un poco.
+    piece(statics, lathe('melena', [
+      [0.001, 0.0], [0.09, 0.04], [0.13, 0.18], [0.12, 0.34], [0.09, 0.44], [0.001, 0.46]
+    ], 10), pelo, 0, 1.12, 0.14).scale.set(1.2, 1, 0.45)
+    // Hombros al aire, con la piel.
+    for (const side of [-1, 1]) piece(statics, ball(0.075, 12, 10), skin, side * shoulderX, SHOULDER, 0)
   } else {
     // chaleco portaplacas con placa frontal y trasera
     piece(statics, box(0.38, 0.42, 0.24, 0.05), clothDark, 0, 1.24, 0)
@@ -953,20 +1002,22 @@ function placeholderSoldier (key, spec) {
   const sorteo = Math.random()
 
   if (ancient) {
-    // Casco de bronce con cimera roja, carrilleras y cubrenuca. Barba incluida:
-    // es lo que separa a un civil armado de un soldado con casco.
-    piece(headParts, lathe('galea', [
-      [0.001, 0.23], [0.09, 0.215], [0.16, 0.13], [0.195, 0.01], [0.2, -0.08], [0.001, -0.085]
-    ], 16), bronze, 0, 0.02, 0)
-    piece(headParts, box(0.24, 0.06, 0.16, 0.02), bronze, 0, -0.04, 0.15)          // cubrenuca
-    for (const side of [-1, 1]) {                                                   // carrilleras
-      piece(headParts, box(0.05, 0.16, 0.11, 0.03), bronze, side * 0.18, -0.09, -0.02, 0, 0, side * 0.12)
+    // Sin casco: la melena castaña con raya al medio, los mechones que caen a
+    // los lados de la cara y la trenza fina, las cejas oscuras y los labios.
+    // El pelo es un casquete abierto por delante: cubre la coronilla, la nuca y
+    // los lados, y deja la cara al aire. Envolviendo la cabeza entera la tapaba.
+    piece(headParts, new THREE.SphereGeometry(0.2, 16, 10, Math.PI / 2 - 2.1, 4.2, 0, 2.3), pelo, 0, 0.03, 0.02).scale.set(1.1, 1.12, 1.2)
+    piece(headParts, new THREE.SphereGeometry(0.205, 16, 6, 0, Math.PI * 2, 0, 0.85), pelo, 0, 0.035, 0.0).scale.set(1.1, 1.1, 1.18)
+    piece(headParts, box(0.012, 0.02, 0.2, 0.004), mat(0x3f2616, 0.85), 0, 0.225, -0.02)        // raya
+    for (const side of [-1, 1]) {
+      piece(headParts, box(0.05, 0.28, 0.06, 0.02), pelo, side * 0.155, -0.12, -0.08, 0.1, 0, side * 0.08)   // mechones
+      piece(headParts, box(0.045, 0.012, 0.012, 0.004), mat(0x3a2414, 0.8), side * 0.055, 0.04, -0.183)     // cejas
+      piece(headParts, ball(0.016, 6, 5), mat(0x2a1d14, 0.4), side * 0.052, 0.0, -0.18)                    // ojos
     }
-    for (let i = 0; i < 7; i++) {                                                   // cimera
-      piece(headParts, box(0.04, 0.055 + Math.sin(i / 6 * Math.PI) * 0.045, 0.055, 0.012),
-        mat(0xa8322a, 0.95), 0, 0.245, -0.13 + i * 0.042)
+    piece(headParts, box(0.05, 0.014, 0.012, 0.005), mat(0xa85a4a, 0.6), 0, -0.1, -0.175)           // labios
+    for (let i = 0; i < 5; i++) {
+      piece(headParts, ball(0.028 - i * 0.002, 6, 5), mat(0x4a2c18, 0.85), 0.12, -0.12 - i * 0.05, 0.1)   // trenza
     }
-    piece(headParts, box(0.13, 0.09, 0.07, 0.03), mat(0x4a3524, 0.95), 0, -0.13, -0.13)  // barba
   } else if (lean) {
     piece(headParts, lathe('hood', [
       [0.001, 0.245], [0.15, 0.2], [0.22, 0.06], [0.235, -0.07], [0.22, -0.19], [0.16, -0.235], [0.001, -0.245]
@@ -1054,19 +1105,19 @@ function placeholderSoldier (key, spec) {
   const legPose = { legL: 0.26 + jit(), legR: -0.2 + jit() }
   const legBend = { legL: -0.3, legR: -0.16 }
 
-  // El de época va con los brazos y las piernas al aire: mangas cortas, brazal
-  // de cuero en el antebrazo y sandalias con tiras en vez de botas.
+  // La arquera va con los brazos al aire y los brazaletes largos de cuero; las
+  // piernas, con calzas de cuero y botas altas con la vuelta caída.
   const armMat = ancient ? skin : faena
-  const legMat = ancient ? skin : trousers
+  const legMat = ancient ? calzas : trousers
 
   for (const [name, side] of [['armL', -1], ['armR', 1]]) {
     const arm = limb({
-      length: 0.62, thickness: 0.062, material: armMat, lowerMat: armMat,
+      length: 0.62, thickness: ancient ? 0.052 : 0.062, material: armMat, lowerMat: armMat,
       bend: armBend[name],   // sin material propio de articulación: una malla menos por tramo
-      end: box(0.075, 0.09, 0.1, 0.03), endMat: ancient ? leather : glove, endOffset: -0.03,
+      end: box(0.07, 0.085, 0.095, 0.03), endMat: ancient ? leatherDark : glove, endOffset: -0.03,
       // Todo esto se funde dentro del tramo en vez de colgarse suelto después.
       extraUpper: ancient
-        ? up => piece(up, tube(0.09, 0.1, 0.13, 10), linen, 0, -0.09, 0)
+        ? null
         : up => {
             // Brazalete estrecho, no una hombrera: el deltoides que cuelga del
             // yugo YA va del color de la unidad, y al añadir aquí un anillo
@@ -1075,7 +1126,11 @@ function placeholderSoldier (key, spec) {
             piece(up, box(0.1, 0.09, 0.11, 0.03), faenaOsc, 0, -0.29, 0)
           },
       extraLower: ancient
-        ? lo => piece(lo, tube(0.075, 0.075, 0.12, 10), leather, 0, -0.19, 0)
+        ? lo => {
+            // Brazalete largo, de la muñeca casi al codo, con sus correas.
+            piece(lo, tube(0.066, 0.058, 0.24, 10), leatherDark, 0, -0.2, 0)
+            for (const y of [-0.12, -0.2, -0.28]) piece(lo, tube(0.069, 0.069, 0.015, 10), leather, 0, y, 0)
+          }
         : lo => piece(lo, tube(0.07, 0.072, 0.07, 8), faenaOsc, 0, -0.31, 0)   // puño
     })
     arm.position.set(side * shoulderX, SHOULDER, 0)
@@ -1097,9 +1152,15 @@ function placeholderSoldier (key, spec) {
       end: box(0.11, 0.075, 0.26, 0.03), endMat: ancient ? leatherDark : boot, endOffset: -0.06,
       extraLower: ancient
         ? lo => {
-            for (let i = 0; i < 3; i++) {                                        // tiras de la sandalia
-              piece(lo, tube(0.088, 0.088, 0.022, 8), leatherDark, 0, -0.38 + i * 0.07, 0)
+            // Bota alta hasta la rodilla, con la vuelta caída arriba y dos
+            // correas con hebilla en la caña.
+            piece(lo, tube(0.092, 0.085, 0.36, 10), leatherDark, 0, -0.26, 0)
+            piece(lo, tube(0.108, 0.098, 0.08, 10), leather, 0, -0.07, 0)
+            for (const y of [-0.2, -0.32]) {
+              piece(lo, tube(0.095, 0.095, 0.02, 10), mat(0x2a1a0f, 0.9), 0, y, 0)
+              piece(lo, box(0.025, 0.025, 0.01, 0.005), bronze, 0.09, y, -0.02)
             }
+            piece(lo, box(0.115, 0.05, 0.27, 0.02), mat(0x2a1a0f, 0.9), 0, -0.478, -0.055)   // suela
           }
         : lo => {
             piece(lo, box(0.11, 0.1, 0.06, 0.03), gearDark, 0, -0.02, -0.06)     // rodillera
