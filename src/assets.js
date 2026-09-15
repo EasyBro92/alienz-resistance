@@ -2552,12 +2552,39 @@ const ALIEN_ANIMADOS = {
   // esqueleto.
   runner: { archivo: 'models/alien-corredor-correr.glb', ciclos: 0.55 },
   burrower: { archivo: 'models/alien-escarbador-andar.glb', ciclos: 0.75 },
+  // Meshy le dejó el saco de huevos casi invisible: se le pone por código.
+  spitter: { archivo: 'models/alien-sembrador-andar.glb', ciclos: 0.75, saco: true },
   armored: { archivo: 'models/alien-encostrado-andar.glb', ciclos: 0.8 },
   // Al Saltador, Meshy le confundió patas y púas: al girar los brazos se
   // estiraban en láminas. Sin zarpazo: atacando sigue corriendo en el sitio.
   leaper: { archivo: 'models/alien-saltador-correr.glb', ciclos: 0.6, sinZarpazo: true }
 }
 const materialesAclarados = new Map()
+
+// El saco de huevos del Sembrador: bolsa translúcida morada con huevos que
+// brillan dentro. Va pegado a la espalda y sigue al pecho del esqueleto.
+function sacoDeHuevos () {
+  const saco = new THREE.Group()
+  const piel = new THREE.MeshStandardMaterial({
+    color: 0xb57ad8, emissive: 0x5a1f86, emissiveIntensity: 0.6,
+    roughness: 0.25, transparent: true, opacity: 0.55, depthWrite: false
+  })
+  const bolsa = new THREE.Mesh(new THREE.SphereGeometry(0.3, 18, 14), piel)
+  bolsa.scale.set(1, 1.15, 0.85)
+  bolsa.castShadow = true
+  saco.add(bolsa)
+  const huevoGeo = new THREE.SphereGeometry(0.07, 10, 8)
+  const huevoMat = new THREE.MeshStandardMaterial({ color: 0xe6a0ff, emissive: 0xd46bff, emissiveIntensity: 1.1, roughness: 0.4 })
+  for (let i = 0; i < 9; i++) {
+    const huevo = brilla(new THREE.Mesh(huevoGeo, huevoMat))
+    const a = Math.random() * Math.PI * 2
+    const d = 0.06 + Math.random() * 0.12
+    huevo.position.set(Math.cos(a) * d, (Math.random() - 0.5) * 0.3, Math.sin(a) * d * 0.7)
+    huevo.scale.set(1, 1.3, 1)
+    saco.add(huevo)
+  }
+  return saco
+}
 
 async function alienAnimado (key, spec) {
   const def = ALIEN_ANIMADOS[key]
@@ -2604,6 +2631,9 @@ async function alienAnimado (key, spec) {
   const cabeza = hueso('Head')
   const brazos = [hueso('LeftArm'), hueso('RightArm')]
   const antebrazos = [hueso('LeftForeArm'), hueso('RightForeArm')]
+  const saco = def.saco ? sacoDeHuevos() : null
+  if (saco) g.add(saco)
+  const enPecho = new THREE.Vector3()
   // Girar un hueso sobre un eje del mundo, sea cual sea su orientación local.
   const qMundo = new THREE.Quaternion()
   const qPadre = new THREE.Quaternion()
@@ -2630,6 +2660,15 @@ async function alienAnimado (key, spec) {
     // Atacando, las piernas casi se paran: pisotea en el sitio.
     const vueltas = paso / (Math.PI * 2) * def.ciclos * (1 - ataque * 0.7)
     mixer.setTime(((vueltas % 1) + 1) % 1 * clip.duration)
+    if (saco && pecho) {
+      // A la espalda (el huésped mira a -Z) y a la altura del pecho, que sube
+      // y baja con cada paso; late despacio.
+      g.updateMatrixWorld(true)
+      pecho.getWorldPosition(enPecho)
+      g.worldToLocal(enPecho)
+      saco.position.set(enPecho.x, enPecho.y + 0.02, enPecho.z + 0.26)
+      saco.scale.setScalar(1 + Math.sin(t * 3 + fase) * 0.05)
+    }
     if (ataque < 0.01) return
 
     // Zarpazos alternos encima del ciclo: carga el brazo arriba despacio, lo
