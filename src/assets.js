@@ -1949,11 +1949,97 @@ export async function buildSoldierMesh (key, spec) {
   return placeholderSoldier(key, spec)
 }
 
+// ---------------------------------------------------------------------------
+// Huéspedes de Meshy.
+//
+// Con piezas por código no se llegaba al diseño de la lámina de referencia, así
+// que cada forma tiene su modelo de Meshy con textura. Se generan uno a uno con
+// el saldo que haya; la forma que aún no tenga modelo sigue con su figura de
+// piezas (`placeholderAlien`), así que el juego funciona con cualquier mezcla.
+//
+// Los modelos no traen esqueleto —ponérselo cuesta créditos aparte—, así que la
+// vida se la da el código: dan tumbos al andar (balanceo, cabeceo y un saltito
+// por paso), cada uno a su ritmo y con su fase. `zombie.js` no se entera: no
+// hay `limbs` ni `lean` que animar.
+// ---------------------------------------------------------------------------
+const ALIEN_MODELS = {
+  walker: 'models/alien-portador.glb',
+  runner: 'models/alien-corredor.glb',
+  armored: 'models/alien-encostrado.glb',
+  spitter: 'models/alien-sembrador.glb',
+  tank: 'models/alien-coloso.glb',
+  leaper: 'models/alien-saltador.glb',
+  bloater: 'models/alien-revientaesporas.glb',
+  healer: 'models/alien-injertadora.glb',
+  burrower: 'models/alien-escarbador.glb',
+  boss: 'models/alien-madre.glb'
+}
+// Alto de un huésped a escala 1, el mismo que la figura de piezas.
+const ALTO_HUESPED = 1.8
+
+async function alienDeMeshy (key, spec) {
+  const gltf = await cargarGLTF(ALIEN_MODELS[key])
+  // Malla sin esqueleto: basta con clonar. Geometría y textura se comparten;
+  // el material se clona por si algún efecto lo toca en un ejemplar.
+  const modelo = gltf.scene.clone(true)
+  modelo.traverse(o => {
+    if (!o.isMesh) return
+    o.castShadow = true
+    o.receiveShadow = true
+    o.material = o.material.clone()
+  })
+  // Meshy los entrega mirando a +Z; los huéspedes avanzan hacia -Z.
+  modelo.rotation.y = Math.PI
+  const caja = new THREE.Box3().setFromObject(modelo)
+  const tam = caja.getSize(new THREE.Vector3())
+  // LA MADRE es una araña: baja y ancha. Se escala por el ancho, no por el alto.
+  const k = key === 'boss'
+    ? (ALTO_HUESPED * 1.1) / Math.max(tam.x, tam.z, 1e-3)
+    : ALTO_HUESPED / Math.max(tam.y, 1e-3)
+  modelo.scale.multiplyScalar(k)
+  caja.setFromObject(modelo)
+  const centro = caja.getCenter(new THREE.Vector3())
+  modelo.position.set(-centro.x, -caja.min.y, -centro.z)
+
+  const cuerpo = new THREE.Group()
+  cuerpo.add(modelo)
+  const g = new THREE.Group()
+  g.add(cuerpo)
+  g.add(contactShadow(spec.boss ? 1.6 : (spec.scale ?? 1) >= 1.5 ? 1.1 : 0.9))
+
+  // Los tumbos. Se anima al dibujarse, con la hora, para no depender del bucle.
+  const fase = Math.random() * 10
+  const ritmo = Math.min(1.8, Math.max(0.6, spec.speed / 3.4)) * 5.5
+  let ultimo = -1
+  let ancla = null
+  modelo.traverse(o => { if (!ancla && o.isMesh) ancla = o })
+  if (ancla) {
+    ancla.onBeforeRender = () => {
+      const t = performance.now() / 1000
+      if (t === ultimo) return
+      ultimo = t
+      const paso = t * ritmo + fase
+      cuerpo.rotation.z = Math.sin(paso) * (spec.boss ? 0.03 : 0.07)
+      cuerpo.rotation.x = -0.04 + Math.sin(paso * 2) * 0.035
+      cuerpo.position.y = Math.abs(Math.sin(paso)) * (spec.boss ? 0.02 : 0.05)
+    }
+  }
+  g.scale.setScalar((spec.scale ?? 1) * (0.94 + Math.random() * 0.12))
+  return g
+}
+
 export async function buildZombieMesh (key, spec) {
   if (MODELS[key]) {
     const m = await loadModel(MODELS[key])
     m.scale.setScalar(spec.scale ?? 1)
     return m
+  }
+  if (ALIEN_MODELS[key]) {
+    try {
+      return await alienDeMeshy(key, spec)
+    } catch {
+      // Esta forma aún no tiene modelo: va con su figura de piezas.
+    }
   }
   return placeholderAlien(key, spec)
 }

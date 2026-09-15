@@ -8,7 +8,7 @@ Publicado en https://easybro92.github.io/alienz-resistance/ (repo `EasyBro92/ali
 - **Todo procedural**: geometría, texturas y sonido por código. Única excepción: modelos de Meshy en `public/models/` (soldados y cascos de nave), siempre pasados por `herramientas/adelgazar.mjs`.
 - **Comentarios en español** que explican el porqué. Es el estilo de todo el código: mantenerlo.
 - **Commit y push directamente** cuando algo esté hecho y comprobado. Mensaje en español que acaba con `Co-Authored-By`.
-- **Meshy**: no gastar créditos sin permiso; dejar siempre unos 200. (El 15/09/2026 Isidro autorizó bajar de ahí para el jefe alien de la portada: 30 créditos, saldo 170.)
+- **Meshy**: no gastar créditos sin permiso; dejar siempre unos 200. (El 15/09/2026 Isidro autorizó bajar de ahí para el jefe alien de la portada: 30 créditos, saldo 170. Ese mismo día pidió los 10 huéspedes con Meshy gastando lo mínimo: `--modelo meshy-5 --refinar`, 15 créditos cada uno, saldo 20.)
 - Compilar con `npx vite build`. La precarga del PWA ronda 830 KB; los `.glb` van en caché de ejecución, no en la precarga.
 
 ## Mapa del código
@@ -26,6 +26,7 @@ Publicado en https://easybro92.github.io/alienz-resistance/ (repo `EasyBro92/ali
 | `src/enemigos.js` | La pantalla de Enemigos como baraja: una carta por huésped (retrato, rol, barras de vida/velocidad/daño/botín, texto y habilidades) que se pasa deslizando como la página de un libro (muelle con rebote, gesto rápido, flechas y puntos). La carta de arriba enseña la figura en 3D andando (su propio renderer, solo con la capa visible). La carta de destino se activa al elegirla y un temporizador la asienta aunque no lleguen fotogramas. `window.__baraja.estado()` en desarrollo |
 | `src/mapa.js` | Mapa del mundo en SVG (`pintarMapa`) |
 | `src/assets.js` | Figuras procedurales, `bake()`, `MODELS` (Meshy), `armarPersona` (huesos manejados con mandos), `buildWeapon` |
+| Huéspedes (en `assets.js`) | `ALIEN_MODELS`: un modelo de Meshy por forma (`public/models/alien-*.glb`, texturas adelgazadas a 512, ~0,3 MB cada uno), sin esqueleto: `alienDeMeshy` los escala a 1,8 de alto (LA MADRE por el ancho), los gira para que miren a -Z y los anima por código (balanceo, cabeceo y saltito por paso). La forma sin modelo cae a `placeholderAlien` (figura de piezas) |
 | `src/entities/soldier.js` | Soldado. Mandos → huesos (figuras de piezas); mejoras de tienda aplicadas en `damage` y `fireRate` |
 | `src/entities/cuerpo.js` | Animación de las figuras de Meshy: ciclo de andar del modelo (más zancada al correr), arma colocada en la figura (hombro/objetivo, baja, cruzada) y manos por cinemática inversa. `AGARRES` por arma |
 | `src/entities/zombie.js` | Huésped. `suelo` (altura de la rampa) y reparto a su carril |

@@ -188,8 +188,11 @@ const previo = await pedir(clave, '/openapi/v2/text-to-3d', {
     // primero pesa más, así que el QUÉ manda sobre el CÓMO.
     prompt: `${o.prompt}. ${o.criatura ? ESTILO_CRIATURA : o.realista ? ESTILO_REAL : ESTILO}`,
     art_style: 'realistic',
-    model_type: 'lowpoly',
-    ai_model: 'latest',
+    // Los modelos baratos no admiten `lowpoly`: ahí el recorte lo hace el remallado.
+    model_type: o.modelo ? 'standard' : 'lowpoly',
+    // `--modelo meshy-5` para ahorrar: la generación más reciente cuesta varias
+    // veces más por malla.
+    ai_model: o.modelo ?? 'latest',
     should_remesh: true,
     topology: 'triangle',
     // Pose A solo para figuras humanas. El montador de esqueletos necesita ver
