@@ -7,6 +7,7 @@ import { createEconomy } from './systems/economy.js'
 import { createWaveDirector } from './systems/waves.js'
 import { createDropship } from './entities/dropship.js'
 import { createEffects } from './systems/effects.js'
+import { createGrietas } from './systems/grietas.js'
 import { createAmbient } from './systems/ambient.js'
 import { createAudio } from './audio.js'
 import { createUI } from './ui.js'
@@ -35,6 +36,7 @@ const canvas = document.getElementById('scene')
 const world = createWorld(canvas)
 const { scene, camera, renderer } = world
 const effects = createEffects(scene, camera)
+const grietas = createGrietas(scene, world)
 const economy = createEconomy(scene)
 // El ambiente vive aunque la partida esté parada: en el menú también sopla viento.
 const ambient = createAmbient(scene)
@@ -805,6 +807,8 @@ function blockerAhead (zombie) {
 
 function killZombie (z, index) {
   zombies.splice(index, 1)
+  // El suelo que rompió el Escarbador se recupera ahora, despacio.
+  z.rastro?.cerrar()
 
   // Revientaesporas: al caer se lleva por delante lo que tenga cerca. Es el
   // único enemigo que castiga apilar tropa en un carril, y por eso el daño va a
@@ -972,27 +976,93 @@ function simulate (dt) {
         z.tDaño = 0.34
       }
 
-      // --- Escarbador: viaja hundido y sale por detrás de la línea ----------
-      if (z.bajoTierra) {
-        z.mesh.position.z += z.velocidad * dt
-        z.mesh.position.y = -2.2
-        // Un montículo de tierra que avanza: sin esto sería un enemigo que
-        // aparece de la nada, y eso se lee como un fallo, no como una mecánica.
-        if (Math.random() < dt * 14) effects.burst(tmpB.set(z.mesh.position.x, 0.1, z.mesh.position.z), 0xc4a173, 2, 0.5)
-        if (z.z >= z.spec.escarba.hasta) { z.bajoTierra = false; z.emergiendo = 0.55 }
-        continue
-      }
-      if (z.emergiendo > 0) {
-        z.emergiendo -= dt
-        const k = Math.max(0, z.emergiendo / 0.55)
-        z.mesh.position.y = -2.2 * k * k
-        if (z.emergiendo <= 0) {
-          z.mesh.position.y = 0
-          effects.burst(z.mesh.position, 0xc4a173, 16, 1.6)
+      // --- Escarbador: baja de la nave, cava, viaja hundido y sale detrás -----
+      // Todo se ve: se enrosca hacia abajo abriendo un agujero, un bulto de
+      // tierra avanza dejando un surco agrietado, y al llegar el suelo tiembla,
+      // se abre, asoma el taladro y trepa fuera. Un enemigo que aparece de la
+      // nada se lee como un fallo, no como una mecánica. La tierra que salta es
+      // del color del suelo de la misión.
+      if (z.cavar) {
+        const c = z.cavar
+        const pos = z.mesh.position
+        if (c.estado === 'llegar') {
+          pos.z += z.velocidad * dt
+          c.andado += z.velocidad * dt
+          z.suelo = dropship.alturaRampa(z.z)
+          z.update(dt, camera, true)
+          // En cuanto pisa suelo firme, fuera ya de la plancha, se pone a cavar.
+          if (z.suelo <= 0.001 && c.andado > 1.2) {
+            c.estado = 'cavando'
+            c.t = 0
+            z.rastro = grietas.crear()
+            z.rastro.agujero(pos.x, pos.z, 0.8)
+            audio.thud()
+          }
+          continue
+        }
+        if (c.estado === 'cavando') {
+          c.t += dt
+          const k = Math.min(1, c.t / 1)
+          z.update(dt, camera, false)   // brazos escarbando
+          // Se enrosca hacia abajo con el taladro por delante.
+          pos.y = -2.2 * k * k
+          z.mesh.rotation.y = Math.PI + k * k * Math.PI * 4
+          if (Math.random() < dt * 30) effects.burst(tmpB.set(pos.x, 0.15, pos.z), grietas.colorSuelo(), 2, 0.9)
+          if (k >= 1) {
+            c.estado = 'tunel'
+            z.bajoTierra = true
+            z.mesh.rotation.y = Math.PI
+            c.ultimoZ = pos.z
+          }
+          continue
+        }
+        if (c.estado === 'tunel') {
+          pos.z += z.velocidad * dt
+          pos.y = -2.2
+          z.bar.face(camera, dt)
+          z.rastro.bulto(pos.x, pos.z)
+          if (pos.z - c.ultimoZ > 0.55) { z.rastro.tramo(pos.x, pos.z - 0.3); c.ultimoZ = pos.z }
+          if (Math.random() < dt * 14) effects.burst(tmpB.set(pos.x, 0.15, pos.z), grietas.colorSuelo(), 2, 0.5)
+          if (z.z >= z.spec.escarba.hasta) {
+            c.estado = 'saliendo'
+            c.t = 0
+            z.rastro.quitarBulto()
+            z.rastro.agujero(pos.x, pos.z, 1.0)
+            z.rastro.crecer(0)
+          }
+          continue
+        }
+        // Saliendo: tiembla y se agrieta, asoma el taladro girando, trepa fuera.
+        c.t += dt
+        const t = c.t
+        if (t < 0.45) {
+          z.rastro.crecer(t / 0.45)
+          pos.x += Math.sin(t * 90) * 0.004
+          if (Math.random() < dt * 24) effects.burst(tmpB.set(pos.x + (Math.random() - 0.5) * 1.4, 0.1, pos.z + (Math.random() - 0.5) * 1.4), grietas.colorSuelo(), 1, 0.5)
+          continue
+        }
+        if (z.bajoTierra) {
+          z.bajoTierra = false
+          z.rastro.crecer(1)
+          effects.burst(tmpB.set(pos.x, 0.2, pos.z), grietas.colorSuelo(), 14, 1.4)
           audio.thud()
         }
-        z.suelo = dropship.alturaRampa(z.z)
-        z.update(dt, camera, true)
+        z.update(dt, camera, false)   // brazos trepando
+        if (t < 0.75) {
+          pos.y = -2.2 + 1.3 * ((t - 0.45) / 0.3)
+          z.mesh.rotation.y = Math.PI + Math.sin(t * 45) * 0.35
+        } else {
+          const k = Math.min(1, (t - 0.75) / 0.45)
+          pos.y = -0.9 * (1 - k) * (1 - k)
+          // Se sacude la tierra al acabar de salir.
+          z.mesh.rotation.y = Math.PI + Math.sin(t * 30) * 0.3 * (1 - k)
+          if (k >= 1) {
+            pos.y = 0
+            z.mesh.rotation.y = Math.PI
+            z.cavar = null
+            effects.burst(pos, grietas.colorSuelo(), 10, 1.2)
+          }
+        }
         continue
       }
 
@@ -1089,6 +1159,7 @@ function simulate (dt) {
         if (z.z >= FIELD.baseZ) {
           damageBase(z.spec.damage)
           effects.floatText(z.mesh.position, `-${z.spec.damage}`, '#ff5a4d', 56)
+          z.rastro?.cerrar()
           scene.remove(z.mesh)
           zombies.splice(i, 1)
         }
@@ -1106,6 +1177,7 @@ function simulate (dt) {
 
   if (asalto) actualizarAsalto(dt)
   effects.update(dt)
+  grietas.update(dt)
   golpes.update(dt)
   updateCorpses(dt)
   if (running) updateBrasas(dt)
@@ -1432,6 +1504,7 @@ function limpiarPartida () {
   for (const s of soldiers) scene.remove(s.mesh)
   for (const z of zombies) scene.remove(z.mesh)
   for (const c of corpses) scene.remove(c.mesh)
+  grietas.limpiar()
   soldiers.length = 0
   zombies.length = 0
   corpses.length = 0

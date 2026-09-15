@@ -1094,7 +1094,8 @@ export function createWorld (canvas) {
   return {
     // `sun` sale fuera porque el ajuste de calidad cambia el tamaño de su mapa
     // de sombras, y ese mapa es lo más caro que hay en la escena.
-    renderer, scene, camera, sun, resize, slots, setSlotsVisible, resaltarSlot, vestir,
+    // `road` sale para el Escarbador: sus cascotes usan el material del suelo.
+    renderer, scene, camera, sun, resize, slots, setSlotsVisible, resaltarSlot, vestir, road,
     // La base del fondo de esta misión: el asalto final la hace reventar.
     baseActual: () => baseVisible,
     // La caja del monumento de esta misión, para el vuelo de presentación.

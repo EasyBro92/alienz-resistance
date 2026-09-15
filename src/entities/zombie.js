@@ -25,9 +25,8 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
   mesh.position.set(xSalida, 0, FIELD.spawnZ - Math.random() * 6)
   mesh.rotation.y = Math.PI // mirando hacia la base
 
-  // El Escarbador entra ya bajo tierra: sale del suelo, no de la rampa. La
-  // figura arranca hundida y sin barra, y el bucle la saca cuando toca.
-  if (spec.escarba) mesh.position.y = -2.2
+  // El Escarbador baja de la nave como los demás; al pisar suelo firme cava,
+  // viaja hundido y sale detrás de la línea (ver `cavar` en el bucle de main.js).
 
   const maxHp = Math.round(spec.hp * waveScale)
   // Ancho y altura NOMINALES, sin multiplicar por la escala del bicho: la barra
@@ -74,9 +73,11 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
     salto: null,
     // Injertadora: reloj de su propio injerto.
     tInjerto: Math.random() * 1.2,
-    // Escarbador: bajo tierra hasta que llega a su profundidad de salida.
-    bajoTierra: !!spec.escarba,
-    emergiendo: 0,
+    // Escarbador: en qué punto va ('llegar', 'cavando', 'tunel', 'saliendo'),
+    // si está bajo tierra y el suelo roto que va dejando (`rastro`).
+    cavar: spec.escarba ? { estado: 'llegar', t: 0, andado: 0, ultimoZ: 0 } : null,
+    bajoTierra: false,
+    rastro: null,
     walkPhase: Math.random() * Math.PI * 2,
 
     get z () { return this.mesh.position.z },
@@ -92,7 +93,9 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
     // Mientras está bajo tierra o en el aire nadie le dispara ni le bloquea el
     // paso: si no, un Saltador recibía el mordisco a mitad de vuelo y un
     // Escarbador moría sin haber salido, que es justo lo contrario de lo suyo.
-    get intocable () { return this.bajoTierra || !!this.salto },
+    // El Escarbador tampoco mientras baja de la rampa y cava: antes ya salía
+    // hundido, y dejarle tocable ahí cambiaría lo que aguanta.
+    get intocable () { return this.bajoTierra || !!this.salto || (!!this.cavar && this.cavar.estado !== 'saliendo') },
 
     curar (n) {
       if (this.hp >= this.maxHp) return 0

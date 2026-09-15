@@ -1526,7 +1526,7 @@ function placeholderZombie (spec) {
 // pústulas. Con el color de la unidad a medio tono salían planos, de plástico.
 const CUERPO_ALIEN = {
   walker: 0x3b3a22, runner: 0x3a4220, armored: 0x2a2c2f, spitter: 0x3b2446, tank: 0x4a2f2a,
-  leaper: 0x1f3645, bloater: 0x4b4822, healer: 0x42233b, burrower: 0x3e2c1c, boss: 0x3a2232
+  leaper: 0x1f3645, bloater: 0x4b4822, healer: 0x42233b, burrower: 0x9c6e44, boss: 0x3a2232
 }
 const LUZ_ALIEN = { spitter: 0xd46bff, healer: 0xff5ad0, leaper: 0x5fd8ff, bloater: 0xd8ff4a }
 // [cuántos pinchos grandes en abanico, largo, grosor]
@@ -1971,7 +1971,9 @@ const ALIEN_MODELS = {
   leaper: 'models/alien-saltador.glb',
   bloater: 'models/alien-revientaesporas.glb',
   healer: 'models/alien-injertadora.glb',
-  burrower: 'models/alien-escarbador.glb',
+  // El Escarbador va con su figura de piezas hasta que haya modelo nuevo: el
+  // de Meshy lleva la tierra fundida con los pies y agachado, y con esqueleto
+  // por código quedaba hecho un amasijo (`models/alien-escarbador.glb`).
   boss: 'models/alien-madre.glb'
 }
 // Alto de un huésped a escala 1, el mismo que la figura de piezas.
