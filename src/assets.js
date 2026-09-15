@@ -1977,53 +1977,288 @@ const ALIEN_MODELS = {
 // Alto de un huésped a escala 1, el mismo que la figura de piezas.
 const ALTO_HUESPED = 1.8
 
-async function alienDeMeshy (key, spec) {
+// --- esqueleto automático ------------------------------------------------------
+// Los modelos de Meshy llegan sin huesos (ponérselos en Meshy cuesta créditos) y
+// una malla rígida solo podía dar tumbos entera: parecían de piedra. Aquí se les
+// monta un esqueleto por código, midiendo la propia malla: dónde quedan la
+// cadera, los hombros, las rodillas y la cabeza según cómo se reparten los
+// vértices, y a cada vértice se le reparte el peso entre uno o dos huesos con
+// transición suave en las articulaciones. Luego se anda como antes: piernas que
+// se cruzan, rodillas que se doblan, brazos que bracean y cabeza que cabecea.
+// LA MADRE es una araña: ocho patas por sectores alrededor del cuerpo.
+const suave = (e0, e1, x) => {
+  const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)))
+  return t * t * (3 - 2 * t)
+}
+const percentil = (lista, p) => {
+  if (!lista.length) return 0
+  const o = [...lista].sort((a, b) => a - b)
+  return o[Math.min(o.length - 1, Math.floor(p * o.length))]
+}
+const media = lista => lista.length ? lista.reduce((a, b) => a + b, 0) / lista.length : 0
+
+const plantillasAlien = new Map()
+
+async function prepararAlien (key) {
   const gltf = await cargarGLTF(ALIEN_MODELS[key])
-  // Malla sin esqueleto: basta con clonar. Geometría y textura se comparten;
-  // el material se clona por si algún efecto lo toca en un ejemplar.
-  const modelo = gltf.scene.clone(true)
-  modelo.traverse(o => {
-    if (!o.isMesh) return
-    o.castShadow = true
-    o.receiveShadow = true
-    o.material = o.material.clone()
-  })
+  const raiz = gltf.scene.clone(true)
   // Meshy los entrega mirando a +Z; los huéspedes avanzan hacia -Z.
-  modelo.rotation.y = Math.PI
-  const caja = new THREE.Box3().setFromObject(modelo)
+  raiz.rotation.y = Math.PI
+  raiz.updateMatrixWorld(true)
+  const caja = new THREE.Box3().setFromObject(raiz)
   const tam = caja.getSize(new THREE.Vector3())
-  // LA MADRE es una araña: baja y ancha. Se escala por el ancho, no por el alto.
-  const k = key === 'boss'
-    ? (ALTO_HUESPED * 1.1) / Math.max(tam.x, tam.z, 1e-3)
-    : ALTO_HUESPED / Math.max(tam.y, 1e-3)
-  modelo.scale.multiplyScalar(k)
-  caja.setFromObject(modelo)
+  const esMadre = key === 'boss'
+  // LA MADRE es baja y ancha: se escala por el ancho.
+  const k = esMadre ? (ALTO_HUESPED * 1.1) / Math.max(tam.x, tam.z, 1e-3) : ALTO_HUESPED / Math.max(tam.y, 1e-3)
   const centro = caja.getCenter(new THREE.Vector3())
-  modelo.position.set(-centro.x, -caja.min.y, -centro.z)
+  const normaliza = new THREE.Matrix4().makeTranslation(-centro.x * k, -caja.min.y * k, -centro.z * k)
+    .multiply(new THREE.Matrix4().makeScale(k, k, k))
 
-  const cuerpo = new THREE.Group()
-  cuerpo.add(modelo)
-  const g = new THREE.Group()
-  g.add(cuerpo)
-  g.add(contactShadow(spec.boss ? 1.6 : (spec.scale ?? 1) >= 1.5 ? 1.1 : 0.9))
+  const partes = []
+  raiz.traverse(o => {
+    if (!o.isMesh) return
+    const geo = o.geometry.clone()
+    geo.applyMatrix4(new THREE.Matrix4().multiplyMatrices(normaliza, o.matrixWorld))
+    partes.push({ geo, material: o.material })
+  })
 
-  // Los tumbos. Se anima al dibujarse, con la hora, para no depender del bucle.
-  const fase = Math.random() * 10
-  const ritmo = Math.min(1.8, Math.max(0.6, spec.speed / 3.4)) * 5.5
-  let ultimo = -1
-  let ancla = null
-  modelo.traverse(o => { if (!ancla && o.isMesh) ancla = o })
-  if (ancla) {
-    ancla.onBeforeRender = () => {
-      const t = performance.now() / 1000
-      if (t === ultimo) return
-      ultimo = t
-      const paso = t * ritmo + fase
-      cuerpo.rotation.z = Math.sin(paso) * (spec.boss ? 0.03 : 0.07)
-      cuerpo.rotation.x = -0.04 + Math.sin(paso * 2) * 0.035
-      cuerpo.position.y = Math.abs(Math.sin(paso)) * (spec.boss ? 0.02 : 0.05)
+  // Todos los vértices, para medir.
+  const P = []
+  for (const { geo } of partes) {
+    const a = geo.attributes.position
+    for (let i = 0; i < a.count; i++) P.push([a.getX(i), a.getY(i), a.getZ(i)])
+  }
+  let H = 0
+  for (const p of P) H = Math.max(H, p[1])
+
+  let huesos
+  const pesos = []   // por vértice: [i0, w0, i1, w1]
+
+  if (esMadre) {
+    // Cuerpo en el centro y ocho patas por sectores.
+    const radios = P.map(p => Math.hypot(p[0], p[2]))
+    const rMax = percentil(radios, 0.99)
+    const rCuerpo = rMax * 0.36
+    const yPata = H * 0.4
+    huesos = [
+      { nombre: 'raiz', padre: -1, pos: [0, 0, 0] },
+      { nombre: 'cuerpo', padre: 0, pos: [0, H * 0.45, 0] }
+    ]
+    for (let s = 0; s < 8; s++) {
+      const a = (s / 8) * Math.PI * 2 + Math.PI / 8
+      huesos.push({ nombre: 'pata' + s, padre: 1, pos: [Math.cos(a) * rCuerpo, yPata, Math.sin(a) * rCuerpo], angulo: a })
+    }
+    for (const p of P) {
+      const r = Math.hypot(p[0], p[2])
+      if (r <= rCuerpo) { pesos.push([1, 1, 0, 0]); continue }
+      let a = Math.atan2(p[2], p[0]) - Math.PI / 8
+      if (a < 0) a += Math.PI * 2
+      const s = Math.floor((a / (Math.PI * 2)) * 8) % 8
+      const w = suave(rCuerpo, rCuerpo * 1.7, r)
+      pesos.push([2 + s, w, 1, 1 - w])
+    }
+  } else {
+    // Proporciones medidas en la propia malla.
+    const banda = (y0, y1) => P.filter(p => p[1] >= y0 * H && p[1] < y1 * H)
+    const torso = banda(0.55, 0.75)
+    const torsoMedio = Math.min(0.2 * H, Math.max(0.07 * H, percentil(torso.map(p => Math.abs(p[0])), 0.5)))
+    const yCadera = 0.46 * H
+    const yRodilla = 0.24 * H
+    const yHombro = 0.74 * H
+    const yCodo = 0.52 * H
+    const yCuello = 0.82 * H
+    const pies = banda(0, 0.3)
+    const xPierna = s => {
+      const lado = pies.filter(p => Math.sign(p[0]) === s).map(p => p[0])
+      return lado.length ? media(lado) : s * 0.1 * H
+    }
+    const zDe = lista => lista.length ? media(lista.map(p => p[2])) : 0
+    const xPI = xPierna(-1)
+    const xPD = xPierna(1)
+    const esBrazo = p => Math.abs(p[0]) > torsoMedio * 1.1 && p[1] > yRodilla && p[1] < yCuello &&
+      !(p[1] < yCadera && Math.abs(p[0]) < Math.max(Math.abs(xPI), Math.abs(xPD)) * 1.5)
+    const brazo = s => P.filter(p => esBrazo(p) && Math.sign(p[0]) === s)
+    const codo = s => {
+      const b = brazo(s).filter(p => Math.abs(p[1] - yCodo) < 0.08 * H)
+      return b.length ? [media(b.map(p => p[0])), yCodo, zDe(b)] : [s * torsoMedio * 1.4, yCodo, 0]
+    }
+    const zHombro = s => zDe(brazo(s).filter(p => p[1] > yCodo))
+    const zCabeza = zDe(P.filter(p => p[1] > yCuello))
+    const zRodilla = s => zDe(pies.filter(p => Math.sign(p[0]) === s && Math.abs(p[1] - yRodilla) < 0.06 * H))
+    huesos = [
+      { nombre: 'raiz', padre: -1, pos: [0, 0, 0] },
+      { nombre: 'cadera', padre: 0, pos: [0, yCadera, 0] },
+      { nombre: 'columna', padre: 1, pos: [0, 0.5 * H, 0] },
+      { nombre: 'cabeza', padre: 2, pos: [0, yCuello, zCabeza] },
+      { nombre: 'hombroI', padre: 2, pos: [-torsoMedio, yHombro, zHombro(-1)] },
+      { nombre: 'codoI', padre: 4, pos: codo(-1) },
+      { nombre: 'hombroD', padre: 2, pos: [torsoMedio, yHombro, zHombro(1)] },
+      { nombre: 'codoD', padre: 6, pos: codo(1) },
+      { nombre: 'musloI', padre: 1, pos: [xPI, yCadera, zDe(pies.filter(p => p[0] < 0))] },
+      { nombre: 'rodillaI', padre: 8, pos: [xPI, yRodilla, zRodilla(-1)] },
+      { nombre: 'musloD', padre: 1, pos: [xPD, yCadera, zDe(pies.filter(p => p[0] > 0))] },
+      { nombre: 'rodillaD', padre: 10, pos: [xPD, yRodilla, zRodilla(1)] }
+    ]
+    for (const p of P) {
+      const y = p[1]
+      const s = p[0] < 0 ? -1 : 1
+      if (y > yCuello && Math.abs(p[0]) < torsoMedio * 1.4) {
+        const w = suave(yCuello - 0.03 * H, yCuello + 0.05 * H, y)
+        pesos.push([3, w, 2, 1 - w])
+      } else if (esBrazo(p)) {
+        const hombro = s < 0 ? 4 : 6
+        if (y > yCodo) {
+          const w = suave(torsoMedio * 1.05, torsoMedio * 1.45, Math.abs(p[0]))
+          pesos.push([hombro, w, 2, 1 - w])
+        } else {
+          const w = suave(yCodo + 0.05 * H, yCodo - 0.05 * H, y)
+          pesos.push([hombro + 1, w, hombro, 1 - w])
+        }
+      } else if (y < yCadera) {
+        const anchoPies = Math.max(Math.abs(xPI), Math.abs(xPD))
+        if (y < 0.08 * H && Math.abs(p[0]) > anchoPies * 1.9) {
+          // Lo que queda a ras de suelo y más allá de los pies (la tierra del
+          // Escarbador, una cola apoyada) no sigue a las piernas: se rasgaba.
+          pesos.push([0, 1, 1, 0])
+          continue
+        }
+        // Reparto entre las dos piernas según lo cerca que esté cada una. Con
+        // el vértice entero para la pierna de su lado, la entrepierna se
+        // rasgaba en triángulos estirados al abrirse el paso.
+        const dcha = suave(xPI * 0.45, xPD * 0.45, p[0])
+        if (y > yRodilla + 0.04 * H) {
+          const cadera = suave(yCadera - 0.07 * H, yCadera, y)
+          if (cadera > 0.5) pesos.push([1, cadera, dcha > 0.5 ? 10 : 8, 1 - cadera])
+          else pesos.push([10, dcha, 8, 1 - dcha])
+        } else {
+          const rodilla = suave(yRodilla + 0.04 * H, yRodilla - 0.04 * H, y)
+          if (dcha > 0.15 && dcha < 0.85) pesos.push([rodilla > 0.5 ? 11 : 10, dcha, rodilla > 0.5 ? 9 : 8, 1 - dcha])
+          else {
+            const muslo = dcha >= 0.5 ? 10 : 8
+            pesos.push([muslo + 1, rodilla, muslo, 1 - rodilla])
+          }
+        }
+      } else {
+        const w = suave(yCadera, 0.62 * H, y)
+        pesos.push([2, w, 1, 1 - w])
+      }
     }
   }
+
+  // Los pesos, a los atributos de cada parte.
+  let v = 0
+  for (const { geo } of partes) {
+    const n = geo.attributes.position.count
+    const idx = new Uint16Array(n * 4)
+    const wts = new Float32Array(n * 4)
+    for (let i = 0; i < n; i++, v++) {
+      const [i0, w0, i1, w1] = pesos[v]
+      idx[i * 4] = i0
+      idx[i * 4 + 1] = i1
+      wts[i * 4] = w0
+      wts[i * 4 + 1] = w1
+    }
+    geo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(idx, 4))
+    geo.setAttribute('skinWeight', new THREE.Float32BufferAttribute(wts, 4))
+  }
+  return { partes, huesos, esMadre, H }
+}
+
+async function alienDeMeshy (key, spec) {
+  if (!plantillasAlien.has(key)) plantillasAlien.set(key, prepararAlien(key))
+  const { partes, huesos: plano, esMadre, H } = await plantillasAlien.get(key)
+
+  // Huesos propios de este ejemplar, con las posiciones relativas al padre.
+  const huesos = plano.map(h => {
+    const b = new THREE.Bone()
+    b.name = h.nombre
+    return b
+  })
+  plano.forEach((h, i) => {
+    const padre = h.padre >= 0 ? plano[h.padre].pos : [0, 0, 0]
+    huesos[i].position.set(h.pos[0] - padre[0], h.pos[1] - padre[1], h.pos[2] - padre[2])
+    if (h.padre >= 0) huesos[h.padre].add(huesos[i])
+  })
+  huesos[0].updateMatrixWorld(true)
+  const esqueleto = new THREE.Skeleton(huesos)
+
+  const g = new THREE.Group()
+  const mallas = partes.map(({ geo, material }, i) => {
+    const m = new THREE.SkinnedMesh(geo, material.clone())
+    m.castShadow = true
+    m.receiveShadow = true
+    // La pose cambia cada fotograma: con la esfera de la pose de reposo se
+    // recortaba al estirar una pata.
+    m.frustumCulled = false
+    if (i === 0) m.add(huesos[0])
+    m.bind(esqueleto)
+    g.add(m)
+    return m
+  })
+  g.add(contactShadow(spec.boss ? 1.6 : (spec.scale ?? 1) >= 1.5 ? 1.1 : 0.9))
+
+  // --- el paso ---
+  const B = Object.fromEntries(huesos.map(b => [b.name, b]))
+  const yCadera = B.cadera?.position.y ?? 0
+  const fase = Math.random() * 10
+  const ritmo = Math.min(2, Math.max(0.6, spec.speed / 3.4)) * 6
+  const zancada = key === 'runner' ? 0.7 : key === 'tank' || key === 'bloater' ? 0.3 : 0.5
+  let ultimo = -1
+  mallas[0].onBeforeRender = () => {
+    const t = performance.now() / 1000
+    if (t === ultimo) return
+    ultimo = t
+    // `zombie.js` dice si anda o ataca.
+    const andando = g.userData.andando !== false
+    // La fase la lleva `zombie.js`, que avanza con la velocidad real del
+    // huésped: las piernas van al ritmo al que se mueve por la carretera. Fuera
+    // de la partida (retratos, cartas) va con la hora.
+    const paso = g.userData.fasePaso ?? (t * ritmo + fase)
+    const s = Math.sin(paso)
+    if (esMadre) {
+      for (let k = 0; k < 8; k++) {
+        const b = B['pata' + k]
+        const a = plano[2 + k].angulo
+        const alterna = k % 2 ? 0 : Math.PI
+        const lev = Math.max(0, Math.sin(paso + alterna)) * (andando ? 0.32 : 0.12)
+        b.quaternion.setFromAxisAngle(new THREE.Vector3(-Math.sin(a), 0, Math.cos(a)), lev + Math.sin(paso * 0.5 + k) * 0.04)
+      }
+      B.cuerpo.position.y = H * 0.45 + Math.abs(s) * 0.03
+      B.cuerpo.rotation.z = s * 0.03
+      return
+    }
+    if (andando) {
+      // Piernas que se cruzan, la rodilla de la que va atrás se dobla.
+      B.musloI.rotation.x = -s * zancada
+      B.musloD.rotation.x = s * zancada
+      B.rodillaI.rotation.x = Math.max(0, Math.sin(paso - 0.8)) * zancada * 1.3
+      B.rodillaD.rotation.x = Math.max(0, -Math.sin(paso - 0.8)) * zancada * 1.3
+      // Brazos al contrario de las piernas, con el codo algo cerrado.
+      B.hombroI.rotation.x = s * zancada * 0.7
+      B.hombroD.rotation.x = -s * zancada * 0.7
+      B.codoI.rotation.x = -0.15 - Math.max(0, s) * 0.3
+      B.codoD.rotation.x = -0.15 - Math.max(0, -s) * 0.3
+      B.columna.rotation.set(0.04 + Math.abs(s) * 0.05, s * 0.12, s * 0.06)
+      B.cadera.position.y = yCadera + Math.abs(Math.cos(paso)) * 0.045 - 0.02
+      B.cabeza.rotation.set(Math.sin(paso * 2) * 0.08, Math.sin(t * 0.7 + fase) * 0.22, 0)
+    } else {
+      // Atacando: se echa encima y los brazos golpean alternos.
+      const a = Math.abs(Math.sin(paso * 0.8))
+      const b = Math.abs(Math.sin(paso * 0.8 + 1.2))
+      B.musloI.rotation.x = -0.15
+      B.musloD.rotation.x = 0.1
+      B.rodillaI.rotation.x = 0.2
+      B.rodillaD.rotation.x = 0.3
+      B.hombroI.rotation.x = -0.9 + a * 0.9
+      B.hombroD.rotation.x = -0.9 + b * 0.9
+      B.codoI.rotation.x = -0.6 + a * 0.4
+      B.codoD.rotation.x = -0.6 + b * 0.4
+      B.columna.rotation.set(0.25 + a * 0.12, (a - b) * 0.15, 0)
+      B.cadera.position.y = yCadera - 0.03
+      B.cabeza.rotation.set(-0.15 + a * 0.2, (a - b) * 0.2, 0)
+    }
+  }
+
   g.scale.setScalar((spec.scale ?? 1) * (0.94 + Math.random() * 0.12))
   return g
 }

@@ -133,6 +133,10 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
       else this.walkPhase += dt * 5   // al atacar, zarpazos rápidos
 
       const swing = Math.sin(this.walkPhase)
+      // Los modelos de Meshy se animan solos con su esqueleto automático (ver
+      // `alienDeMeshy` en assets.js): solo necesitan saber esto.
+      this.mesh.userData.andando = walking
+      this.mesh.userData.fasePaso = this.walkPhase
       const limbs = this.mesh.userData.limbs
       if (limbs) {
         const lag = Math.sin(this.walkPhase - 0.7)   // la rodilla va con retraso
