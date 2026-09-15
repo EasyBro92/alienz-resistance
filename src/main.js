@@ -1561,6 +1561,11 @@ for (const id of ['overlay', ...CAPAS_ATRAS.map(([capa]) => capa)]) {
   if (el) vigiaAtras.observe(el, { attributes: true, attributeFilter: ['class'] })
 }
 pintarAtras()
+// El jefe alien de la portada, en diferido: su modelo pesa y no hace falta para
+// jugar, así que no retrasa el arranque.
+import('./jefeAlien.js')
+  .then(m => m.crearJefeAlien(document.getElementById('portada-escena')))
+  .catch(err => console.warn('Sin jefe alien:', err))
 document.getElementById('pausa-seguir').addEventListener('click', () => pausar(false))
 document.getElementById('pausa-salir').addEventListener('click', () => {
   pausar(false)

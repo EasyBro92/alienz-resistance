@@ -23,23 +23,26 @@
 
   /* --- superficies: cada velo es una capa más cerca del ojo --- */
   --fondo: #0d1117;
-  --velo-1: var(--velo-1);
+  /* Estas cuatro se apuntaban a sí mismas (`--velo-1: var(--velo-1)`), que en
+     CSS es un valor inválido: los velos, bordes y textos secundarios quedaban
+     sin color. */
+  --velo-1: rgba(255,255,255,0.035);
   --velo-2: rgba(255,255,255,0.06);
-  --velo-3: var(--borde-1);
-  --velo-4: var(--velo-4);
-  --borde-1: var(--borde-1);
+  --velo-3: rgba(255,255,255,0.09);
+  --velo-4: rgba(255,255,255,0.14);
+  --borde-1: rgba(255,255,255,0.09);
   --borde-2: rgba(255,255,255,0.13);
   --borde-3: rgba(255,255,255,0.24);
 
   /* --- tinta: del texto principal al más apagado --- */
   --tinta: #ffffff;
-  --tinta-2: var(--tinta-2);
+  --tinta-2: #cfd8d2;
   --tinta-3: rgba(255,255,255,0.62);
   --tinta-4: rgba(255,255,255,0.34);
-  --tinta-fria: var(--tinta-fria);
+  --tinta-fria: #9fb0a6;
 
   /* --- sombras y velos oscuros --- */
-  --sombra-fuerte: var(--sombra-fuerte);
+  --sombra-fuerte: rgba(0,0,0,0.55);
   --sombra-media: rgba(0,0,0,0.4);
   --sombra-suave: rgba(0,0,0,0.25);
   --cortina: rgba(6,9,13,0.72);
@@ -76,18 +79,20 @@
   --stroke: rgba(24, 30, 26, 0.16);
 
   --fondo: #e8e4d8;
-  --velo-1: rgba(24,30,26,0.045);
-  --velo-2: rgba(24,30,26,0.075);
-  --velo-3: rgba(24,30,26,0.11);
-  --velo-4: rgba(24,30,26,0.17);
-  --borde-1: rgba(24,30,26,0.14);
-  --borde-2: rgba(24,30,26,0.2);
-  --borde-3: rgba(24,30,26,0.3);
+  /* Más marcados que antes: con velos al 4 % y textos secundarios al 72 %, las
+     fichas se confundían con el fondo y la letra pequeña no se leía. */
+  --velo-1: rgba(24,30,26,0.06);
+  --velo-2: rgba(24,30,26,0.09);
+  --velo-3: rgba(24,30,26,0.13);
+  --velo-4: rgba(24,30,26,0.19);
+  --borde-1: rgba(24,30,26,0.18);
+  --borde-2: rgba(24,30,26,0.26);
+  --borde-3: rgba(24,30,26,0.36);
 
-  --tinta: #16201a;
-  --tinta-2: #2e3a31;
-  --tinta-3: rgba(22,32,26,0.72);
-  --tinta-4: rgba(22,32,26,0.45);
+  --tinta: #111a14;
+  --tinta-2: #26322a;
+  --tinta-3: rgba(17,26,20,0.82);
+  --tinta-4: rgba(17,26,20,0.56);
   --tinta-fria: #4d6155;
 
   --sombra-fuerte: rgba(24,30,26,0.22);
@@ -362,7 +367,9 @@ html, body {
    icono se deshace y la ficha vuelve a ser un rectángulo con letras. */
 .ic {
   width: 34px; height: 34px; display: block; overflow: visible;
-  color: #e4ecf4;
+  /* Del tema, no fijo: en blanco, los iconos de la tienda desaparecían en el
+     tema claro. La barra de armería fuerza sus colores oscuros aparte. */
+  color: var(--tinta-2);
 }
 
 .card-name {
@@ -788,7 +795,7 @@ html, body {
 /* ---------- pausa ---------- */
 /* Capa propia, por encima del informe. Se oscurece menos que el menú: en pausa
    interesa seguir viendo el tablero para decidir si merece la pena abandonar. */
-.pausa-capa { z-index: 30; background: rgba(6, 9, 13, 0.72); align-items: center; padding: 0 18px; }
+.pausa-capa { z-index: 30; background: var(--cortina); align-items: center; padding: 0 18px; }
 .panel-pausa { max-width: 330px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .panel-pausa h2 {
   margin: 0;
@@ -826,10 +833,12 @@ html, body {
   cursor: pointer;
   transition: border-color .15s, background .15s;
 }
+/* Con tinta fija casi blanca, en el tema claro la opción elegida era letra
+   blanca sobre verde pálido: no se leía. */
 .ajuste-op.elegida {
   border-color: var(--green);
-  background: rgba(95,217,122,0.16);
-  color: #d8ffe4;
+  background: var(--verde-tenue);
+  color: var(--verde-texto);
 }
 .ajuste-pie {
   margin: 0;
@@ -1468,7 +1477,7 @@ html, body {
 .nivel-ficha[data-estado="hecho"] { color: var(--green); border-color: rgba(95,217,122,0.35); }
 .nivel-ficha.elegida {
   border-color: var(--green);
-  background: rgba(95,217,122,0.16);
+  background: var(--verde-tenue);
   transform: translateY(-2px);
 }
 
@@ -1691,3 +1700,90 @@ html, body {
 .panel-portada .big-btn { width: 88%; align-self: center; padding: clamp(9px, 1.5dvh, 14px) 16px; font-size: clamp(15px, 2.1dvh, 18px); letter-spacing: 1.5px; }
 .panel-portada .menu-boton { min-height: clamp(40px, 6dvh, 54px); font-size: clamp(13px, 1.85dvh, 16px); border-radius: 14px; }
 .panel-portada .menu-boton svg { width: clamp(16px, 2.4dvh, 21px); height: clamp(16px, 2.4dvh, 21px); }
+
+/* ---------- menús opacos ---------- */
+/* Las pantallas del menú se abren encima de la portada. Con el fondo
+   translúcido se veía el logo y las viñetas a través de la tienda o de
+   Enemigos, y el texto de encima se mezclaba con el de debajo. */
+:root { --fondo-capa: linear-gradient(180deg, #111820 0%, #0a0f14 55%, #06090c 100%); }
+:root[data-tema="claro"] { --fondo-capa: linear-gradient(180deg, #f6f3ea 0%, #ece7da 60%, #e2dccc 100%); }
+.mapa-capa, .pais-capa, .tienda-capa, .enemigos-capa, .ajustes-capa {
+  background: var(--fondo-capa);
+  backdrop-filter: none;
+}
+
+/* ---------- portada con el jefe alien ---------- */
+.portada-escena { position: absolute; inset: 0; z-index: 4; background: #05080a; }
+.portada-escena canvas { width: 100%; height: 100%; display: block; }
+.portada-escena.hidden { display: none; }
+
+/* La portada es un escenario oscuro en los dos temas: el jefe alien no se
+   puede poner sobre papel claro. Así que dentro de ella se fuerzan los colores
+   del tema oscuro, igual que en el marcador de la partida, y el texto siempre
+   es claro sobre oscuro. */
+.overlay:has(> .panel-portada),
+#ir-ajustes {
+  --tinta: #ffffff;
+  --tinta-2: #d9e3dc;
+  --tinta-3: rgba(255,255,255,0.78);
+  --tinta-4: rgba(255,255,255,0.45);
+  --tinta-fria: #a9bcb1;
+  --panel: rgba(8, 12, 15, 0.7);
+  --stroke: rgba(255,255,255,0.18);
+  --velo-1: rgba(255,255,255,0.05);
+  --velo-2: rgba(255,255,255,0.08);
+  --velo-4: rgba(255,255,255,0.16);
+  --borde-1: rgba(255,255,255,0.12);
+  --borde-3: rgba(255,255,255,0.3);
+  --verde-texto: #6fe39a;
+  --green: #5fd97a;
+  --logo-1: #f2fff6;
+  --logo-2: #b9ccc0;
+  --logo-z: #b8ffcf;
+  --sombra-fuerte: rgba(0,0,0,0.6);
+  color: #ffffff;
+}
+/* Sin cortina: se ve el escenario. Solo una sombra arriba, para el logo, y
+   otra abajo, para las viñetas y los botones; en medio, el jefe. */
+.overlay:has(> .panel-portada) {
+  background: linear-gradient(180deg,
+    rgba(3,6,8,0.62) 0%, rgba(3,6,8,0.2) 24%, rgba(3,6,8,0) 34%,
+    rgba(3,6,8,0) 44%, rgba(3,6,8,0.55) 58%, rgba(3,6,8,0.88) 76%, rgba(3,6,8,0.95) 100%);
+  backdrop-filter: none;
+}
+.panel-portada { justify-content: flex-start; }
+.panel-portada .eyebrow { opacity: 1; }
+.panel-portada .eyebrow, .panel-portada .logo, .panel-portada .tagline, .panel-portada .firma {
+  text-shadow: 0 2px 10px rgba(0,0,0,0.85);
+}
+.panel-portada .firma { opacity: 0.85; margin-top: 2px; }
+/* Las viñetas y los botones, abajo del todo, de cristal oscuro. */
+.panel-portada .relato { margin-top: auto; }
+.panel-portada .relato li {
+  background: rgba(6, 10, 12, 0.66);
+  border: 1px solid rgba(111, 227, 154, 0.24);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.panel-portada .relato em { opacity: 0.92; }
+.panel-portada .big-btn { margin-top: clamp(8px, 1.6dvh, 16px); }
+.panel-portada .menu-fila { margin-top: clamp(8px, 1.4dvh, 14px); }
+.panel-portada .menu-boton {
+  background: rgba(8, 12, 15, 0.72);
+  border-color: rgba(111, 227, 154, 0.3);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+#ir-ajustes { background: rgba(8, 12, 15, 0.7); color: #ffffff; }
+
+/* La historia en una tira compacta: dibujo pequeño, título y una línea. Con
+   las viñetas altas no quedaba sitio para ver al jefe entre el logo y los
+   botones. */
+.panel-portada .relato { gap: 6px; }
+.panel-portada .relato li { padding: 6px 5px 7px; gap: 2px; border-radius: 12px; }
+.panel-portada .relato svg { max-width: clamp(34px, 5.5dvh, 52px); }
+.panel-portada .relato b { font-size: clamp(8.5px, 1.25dvh, 11px); letter-spacing: 1.2px; }
+.panel-portada .relato em {
+  font-size: clamp(9.5px, 1.3dvh, 12px); line-height: 1.25;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}

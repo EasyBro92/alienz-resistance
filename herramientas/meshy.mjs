@@ -55,6 +55,16 @@ const ESTILO_REAL = [
   'clean game-ready asset, isolated, no ground plane, no people'
 ].join(', ')
 
+// Para criaturas que se ven de cerca (el jefe alien de la portada): piel,
+// músculo y detalle orgánico de verdad. `--criatura` cambia la estética común
+// por esta; la de los monumentos pedía "sin personas" y la común, estilizado.
+const ESTILO_CRIATURA = [
+  'highly detailed realistic creature model, cinematic quality',
+  'anatomically believable musculature and skin',
+  'realistic PBR materials: wet glossy skin, subsurface scattering look, chitin plates',
+  'clean game-ready asset, isolated, no ground plane, no background'
+].join(', ')
+
 const RAIZ = path.resolve(import.meta.dirname, '..')
 const DESTINO = path.join(RAIZ, 'public', 'models')
 const API = 'https://api.meshy.ai'
@@ -176,7 +186,7 @@ const previo = await pedir(clave, '/openapi/v2/text-to-3d', {
     mode: 'preview',
     // El prompt del encargo y, detrás, la estética común. En este orden: lo
     // primero pesa más, así que el QUÉ manda sobre el CÓMO.
-    prompt: `${o.prompt}. ${o.realista ? ESTILO_REAL : ESTILO}`,
+    prompt: `${o.prompt}. ${o.criatura ? ESTILO_CRIATURA : o.realista ? ESTILO_REAL : ESTILO}`,
     art_style: 'realistic',
     model_type: 'lowpoly',
     ai_model: 'latest',
@@ -207,7 +217,7 @@ if (o.refinar) {
       // tocaba: las cinco naves salieron del mismo rojo y oro pese a que cada
       // prompt pedía su paleta. El color se decide al texturizar, así que es
       // aquí donde hay que repetirlo.
-      texture_prompt: `${o.prompt}. ${o.realista ? ESTILO_REAL : ESTILO}`,
+      texture_prompt: `${o.prompt}. ${o.criatura ? ESTILO_CRIATURA : o.realista ? ESTILO_REAL : ESTILO}`,
       // 2k y no 4k: la pieza se ve de lejos y en un móvil, y cada salto de
       // resolución multiplica por cuatro lo que hay que descargar y subir a la
       // tarjeta gráfica.
