@@ -1870,3 +1870,34 @@ html, body {
 #ir-ajustes { pointer-events: auto; }
 .portada-escena { touch-action: none; cursor: grab; }
 .portada-escena:active { cursor: grabbing; }
+
+/* ---------- portada al 80 % y sin textos cortados ---------- */
+/* Las viñetas cortaban la historia a tres líneas con puntos suspensivos y los
+   tres botones iban grandes y pegados. Isidro deja usar el 80 % del alto: el
+   texto entero de las viñetas cabe, y los botones son más finos y respiran. */
+.panel-portada { height: 80dvh; }
+.panel-portada .relato em {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+  font-size: clamp(9.5px, 1.32dvh, 12px);
+  line-height: 1.28;
+}
+.panel-portada .relato li { justify-content: flex-start; }
+.panel-portada .big-btn {
+  width: 76%;
+  padding: clamp(7px, 1.15dvh, 11px) 14px;
+  font-size: clamp(13.5px, 1.75dvh, 16px);
+  letter-spacing: 1.4px;
+  margin-top: clamp(12px, 2.4dvh, 22px);
+}
+.panel-portada .menu-fila {
+  gap: clamp(12px, 3.5vw, 18px);
+  margin-top: clamp(12px, 2.2dvh, 20px);
+}
+.panel-portada .menu-boton {
+  min-height: clamp(34px, 4.8dvh, 44px);
+  font-size: clamp(12px, 1.6dvh, 14px);
+  border-radius: 12px;
+}
+.panel-portada .menu-boton svg { width: clamp(14px, 2dvh, 18px); height: clamp(14px, 2dvh, 18px); }
