@@ -38,7 +38,9 @@ export function crearJefeAlien (contenedor) {
   renderer.toneMappingExposure = 1.45
 
   const escena = new THREE.Scene()
-  const FONDO = 0x05080a
+  // Los dos temas: la noche verde de siempre y, con el tema claro, una niebla
+  // blanca de amanecer. Se cambia en vivo al elegir el tema en Ajustes.
+  let FONDO = 0x05080a
   escena.background = new THREE.Color(FONDO)
   escena.fog = new THREE.FogExp2(FONDO, 0.07)
 
@@ -52,7 +54,8 @@ export function crearJefeAlien (contenedor) {
   // adivinaban los ojos y poco más. Ahora la luz de clave no decae con la
   // distancia, hay un relleno frío de frente y el contraluz verde recorta el
   // contorno.
-  escena.add(new THREE.HemisphereLight(0x5f7f70, 0x0a0d0c, 0.9))
+  const hemi = new THREE.HemisphereLight(0x5f7f70, 0x0a0d0c, 0.9)
+  escena.add(hemi)
   const clave = new THREE.SpotLight(0xe6f4ec, 4.5, 0, 0.55, 0.6, 0)
   clave.position.set(1.8, 6, 5)
   clave.target.position.copy(MIRA)
@@ -112,9 +115,10 @@ export function crearJefeAlien (contenedor) {
   }
   const geoEsporas = new THREE.BufferGeometry()
   geoEsporas.setAttribute('position', new THREE.BufferAttribute(posEsporas, 3))
-  const esporas = new THREE.Points(geoEsporas, new THREE.PointsMaterial({
+  const matEsporas = new THREE.PointsMaterial({
     color: 0x7dffb0, size: 0.045, transparent: true, opacity: 0.8, depthWrite: false, blending: THREE.AdditiveBlending
-  }))
+  })
+  const esporas = new THREE.Points(geoEsporas, matEsporas)
   escena.add(esporas)
 
   // --- el jefe ---
@@ -176,6 +180,59 @@ export function crearJefeAlien (contenedor) {
   }
   window.addEventListener('resize', ajustar)
 
+  // --- el tema ---
+  let claro = false
+  function aplicarTema () {
+    claro = document.documentElement.dataset.tema === 'claro'
+    FONDO = claro ? 0xdfe7e3 : 0x05080a
+    escena.background.setHex(FONDO)
+    escena.fog.color.setHex(FONDO)
+    escena.fog.density = claro ? 0.05 : 0.07
+    suelo.material.color.setHex(claro ? 0xc3cec8 : 0x0b1110)
+    suelo.material.roughness = claro ? 0.6 : 0.25
+    suelo.material.metalness = claro ? 0.1 : 0.6
+    hemi.color.setHex(claro ? 0xf4fbf7 : 0x5f7f70)
+    hemi.groundColor.setHex(claro ? 0x8a9a92 : 0x0a0d0c)
+    hemi.intensity = claro ? 1.5 : 0.9
+    renderer.toneMappingExposure = claro ? 1.15 : 1.45
+    matEsporas.color.setHex(claro ? 0x178041 : 0x7dffb0)
+    matEsporas.blending = claro ? THREE.NormalBlending : THREE.AdditiveBlending
+    matEsporas.needsUpdate = true
+    for (const n of nieblas) n.material.opacity = claro ? 0.55 : 0.4
+  }
+  aplicarTema()
+  new MutationObserver(aplicarTema).observe(document.documentElement, { attributes: true, attributeFilter: ['data-tema'] })
+
+  // --- girarlo con el dedo ---
+  let arrastrando = false
+  let ultimoX = 0
+  let giroUsuario = 0
+  let velGiro = 0
+  let puntero = null
+  contenedor.addEventListener('pointerdown', e => {
+    arrastrando = true
+    puntero = e.pointerId
+    ultimoX = e.clientX
+    velGiro = 0
+    try { contenedor.setPointerCapture(e.pointerId) } catch { /* sin captura: sigue igual */ }
+  })
+  contenedor.addEventListener('pointermove', e => {
+    if (!arrastrando || e.pointerId !== puntero) return
+    const dx = e.clientX - ultimoX
+    ultimoX = e.clientX
+    // Una pantalla de ancho es algo más de una vuelta.
+    const giro = (dx / Math.max(contenedor.clientWidth, 1)) * Math.PI * 2.4
+    giroUsuario += giro
+    velGiro = giro
+  })
+  const soltar = e => {
+    if (e.pointerId !== puntero) return
+    arrastrando = false
+    puntero = null
+  }
+  contenedor.addEventListener('pointerup', soltar)
+  contenedor.addEventListener('pointercancel', soltar)
+
   // --- el bucle, solo con la portada a la vista ---
   let activo = false
   let pedido = 0
@@ -192,7 +249,15 @@ export function crearJefeAlien (contenedor) {
     // Respira, se balancea y mira a un lado y a otro.
     const respira = Math.sin(t * 1.3)
     jefe.scale.set(1 + respira * 0.006, 1 + respira * 0.012, 1 + respira * 0.01)
-    jefe.rotation.y = Math.sin(t * 0.23) * 0.22 + Math.sin(t * 0.61) * 0.05
+    // El giro del dedo manda; el balanceo se suma encima, más suave mientras se
+    // arrastra. Al soltar sigue girando con inercia y se frena solo.
+    if (!arrastrando) {
+      giroUsuario += velGiro
+      velGiro *= 0.93
+      if (Math.abs(velGiro) < 0.0004) velGiro = 0
+    }
+    const balanceo = Math.sin(t * 0.23) * 0.22 + Math.sin(t * 0.61) * 0.05
+    jefe.rotation.y = giroUsuario + balanceo * (arrastrando ? 0.2 : 1)
     jefe.rotation.z = Math.sin(t * 0.37) * 0.015
     jefe.position.y = Math.sin(t * 1.3 + 0.6) * 0.015
     if (cuerpo) cuerpo.rotation.x = Math.sin(t * 0.5) * 0.02
@@ -218,7 +283,7 @@ export function crearJefeAlien (contenedor) {
     luzRelampago = Math.max(0, luzRelampago - dt * 2.2)
     const destello = luzRelampago > 0.55 ? luzRelampago : luzRelampago > 0.3 ? 0 : luzRelampago * 1.4
     relampago.intensity = destello * 6
-    escena.background.setHex(FONDO).lerp(new THREE.Color(0x1a2630), destello * 0.6)
+    escena.background.setHex(FONDO).lerp(new THREE.Color(claro ? 0xffffff : 0x1a2630), destello * 0.6)
 
     // Niebla y esporas.
     for (const s of nieblas) {

@@ -1721,8 +1721,8 @@ html, body {
    puede poner sobre papel claro. Así que dentro de ella se fuerzan los colores
    del tema oscuro, igual que en el marcador de la partida, y el texto siempre
    es claro sobre oscuro. */
-.overlay:has(> .panel-portada),
-#ir-ajustes {
+:root:not([data-tema="claro"]) .overlay:has(> .panel-portada),
+:root:not([data-tema="claro"]) #ir-ajustes {
   --tinta: #ffffff;
   --tinta-2: #d9e3dc;
   --tinta-3: rgba(255,255,255,0.78);
@@ -1745,7 +1745,7 @@ html, body {
 }
 /* Sin cortina: se ve el escenario. Solo una sombra arriba, para el logo, y
    otra abajo, para las viñetas y los botones; en medio, el jefe. */
-.overlay:has(> .panel-portada) {
+:root:not([data-tema="claro"]) .overlay:has(> .panel-portada) {
   background: linear-gradient(180deg,
     rgba(3,6,8,0.62) 0%, rgba(3,6,8,0.2) 24%, rgba(3,6,8,0) 34%,
     rgba(3,6,8,0) 44%, rgba(3,6,8,0.55) 58%, rgba(3,6,8,0.88) 76%, rgba(3,6,8,0.95) 100%);
@@ -1753,13 +1753,13 @@ html, body {
 }
 .panel-portada { justify-content: flex-start; }
 .panel-portada .eyebrow { opacity: 1; }
-.panel-portada .eyebrow, .panel-portada .logo, .panel-portada .tagline, .panel-portada .firma {
+:root:not([data-tema="claro"]) .panel-portada .eyebrow, :root:not([data-tema="claro"]) .panel-portada .logo, :root:not([data-tema="claro"]) .panel-portada .tagline, :root:not([data-tema="claro"]) .panel-portada .firma {
   text-shadow: 0 2px 10px rgba(0,0,0,0.85);
 }
 .panel-portada .firma { opacity: 0.85; margin-top: 2px; }
 /* Las viñetas y los botones, abajo del todo, de cristal oscuro. */
 .panel-portada .relato { margin-top: auto; }
-.panel-portada .relato li {
+:root:not([data-tema="claro"]) .panel-portada .relato li {
   background: rgba(6, 10, 12, 0.66);
   border: 1px solid rgba(111, 227, 154, 0.24);
   backdrop-filter: blur(6px);
@@ -1768,13 +1768,13 @@ html, body {
 .panel-portada .relato em { opacity: 0.92; }
 .panel-portada .big-btn { margin-top: clamp(8px, 1.6dvh, 16px); }
 .panel-portada .menu-fila { margin-top: clamp(8px, 1.4dvh, 14px); }
-.panel-portada .menu-boton {
+:root:not([data-tema="claro"]) .panel-portada .menu-boton {
   background: rgba(8, 12, 15, 0.72);
   border-color: rgba(111, 227, 154, 0.3);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
 }
-#ir-ajustes { background: rgba(8, 12, 15, 0.7); color: #ffffff; }
+:root:not([data-tema="claro"]) #ir-ajustes { background: rgba(8, 12, 15, 0.7); color: #ffffff; }
 
 /* La historia en una tira compacta: dibujo pequeño, título y una línea. Con
    las viñetas altas no quedaba sitio para ver al jefe entre el logo y los
@@ -1787,3 +1787,86 @@ html, body {
   font-size: clamp(9.5px, 1.3dvh, 12px); line-height: 1.25;
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
 }
+
+/* ---------- tema claro, paleta nueva ---------- */
+/* La primera paleta clara era beis con tintas verdosas semitransparentes: en el
+   móvil todo quedaba del mismo gris embarrado y la letra pequeña no se leía.
+   Ahora el fondo es un gris muy claro y frío, las fichas son blancas con borde
+   definido y las tintas son colores SÓLIDOS oscuros, sin transparencia. Va al
+   final para ganar al bloque del principio. */
+:root[data-tema="claro"] {
+  --fondo: #eef2ef;
+  --fondo-capa: linear-gradient(180deg, #f8faf8 0%, #eef2ef 55%, #e4eae6 100%);
+  --panel: rgba(255, 255, 255, 0.97);
+  --panel-fondo: #ffffff;
+  --stroke: #c9d3cd;
+  --ink: #ffffff;
+
+  --velo-1: #ffffff;
+  --velo-2: #f2f5f3;
+  --velo-3: #e5ebe7;
+  --velo-4: #d3dcd6;
+  --borde-1: #d2dbd5;
+  --borde-2: #b9c5be;
+  --borde-3: #93a39a;
+
+  --tinta: #0a120d;
+  --tinta-2: #1c2a21;
+  --tinta-3: #2f3f35;
+  --tinta-4: #56675d;
+  --tinta-fria: #365446;
+
+  --cortina: rgba(238, 242, 239, 0.96);
+  --informe-1: #f8faf8;
+  --informe-2: #e2e8e4;
+  --verde-tenue: rgba(22, 128, 62, 0.13);
+  --verde-borde: rgba(22, 128, 62, 0.5);
+  --green: #178041;
+  --verde-texto: #0c6330;
+  --titulo-alto: #083b1c;
+  --logo-1: #0f1a13;
+  --logo-2: #3a4c41;
+  --logo-z: #1c9a4b;
+  --sombra-fuerte: rgba(15, 30, 20, 0.18);
+  --sombra-media: rgba(15, 30, 20, 0.12);
+  --sombra-suave: rgba(15, 30, 20, 0.07);
+}
+/* Textos que se apagaban con opacidad: sobre claro, a pleno color. */
+:root[data-tema="claro"] :is(.eyebrow, .tagline, .rules, .firma, .relato em, .reglas-tit, .ajustes-valor, .panel-ajustes .ajuste-tit b) {
+  opacity: 1;
+}
+/* Fichas y botones del menú con relieve: blanco sobre el gris del fondo. */
+:root[data-tema="claro"] :is(.relato li, .menu-boton, .ajuste-op, .pestana, .amenaza, .chip, .chip-ghost) {
+  box-shadow: 0 1px 2px var(--sombra-suave);
+}
+
+/* ---------- portada en tema claro ---------- */
+/* Con el tema claro, la portada también es clara: el escenario del jefe cambia
+   a una niebla blanca (ver jefeAlien.js) y la capa encima deja una bruma clara
+   arriba para el logo y abajo para los botones. */
+:root[data-tema="claro"] .overlay:has(> .panel-portada) {
+  background: linear-gradient(180deg,
+    rgba(248,250,248,0.78) 0%, rgba(248,250,248,0.3) 24%, rgba(248,250,248,0) 34%,
+    rgba(248,250,248,0) 46%, rgba(248,250,248,0.55) 60%, rgba(248,250,248,0.9) 76%, rgba(248,250,248,0.96) 100%);
+  backdrop-filter: none;
+}
+:root[data-tema="claro"] .panel-portada :is(.eyebrow, .logo, .tagline, .firma) {
+  text-shadow: 0 1px 8px rgba(255,255,255,0.9);
+}
+:root[data-tema="claro"] .panel-portada .relato li,
+:root[data-tema="claro"] .panel-portada .menu-boton {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--borde-2);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+:root[data-tema="claro"] .portada-escena { background: #dfe7e3; }
+
+/* ---------- el jefe se gira con el dedo ---------- */
+/* La capa de la portada deja pasar los toques al escenario de detrás, salvo en
+   lo que se pulsa (botones y viñetas). */
+.overlay:has(> .panel-portada), .overlay:has(> .panel-portada) .panel-portada { pointer-events: none; }
+.panel-portada :is(button, a, .relato, .menu-fila) { pointer-events: auto; }
+#ir-ajustes { pointer-events: auto; }
+.portada-escena { touch-action: none; cursor: grab; }
+.portada-escena:active { cursor: grabbing; }
