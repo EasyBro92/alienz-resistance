@@ -1999,6 +1999,108 @@ const media = lista => lista.length ? lista.reduce((a, b) => a + b, 0) / lista.l
 
 const plantillasAlien = new Map()
 
+// --- paleta brillante ------------------------------------------------------------
+// Las texturas de Meshy salían casi negras en la carretera: tonos muy oscuros y
+// mucho metal, que sin reflejos alrededor se ve negro. Se repinta la textura con
+// la paleta de la hoja de diseño de Isidro: la luminosidad de cada píxel (el
+// detalle de escamas y placas) elige tono en una rampa de coraza → piel, y lo
+// que ya brillaba de color (pústulas, ojos, sacos) se conserva y se aviva.
+const PALETA_ALIEN = {
+  walker: { piel: 0x9ad650, coraza: 0x5a8236 },
+  runner: { piel: 0xcde858, coraza: 0x7a9230 },
+  armored: { piel: 0xb4c4d0, coraza: 0x6c7c8a },
+  spitter: { piel: 0xcf8cf0, coraza: 0x8248b0 },
+  tank: { piel: 0xe8766a, coraza: 0xa4463c },
+  leaper: { piel: 0x66d8ea, coraza: 0x2e88aa },
+  bloater: { piel: 0xf2d25a, coraza: 0xa8862a },
+  healer: { piel: 0xec78b4, coraza: 0x9c4486 },
+  burrower: { piel: 0xd0a070, coraza: 0x8a6440 },
+  boss: { piel: 0xc888b4, coraza: 0x7a4470 }
+}
+function repintarTextura (mapa, paleta) {
+  const img = mapa.image
+  const w = img.width
+  const h = img.height
+  const lienzo = document.createElement('canvas')
+  lienzo.width = w
+  lienzo.height = h
+  const ctx = lienzo.getContext('2d')
+  ctx.drawImage(img, 0, 0)
+  const datos = ctx.getImageData(0, 0, w, h)
+  const d = datos.data
+  // Se estira la luminosidad entre sus percentiles: en una textura casi negra
+  // el detalle está todo apretado abajo.
+  const lums = new Float32Array(w * h)
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) lums[p] = 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2]
+  const orden = Float32Array.from(lums).sort()
+  const bajo = orden[Math.floor(orden.length * 0.03)]
+  const alto = Math.max(bajo + 1, orden[Math.floor(orden.length * 0.97)])
+  // Y además se reparte por igual (ecualizado): en las texturas negras casi
+  // enteras, estirar no basta y todo caía en la sombra de la rampa.
+  const histo = new Float32Array(257)
+  for (let p = 0; p < lums.length; p++) histo[Math.min(255, Math.round(lums[p])) + 1]++
+  for (let i = 1; i < 257; i++) histo[i] += histo[i - 1]
+  const acumulado = v => histo[Math.min(255, Math.round(v)) + 1] / lums.length
+  const piel = new THREE.Color(paleta.piel)
+  const coraza = new THREE.Color(paleta.coraza)
+  // Rampa: sombra de coraza → coraza → piel → piel iluminada.
+  const paradas = [
+    [0, coraza.clone().multiplyScalar(0.9)],
+    [0.22, coraza],
+    [0.55, piel],
+    [1, piel.clone().lerp(new THREE.Color(1, 1, 1), 0.45)]
+  ]
+  const tono = new THREE.Color()
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+    const r = d[i] / 255
+    const g = d[i + 1] / 255
+    const b = d[i + 2] / 255
+    const max = Math.max(r, g, b)
+    const sat = max > 0 ? (max - Math.min(r, g, b)) / max : 0
+    const l = 0.65 * acumulado(lums[p]) + 0.35 * Math.min(1, Math.max(0, (lums[p] - bajo) / (alto - bajo)))
+    let k = 1
+    while (k < paradas.length - 1 && l > paradas[k][0]) k++
+    const [p0, c0] = paradas[k - 1]
+    const [p1, c1] = paradas[k]
+    tono.copy(c0).lerp(c1, (l - p0) / (p1 - p0))
+    // Lo que ya era color vivo (brillos) se queda, más luminoso.
+    const vivo = suave(0.45, 0.75, sat) * suave(0.35, 0.6, max)
+    const mezcla = 0.9 * (1 - vivo)
+    d[i] = Math.min(255, 255 * lerp(Math.min(1, r * 1.7), tono.r, mezcla))
+    d[i + 1] = Math.min(255, 255 * lerp(Math.min(1, g * 1.7), tono.g, mezcla))
+    d[i + 2] = Math.min(255, 255 * lerp(Math.min(1, b * 1.7), tono.b, mezcla))
+  }
+  ctx.putImageData(datos, 0, 0)
+  const nueva = new THREE.CanvasTexture(lienzo)
+  nueva.flipY = mapa.flipY
+  nueva.colorSpace = mapa.colorSpace
+  nueva.wrapS = mapa.wrapS
+  nueva.wrapT = mapa.wrapT
+  nueva.channel = mapa.channel
+  nueva.anisotropy = 4
+  return nueva
+}
+function aclararMaterial (material, key) {
+  const paleta = PALETA_ALIEN[key]
+  const m = material.clone()
+  if (paleta && m.map?.image) {
+    try { m.map = repintarTextura(m.map, paleta) } catch (e) { console.warn('Sin repintar', key, e) }
+  }
+  // Sin metal: con él, y nada que reflejar, la piel se veía negra.
+  m.metalness = 0
+  m.metalnessMap = null
+  m.roughness = Math.max(0.55, m.roughness ?? 1)
+  // Un poco de luz propia con su misma textura: en la sombra de un edificio o
+  // de lejos seguían apagándose.
+  if (m.map) {
+    m.emissiveMap = m.map
+    m.emissive = new THREE.Color(1, 1, 1)
+    m.emissiveIntensity = 0.2
+  }
+  m.needsUpdate = true
+  return m
+}
+
 async function prepararAlien (key) {
   const gltf = await cargarGLTF(ALIEN_MODELS[key])
   const raiz = gltf.scene.clone(true)
@@ -2019,7 +2121,7 @@ async function prepararAlien (key) {
     if (!o.isMesh) return
     const geo = o.geometry.clone()
     geo.applyMatrix4(new THREE.Matrix4().multiplyMatrices(normaliza, o.matrixWorld))
-    partes.push({ geo, material: o.material })
+    partes.push({ geo, material: aclararMaterial(o.material, key) })
   })
 
   // Todos los vértices, para medir.
