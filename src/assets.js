@@ -2534,11 +2534,137 @@ async function alienDeMeshy (key, spec) {
   return g
 }
 
+// --- huéspedes con esqueleto de Meshy --------------------------------------------
+// Los que más salen llevan esqueleto de verdad puesto en Meshy
+// (`herramientas/meshy-rig.mjs`) con su ciclo de andar o de correr hecho con
+// captura de movimiento: el esqueleto por código no pasaba de muñeco. Cada uno
+// trae un solo .glb (malla, huesos y ciclo). Ataque no trae: se hace por código
+// encima del ciclo, girando tronco y brazos en ejes del mundo, que no dependen
+// de cómo orientó Meshy cada hueso. `ciclos` es cuántos ciclos del clip van por
+// cada vuelta de la fase de `zombie.js`, para que el ritmo no sea de muñeco de
+// cuerda.
+const ALIEN_ANIMADOS = {
+  walker: { archivo: 'models/alien-portador-andar.glb', ciclos: 0.75 },
+  // El Corredor no está: Meshy no reconoce su postura inclinada a la carrera
+  // ("Pose estimation failed"). Hará falta un modelo nuevo de pie.
+  armored: { archivo: 'models/alien-encostrado-andar.glb', ciclos: 0.8 },
+  // Al Saltador, Meshy le confundió patas y púas: al girar los brazos se
+  // estiraban en láminas. Sin zarpazo: atacando sigue corriendo en el sitio.
+  leaper: { archivo: 'models/alien-saltador-correr.glb', ciclos: 0.6, sinZarpazo: true }
+}
+const materialesAclarados = new Map()
+
+async function alienAnimado (key, spec) {
+  const def = ALIEN_ANIMADOS[key]
+  const gltf = await cargarGLTF(def.archivo)
+  const clip = gltf.animations[0]
+  if (!clip) throw new Error('sin animación')
+  const modelo = clonarConHuesos(gltf.scene)
+  let piel = null
+  modelo.traverse(o => {
+    if (!o.isMesh) return
+    if (!materialesAclarados.has(o.material)) materialesAclarados.set(o.material, aclararMaterial(o.material, key))
+    o.material = materialesAclarados.get(o.material)
+    o.castShadow = true
+    o.receiveShadow = true
+    // La pose cambia cada fotograma: con la caja de reposo se recortaba.
+    o.frustumCulled = false
+    if (o.isSkinnedMesh && !piel) piel = o
+  })
+  if (!piel) throw new Error('sin malla con huesos')
+
+  // Meshy los deja mirando a +Z; los huéspedes avanzan hacia -Z. Se escalan
+  // a la altura de un huésped con los pies en el suelo.
+  const mixer = new THREE.AnimationMixer(modelo)
+  const accion = mixer.clipAction(clip)
+  accion.play()
+  mixer.setTime(0)
+  modelo.updateMatrixWorld(true)
+  const caja = new THREE.Box3().setFromObject(modelo)
+  const pivote = new THREE.Group()
+  const k = ALTO_HUESPED / Math.max(caja.max.y - caja.min.y, 1e-3)
+  pivote.scale.setScalar(k)
+  pivote.rotation.y = Math.PI
+  modelo.position.y = -caja.min.y
+  pivote.add(modelo)
+
+  const g = new THREE.Group()
+  g.userData.esqueleto = true
+  g.add(pivote)
+  g.add(contactShadow((spec.scale ?? 1) >= 1.5 ? 1.1 : 0.9))
+
+  const hueso = n => modelo.getObjectByName(n)
+  const tronco = hueso('Spine01') ?? hueso('Spine')
+  const pecho = hueso('Spine02') ?? tronco
+  const cabeza = hueso('Head')
+  const brazos = [hueso('LeftArm'), hueso('RightArm')]
+  const antebrazos = [hueso('LeftForeArm'), hueso('RightForeArm')]
+  // Girar un hueso sobre un eje del mundo, sea cual sea su orientación local.
+  const qMundo = new THREE.Quaternion()
+  const qPadre = new THREE.Quaternion()
+  const lateral = new THREE.Vector3()
+  const girar = (b, ang) => {
+    if (!b || !ang) return
+    b.parent.getWorldQuaternion(qPadre)
+    qMundo.setFromAxisAngle(lateral, ang)
+    b.quaternion.premultiply(qPadre.clone().invert().multiply(qMundo).multiply(qPadre))
+  }
+
+  const fase = Math.random() * 10
+  let ultimo = -1
+  let ataque = 0
+  piel.onBeforeRender = () => {
+    const t = performance.now() / 1000
+    if (t === ultimo) return
+    const dt = ultimo < 0 ? 0 : Math.min(0.1, t - ultimo)
+    ultimo = t
+    const atacando = g.userData.andando === false && !def.sinZarpazo
+    ataque = lerp(ataque, atacando ? 1 : 0, dt ? Math.min(1, dt * 6) : 1)
+    // Fuera de la partida (retratos, cartas) va con la hora.
+    const paso = g.userData.fasePaso ?? (t * 5 + fase)
+    // Atacando, las piernas casi se paran: pisotea en el sitio.
+    const vueltas = paso / (Math.PI * 2) * def.ciclos * (1 - ataque * 0.7)
+    mixer.setTime(((vueltas % 1) + 1) % 1 * clip.duration)
+    if (ataque < 0.01) return
+
+    // Zarpazos alternos encima del ciclo: carga el brazo arriba despacio, lo
+    // descarga de golpe; el tronco se echa encima en cada golpe.
+    modelo.updateMatrixWorld(true)
+    lateral.set(1, 0, 0).applyQuaternion(g.getWorldQuaternion(qMundo))
+    // Signos sobre el eje lateral: positivo lleva hacia delante lo que cuelga
+    // (brazo arriba, codo cerrado) y hacia atrás lo que se levanta (el tronco
+    // se echa adelante con negativo).
+    const zarpa = c => c < 0.55 ? suave(0, 0.55, c) * 2.0 : c < 0.7 ? lerp(2.0, -0.5, suave(0.55, 0.7, c)) : lerp(-0.5, 0, suave(0.7, 1, c))
+    const golpe = c => (c > 0.55 && c < 0.85) ? Math.sin((c - 0.55) / 0.3 * Math.PI) : 0
+    const ciclo = paso / (Math.PI * 2)
+    const cI = ((ciclo % 1) + 1) % 1
+    const cD = (cI + 0.5) % 1
+    const impacto = Math.max(golpe(cI), golpe(cD))
+    girar(tronco, -(0.25 + impacto * 0.3) * ataque)
+    girar(pecho, -0.1 * ataque)
+    girar(cabeza, 0.3 * ataque)
+    girar(brazos[0], zarpa(cI) * ataque)
+    girar(brazos[1], zarpa(cD) * ataque)
+    girar(antebrazos[0], 0.5 * ataque)
+    girar(antebrazos[1], 0.5 * ataque)
+  }
+
+  g.scale.setScalar((spec.scale ?? 1) * (0.94 + Math.random() * 0.12))
+  return g
+}
+
 export async function buildZombieMesh (key, spec) {
   if (MODELS[key]) {
     const m = await loadModel(MODELS[key])
     m.scale.setScalar(spec.scale ?? 1)
     return m
+  }
+  if (ALIEN_ANIMADOS[key]) {
+    try {
+      return await alienAnimado(key, spec)
+    } catch {
+      // Sin su archivo con esqueleto: el modelo de siempre con esqueleto por código.
+    }
   }
   if (ALIEN_MODELS[key]) {
     try {
