@@ -1507,6 +1507,419 @@ function placeholderZombie (spec) {
   return g
 }
 
+// ---------------------------------------------------------------------------
+// Huéspedes rediseñados: híbridos alien. Sustituye a `placeholderZombie`.
+//
+// El diseño que pidió Isidro (su lámina de "huéspedes confirmados") ya no son
+// cadáveres con esporas: son criaturas. Cuerpo de quitina casi negra con el
+// color de cada forma solo en los acentos, cráneo alargado con un ojo grande
+// encendido, pinchos por la espalda, hombreras con púas, pústulas luminosas y
+// garras largas. Cada forma lleva además la señal de lo que hace, grande, para
+// leerse desde el fondo de la carretera.
+//
+// Por dentro sigue el mismo contrato que la figura anterior, que es lo que anima
+// `zombie.js`: `userData.limbs` con brazos y piernas de dos tramos (`lower` y
+// `restBend`) y `userData.lean`, el tronco inclinado que se balancea.
+// ---------------------------------------------------------------------------
+// Colores de cuerpo sacados de la lámina de referencia: pieles oscuras y
+// apagadas —oliva, marrón, carbón, morado—, y el brillo solo en ojos, vetas y
+// pústulas. Con el color de la unidad a medio tono salían planos, de plástico.
+const CUERPO_ALIEN = {
+  walker: 0x3b3a22, runner: 0x3a4220, armored: 0x2a2c2f, spitter: 0x3b2446, tank: 0x4a2f2a,
+  leaper: 0x1f3645, bloater: 0x4b4822, healer: 0x42233b, burrower: 0x3e2c1c, boss: 0x3a2232
+}
+const LUZ_ALIEN = { spitter: 0xd46bff, healer: 0xff5ad0, leaper: 0x5fd8ff, bloater: 0xd8ff4a }
+// [cuántos pinchos grandes en abanico, largo, grosor]
+const PINCHOS_ALIEN = {
+  walker: [5, 0.72, 0.075], runner: [5, 0.85, 0.06], armored: [3, 0.42, 0.1], spitter: [3, 0.5, 0.06],
+  tank: [4, 0.5, 0.1], leaper: [6, 0.5, 0.05], bloater: [0, 0, 0], healer: [3, 0.46, 0.05],
+  burrower: [4, 0.52, 0.08], boss: [0, 0, 0]
+}
+
+function placeholderAlien (key, spec) {
+  const g = new THREE.Group()
+  const rnd = Math.random
+  const boss = !!spec.boss
+  const gordo = key === 'tank' || key === 'bloater' || boss
+  const acorazado = key === 'armored'
+  const bulky = gordo || acorazado
+  const flaco = key === 'runner' || key === 'leaper'
+
+  // --- materiales -------------------------------------------------------------
+  const base = jitterColor(CUERPO_ALIEN[key] ?? shade(spec.color, 0.35), 0.05)
+  const piel = mat(base, 0.6)                          // piel correosa
+  const pielOsc = mat(shade(base, 0.62), 0.64)
+  const placa = mat(shade(base, 0.5), 0.3, 0.3)       // quitina brillante
+  const placaCanto = mat(shade(base, 1.45), 0.36, 0.25)
+  const negro = mat(0x0b0c0a, 0.3, 0.3)
+  const garra = mat(0x231f1a, 0.3, 0.3)
+  const diente = mat(0xd8cfb4, 0.45)
+  const colorLuz = LUZ_ALIEN[key] ?? 0x9dff3a
+  // Brillos contenidos: con más intensidad el tono se quemaba a blanco y el ojo
+  // verde de la referencia salía como una bombilla.
+  const luz = glow(colorLuz, 1.05)
+  const luzTenue = glow(colorLuz, 0.6)
+  const ojoLuz = glow(key === 'spitter' || key === 'healer' ? colorLuz : 0x7dff1f, 1.15)
+  // Concha de quitina: media esfera aplastada que se pega a la forma del cuerpo.
+  // Con cajas, las placas parecían barras de una máquina.
+  const concha = (padre, x, y, z, ancho, alto, fondo, rx = 0, ry = 0, rz = 0, material = placa) => {
+    const c = piece(padre, new THREE.SphereGeometry(1, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), material, x, y, z, rx, ry, rz)
+    c.scale.set(ancho, fondo, alto)
+    return c
+  }
+
+  // Pincho curvo: tres conos encadenados que se van doblando, con la base de
+  // quitina, la punta oscura y una chispa de luz en el extremo.
+  const pincho = (padre, x, y, z, largo, grosor, rx, ry, rz, curva = 0.3, chispa = true) => {
+    const p = new THREE.Group()
+    p.position.set(x, y, z)
+    p.rotation.set(rx, ry, rz)
+    padre.add(p)
+    let nodo = p
+    const tramos = 3
+    for (let i = 0; i < tramos; i++) {
+      const l = largo / tramos
+      const r0 = grosor * (1 - i / tramos)
+      const r1 = Math.max(0.002, grosor * (1 - (i + 1) / tramos))
+      piece(nodo, tube(r1, r0, l * 1.1, 6), i === 0 ? placa : garra, 0, l / 2, 0)
+      if (i === 0) piece(nodo, tube(r1 * 0.5, r0 * 0.55, l * 0.8, 5), placaCanto, 0, l * 0.5, r0 * 0.45)
+      const sig = new THREE.Group()
+      sig.position.y = l
+      sig.rotation.x = curva
+      nodo.add(sig)
+      nodo = sig
+    }
+    if (chispa) piece(nodo, ball(Math.max(0.006, grosor * 0.09), 6, 5), luzTenue, 0, 0, 0)
+    return p
+  }
+  // Veta brillante: las grietas de luz que recorren el cuerpo.
+  const veta = (padre, x, y, z, largo, rx = 0, ry = 0, rz = 0) =>
+    adorno(padre, box(0.014, largo, 0.014, 0.005), luzTenue, x, y, z, rx, ry, rz)
+  // Pústula: bulto oscuro con el centro encendido.
+  const pustula = (padre, x, y, z, r, material = luz) => {
+    piece(padre, ball(r * 1.3, 10, 8), pielOsc, x, y, z)
+    piece(padre, ball(r, 10, 8), material, x * 1.04, y, z * 1.04)
+  }
+
+  const HIP = boss ? 0.8 : flaco ? 0.88 : 0.84
+  const SHOULDER = bulky ? 1.46 : 1.38
+  const shoulderX = gordo ? 0.34 : acorazado ? 0.32 : flaco ? 0.2 : 0.24
+
+  // El tronco, encorvado hacia delante: la joroba de criatura.
+  const lean = new THREE.Group()
+  lean.rotation.x = key === 'runner' ? -0.85 : key === 'leaper' ? -0.72 : gordo ? -0.28 : acorazado ? -0.44 : -0.62
+  lean.rotation.z = (rnd() - 0.5) * 0.08
+  lean.position.y = HIP
+  g.add(lean)
+  const trunk = new THREE.Group()
+  const ancho = gordo ? 1.55 : acorazado ? 1.4 : flaco ? 0.85 : 1.05
+
+  // --- tronco -----------------------------------------------------------------
+  piece(trunk, lathe('al3-torso', [
+    [0.001, 0.0], [0.12, 0.02], [0.14, 0.1], [0.12, 0.2], [0.15, 0.32], [0.2, 0.44], [0.21, 0.53], [0.17, 0.6], [0.001, 0.64]
+  ], 16), piel, 0, 0, 0).scale.set(ancho, 1, ancho * 0.82)
+  // Pectorales y abdomen marcados en placas.
+  for (const side of [-1, 1]) piece(trunk, ball(0.1, 10, 8), pielOsc, side * 0.08 * ancho, 0.44, -0.11 * ancho).scale.set(1.2, 0.8, 0.55)
+  for (let i = 0; i < 4; i++) {
+    concha(trunk, 0, 0.14 + i * 0.065, -0.115 * ancho, 0.09 * ancho, 0.04, 0.03, -Math.PI / 2 + 0.25, 0, 0, pielOsc)
+  }
+  // Placas angulosas del lomo, solapadas como las de un escarabajo.
+  for (let i = 0; i < 6; i++) {
+    const w = 0.13 * ancho * (1 - Math.abs(i - 2.5) * 0.1)
+    concha(trunk, 0, 0.12 + i * 0.085, 0.115, w, 0.075, 0.05, Math.PI / 2 - 0.5)
+  }
+  // Hombros de quitina, angulosos, con el canto claro.
+  for (const side of [-1, 1]) {
+    const k = bulky ? 1.35 : 1
+    concha(trunk, side * shoulderX * 0.95, 0.57, 0.02, 0.12 * k, 0.14 * k, 0.07 * k, 0, 0, side * 0.45)
+  }
+  // Vetas de luz por el pecho y los costados.
+  for (let i = 0; i < 6; i++) {
+    const side = i % 2 ? 1 : -1
+    veta(trunk, side * (0.06 + rnd() * 0.08) * ancho, 0.16 + rnd() * 0.36, -0.13 * ancho, 0.08 + rnd() * 0.12, 0.2, 0, side * (0.3 + rnd() * 0.6))
+  }
+
+  // Los pinchos grandes en abanico desde los hombros y la parte alta del lomo:
+  // es lo que hace la silueta de la referencia.
+  const [nP, largoP, gruesoP] = PINCHOS_ALIEN[key] ?? [4, 0.5, 0.06]
+  for (let i = 0; i < nP; i++) {
+    const t = nP === 1 ? 0.5 : i / (nP - 1)
+    const abre = (t - 0.5) * (flaco ? 1.4 : 1.9)
+    const largo = largoP * (1 - Math.abs(t - 0.5) * 0.55) * (0.9 + rnd() * 0.2)
+    pincho(trunk, abre * 0.14 * ancho, 0.5 + (1 - Math.abs(t - 0.5)) * 0.08, 0.14, largo, gruesoP,
+      key === 'runner' ? 1.25 : 0.85, 0, abre, key === 'runner' ? 0.18 : 0.3)
+  }
+  // Pinchos menores a lo largo de la columna.
+  if (nP) {
+    for (let i = 0; i < 4; i++) pincho(trunk, 0, 0.14 + i * 0.09, 0.2, 0.14 + i * 0.03, gruesoP * 0.45, 1.2, 0, 0, 0.2, false)
+  }
+  // Pústulas.
+  const nPus = bulky ? 6 : 3
+  for (let i = 0; i < nPus; i++) {
+    const a = -1.2 + rnd() * 2.4
+    pustula(trunk, Math.sin(a) * 0.19 * ancho, 0.14 + rnd() * 0.36, Math.cos(a) * 0.14 * ancho * (rnd() < 0.5 ? 1 : -1), 0.025 + rnd() * 0.025)
+  }
+
+  // --- cabeza -----------------------------------------------------------------
+  const headParts = new THREE.Group()
+  piece(headParts, lathe('al3-craneo', [
+    [0.001, -0.13], [0.075, -0.12], [0.115, -0.06], [0.13, 0.03], [0.115, 0.1], [0.075, 0.15], [0.001, 0.16]
+  ], 14), piel, 0, 0, 0.04).scale.set(0.95, 1, 1.6)
+  // Arco de la frente y placas de las mejillas.
+  piece(headParts, box(0.2, 0.05, 0.08, 0.02), placa, 0, 0.075, -0.12, -0.3)
+  // Mejillas de quitina: conchas pegadas al cráneo (con una caja, de cerca
+  // parecía una pantalla).
+  for (const side of [-1, 1]) concha(headParts, side * 0.1, -0.03, -0.06, 0.05, 0.075, 0.03, 0, side * (Math.PI / 2 - 0.3), 0, pielOsc)
+  // El ojo grande, abultado y encendido, en su cerco de quitina, y un ojillo.
+  const ojoX = 0.045
+  piece(headParts, new THREE.TorusGeometry(0.078, 0.022, 6, 16), placa, ojoX, 0.01, -0.145, 0, 0.25, 0)
+  piece(headParts, ball(0.072, 14, 10), ojoLuz, ojoX, 0.01, -0.16).scale.set(1, 1, 0.8)
+  piece(headParts, box(0.012, 0.07, 0.01, 0.004), negro, ojoX + 0.005, 0.01, -0.217)       // pupila rasgada
+  piece(headParts, ball(0.024, 8, 6), ojoLuz, -0.07, -0.02, -0.13)
+  // Fauces abiertas con colmillos y mandíbulas en gancho.
+  piece(headParts, box(0.12, 0.06, 0.06, 0.02), negro, 0, -0.1, -0.12)
+  for (let i = 0; i < 5; i++) {
+    const x = -0.045 + i * 0.0225
+    piece(headParts, tube(0.001, 0.012, 0.055, 4), diente, x, -0.07, -0.15, Math.PI, 0, 0)
+    piece(headParts, tube(0.001, 0.011, 0.045, 4), diente, x + 0.011, -0.13, -0.145)
+  }
+  for (const side of [-1, 1]) pincho(headParts, side * 0.08, -0.12, -0.1, 0.14, 0.02, 2.4, 0, side * 0.5, 0.35, false)
+  // Pinchos de la nuca.
+  for (let i = 0; i < 3; i++) pincho(headParts, (i - 1) * 0.05, 0.1, 0.12, 0.16 + (i === 1 ? 0.06 : 0), 0.025, 1.3, 0, (i - 1) * 0.4, 0.25, false)
+  piece(headParts, cap(0.045, 0.08, 5, 8), pielOsc, 0, -0.2, 0.03)                    // cuello
+
+  // --- la señal de cada forma --------------------------------------------------
+  if (acorazado) {
+    // Caparazón negro de placas, orbes verdes en los hombros y casco de quitina.
+    piece(trunk, box(0.5, 0.44, 0.34, 0.07), placa, 0, 0.36, 0.02)
+    for (let i = 0; i < 3; i++) piece(trunk, box(0.52, 0.02, 0.36, 0.008), placaCanto, 0, 0.2 + i * 0.13, 0.02)
+    for (const side of [-1, 1]) {
+      piece(trunk, box(0.26, 0.22, 0.3, 0.07), placa, side * 0.3, 0.56, 0.02, 0, 0, side * 0.3)
+      piece(trunk, new THREE.TorusGeometry(0.1, 0.03, 6, 16), negro, side * 0.36, 0.64, -0.08, 0.3, 0, 0)
+      piece(trunk, ball(0.1, 12, 10), luz, side * 0.36, 0.64, -0.09)
+    }
+    piece(headParts, lathe('al3-casco', [
+      [0.001, 0.22], [0.11, 0.2], [0.17, 0.1], [0.18, -0.02], [0.16, -0.08], [0.001, -0.09]
+    ], 12), placa, 0, 0.02, 0.05).scale.set(1, 1, 1.35)
+  }
+  if (key === 'spitter') {
+    // Saco de huevos en la espalda, con los huevos encendidos, y patas de araña.
+    piece(trunk, ball(0.27, 14, 12), pielOsc, 0, 0.44, 0.24).scale.set(1.1, 0.95, 0.9)
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2
+      piece(trunk, ball(0.065, 10, 8), luz, Math.cos(a) * 0.17, 0.44 + Math.sin(a) * 0.15, 0.4).scale.set(1, 1.2, 1)
+    }
+    piece(trunk, ball(0.08, 10, 8), luz, 0, 0.44, 0.47)
+    for (let i = 0; i < 4; i++) {
+      const side = i % 2 ? 1 : -1
+      pincho(trunk, side * 0.18, 0.6, 0.3, 0.55, 0.03, 0.9, 0, side * (1 + i * 0.15), -0.5, false)
+    }
+  }
+  if (key === 'tank') {
+    // Barriga enorme con pústulas verdes grandes y tubos por la espalda.
+    piece(trunk, ball(0.36, 16, 12), piel, 0, 0.2, -0.16).scale.set(1.3, 1.05, 1.05)
+    for (let i = 0; i < 7; i++) {
+      const a = -1 + (i / 6) * 2
+      pustula(trunk, Math.sin(a) * 0.32, 0.1 + (i % 3) * 0.12, -0.46 + Math.abs(a) * 0.14, 0.06 + rnd() * 0.03)
+    }
+    for (let i = 0; i < 3; i++) {
+      const tubo = piece(trunk, new THREE.TorusGeometry(0.2, 0.035, 6, 14, Math.PI), placa, -0.16 + i * 0.16, 0.6, 0.22)
+      tubo.rotation.set(0, Math.PI / 2, 0)
+    }
+  }
+  if (key === 'leaper') {
+    // La vaina azul encendida, con costillas oscuras por encima.
+    piece(trunk, ball(0.23, 14, 12), luz, 0, 0.44, 0.24).scale.set(1.2, 0.95, 0.85)
+    for (let i = 0; i < 5; i++) {
+      const c = piece(trunk, new THREE.TorusGeometry(0.24, 0.02, 5, 16, Math.PI), placa, 0, 0.44, 0.24)
+      c.rotation.set(0, (i / 5) * Math.PI, Math.PI / 2)
+      c.scale.set(1.15, 0.95, 0.85)
+    }
+  }
+  if (key === 'bloater') {
+    // El saco de esporas gigante, con manchas encendidas y púas.
+    piece(trunk, ball(0.42, 16, 14), piel, 0, 0.38, 0.1).scale.set(1.15, 1.05, 1.15)
+    for (let i = 0; i < 16; i++) {
+      const a = rnd() * Math.PI * 2
+      const b = rnd() * Math.PI - Math.PI / 2
+      const x = Math.cos(a) * Math.cos(b) * 0.46
+      const y = 0.38 + Math.sin(b) * 0.42
+      const z = 0.1 + Math.sin(a) * Math.cos(b) * 0.48
+      if (i % 2) pincho(trunk, x, y, z, 0.16, 0.035, b + Math.PI / 2, a, 0, 0.2, false)
+      else pustula(trunk, x, y, z, 0.045)
+    }
+  }
+  if (key === 'healer') {
+    // Vainas encendidas en la cabeza y la espalda (la aguja va en el brazo).
+    for (let i = 0; i < 3; i++) {
+      piece(headParts, ball(0.05 + i * 0.012, 10, 8), luz, (i - 1) * 0.07, 0.15 + (i === 1 ? 0.05 : 0), 0.1).scale.set(1, 1.35, 1)
+    }
+    piece(trunk, ball(0.13, 12, 10), luz, 0.1, 0.5, 0.2).scale.set(1, 1.3, 0.9)
+  }
+  if (key === 'burrower') {
+    // Dos cuernos grandes hacia delante y placa de excavar en la frente.
+    for (const side of [-1, 1]) pincho(headParts, side * 0.08, 0.1, -0.06, 0.26, 0.04, -0.6, 0, side * 0.35, -0.35, false)
+    piece(headParts, box(0.2, 0.08, 0.1, 0.03), placa, 0, 0.09, -0.12)
+  }
+
+  const head = bake(headParts)
+  head.position.set(0, boss ? 0.5 : 0.74, bulky ? -0.08 : -0.1)
+  head.rotation.set(0.55 + rnd() * 0.1, (rnd() - 0.5) * 0.3, (rnd() - 0.5) * 0.15)
+  trunk.add(head)
+  lean.add(bake(trunk))
+
+  // --- LA MADRE: una araña ------------------------------------------------------
+  if (boss) {
+    const cuerpo = new THREE.Group()
+    piece(cuerpo, ball(0.58, 18, 14), piel, 0, 0.9, 0.72).scale.set(1.05, 0.85, 1.2)
+    for (let i = 0; i < 12; i++) {
+      const a = rnd() * Math.PI * 2
+      pustula(cuerpo, Math.cos(a) * 0.52, 0.9 + Math.sin(a) * 0.36, 0.95 + Math.sin(a) * 0.3, 0.06 + rnd() * 0.05, i % 3 ? luzTenue : luz)
+    }
+    for (let i = 0; i < 6; i++) {
+      piece(cuerpo, box(0.7 - i * 0.05, 0.06, 0.18, 0.03), placa, 0, 1.3 - i * 0.04, 0.3 + i * 0.17, 0.3)
+    }
+    for (let i = 0; i < 10; i++) {
+      pincho(cuerpo, (rnd() - 0.5) * 0.7, 1.3, 0.35 + i * 0.1, 0.35 + rnd() * 0.2, 0.05, 0.6, 0, (rnd() - 0.5) * 0.9, 0.3)
+    }
+    g.add(bake(cuerpo))
+    const patas = new THREE.Group()
+    g.add(patas)
+    const pataGrupos = []
+    for (let i = 0; i < 6; i++) {
+      const side = i % 2 ? 1 : -1
+      const fila = Math.floor(i / 2)
+      const raiz = new THREE.Group()
+      raiz.position.set(side * 0.3, 0.95, 0.1 + fila * 0.34)
+      raiz.rotation.set(0, side * (fila - 1) * 0.55, side * 2.25)
+      const tramo1 = new THREE.Group()
+      piece(tramo1, tube(0.05, 0.085, 0.75, 8), placa, 0, -0.375, 0)
+      pincho(tramo1, 0, -0.4, 0.06, 0.16, 0.03, -0.6, 0, 0, 0.2, false)
+      piece(tramo1, ball(0.07, 10, 8), luz, 0, -0.76, 0)
+      raiz.add(bake(tramo1))
+      const rodilla = new THREE.Group()
+      rodilla.position.y = -0.75
+      rodilla.rotation.z = -side * 1.7
+      const tramo2 = new THREE.Group()
+      piece(tramo2, tube(0.02, 0.055, 1.45, 8), placa, 0, -0.72, 0)
+      piece(tramo2, tube(0.002, 0.03, 0.22, 5), garra, 0, -1.5, 0, Math.PI, 0, 0)
+      rodilla.add(bake(tramo2))
+      raiz.add(rodilla)
+      patas.add(raiz)
+      pataGrupos.push({ raiz, side, fase: i * 1.1, base: raiz.rotation.z })
+    }
+    let ultimo = 0
+    const ancla = patas.children[0]?.children[0]?.children[0]
+    if (ancla) {
+      ancla.onBeforeRender = () => {
+        const t = performance.now() / 1000
+        if (t === ultimo) return
+        ultimo = t
+        for (const p of pataGrupos) {
+          p.raiz.rotation.z = p.base + Math.sin(t * 4 + p.fase) * 0.12 * p.side
+          p.raiz.rotation.x = Math.sin(t * 4 + p.fase + 1) * 0.15
+        }
+      }
+    }
+  }
+
+  // --- extremidades -----------------------------------------------------------
+  const limbs = {}
+  for (const [name, side] of [['armL', -1], ['armR', 1]]) {
+    const aguja = key === 'healer' && side > 0
+    const taladro = key === 'burrower' && side > 0
+    const arm = limb({
+      length: boss ? 0.95 : flaco ? 0.92 : 0.84,
+      thickness: bulky ? 0.075 : flaco ? 0.045 : 0.055,
+      material: piel, lowerMat: piel,
+      bend: -0.6 - rnd() * 0.25,
+      // Músculo continuo por encima de cada tramo: tapa las bolas de las
+      // articulaciones, que eran lo que daba el aire de muñeco.
+      extraUpper: (up, half, grueso) => {
+        piece(up, tube(grueso * 1.4, grueso * 0.95, half * 1.02, 10), piel, 0, -half / 2, 0)
+        concha(up, 0, -half * 0.3, grueso * 0.55, grueso * 1.3, half * 0.3, grueso * 0.7, Math.PI / 2, 0, 0)
+        veta(up, 0, -half * 0.55, -grueso * 1.1, half * 0.5)
+      },
+      extraLower: (lo, half, grueso) => {
+        piece(lo, tube(grueso * 1.1, grueso * 0.65, half * 1.02, 10), piel, 0, -half / 2, 0)
+        concha(lo, 0, -half * 0.42, grueso * 0.45, grueso * 1.05, half * 0.38, grueso * 0.6, Math.PI / 2, 0, 0)
+        // Hoja del antebrazo, hacia atrás desde el codo.
+        pincho(lo, 0, -half * 0.18, grueso * 0.9, bulky ? 0.2 : 0.16, 0.03, -2.3, 0, 0, -0.2, false)
+        if (aguja) {
+          piece(lo, tube(0.006, 0.045, 0.4, 8), glow(0xff5ad0, 2), 0, -half - 0.2, -0.02)
+          piece(lo, ball(0.055, 10, 8), glow(0xff8ae0, 1.7), 0, -half + 0.02, -0.02)
+          return
+        }
+        if (taladro) {
+          piece(lo, tube(0.005, 0.075, 0.36, 10), mat(0x8d8f92, 0.35, 0.7), 0, -half - 0.18, -0.02)
+          for (let i = 0; i < 4; i++) piece(lo, tube(0.08 - i * 0.016, 0.08 - i * 0.016, 0.014, 10), garra, 0, -half - 0.04 - i * 0.07, -0.02)
+          return
+        }
+        // La mano: palma y cuatro dedos largos con la garra pegada a la punta.
+        const mano = new THREE.Group()
+        mano.position.set(0, -half - grueso * 0.2, -0.01)
+        mano.rotation.x = 0.35
+        lo.add(mano)
+        piece(mano, box(0.085, 0.07, 0.1, 0.025), pielOsc, 0, -0.02, 0)
+        for (let i = 0; i < 4; i++) {
+          const dedo = new THREE.Group()
+          dedo.position.set(-0.03 + i * 0.02, -0.05, -0.03)
+          dedo.rotation.set(0.3, 0, (i - 1.5) * 0.14)
+          mano.add(dedo)
+          piece(dedo, cap(0.011, 0.09, 3, 5), pielOsc, 0, -0.055, 0)
+          piece(dedo, tube(0.001, 0.012, 0.08, 5), garra, 0, -0.14, 0, Math.PI, 0, 0)
+        }
+      }
+    })
+    arm.position.set(side * shoulderX, SHOULDER, 0)
+    arm.rotation.set(1.24 - side * 0.14 + (rnd() - 0.5) * 0.3, 0, side * 0.14)
+    g.add(arm)
+    limbs[name] = arm
+    arm.userData.restBend = arm.userData.lower.rotation.x
+  }
+  for (const [name, side] of [['legL', -1], ['legR', 1]]) {
+    const leg = limb({
+      length: boss ? 0.7 : flaco ? 0.92 : 0.86,
+      thickness: bulky ? 0.1 : flaco ? 0.06 : 0.075,
+      material: piel, lowerMat: piel,
+      bend: -0.4 - rnd() * 0.15,
+      extraUpper: (up, half, grueso) => {
+        piece(up, tube(grueso * 1.45, grueso * 0.95, half * 1.02, 10), piel, 0, -half / 2, 0)
+        concha(up, 0, -half * 0.45, -grueso * 0.6, grueso * 1.35, half * 0.36, grueso * 0.7, -Math.PI / 2, 0, 0)
+      },
+      extraLower: (lo, half, grueso) => {
+        piece(lo, tube(grueso * 1.05, grueso * 0.6, half * 1.02, 10), piel, 0, -half / 2, 0)
+        concha(lo, 0, -half * 0.35, -grueso * 0.5, grueso * 1.0, half * 0.32, grueso * 0.55, -Math.PI / 2, 0, 0)
+        // Espolón de la rodilla, hacia delante.
+        pincho(lo, 0, -0.02, -grueso * 0.8, 0.14, 0.03, -2.2, 0, 0, -0.3, false)
+        // Pie con tres dedos en garra.
+        const pie = new THREE.Group()
+        pie.position.set(0, -half - grueso * 0.1, -0.02)
+        lo.add(pie)
+        piece(pie, box(0.12, 0.06, 0.16, 0.03), pielOsc, 0, -0.01, -0.04)
+        for (let i = 0; i < 3; i++) {
+          const dedo = new THREE.Group()
+          dedo.position.set(-0.04 + i * 0.04, -0.02, -0.11)
+          dedo.rotation.set(-1.4, (i - 1) * 0.3, 0)
+          pie.add(dedo)
+          piece(dedo, tube(0.001, 0.016, 0.09, 5), garra, 0, 0.045, 0)
+        }
+      }
+    })
+    leg.position.set(side * (bulky ? 0.17 : 0.12), HIP, 0)
+    leg.rotation.z = side * 0.12
+    g.add(leg)
+    limbs[name] = leg
+    leg.userData.restBend = leg.userData.lower.rotation.x
+  }
+
+  g.add(contactShadow(boss ? 1.6 : bulky ? 1.1 : 0.9))
+  g.userData.limbs = limbs
+  g.userData.lean = lean
+  g.scale.setScalar((spec.scale ?? 1) * (0.94 + rnd() * 0.12))
+  return g
+}
+
 // El fogonazo de la boca del cañón. Fuera de `placeholderSoldier` porque lo
 // necesitan las dos clases de figura, y sin él el arma dispara a oscuras.
 function montarFogonazo (arma) {
@@ -1542,7 +1955,7 @@ export async function buildZombieMesh (key, spec) {
     m.scale.setScalar(spec.scale ?? 1)
     return m
   }
-  return placeholderZombie(spec)
+  return placeholderAlien(key, spec)
 }
 
 export function buildSandbagsMesh (spec) {
