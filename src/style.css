@@ -1901,3 +1901,8 @@ html, body {
   border-radius: 12px;
 }
 .panel-portada .menu-boton svg { width: clamp(14px, 2dvh, 18px); height: clamp(14px, 2dvh, 18px); }
+
+/* El lema y la firma, algo más abajo del logo: pegados a RESISTANCE se leían
+   como parte del título. El hueco sale del espacio libre sobre las viñetas. */
+.panel-portada .tagline { margin-top: clamp(8px, 1.6dvh, 16px); }
+.panel-portada .firma { margin-top: clamp(3px, 0.6dvh, 6px); }
