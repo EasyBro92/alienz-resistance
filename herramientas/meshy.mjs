@@ -179,6 +179,14 @@ console.log(`Pieza: ${o.nombre}   (${polys} polígonos objetivo)`)
 // `lowpoly` y el remallado no son tacañería: esto va a un móvil viejo junto a
 // otras cuarenta piezas, y una malla de Meshy sin tocar puede traer cien mil
 // triángulos ella sola —más que el tablero entero lleno de soldados.
+// `--desde <id>`: la malla ya se hizo (con `--solo-malla`) y se revisó; se sigue
+// con la textura sobre ella sin volver a pagarla.
+let previoId = o.desde
+let tarea
+if (previoId) {
+  console.log(`\n1/2  Malla: la de la tarea ${previoId}`)
+  tarea = await pedir(clave, `/openapi/v2/text-to-3d/${previoId}`)
+} else {
 console.log('\n1/2  Malla')
 const previo = await pedir(clave, '/openapi/v2/text-to-3d', {
   method: 'POST',
@@ -203,7 +211,25 @@ const previo = await pedir(clave, '/openapi/v2/text-to-3d', {
     target_formats: ['glb']
   })
 })
-let tarea = await esperar(clave, previo.result, 'malla')
+previoId = previo.result
+tarea = await esperar(clave, previoId, 'malla')
+}
+
+// `--solo-malla`: se para aquí para revisar la postura antes de pagar textura y
+// esqueleto. Un modelo agachado, con peana o con los brazos pegados no admite
+// esqueleto o se deforma al moverse, y eso solo se ve mirando la malla.
+if (o['solo-malla']) {
+  const url = tarea.model_urls?.glb
+  if (!url) salir('La malla terminó bien pero no trae .glb.')
+  const revisar = path.join(RAIZ, 'herramientas', 'revisar')
+  fs.mkdirSync(revisar, { recursive: true })
+  const destino = path.join(revisar, `${o.nombre}-malla.glb`)
+  const bytes = await descargar(url, destino)
+  console.log(`\nMalla para revisar: herramientas/revisar/${o.nombre}-malla.glb (${(bytes / 1024 / 1024).toFixed(2)} MB)`)
+  console.log(`Tarea: ${previoId}   ·   Gastado: ${antes - (await saldo(clave))}`)
+  console.log(`Si vale: --desde ${previoId} --refinar (mismo --nombre y --prompt)\n`)
+  process.exit(0)
+}
 
 if (o.refinar) {
   console.log('\n2/2  Textura')
@@ -211,7 +237,7 @@ if (o.refinar) {
     method: 'POST',
     body: JSON.stringify({
       mode: 'refine',
-      preview_task_id: previo.result,
+      preview_task_id: previoId,
       enable_pbr: true,
       // El prompt ENTERO, no solo el estilo.
       //
@@ -228,6 +254,8 @@ if (o.refinar) {
     })
   })
   tarea = await esperar(clave, refinado.result, 'textura')
+  // Para ponerle esqueleto después: `meshy-rig.mjs --tarea <id>`.
+  console.log(`Tarea con textura: ${refinado.result}`)
 } else {
   console.log('\n2/2  Textura: saltada (usa --refinar para añadirla)')
 }
@@ -248,7 +276,7 @@ if (o.rig) {
   const rig = await pedir(clave, '/openapi/v1/rigging', {
     method: 'POST',
     body: JSON.stringify({
-      input_task_id: tarea.id ?? previo.result,
+      input_task_id: tarea.id ?? previoId,
       // La altura de verdad del personaje. No es cosmético: de aquí saca las
       // proporciones del esqueleto, y con el valor por defecto a un soldado
       // achaparrado le colocaba las rodillas donde no van.

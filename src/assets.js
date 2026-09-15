@@ -2547,8 +2547,11 @@ async function alienDeMeshy (key, spec) {
 // cuerda.
 const ALIEN_ANIMADOS = {
   walker: { archivo: 'models/alien-portador-andar.glb', ciclos: 0.75 },
-  // El Corredor no está: Meshy no reconoce su postura inclinada a la carrera
-  // ("Pose estimation failed"). Hará falta un modelo nuevo de pie.
+  // El Corredor y el Escarbador se rehicieron de pie en pose A: los primeros
+  // (inclinado a la carrera y agachado sobre un montón de tierra) no admitían
+  // esqueleto.
+  runner: { archivo: 'models/alien-corredor-correr.glb', ciclos: 0.55 },
+  burrower: { archivo: 'models/alien-escarbador-andar.glb', ciclos: 0.75 },
   armored: { archivo: 'models/alien-encostrado-andar.glb', ciclos: 0.8 },
   // Al Saltador, Meshy le confundió patas y púas: al girar los brazos se
   // estiraban en láminas. Sin zarpazo: atacando sigue corriendo en el sitio.

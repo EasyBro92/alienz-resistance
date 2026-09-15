@@ -71,7 +71,9 @@ console.log(`Saldo antes: ${antes}   ·   ${o.nombre}`)
 const tarea = await pedir(clave, '/openapi/v1/rigging', {
   method: 'POST',
   body: JSON.stringify({
-    model_url: WEB + o.nombre + '.glb',
+    // `--tarea <id>`: la del modelo con textura recién generado en Meshy, que
+    // aún no está publicado. Sin ella, se lee el .glb de la web.
+    ...(o.tarea ? { input_task_id: o.tarea } : { model_url: WEB + o.nombre + '.glb' }),
     // De la altura saca las proporciones del esqueleto.
     height_meters: Number(o.altura ?? 1.8)
   })

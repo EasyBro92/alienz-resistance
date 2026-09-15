@@ -9,3 +9,6 @@ _*.html
 # clave subida a un repositorio público hay que darla por quemada y rehacerla.
 .env
 .env.local
+
+# Mallas de Meshy pendientes de revisar
+herramientas/revisar/
