@@ -129,7 +129,10 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
 
       // Ciclo de andares: las piernas van a contrafase y el cuerpo sube en cada
       // paso. Es lo que separa "figura deslizándose" de "cosa que camina".
-      if (walking) this.walkPhase += dt * this.velocidad * 3.4
+      // Con esqueleto, los grandes dan pasos más largos y lentos: al mismo ritmo
+      // que un huésped pequeño, el Coloso trotaba como un juguete de cuerda.
+      const rig = this.mesh.userData.esqueleto
+      if (walking) this.walkPhase += dt * this.velocidad * (rig ? 2.6 / (this.spec.scale ?? 1) : 3.4)
       else this.walkPhase += dt * 5   // al atacar, zarpazos rápidos
 
       const swing = Math.sin(this.walkPhase)
@@ -182,12 +185,13 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
         }
       }
 
-      this.mesh.rotation.z = swing * 0.05
+      // Con esqueleto, el balanceo y el bote los pone la cadera (ver `alienDeMeshy`).
+      this.mesh.rotation.z = rig ? 0 : swing * 0.05
       // `suelo` es la altura del terreno bajo los pies, y lo pone el bucle desde
       // fuera. Vale cero en todo el asfalto y sube en la plancha de la rampa:
       // sin esto, los que acaban de salir aparecían a ras de carretera, o sea
       // ATRAVESANDO la rampa desde abajo en vez de bajando por ella.
-      this.mesh.position.y = (this.suelo ?? 0) + Math.abs(swing) * 0.09
+      this.mesh.position.y = (this.suelo ?? 0) + (rig ? 0 : Math.abs(swing) * 0.09)
     }
   }
 }
