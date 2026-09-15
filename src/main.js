@@ -1762,6 +1762,8 @@ for (const [el, clave] of [[elVolEfectos, 'efectos'], [elVolMusica, 'musica']]) 
 // Nueve fichas con la cara del bicho. Lo que dice cada una NO es su vida ni su
 // velocidad —eso no significa nada antes de haber jugado— sino qué hace y qué
 // te va a romper, que es lo único que sirve para prepararse.
+import { crearBaraja } from './enemigos.js'
+
 const QUE_HACE = {
   walker:   'Huésped en fase inicial. Todavía camina como una persona.',
   runner:   'Sistema nervioso reescrito. Cruza el carril en segundos.',
@@ -1781,40 +1783,26 @@ const NOMBRE_CORTO = { bloater: 'Revienta', burrower: 'Escarba', healer: 'Injert
 const elAmenazas = document.getElementById('amenazas')
 const elAmenazasPie = document.getElementById('amenazas-pie')
 const elAmenazasN = document.getElementById('amenazas-n')
-const fichasAmenaza = new Map()
+let barajaAmenazas = null
 
 function pintarAmenazas (caras = null) {
-  // La primera pasada monta la cuadrícula sin retratos; la segunda, cuando las
+  // La primera pasada monta la baraja sin retratos; la segunda, cuando las
   // fotos están listas, solo rellena las imágenes. Montarla dos veces perdería
-  // la ficha que el jugador tuviera abierta.
-  if (!fichasAmenaza.size) {
+  // la carta que el jugador tuviera abierta.
+  if (!barajaAmenazas) {
     const claves = Object.keys(ZOMBIES).filter(k => !ZOMBIES[k].boss)
     elAmenazasN.textContent = claves.length
-    for (const clave of claves) {
-      const spec = ZOMBIES[clave]
-      const b = document.createElement('button')
-      b.type = 'button'
-      b.className = 'amenaza'
-      b.style.setProperty('--a-tinte', '#' + spec.color.toString(16).padStart(6, '0'))
-      b.innerHTML = `<img class="amenaza-cara" alt="" hidden><b>${NOMBRE_CORTO[clave] ?? spec.name}</b>`
-      b.addEventListener('click', () => {
-        for (const [, otra] of fichasAmenaza) otra.classList.remove('elegida')
-        b.classList.add('elegida')
-        elAmenazasPie.innerHTML = `<b>${spec.name}.</b> ${QUE_HACE[clave] ?? ''}`
-      })
-      elAmenazas.appendChild(b)
-      fichasAmenaza.set(clave, b)
-    }
+    barajaAmenazas = crearBaraja({
+      contenedor: elAmenazas,
+      pie: elAmenazasPie,
+      capa: document.getElementById('enemigos-capa'),
+      claves,
+      zombies: ZOMBIES,
+      textos: QUE_HACE
+    })
+    if (import.meta.env.DEV) window.__baraja = barajaAmenazas
   }
-  if (!caras) return
-  for (const [clave, ficha] of fichasAmenaza) {
-    const url = caras.get(clave)
-    if (!url) continue
-    const img = ficha.querySelector('.amenaza-cara')
-    img.src = url
-    img.hidden = false
-    img.alt = ZOMBIES[clave].name
-  }
+  if (caras) barajaAmenazas.ponerCaras(caras)
 }
 
 pintarAmenazas()

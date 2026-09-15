@@ -407,23 +407,25 @@
       <div class="panel panel-enemigos">
         <p class="eyebrow">Mando del búnker · inteligencia</p>
         <h2>Enemigos</h2>
-        <section class="reglas-caja">
-          <span class="reglas-tit">Cómo se aguanta</span>
+        <!-- Las formas, como una baraja que se pasa como un libro (src/enemigos.js).
+             Las reglas van plegadas debajo: la baraja es lo que se viene a ver. -->
+        <section class="amenazas">
+          <div class="amenazas-tit">
+            <span>Formas confirmadas</span>
+            <i id="amenazas-n">9</i>
+          </div>
+          <div class="baraja" id="amenazas"></div>
+          <p class="amenazas-pie" id="amenazas-pie">Desliza la carta hacia la izquierda para pasar la página.</p>
+        </section>
+        <details class="reglas-caja reglas-plegable">
+          <summary class="reglas-tit">Cómo se aguanta</summary>
           <ul class="rules">
             <li>Compra defensores abajo y tócalos en un carril.</li>
             <li>Disparan solos. Tú decides <b>dónde</b> y <b>en qué gastas</b>.</li>
             <li>Cada huésped abatido suelta <b>biomasa</b>: recógela antes de que se disuelva.</li>
             <li>La armería no pausa la contención. Nunca.</li>
           </ul>
-        </section>
-        <section class="amenazas">
-          <div class="amenazas-tit">
-            <span>Formas confirmadas</span>
-            <i id="amenazas-n">9</i>
-          </div>
-          <div class="amenazas-rejilla" id="amenazas"></div>
-          <p class="amenazas-pie" id="amenazas-pie">Toca una para leer su ficha.</p>
-        </section>
+        </details>
         <button id="enemigos-volver" class="chip chip-ghost" type="button">Volver</button>
       </div>
     </div>
