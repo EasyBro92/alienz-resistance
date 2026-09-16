@@ -2551,7 +2551,8 @@ const ALIEN_ANIMADOS = {
   // (inclinado a la carrera y agachado sobre un montón de tierra) no admitían
   // esqueleto.
   runner: { archivo: 'models/alien-corredor-correr.glb', ciclos: 0.55 },
-  burrower: { archivo: 'models/alien-escarbador-andar.glb', ciclos: 0.75 },
+  // Meshy nunca le dibujó el taladro: va por código en la mano derecha.
+  burrower: { archivo: 'models/alien-escarbador-andar.glb', ciclos: 0.75, adornos: ['taladro'] },
   // Meshy le dejó el saco de huevos casi invisible: se le pone por código.
   spitter: { archivo: 'models/alien-sembrador-andar.glb', ciclos: 0.75, adornos: ['saco'] },
   // Meshy no dibuja brazos-herramienta: la jeringa y los bultos, por código.
@@ -2618,6 +2619,36 @@ function bultosCabeza () {
   return b
 }
 
+// El taladro del Escarbador: cono estriado que gira, con su casquillo. Como la
+// jeringa, crece a lo largo de +Y desde la mano; la broca va en un grupo aparte
+// para poder girarla sola.
+function taladro () {
+  const t = new THREE.Group()
+  // Poco metal: sin reflejos alrededor, el metal se ve negro (lo mismo que
+  // pasaba con las texturas de Meshy).
+  const acero = new THREE.MeshStandardMaterial({ color: 0xd6dde3, roughness: 0.35, metalness: 0.2 })
+  const oscuro = new THREE.MeshStandardMaterial({ color: 0x8a939b, roughness: 0.6, metalness: 0.15 })
+  const casquillo = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.075, 0.16, 12), oscuro)
+  casquillo.position.y = 0.06
+  t.add(casquillo)
+  const broca = new THREE.Group()
+  broca.position.y = 0.14
+  const punta = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.5, 12), acero)
+  punta.position.y = 0.25
+  broca.add(punta)
+  // Las estrías: tres aspas inclinadas que hacen que se le vea girar.
+  for (let i = 0; i < 3; i++) {
+    const aspa = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.44, 0.07), oscuro)
+    aspa.position.set(Math.cos(i * 2.1) * 0.05, 0.24, Math.sin(i * 2.1) * 0.05)
+    aspa.rotation.y = i * 2.1
+    aspa.rotation.x = 0.25
+    broca.add(aspa)
+  }
+  t.add(broca)
+  t.userData.gira = broca
+  return t
+}
+
 // Piezas que Meshy no supo dibujar y se ponen por código siguiendo a un hueso.
 //   huesos: el primero que exista; desde: la pieza se orienta de ese hueso al
 //   suyo (la jeringa sigue al antebrazo); desplaza: en unidades del huésped
@@ -2625,7 +2656,8 @@ function bultosCabeza () {
 const ADORNOS = {
   saco: { crear: sacoDeHuevos, huesos: ['Spine02', 'Spine01', 'Spine'], desplaza: [0, 0.02, 0.26], late: true },
   jeringa: { crear: jeringa, huesos: ['RightHand'], desde: 'RightForeArm', desplaza: [0, 0, 0] },
-  bultos: { crear: bultosCabeza, huesos: ['Head'], desplaza: [0, 0.1, 0.02], late: true }
+  bultos: { crear: bultosCabeza, huesos: ['Head'], desplaza: [0, 0.1, 0.02], late: true },
+  taladro: { crear: taladro, huesos: ['RightHand'], desde: 'RightForeArm', desplaza: [0, 0, 0], gira: true }
 }
 
 async function alienAnimado (key, spec) {
@@ -2697,6 +2729,9 @@ async function alienAnimado (key, spec) {
         a.pieza.quaternion.setFromUnitVectors(arribaY, enOrigen.subVectors(enHueso, enOrigen).normalize())
       }
       if (a.late) a.pieza.scale.setScalar(1 + Math.sin(t * 3 + fase) * 0.05)
+      // La broca gira siempre y se embala al cavar o al atacar, que es cuando
+      // `zombie.js` deja de decir que anda.
+      if (a.gira && a.pieza.userData.gira) a.pieza.userData.gira.rotation.y = t * (g.userData.andando === false ? 34 : 9)
     }
   }
   // Girar un hueso sobre un eje del mundo, sea cual sea su orientación local.
