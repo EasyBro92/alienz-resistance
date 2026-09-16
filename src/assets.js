@@ -2553,7 +2553,9 @@ const ALIEN_ANIMADOS = {
   runner: { archivo: 'models/alien-corredor-correr.glb', ciclos: 0.55 },
   burrower: { archivo: 'models/alien-escarbador-andar.glb', ciclos: 0.75 },
   // Meshy le dejó el saco de huevos casi invisible: se le pone por código.
-  spitter: { archivo: 'models/alien-sembrador-andar.glb', ciclos: 0.75, saco: true },
+  spitter: { archivo: 'models/alien-sembrador-andar.glb', ciclos: 0.75, adornos: ['saco'] },
+  // Meshy no dibuja brazos-herramienta: la jeringa y los bultos, por código.
+  healer: { archivo: 'models/alien-injertadora-andar.glb', ciclos: 0.75, adornos: ['jeringa', 'bultos'] },
   armored: { archivo: 'models/alien-encostrado-andar.glb', ciclos: 0.8 },
   // Al Saltador, Meshy le confundió patas y púas: al girar los brazos se
   // estiraban en láminas. Sin zarpazo: atacando sigue corriendo en el sitio.
@@ -2584,6 +2586,46 @@ function sacoDeHuevos () {
     saco.add(huevo)
   }
   return saco
+}
+
+// La jeringa de la Injertadora: cilindro de cristal con líquido rosa que
+// brilla, émbolo y aguja. Crece a lo largo de +Y desde la mano.
+function jeringa () {
+  const j = new THREE.Group()
+  const cristal = new THREE.MeshStandardMaterial({ color: 0xf2d8ea, roughness: 0.15, transparent: true, opacity: 0.45, depthWrite: false })
+  const liquido = new THREE.MeshStandardMaterial({ color: 0xff7ad0, emissive: 0xff3ab8, emissiveIntensity: 1.2 })
+  const acero = new THREE.MeshStandardMaterial({ color: 0xc9d0d6, roughness: 0.3, metalness: 0.8 })
+  const pon = (geo, mat, y) => { const m = new THREE.Mesh(geo, mat); m.position.y = y; j.add(m); return m }
+  pon(new THREE.CylinderGeometry(0.055, 0.055, 0.1, 10), acero, 0.02)             // abrazadera a la mano
+  pon(new THREE.CylinderGeometry(0.07, 0.07, 0.34, 14), cristal, 0.24)            // cuerpo
+  brilla(pon(new THREE.CylinderGeometry(0.052, 0.052, 0.26, 12), liquido, 0.26))  // líquido
+  pon(new THREE.CylinderGeometry(0.03, 0.045, 0.06, 10), acero, 0.44)             // cono
+  pon(new THREE.CylinderGeometry(0.007, 0.007, 0.42, 6), acero, 0.68)             // aguja
+  return j
+}
+
+// Los bultos de la cabeza de la Injertadora: vainas rosas que brillan.
+function bultosCabeza () {
+  const b = new THREE.Group()
+  const mat = new THREE.MeshStandardMaterial({ color: 0xff8ad8, emissive: 0xff4ac0, emissiveIntensity: 1.0, roughness: 0.35 })
+  const geo = new THREE.SphereGeometry(0.06, 12, 10)
+  for (const [x, y, z, s] of [[0, 0.06, 0.02, 1.3], [-0.09, 0.02, 0.05, 1], [0.09, 0.03, 0.04, 1.1], [-0.05, 0.08, 0.1, 0.8], [0.06, 0.07, 0.11, 0.9]]) {
+    const m = brilla(new THREE.Mesh(geo, mat))
+    m.position.set(x, y, z)
+    m.scale.set(s, s * 1.25, s)
+    b.add(m)
+  }
+  return b
+}
+
+// Piezas que Meshy no supo dibujar y se ponen por código siguiendo a un hueso.
+//   huesos: el primero que exista; desde: la pieza se orienta de ese hueso al
+//   suyo (la jeringa sigue al antebrazo); desplaza: en unidades del huésped
+//   (+Z es la espalda); late: respira despacio.
+const ADORNOS = {
+  saco: { crear: sacoDeHuevos, huesos: ['Spine02', 'Spine01', 'Spine'], desplaza: [0, 0.02, 0.26], late: true },
+  jeringa: { crear: jeringa, huesos: ['RightHand'], desde: 'RightForeArm', desplaza: [0, 0, 0] },
+  bultos: { crear: bultosCabeza, huesos: ['Head'], desplaza: [0, 0.1, 0.02], late: true }
 }
 
 async function alienAnimado (key, spec) {
@@ -2631,9 +2673,32 @@ async function alienAnimado (key, spec) {
   const cabeza = hueso('Head')
   const brazos = [hueso('LeftArm'), hueso('RightArm')]
   const antebrazos = [hueso('LeftForeArm'), hueso('RightForeArm')]
-  const saco = def.saco ? sacoDeHuevos() : null
-  if (saco) g.add(saco)
-  const enPecho = new THREE.Vector3()
+  const adornos = (def.adornos ?? []).map(nombre => {
+    const a = ADORNOS[nombre]
+    const pieza = a.crear()
+    g.add(pieza)
+    return { ...a, pieza, hueso: a.huesos.map(hueso).find(Boolean), origen: a.desde ? hueso(a.desde) : null }
+  }).filter(a => a.hueso)
+  const enHueso = new THREE.Vector3()
+  const enOrigen = new THREE.Vector3()
+  const arribaY = new THREE.Vector3(0, 1, 0)
+  // Al final de cada fotograma, ya con el zarpazo aplicado: si no, la jeringa
+  // se quedaba atrás del brazo al golpear.
+  const colocarAdornos = t => {
+    if (!adornos.length) return
+    g.updateMatrixWorld(true)
+    for (const a of adornos) {
+      a.hueso.getWorldPosition(enHueso)
+      g.worldToLocal(enHueso)
+      a.pieza.position.set(enHueso.x + a.desplaza[0], enHueso.y + a.desplaza[1], enHueso.z + a.desplaza[2])
+      if (a.origen) {
+        a.origen.getWorldPosition(enOrigen)
+        g.worldToLocal(enOrigen)
+        a.pieza.quaternion.setFromUnitVectors(arribaY, enOrigen.subVectors(enHueso, enOrigen).normalize())
+      }
+      if (a.late) a.pieza.scale.setScalar(1 + Math.sin(t * 3 + fase) * 0.05)
+    }
+  }
   // Girar un hueso sobre un eje del mundo, sea cual sea su orientación local.
   const qMundo = new THREE.Quaternion()
   const qPadre = new THREE.Quaternion()
@@ -2660,16 +2725,7 @@ async function alienAnimado (key, spec) {
     // Atacando, las piernas casi se paran: pisotea en el sitio.
     const vueltas = paso / (Math.PI * 2) * def.ciclos * (1 - ataque * 0.7)
     mixer.setTime(((vueltas % 1) + 1) % 1 * clip.duration)
-    if (saco && pecho) {
-      // A la espalda (el huésped mira a -Z) y a la altura del pecho, que sube
-      // y baja con cada paso; late despacio.
-      g.updateMatrixWorld(true)
-      pecho.getWorldPosition(enPecho)
-      g.worldToLocal(enPecho)
-      saco.position.set(enPecho.x, enPecho.y + 0.02, enPecho.z + 0.26)
-      saco.scale.setScalar(1 + Math.sin(t * 3 + fase) * 0.05)
-    }
-    if (ataque < 0.01) return
+    if (ataque < 0.01) { colocarAdornos(t); return }
 
     // Zarpazos alternos encima del ciclo: carga el brazo arriba despacio, lo
     // descarga de golpe; el tronco se echa encima en cada golpe.
@@ -2691,6 +2747,7 @@ async function alienAnimado (key, spec) {
     girar(brazos[1], zarpa(cD) * ataque)
     girar(antebrazos[0], 0.5 * ataque)
     girar(antebrazos[1], 0.5 * ataque)
+    colocarAdornos(t)
   }
 
   g.scale.setScalar((spec.scale ?? 1) * (0.94 + Math.random() * 0.12))
