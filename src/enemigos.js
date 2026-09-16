@@ -342,6 +342,10 @@ export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos })
     // Al tamaño de un soldado, como en los retratos: el Coloso no se sale.
     malla.scale.multiplyScalar(1 / (spec.scale ?? 1))
     figura = malla
+    // Se encuadra en cuanto tenga su pose de verdad: las piezas que se añaden
+    // por código (el taladro del Escarbador, la jeringa, el saco) no están
+    // colocadas hasta el primer fotograma, y con la cámara fija se salían.
+    encuadre = 0
     claveViva = carta.clave
     escena.add(malla)
     contraluz.color.setHex(spec.color).lerp(new THREE.Color(0xffffff), 0.35)
@@ -351,6 +355,27 @@ export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos })
 
   let bucleVivo = 0
   let ultimoVivo = 0
+  // Cuántos fotogramas lleva la figura de arriba; a los pocos se mide y se
+  // ajusta para que quepa entera en la carta. -1 = ya encuadrada.
+  let encuadre = -1
+  // A qué altura queda la figura ya encuadrada; el paso sube y baja sobre ella.
+  let alturaBase = 0
+  const cajaFigura = new THREE.Box3()
+  function encuadrar () {
+    figura.updateMatrixWorld(true)
+    cajaFigura.setFromObject(figura)
+    const alto = cajaFigura.max.y - cajaFigura.min.y
+    const ancho = Math.max(cajaFigura.max.x - cajaFigura.min.x, (cajaFigura.max.z - cajaFigura.min.z) * 0.6)
+    if (!isFinite(alto) || alto <= 0) return
+    // Lo que se ve a la distancia de la cámara, con un margen.
+    const visibleAlto = 2 * Math.tan((camara.fov * Math.PI / 180) / 2) * camara.position.z
+    const k = Math.min(1, (visibleAlto * 0.86) / alto, (visibleAlto * camara.aspect * 0.86) / Math.max(ancho, 1e-3))
+    figura.scale.multiplyScalar(k)
+    figura.updateMatrixWorld(true)
+    cajaFigura.setFromObject(figura)
+    // Centrado en el punto al que mira la cámara.
+    figura.position.y -= (cajaFigura.min.y + cajaFigura.max.y) / 2 - 0.95
+  }
   function dibujarVivo (ahora) {
     bucleVivo = requestAnimationFrame(dibujarVivo)
     if (!renderer || !figura) return
@@ -384,7 +409,8 @@ export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos })
     if (figura.userData.lean) figura.userData.lean.rotation.z = swing * 0.07
     // De cara, girando despacio a un lado y a otro para enseñar el perfil.
     figura.rotation.y = Math.PI + Math.sin(t * 0.55) * 0.75
-    figura.position.y = Math.abs(swing) * 0.025
+    if (encuadre >= 0 && ++encuadre > 4) { encuadrar(); encuadre = -1; alturaBase = figura.position.y }
+    figura.position.y = alturaBase + Math.abs(swing) * 0.025
     renderer.render(escena, camara)
   }
 
