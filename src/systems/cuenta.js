@@ -1,0 +1,144 @@
+// Cuenta de Google y progreso en la nube (Firebase).
+//
+// Sin cuenta se juega igual: todo se guarda en el móvil como siempre. Al entrar
+// con Google, la ficha del jugador (jugadores/{uid} en Firestore) se fusiona
+// con lo que haya en este móvil y desde ahí cada guardado se sube solo. Las
+// reglas de Firestore (firestore.rules) solo dejan a cada uno tocar su ficha.
+//
+// Firebase pesa: se carga en diferido y solo si hay sesión abierta o se pulsa
+// «Entrar», así que quien no la usa no descarga nada.
+
+const CONFIG = {
+  apiKey: 'AIzaSyAwzbv3vb6Ju-ie3mgYPBp9C-V0QMw_ZKY',
+  authDomain: 'alienz-resistance.firebaseapp.com',
+  projectId: 'alienz-resistance',
+  storageBucket: 'alienz-resistance.firebasestorage.app',
+  messagingSenderId: '134292140642',
+  appId: '1:134292140642:web:a204f937309a7c933a573b'
+}
+
+const CLAVE_CARTERA = 'alienz-cartera-v1'
+const CLAVE_PROGRESO = 'alienz-progreso-v2'
+// Marca de que en este móvil hubo sesión: solo entonces se carga Firebase al arrancar.
+const CLAVE_SESION = 'alienz-cuenta-v1'
+
+let fb = null
+function cargarFirebase () {
+  fb ??= Promise.all([
+    import('firebase/app'), import('firebase/auth'), import('firebase/firestore')
+  ]).then(([app, auth, fs]) => {
+    const a = app.initializeApp(CONFIG)
+    return { auth, fs, sesion: auth.getAuth(a), db: fs.getFirestore(a) }
+  })
+  return fb
+}
+
+const leer = clave => {
+  try { return JSON.parse(localStorage.getItem(clave) || 'null') } catch { return null }
+}
+const escribir = (clave, v) => {
+  try { localStorage.setItem(clave, JSON.stringify(v)) } catch { /* modo privado */ }
+}
+const entero = v => (Number.isFinite(Number(v)) ? Math.max(0, Math.floor(Number(v))) : 0)
+
+// Fusión de dos fichas. Lo que solo crece (misiones, estrellas, desbloqueos,
+// mejoras) se queda con lo mejor de cada lado; lo que se gasta (billetes y
+// monedas) va con el guardado más reciente, o se regalaría dinero al fusionar.
+export function fusionar (a, b) {
+  const ca = a?.cartera ?? {}
+  const cb = b?.cartera ?? {}
+  const reciente = entero(cb.actualizado) > entero(ca.actualizado) ? cb : ca
+  const mejoras = {}
+  for (const k of new Set([...Object.keys(ca.mejoras ?? {}), ...Object.keys(cb.mejoras ?? {})])) {
+    const x = ca.mejoras?.[k] ?? {}
+    const y = cb.mejoras?.[k] ?? {}
+    mejoras[k] = { dano: Math.max(entero(x.dano), entero(y.dano)), cadencia: Math.max(entero(x.cadencia), entero(y.cadencia)) }
+  }
+  const pa = a?.progreso ?? {}
+  const pb = b?.progreso ?? {}
+  const rangos = { ...(pa.rangos ?? {}) }
+  for (const [i, v] of Object.entries(pb.rangos ?? {})) rangos[i] = Math.max(entero(rangos[i]), entero(v))
+  return {
+    cartera: {
+      billetes: entero(reciente.billetes),
+      monedas: entero(reciente.monedas),
+      desbloqueadas: [...new Set([...(ca.desbloqueadas ?? []), ...(cb.desbloqueadas ?? [])])],
+      mejoras,
+      actualizado: Math.max(entero(ca.actualizado), entero(cb.actualizado))
+    },
+    progreso: { superados: Math.max(entero(pa.superados), entero(pb.superados)), rangos }
+  }
+}
+
+const fichaLocal = () => ({ cartera: leer(CLAVE_CARTERA) ?? {}, progreso: leer(CLAVE_PROGRESO) ?? {} })
+
+export function crearCuenta ({ alCambiar }) {
+  let usuario = null
+  let subida = 0
+  let arrancado = false
+
+  async function subir () {
+    if (!usuario) return
+    const { fs, db } = await cargarFirebase()
+    await fs.setDoc(fs.doc(db, 'jugadores', usuario.uid), { ...fichaLocal(), guardado: fs.serverTimestamp() })
+  }
+
+  async function sincronizar () {
+    const { fs, db } = await cargarFirebase()
+    const ref = fs.doc(db, 'jugadores', usuario.uid)
+    const nube = (await fs.getDoc(ref)).data() ?? null
+    const local = fichaLocal()
+    const junta = fusionar(local, nube)
+    const cambia = JSON.stringify(junta) !== JSON.stringify(fusionar(local, null))
+    escribir(CLAVE_CARTERA, junta.cartera)
+    escribir(CLAVE_PROGRESO, junta.progreso)
+    await fs.setDoc(ref, { ...junta, guardado: fs.serverTimestamp() })
+    // Si la nube traía algo nuevo, los menús ya pintados están desfasados.
+    if (cambia) location.reload()
+  }
+
+  async function arrancar () {
+    if (arrancado) return
+    arrancado = true
+    const { auth, sesion } = await cargarFirebase()
+    // Vuelta de un inicio por redirección (móviles que bloquean la ventana).
+    auth.getRedirectResult(sesion).catch(() => {})
+    auth.onAuthStateChanged(sesion, async u => {
+      usuario = u
+      if (u) {
+        escribir(CLAVE_SESION, true)
+        try { await sincronizar() } catch (e) { console.warn('Sin sincronizar:', e) }
+      }
+      alCambiar(u)
+    })
+  }
+
+  // Cada guardado del juego avisa; se sube agrupado para no escribir a cada moneda.
+  addEventListener('alienz-guardado', () => {
+    if (!usuario) return
+    clearTimeout(subida)
+    subida = setTimeout(() => subir().catch(e => console.warn('Sin subir:', e)), 2500)
+  })
+
+  if (leer(CLAVE_SESION)) arrancar()
+
+  return {
+    get usuario () { return usuario },
+    async entrar () {
+      const { auth, sesion } = await cargarFirebase()
+      arrancar()
+      const proveedor = new auth.GoogleAuthProvider()
+      try {
+        await auth.signInWithPopup(sesion, proveedor)
+      } catch (e) {
+        if (/popup-blocked|operation-not-supported/.test(e.code ?? '')) await auth.signInWithRedirect(sesion, proveedor)
+        else throw e
+      }
+    },
+    async salir () {
+      const { auth, sesion } = await cargarFirebase()
+      try { localStorage.removeItem(CLAVE_SESION) } catch {}
+      await auth.signOut(sesion)
+    }
+  }
+}

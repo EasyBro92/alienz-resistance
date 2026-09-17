@@ -9,6 +9,7 @@
     "preview": "vite preview --port 5180"
   },
   "dependencies": {
+    "firebase": "^12.19.0",
     "three": "^0.180.0"
   },
   "devDependencies": {

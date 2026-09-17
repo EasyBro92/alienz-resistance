@@ -75,6 +75,7 @@ export function cargarProgreso () {
 export function guardarProgreso (p) {
   try {
     localStorage.setItem(CLAVE, JSON.stringify({ superados: p.superados, rangos: p.rangos ?? {} }))
+    dispatchEvent(new Event('alienz-guardado'))
   } catch {
     // Si no se puede guardar, la partida sigue: se pierde el progreso al salir,
     // que es mucho mejor que reventar a mitad de una victoria.

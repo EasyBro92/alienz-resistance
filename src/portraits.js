@@ -95,10 +95,36 @@ export async function renderPortraits (renderer, alAvanzar) {
   const retratos = new Map()
   const amenazas = new Map()
 
+  // Encuadre: cada figura se centra en el punto al que mira la cámara y se
+  // encoge si no cabe. Antes la cámara era fija y cada uno caía donde caía
+  // —unos descentrados, otros rozando el borde—, y las piezas que se añaden por
+  // código (el taladro, la jeringa) se salían del retrato.
+  const caja = new THREE.Box3()
+  const centro = new THREE.Vector3()
+  const tam = new THREE.Vector3()
+  const MIRA_Y = 0.98
+  const DISTANCIA = Math.hypot(camara.position.x, camara.position.y - MIRA_Y, camara.position.z)
+  const VISIBLE_ALTO = 2 * Math.tan((26 * Math.PI / 180) / 2) * DISTANCIA
+  const encuadrar = malla => {
+    malla.updateMatrixWorld(true)
+    caja.setFromObject(malla)
+    caja.getSize(tam)
+    if (!(tam.y > 0)) return
+    const k = Math.min(1, (VISIBLE_ALTO * 0.9) / tam.y, (VISIBLE_ALTO * (ANCHO / ALTO) * 0.9) / Math.max(tam.x, 1e-3))
+    if (k < 1) malla.scale.multiplyScalar(k)
+    malla.updateMatrixWorld(true)
+    caja.setFromObject(malla)
+    caja.getCenter(centro)
+    malla.position.x -= centro.x
+    malla.position.y += MIRA_Y - centro.y
+    malla.position.z -= centro.z
+  }
+
   const fotografiar = async (clave, malla, destino = retratos) => {
     // El modelo mira a -Z (hacia los huéspedes); se gira para que dé la cara.
     malla.rotation.y = Math.PI - 0.34
     escena.add(malla)
+    encuadrar(malla)
 
     renderer.setRenderTarget(objetivo)
     renderer.clear()

@@ -8,6 +8,7 @@ import { createWaveDirector } from './systems/waves.js'
 import { createDropship } from './entities/dropship.js'
 import { createEffects } from './systems/effects.js'
 import { createGrietas } from './systems/grietas.js'
+import { crearCuenta } from './systems/cuenta.js'
 import { createAmbient } from './systems/ambient.js'
 import { createAudio } from './audio.js'
 import { createUI } from './ui.js'
@@ -1891,6 +1892,32 @@ document.getElementById('ir-ajustes').addEventListener('click', () => {
   elAjustesCapa.classList.remove('hidden')
 })
 document.getElementById('ajustes-volver').addEventListener('click', () => elAjustesCapa.classList.add('hidden'))
+
+// --- cuenta de Google ---
+// En Ajustes: entrar guarda el progreso en la nube y lo trae a cualquier móvil.
+const elCuentaBoton = document.getElementById('cuenta-boton')
+const elCuentaPie = document.getElementById('cuenta-pie')
+const cuenta = crearCuenta({
+  alCambiar: u => {
+    elCuentaBoton.disabled = false
+    elCuentaBoton.textContent = u ? 'Cerrar sesión' : 'Entrar con Google'
+    elCuentaPie.textContent = u
+      ? `Progreso guardado en la nube como ${u.displayName ?? u.email}.`
+      : 'Guarda tu progreso en la nube y recupéralo en cualquier móvil.'
+  }
+})
+elCuentaBoton.addEventListener('click', async () => {
+  elCuentaBoton.disabled = true
+  try {
+    if (cuenta.usuario) await cuenta.salir()
+    else await cuenta.entrar()
+  } catch (e) {
+    console.warn('Cuenta:', e)
+    elCuentaPie.textContent = 'No se pudo conectar con Google. Inténtalo otra vez.'
+  } finally {
+    elCuentaBoton.disabled = false
+  }
+})
 document.getElementById('ir-enemigos').addEventListener('click', () => {
   audio.unlock()
   elEnemigosCapa.classList.remove('hidden')

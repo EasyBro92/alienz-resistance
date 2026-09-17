@@ -3,6 +3,12 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   base: './',
+  // Firebase en su propio trozo con nombre, para poder dejarlo fuera de la precarga.
+  build: {
+    rollupOptions: {
+      output: { manualChunks: id => (id.includes('node_modules/firebase') || id.includes('node_modules/@firebase') ? 'firebase' : undefined) }
+    }
+  },
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
@@ -39,6 +45,9 @@ export default defineConfig({
         // cascos procedurales, y cada modelo releva al suyo en cuanto termina de
         // bajar. Lo que se pierde esperando es detalle, no partida.
         globPatterns: ['**/*.{js,css,html,svg,png,mp3,ogg}'],
+        // Firebase (la cuenta de Google) solo lo descarga quien entra: fuera de la
+        // precarga, que si no casi la duplicaba.
+        globIgnores: ['**/firebase-*.js'],
         // Pero sí se guardan en cuanto se piden una vez, así que a partir de la
         // segunda partida están en el aparato y la aplicación sigue funcionando
         // entera sin red, que es de lo que va ser una PWA.

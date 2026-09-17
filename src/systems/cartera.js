@@ -78,7 +78,9 @@ function leer () {
 
 function guardar (c) {
   try {
-    localStorage.setItem(CLAVE, JSON.stringify(c))
+    // La hora del guardado decide qué billetes valen al fusionar con la nube.
+    localStorage.setItem(CLAVE, JSON.stringify({ ...c, actualizado: Date.now() }))
+    dispatchEvent(new Event('alienz-guardado'))
   } catch {
     // Sin almacén (modo privado, lleno): se juega igual, solo que no se guarda.
   }

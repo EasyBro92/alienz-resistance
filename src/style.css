@@ -758,6 +758,10 @@ html, body {
   --fondo: #0d1117;
   --green: #5fd97a;
   --verde-texto: #6fe39a;
+  /* Y el color del texto, no solo las variables: nadie lo fijaba dentro del
+     marcador, así que las monedas heredaban la tinta NEGRA del tema claro y el
+     número quedaba negro sobre la cápsula oscura, o sea invisible. */
+  color: var(--tinta);
 }
 
 /* ---------- parte de operaciones ---------- */
