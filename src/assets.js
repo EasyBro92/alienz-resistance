@@ -2556,11 +2556,14 @@ const ALIEN_ANIMADOS = {
   // Meshy le dejó el saco de huevos casi invisible: se le pone por código.
   spitter: { archivo: 'models/alien-sembrador-andar.glb', ciclos: 0.75, adornos: ['saco'] },
   // Meshy no dibuja brazos-herramienta: la jeringa y los bultos, por código.
+  // El Revientaesporas se rehizo de pie en pose A: el de antes, con esqueleto
+  // por código, se deformaba al andar.
+  bloater: { archivo: 'models/alien-revientaesporas-andar.glb', ciclos: 0.7 },
   healer: { archivo: 'models/alien-injertadora-andar.glb', ciclos: 0.75, adornos: ['jeringa', 'bultos'] },
   armored: { archivo: 'models/alien-encostrado-andar.glb', ciclos: 0.8 },
-  // Al Saltador, Meshy le confundió patas y púas: al girar los brazos se
-  // estiraban en láminas. Sin zarpazo: atacando sigue corriendo en el sitio.
-  leaper: { archivo: 'models/alien-saltador-correr.glb', ciclos: 0.6, sinZarpazo: true }
+  // El Saltador se rehizo de pie en pose A: el primero, con patas largas y
+  // púas, se estiraba en láminas al moverse.
+  leaper: { archivo: 'models/alien-saltador-correr.glb', ciclos: 0.6 }
 }
 const materialesAclarados = new Map()
 
@@ -2628,11 +2631,13 @@ function taladro () {
   // pasaba con las texturas de Meshy).
   const acero = new THREE.MeshStandardMaterial({ color: 0xd6dde3, roughness: 0.35, metalness: 0.2 })
   const oscuro = new THREE.MeshStandardMaterial({ color: 0x8a939b, roughness: 0.6, metalness: 0.15 })
-  const casquillo = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.075, 0.16, 12), oscuro)
-  casquillo.position.y = 0.06
+  // El casquillo es un guantelete que se traga el puño: antes era estrecho y
+  // la mano lo atravesaba, así que no parecía que lo empuñase.
+  const casquillo = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.24, 14), oscuro)
+  casquillo.position.y = 0.02
   t.add(casquillo)
   const broca = new THREE.Group()
-  broca.position.y = 0.14
+  broca.position.y = 0.16
   const punta = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.5, 12), acero)
   punta.position.y = 0.25
   broca.add(punta)
@@ -2657,7 +2662,7 @@ const ADORNOS = {
   saco: { crear: sacoDeHuevos, huesos: ['Spine02', 'Spine01', 'Spine'], desplaza: [0, 0.02, 0.26], late: true },
   jeringa: { crear: jeringa, huesos: ['RightHand'], desde: 'RightForeArm', desplaza: [0, 0, 0] },
   bultos: { crear: bultosCabeza, huesos: ['Head'], desplaza: [0, 0.1, 0.02], late: true },
-  taladro: { crear: taladro, huesos: ['RightHand'], desde: 'RightForeArm', desplaza: [0, 0, 0], gira: true }
+  taladro: { crear: taladro, huesos: ['RightHand'], desde: 'RightForeArm', desplaza: [0, 0, 0], adelanta: 0.05, gira: true }
 }
 
 async function alienAnimado (key, spec) {
@@ -2727,6 +2732,8 @@ async function alienAnimado (key, spec) {
         a.origen.getWorldPosition(enOrigen)
         g.worldToLocal(enOrigen)
         a.pieza.quaternion.setFromUnitVectors(arribaY, enOrigen.subVectors(enHueso, enOrigen).normalize())
+        // Un poco hacia delante por el antebrazo, para que la mano quede dentro.
+        if (a.adelanta) a.pieza.position.addScaledVector(enOrigen, a.adelanta)
       }
       if (a.late) a.pieza.scale.setScalar(1 + Math.sin(t * 3 + fase) * 0.05)
       // La broca gira siempre y se embala al cavar o al atacar, que es cuando
