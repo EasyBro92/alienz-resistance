@@ -72,6 +72,9 @@ export function fusionar (a, b) {
 
 const fichaLocal = () => ({ cartera: leer(CLAVE_CARTERA) ?? {}, progreso: leer(CLAVE_PROGRESO) ?? {} })
 
+// Si en este móvil hubo sesión (antes de que Firebase confirme que sigue abierta).
+export const haySesionGuardada = () => !!leer(CLAVE_SESION)
+
 export function crearCuenta ({ alCambiar }) {
   let usuario = null
   let subida = 0

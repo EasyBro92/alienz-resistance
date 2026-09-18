@@ -8,7 +8,7 @@ import { createWaveDirector } from './systems/waves.js'
 import { createDropship } from './entities/dropship.js'
 import { createEffects } from './systems/effects.js'
 import { createGrietas } from './systems/grietas.js'
-import { crearCuenta } from './systems/cuenta.js'
+import { crearCuenta, haySesionGuardada } from './systems/cuenta.js'
 import { createAmbient } from './systems/ambient.js'
 import { createAudio } from './audio.js'
 import { createUI } from './ui.js'
@@ -1621,6 +1621,8 @@ function pintarAtras () {
     !!document.getElementById('ir-mapa') &&
     !CAPAS_ATRAS.some(([capa]) => !document.getElementById(capa)?.classList.contains('hidden'))
   elEngranaje.classList.toggle('hidden', !enPortada)
+  document.getElementById('ir-cuenta').classList.toggle('hidden', !enPortada)
+  if (!enPortada) document.getElementById('cuenta-menu').classList.add('hidden')
 }
 elAtras.addEventListener('click', () => {
   destinoAtras()?.()
@@ -1899,6 +1901,7 @@ const elCuentaBoton = document.getElementById('cuenta-boton')
 const elCuentaPie = document.getElementById('cuenta-pie')
 const cuenta = crearCuenta({
   alCambiar: u => {
+    pintarCuenta(u)
     elCuentaBoton.disabled = false
     elCuentaBoton.textContent = u ? 'Cerrar sesión' : 'Entrar con Google'
     elCuentaPie.textContent = u
@@ -1918,6 +1921,62 @@ elCuentaBoton.addEventListener('click', async () => {
     elCuentaBoton.disabled = false
   }
 })
+
+// Arriba, junto al engranaje: silueta sin sesión (abre la bienvenida) o la
+// inicial del correo con ella (abre un menú con el correo y cerrar sesión).
+const elIrCuenta = document.getElementById('ir-cuenta')
+const elCuentaMenu = document.getElementById('cuenta-menu')
+const elBienvenida = document.getElementById('bienvenida')
+const elBienvenidaEntrar = document.getElementById('bienvenida-entrar')
+function pintarCuenta (u) {
+  elIrCuenta.classList.toggle('con-sesion', !!u)
+  elIrCuenta.querySelector('.cuenta-inicial').textContent = u ? (u.email ?? u.displayName ?? '?').trim().charAt(0).toUpperCase() : ''
+  elIrCuenta.setAttribute('aria-label', u ? 'Cuenta: ' + (u.email ?? '') : 'Entrar con Google')
+  document.getElementById('cuenta-correo').textContent = u?.email ?? ''
+  if (u) elBienvenida.classList.add('hidden')
+  else elCuentaMenu.classList.add('hidden')
+}
+elIrCuenta.addEventListener('click', e => {
+  e.stopPropagation()
+  if (cuenta.usuario) elCuentaMenu.classList.toggle('hidden')
+  else elBienvenida.classList.remove('hidden')
+})
+addEventListener('click', e => { if (!elCuentaMenu.contains(e.target)) elCuentaMenu.classList.add('hidden') })
+document.getElementById('cuenta-salir').addEventListener('click', () => {
+  elCuentaMenu.classList.add('hidden')
+  cuenta.salir().catch(err => console.warn('Cuenta:', err))
+})
+
+// La bienvenida al abrir: sale mientras no haya cuenta, salvo que en los
+// últimos 7 días se haya pulsado «Más tarde».
+const CLAVE_MAS_TARDE = 'alienz-cuenta-mas-tarde'
+const SIETE_DIAS = 7 * 24 * 60 * 60 * 1000
+elBienvenidaEntrar.addEventListener('click', async () => {
+  elBienvenidaEntrar.disabled = true
+  try {
+    await cuenta.entrar()
+    elBienvenida.classList.add('hidden')
+  } catch (err) {
+    console.warn('Cuenta:', err)
+  } finally {
+    elBienvenidaEntrar.disabled = false
+  }
+})
+document.getElementById('bienvenida-luego').addEventListener('click', () => {
+  elBienvenida.classList.add('hidden')
+  try { localStorage.setItem(CLAVE_MAS_TARDE, String(Date.now())) } catch { /* modo privado */ }
+})
+// Se espera a que se quite la pantalla de carga: encima de ella no se ve.
+const ofrecerCuenta = setInterval(() => {
+  // La pantalla de carga se quita del árbol al acabar su fundido.
+  if (document.getElementById('carga')) return
+  clearInterval(ofrecerCuenta)
+  let aparcada = 0
+  try { aparcada = Number(localStorage.getItem(CLAVE_MAS_TARDE)) || 0 } catch { /* modo privado */ }
+  if (haySesionGuardada() || cuenta.usuario || Date.now() - aparcada < SIETE_DIAS) return
+  // Solo sobre la portada: no en mitad de una partida que se reanuda.
+  if (!elEngranaje.classList.contains('hidden')) elBienvenida.classList.remove('hidden')
+}, 700)
 document.getElementById('ir-enemigos').addEventListener('click', () => {
   audio.unlock()
   elEnemigosCapa.classList.remove('hidden')

@@ -2060,3 +2060,52 @@ html, body {
 .reglas-plegable > summary::after { content: "+"; font-size: 16px; font-weight: 900; }
 .reglas-plegable[open] > summary::after { content: "\2212"; }
 .reglas-plegable .rules { margin: 8px 0 2px; }
+
+/* ---------- cuenta de Google ---------- */
+/* Junto al engranaje, solo en la portada: silueta sin sesión, inicial con ella. */
+.cuenta-btn { position: absolute; top: calc(env(safe-area-inset-top) + 10px); right: 62px; z-index: 40; pointer-events: auto; }
+.cuenta-btn.hidden, .cuenta-menu.hidden, .bienvenida.hidden { display: none; }
+.cuenta-inicial { display: none; font-size: 18px; font-weight: 900; line-height: 1; }
+.cuenta-btn.con-sesion { background: linear-gradient(180deg, #8ff0a5, #3fbf62); border-color: #2a7d41; color: #08160c; }
+.cuenta-btn.con-sesion .cuenta-silueta { display: none; }
+.cuenta-btn.con-sesion .cuenta-inicial { display: block; }
+:root:not([data-tema="claro"]) .cuenta-btn:not(.con-sesion) { background: rgba(8, 12, 15, 0.7); color: #ffffff; }
+.cuenta-menu {
+  position: absolute; top: calc(env(safe-area-inset-top) + 60px); right: 12px; z-index: 41;
+  display: flex; flex-direction: column; gap: 6px; align-items: flex-start;
+  max-width: min(280px, calc(100vw - 24px)); padding: 12px 14px;
+  border-radius: 14px; border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(10, 15, 20, 0.95); color: #ffffff;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+}
+.cuenta-menu b { font-size: 13px; word-break: break-all; }
+.cuenta-menu span { font-size: 12px; color: #9fd9ae; }
+.cuenta-menu .chip { margin-top: 4px; color: #ffffff; }
+
+/* La bienvenida: tarjeta oscura encima de la portada, con el alien detrás. */
+.bienvenida {
+  position: fixed; inset: 0; z-index: 60;
+  display: grid; place-items: center; padding: 0 20px;
+  background: rgba(3, 6, 8, 0.62);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+}
+.bienvenida-tarjeta {
+  width: min(340px, 100%); padding: 22px 20px 14px; text-align: center;
+  border-radius: 18px; border: 1px solid rgba(111, 227, 154, 0.35);
+  background: linear-gradient(180deg, rgba(16, 24, 20, 0.97), rgba(8, 12, 10, 0.97));
+  color: #ffffff; box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 30px rgba(111, 227, 154, 0.15);
+}
+.bienvenida-tarjeta h3 { margin: 0 0 8px; font-size: 21px; font-weight: 900; color: #6fe39a; }
+.bienvenida-tarjeta p { margin: 0 0 16px; font-size: 13.5px; line-height: 1.45; color: #d9e3dc; }
+.boton-google {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; padding: 12px 16px; border: none; border-radius: 999px;
+  font: inherit; font-size: 15px; font-weight: 800; color: #1f1f1f; background: #ffffff;
+  box-shadow: 0 3px 0 rgba(0,0,0,0.35); cursor: pointer;
+}
+.boton-google:disabled { opacity: 0.6; }
+.logo-g { width: 20px; height: 20px; }
+.bienvenida-luego {
+  margin-top: 10px; padding: 8px 14px; border: none; background: none;
+  font: inherit; font-size: 13px; color: rgba(255,255,255,0.6); cursor: pointer;
+}
