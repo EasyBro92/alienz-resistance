@@ -24,8 +24,11 @@ import { buildSoldierMesh, buildSandbagsMesh, buildZombieMesh } from './assets.j
 // desde el primer momento y las fichas se van llenando solas. Y al terminar cada
 // figura se suelta su geometría: son mallas fundidas, únicas, que si no se
 // quedan ocupando memoria de vídeo para siempre por una foto ya hecha.
-const ANCHO = 176
-const ALTO = 220
+// El doble de resolución que la ficha: en pantallas de móvil (2x y 3x) el
+// retrato se veía blando y con los bordes dentados. Sigue siendo un coste de
+// una sola vez al arrancar.
+const ANCHO = 352
+const ALTO = 440
 
 // Un fotograma de respiro. Sin esto los `await` de dentro del bucle solo ceden a
 // microtareas, que se ejecutan sin dejar pintar: el hilo seguía bloqueado.
