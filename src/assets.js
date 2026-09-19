@@ -2563,7 +2563,9 @@ const ALIEN_ANIMADOS = {
   armored: { archivo: 'models/alien-encostrado-andar.glb', ciclos: 0.8 },
   // El Saltador se rehizo de pie en pose A: el primero, con patas largas y
   // púas, se estiraba en láminas al moverse.
-  leaper: { archivo: 'models/alien-saltador-correr.glb', ciclos: 0.6 }
+  leaper: { archivo: 'models/alien-saltador-correr.glb', ciclos: 0.6 },
+  // Al Coloso le bastó con ponerle esqueleto al modelo que ya había.
+  tank: { archivo: 'models/alien-coloso-andar.glb', ciclos: 0.85 }
 }
 const materialesAclarados = new Map()
 
