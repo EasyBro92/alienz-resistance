@@ -2563,7 +2563,9 @@ const ALIEN_ANIMADOS = {
   armored: { archivo: 'models/alien-encostrado-andar.glb', ciclos: 0.8 },
   // El Saltador se rehizo de pie en pose A: el primero, con patas largas y
   // púas, se estiraba en láminas al moverse.
-  leaper: { archivo: 'models/alien-saltador-correr.glb', ciclos: 0.6 },
+  // Su carrera levanta tanto la pierna de atrás que atravesaba la cola, y de
+  // frente las cruzaba: se le acorta la zancada.
+  leaper: { archivo: 'models/alien-saltador-correr.glb', ciclos: 0.6, piernas: 0.6 },
   // Al Coloso le bastó con ponerle esqueleto al modelo que ya había.
   tank: { archivo: 'models/alien-coloso-andar.glb', ciclos: 0.85 }
 }
@@ -2688,6 +2690,9 @@ async function alienAnimado (key, spec) {
 
   // Meshy los deja mirando a +Z; los huéspedes avanzan hacia -Z. Se escalan
   // a la altura de un huésped con los pies en el suelo.
+  // Piernas en reposo (pose A, rectas) para poder acortar la zancada.
+  const piernas = def.piernas == null ? [] : ['LeftUpLeg', 'LeftLeg', 'RightUpLeg', 'RightLeg']
+    .map(n => modelo.getObjectByName(n)).filter(Boolean).map(b => ({ b, reposo: b.quaternion.clone() }))
   const mixer = new THREE.AnimationMixer(modelo)
   const accion = mixer.clipAction(clip)
   accion.play()
@@ -2769,6 +2774,7 @@ async function alienAnimado (key, spec) {
     // Atacando, las piernas casi se paran: pisotea en el sitio.
     const vueltas = paso / (Math.PI * 2) * def.ciclos * (1 - ataque * 0.7)
     mixer.setTime(((vueltas % 1) + 1) % 1 * clip.duration)
+    for (const p of piernas) p.b.quaternion.slerp(p.reposo, 1 - def.piernas)
     if (ataque < 0.01) { colocarAdornos(t); return }
 
     // Zarpazos alternos encima del ciclo: carga el brazo arriba despacio, lo
