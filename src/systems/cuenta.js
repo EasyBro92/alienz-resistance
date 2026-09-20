@@ -23,7 +23,9 @@ const CLAVE_PROGRESO = 'alienz-progreso-v2'
 const CLAVE_SESION = 'alienz-cuenta-v1'
 
 let fb = null
-function cargarFirebase () {
+// La usa también el multijugador (marcadores y retos): una sola carga de
+// Firebase para todo, y solo cuando de verdad hace falta.
+export function cargarFirebase () {
   fb ??= Promise.all([
     import('firebase/app'), import('firebase/auth'), import('firebase/firestore')
   ]).then(([app, auth, fs]) => {

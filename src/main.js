@@ -1489,6 +1489,13 @@ function win () {
   const rango = ESTRELLAS[estrellas - 1]
   const primeraVez = nivelActual >= antes.superados
   const progreso = superarNivel(nivelActual, porcentaje)
+  // A la tabla del tramo, si hay sesión. Va sin esperar y sin molestar: que el
+  // marcador falle no puede estropear la pantalla de victoria.
+  if (cuenta.usuario) {
+    import('./systems/marcadores.js')
+      .then(m => m.publicarPuntuacion(cuenta.usuario, nivelActual, porcentaje, estrellas))
+      .catch(e => console.warn('Sin publicar la marca:', e))
+  }
   const siguiente = NIVELES[nivelActual + 1]
   const mejora = !(nivelActual in antes.rangos) || estrellas > antes.rangos[nivelActual]
   // Si era la última misión del país, esta victoria cierra el país entero y se
@@ -1979,7 +1986,30 @@ const cuenta = crearCuenta({
     elCuentaPie.textContent = u
       ? `Progreso guardado en la nube como ${u.displayName ?? u.email}.`
       : 'Guarda tu progreso en la nube y recupéralo en cualquier móvil.'
+    pintarAlias(u)
   }
+})
+
+// --- el nombre con el que sales en las tablas ---
+// Solo aparece con sesión: sin cuenta no hay tabla en la que salir. Se guarda
+// en este móvil y viaja con cada marca que publicas.
+const elAjusteAlias = document.getElementById('ajuste-alias')
+const elAliasCampo = document.getElementById('alias-campo')
+const elAliasPie = document.getElementById('alias-pie')
+async function pintarAlias (u) {
+  if (!elAjusteAlias) return
+  elAjusteAlias.hidden = !u
+  if (!u) return
+  const { aliasActual } = await import('./systems/marcadores.js')
+  elAliasCampo.value = aliasActual(u)
+}
+document.getElementById('alias-guardar')?.addEventListener('click', async () => {
+  const { guardarAlias, aliasPorDefecto } = await import('./systems/marcadores.js')
+  const puesto = guardarAlias(elAliasCampo.value)
+  if (!puesto) elAliasCampo.value = aliasPorDefecto(cuenta.usuario)
+  elAliasPie.textContent = puesto
+    ? `Guardado. Sales como ${puesto} en las próximas marcas.`
+    : 'Sin nombre propio sales con el de tu cuenta.'
 })
 elCuentaBoton.addEventListener('click', async () => {
   elCuentaBoton.disabled = true
@@ -2251,8 +2281,53 @@ function abrirParte (indice) {
     yaSacadas ? `<span class="dato-marca">${estrellitas(yaSacadas)}${yaSacadas < 3 ? ' por mejorar' : ' al máximo'}</span>` : ''
   ].filter(Boolean).join('')
 
+  pintarMarcador(indice)
   elParteCapa.classList.remove('hidden')
 }
+
+// La tabla del tramo, debajo del parte. Se pide cada vez que se abre, pero solo
+// con sesión: sin cuenta no hay marcador que leer ni fila que escribir, y el
+// juego entero se puede jugar así.
+let marcadorPedido = 0
+async function pintarMarcador (indice) {
+  const caja = document.getElementById('parte-marcador')
+  const lista = document.getElementById('parte-marcador-lista')
+  const pie = document.getElementById('parte-marcador-pie')
+  if (!caja) return
+  if (!cuenta.usuario) { caja.hidden = true; return }
+
+  caja.hidden = false
+  lista.innerHTML = '<li class="marcador-cargando">Pidiendo la tabla…</li>'
+  pie.textContent = ''
+  const mio = ++marcadorPedido
+  try {
+    const { leerMarcador } = await import('./systems/marcadores.js')
+    const { filas, mio: yo } = await leerMarcador(indice, cuenta.usuario, 10)
+    // Otra pantalla se abrió mientras llegaba: lo que vuelve ya no vale.
+    if (mio !== marcadorPedido) return
+    if (!filas.length) {
+      lista.innerHTML = '<li class="marcador-vacio">Nadie ha limpiado este tramo todavía. Sé el primero.</li>'
+      return
+    }
+    lista.innerHTML = filas.map(f => `
+      <li class="${f.uid === cuenta.usuario.uid ? 'marcador-yo' : ''}">
+        <span class="marcador-puesto">${f.puesto}</span>
+        <span class="marcador-alias">${escaparTexto(f.alias ?? '')}</span>
+        <span class="marcador-marca">${estrellitas(f.estrellas ?? 0)} ${f.porcentaje}%</span>
+      </li>`).join('')
+    pie.textContent = yo
+      ? (yo.puesto > filas.length ? `Tú vas el ${yo.puesto}.º, con un ${yo.porcentaje}%.` : '')
+      : 'Aún no has limpiado este tramo.'
+  } catch (e) {
+    if (mio !== marcadorPedido) return
+    console.warn('Sin marcador:', e)
+    lista.innerHTML = '<li class="marcador-vacio">No se ha podido leer la tabla.</li>'
+  }
+}
+
+// El alias lo escribe el jugador, así que nunca se mete tal cual en el HTML.
+const escaparTexto = t => String(t).replace(/[&<>"']/g, c =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
 
 document.getElementById('parte-ir').addEventListener('click', () => {
   elParteCapa.classList.add('hidden')

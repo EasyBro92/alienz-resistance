@@ -1,12 +1,49 @@
 rules_version = '2';
-// Cada jugador tiene una sola ficha, jugadores/{uid}, y solo él puede leerla
-// y escribirla. Nadie puede listar las fichas de los demás.
+// Tres cosas viven en la nube y cada una tiene su puerta:
+//
+//   jugadores/{uid}          la ficha privada de cada jugador (su progreso).
+//   marcadores/{nivel}/...   la tabla pública de cada misión.
+//   retos/{codigo}           una oleada que un jugador le manda a otro.
+//
+// La ficha no la ve nadie más que su dueño. El marcador lo lee cualquiera que
+// haya iniciado sesión, pero cada uno solo puede escribir SU fila. Y el reto lo
+// lee quien tenga el código, y solo lo borra o lo cambia quien lo creó.
 service cloud.firestore {
   match /databases/{database}/documents {
     match /jugadores/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid
         && (request.resource == null || request.resource.size() < 900 * 1024);
     }
+
+    // Una fila por jugador y misión. Se comprueba campo a campo: sin esto,
+    // cualquiera con la consola del navegador podría escribir un 500% o meter
+    // un texto de un megabyte en el nombre.
+    match /marcadores/{nivel}/puestos/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['alias', 'porcentaje', 'estrellas', 'fecha'])
+        && request.resource.data.alias is string
+        && request.resource.data.alias.size() > 0 && request.resource.data.alias.size() <= 24
+        && request.resource.data.porcentaje is number
+        && request.resource.data.porcentaje >= 0 && request.resource.data.porcentaje <= 100
+        && request.resource.data.estrellas is number
+        && request.resource.data.estrellas >= 0 && request.resource.data.estrellas <= 3;
+    }
+
+    match /retos/{codigo} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.autor == request.auth.uid
+        && request.resource.size() < 16 * 1024;
+      allow update, delete: if request.auth != null && resource.data.autor == request.auth.uid;
+    }
+    // Los intentos de un reto: cada jugador escribe el suyo y todos los leen.
+    match /retos/{codigo}/intentos/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid
+        && request.resource.size() < 4 * 1024;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

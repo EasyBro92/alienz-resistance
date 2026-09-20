@@ -352,6 +352,13 @@
         <h2 id="parte-nombre"></h2>
         <div class="parte-texto" id="parte-texto"></div>
         <div class="parte-datos" id="parte-datos"></div>
+        <!-- La tabla de este tramo. Se pide al abrir el parte y solo con sesión
+             iniciada: sin cuenta no hay a quién comparar. -->
+        <div class="marcador" id="parte-marcador" hidden>
+          <p class="marcador-tit">Mejores de este tramo</p>
+          <ol class="marcador-lista" id="parte-marcador-lista"></ol>
+          <p class="marcador-pie" id="parte-marcador-pie"></p>
+        </div>
         <button id="parte-ir" class="big-btn">BAJAR AL TRAMO</button>
         <button id="parte-volver" class="chip chip-ghost">Volver al informe</button>
       </div>
@@ -487,6 +494,15 @@
           <span class="ajuste-tit">Cuenta</span>
           <div class="ajuste-ops"><button id="cuenta-boton" class="chip" type="button">Entrar con Google</button></div>
           <p class="ajuste-pie" id="cuenta-pie">Guarda tu progreso en la nube y recupéralo en cualquier móvil.</p>
+        </div>
+        <!-- El nombre con el que sales en las tablas. Nunca el correo. -->
+        <div class="ajuste" id="ajuste-alias" hidden>
+          <span class="ajuste-tit">Nombre en las tablas</span>
+          <div class="ajuste-ops alias-fila">
+            <input id="alias-campo" class="alias-campo" type="text" maxlength="24" autocomplete="off" spellcheck="false" aria-label="Tu nombre en las tablas">
+            <button id="alias-guardar" class="chip" type="button">Guardar</button>
+          </div>
+          <p class="ajuste-pie" id="alias-pie">Así te ven los demás jugadores en los marcadores.</p>
         </div>
         <button id="ajustes-volver" class="chip chip-ghost" type="button">Volver</button>
       </div>
