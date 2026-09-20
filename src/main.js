@@ -3,6 +3,9 @@ import './style.css'
 import { FIELD, BASE, NIVELES, SOLDIERS, DEFENSES, STRIKES, ZOMBIES, ECONOMY } from './config.js'
 import { createWorld, rowZ, laneX } from './world.js'
 import { createSoldier, upgradeCost, muzzleWorld, ejectorWorld } from './entities/soldier.js'
+// El invitado del cooperativo crea copias de los huéspedes que le manda el
+// anfitrión; la campaña los crea dentro del director de oleadas.
+import { createZombie } from './entities/zombie.js'
 import { createEconomy } from './systems/economy.js'
 import { createWaveDirector } from './systems/waves.js'
 import { createDropship } from './entities/dropship.js'
@@ -295,6 +298,13 @@ function mejorHueco (item) {
 }
 
 async function place (item, lane, row) {
+  // De invitado no se coloca nada aquí: se le pide al anfitrión, que es quien
+  // lleva la partida. Si colocara en su propia pantalla, tendría un soldado que
+  // no existe y que desaparecería en la siguiente instantánea.
+  if (modoInvitado()) {
+    coop.mandarOrden({ tipo: 'colocar', clave: item.key, clase: item.type, lane, row })
+    return
+  }
   const key = slotKey(lane, row)
   if (occupied.has(key)) return audio.denied()
   if (!economy.spend(item.cost)) return audio.denied()
@@ -973,6 +983,8 @@ function simulate (dt) {
   // colgado, no como una pausa.
   if (pausado) return
   if (vuelo) { actualizarVuelo(dt); return }
+  // De invitado no se simula: se pinta lo que manda el anfitrión.
+  if (running && modoInvitado()) { pintarPartidaRemota(dt); return }
   if (running) {
     if (economy.update(dt)) audio.coin()
     director.update(dt, zombies.length)
@@ -1246,6 +1258,12 @@ function simulate (dt) {
     separarHuespedes()
 
     audio.setIntensity(Math.min(1, zombies.length / 14 + (1 - baseHp / BASE.hp) * 0.6))
+
+    // De anfitrión, la foto del campo para el invitado. Va al final del turno,
+    // con todo ya movido: mandarla a medias enseñaría medio fotograma viejo.
+    if (coop?.esAnfitrion) {
+      coop.latir({ zombies, soldiers, baseHp, oleada: director.wave, total: director.total, dinero: economy.coins })
+    }
   }
 
   if (asalto) actualizarAsalto(dt)
@@ -1632,6 +1650,9 @@ function start (indice = nivelActual) {
   document.getElementById('pais-capa')?.classList.add('hidden')
   audio.unlock()
   audio.startMusic()
+  // El invitado tiene que vestir SU escenario igual que el del anfitrión, o
+  // estaría defendiendo una playa mientras el otro defiende una avenida.
+  if (coop?.esAnfitrion) coop.transporte.mandar('partida', { nivel: nivelActual })
   director = createWaveDirector(
     nivelDeHoy,
     z => { marcarBrillo(z.mesh); scene.add(z.mesh); zombies.push(z); if (z.spec.boss) entradaJefe(z) },
@@ -2688,5 +2709,222 @@ async function finReto (ganado) {
 document.getElementById('mapa-retos')?.addEventListener('click', () => { audio.unlock(); abrirRetos() })
 document.getElementById('retos-volver')?.addEventListener('click', () => {
   elRetosCapa.classList.add('hidden')
+  elMapaCapa.classList.remove('hidden')
+})
+
+// --- cooperativo: la pantalla del invitado -----------------------------------
+//
+// El invitado no simula: mantiene un ESPEJO de lo que hay en el campo del
+// anfitrión. Cada instantánea trae quién está vivo y dónde; aquí se crean los
+// que aparecen, se mueven los que siguen y se quitan los que ya no vienen.
+//
+// Las figuras tardan en construirse (modelos y texturas), así que se pide una
+// sola vez por identificador y se apunta como "en camino": sin eso, a ocho
+// instantáneas por segundo se pedirían ocho copias del mismo huésped.
+const espejoZ = new Map()
+const espejoS = new Map()
+const enCamino = new Set()
+
+function pintarPartidaRemota (dt) {
+  const estado = coop.interpolado()
+  if (!estado) return
+
+  baseHp = estado.baseHp
+  ui.setBase(baseHp / BASE.hp)
+  ui.setWave(`Oleada ${estado.oleada} / ${estado.total}`)
+  ui.setCoins?.(estado.dinero)
+
+  const vivos = new Set()
+  for (const z of estado.zombies) {
+    vivos.add(z.id)
+    const mio = espejoZ.get(z.id)
+    if (!mio) {
+      if (enCamino.has('z' + z.id) || !ZOMBIES[z.key]) continue
+      enCamino.add('z' + z.id)
+      createZombie(z.key, ZOMBIES[z.key], 2).then(nuevo => {
+        enCamino.delete('z' + z.id)
+        marcarBrillo(nuevo.mesh)
+        scene.add(nuevo.mesh)
+        espejoZ.set(z.id, nuevo)
+      }).catch(() => enCamino.delete('z' + z.id))
+      continue
+    }
+    mio.mesh.position.x = z.x
+    mio.mesh.position.z = z.z
+    mio.mesh.visible = !z.bajoTierra
+    mio.hp = Math.max(0, z.vida * mio.maxHp)
+    mio.bar.set(z.vida)
+    mio.update(dt, camera, true)
+  }
+  for (const [id, mio] of espejoZ) {
+    if (vivos.has(id)) continue
+    scene.remove(mio.mesh)
+    espejoZ.delete(id)
+  }
+
+  const puestos = new Set()
+  for (const s of estado.soldiers) {
+    puestos.add(s.id)
+    const mio = espejoS.get(s.id)
+    if (!mio) {
+      const spec = SOLDIERS[s.key] ?? DEFENSES[s.key]
+      if (enCamino.has('s' + s.id) || !spec) continue
+      enCamino.add('s' + s.id)
+      createSoldier(s.key, spec, s.lane, s.row).then(nuevo => {
+        enCamino.delete('s' + s.id)
+        marcarBrillo(nuevo.mesh)
+        scene.add(nuevo.mesh)
+        espejoS.set(s.id, nuevo)
+      }).catch(() => enCamino.delete('s' + s.id))
+      continue
+    }
+    mio.hp = Math.max(0, s.vida * mio.maxHp)
+    mio.bar.set(s.vida)
+    mio.update(dt, camera)
+  }
+  for (const [id, mio] of espejoS) {
+    if (puestos.has(id)) continue
+    scene.remove(mio.mesh)
+    espejoS.delete(id)
+  }
+
+  effects.update(dt)
+  marcas.update(dt)
+  economy.update(dt)
+}
+
+function limpiarEspejo () {
+  for (const [, z] of espejoZ) scene.remove(z.mesh)
+  for (const [, s] of espejoS) scene.remove(s.mesh)
+  espejoZ.clear()
+  espejoS.clear()
+  enCamino.clear()
+}
+
+// --- cooperativo: la sala ----------------------------------------------------
+//
+// Dos transportes posibles (ver `transporte.js`): el de la nube, que es el que
+// se usa de verdad, y el local, que solo existe en desarrollo para poder probar
+// la partida a dos con dos pestañas de este ordenador.
+let coop = null
+let tramoDelAnfitrion = 0
+const modoInvitado = () => !!coop && !coop.esAnfitrion
+const elCoopCapa = document.getElementById('coop-capa')
+const elCoopAviso = document.getElementById('coop-aviso')
+const elCoopHecho = document.getElementById('coop-hecho')
+const elCoopEmpezar = document.getElementById('coop-empezar')
+
+async function abrirTransporte (codigo) {
+  // En desarrollo, y sin cuenta, se usa el canal local: así el cooperativo se
+  // puede probar entero sin depender de la red ni de tener dos cuentas.
+  if (import.meta.env.DEV && !cuenta.usuario) {
+    const { transporteLocal } = await import('./systems/transporte.js')
+    return transporteLocal(codigo)
+  }
+  const { transporteNube } = await import('./systems/transporte.js')
+  return transporteNube(codigo, cuenta.usuario)
+}
+
+async function montarSala (codigo, papel) {
+  const { crearSesion } = await import('./systems/cooperativo.js')
+  const transporte = await abrirTransporte(codigo)
+  coop = crearSesion(transporte, papel)
+  coop.codigo = codigo
+
+  if (coop.esAnfitrion) {
+    // Las órdenes del invitado: colocar cuesta lo mismo y sale de la misma caja,
+    // así que se atienden con el mismo camino que un toque propio.
+    coop.alOrden(orden => {
+      if (orden?.tipo !== 'colocar') return
+      const spec = orden.clase === 'defense' ? DEFENSES[orden.clave] : SOLDIERS[orden.clave]
+      if (!spec) return
+      place({ key: orden.clave, type: orden.clase, cost: spec.cost }, orden.lane, orden.row)
+    })
+    coop.alJugadores(lista => {
+      const otros = (lista ?? []).filter(j => j !== coop.yo)
+      document.getElementById('coop-gente').textContent = otros.length
+        ? 'El segundo jugador ya está dentro.'
+        : 'Esperando al segundo jugador…'
+      elCoopEmpezar.disabled = !otros.length
+    })
+  } else {
+    // El invitado empieza cuando el anfitrión arranca: la primera instantánea
+    // que llega es la señal de que la partida está en marcha.
+    coop.transporte.escuchar('partida', p => { tramoDelAnfitrion = p?.nivel ?? 0 })
+    coop.alEstado(() => {
+      if (running) return
+      elCoopCapa.classList.add('hidden')
+      empezarComoInvitado()
+    })
+  }
+  return coop
+}
+
+function empezarComoInvitado () {
+  limpiarEspejo()
+  // El mismo tramo que el anfitrión: paisaje, suelo y cielo.
+  nivelActual = Math.max(0, Math.min(NIVELES.length - 1, tramoDelAnfitrion))
+  const suyo = NIVELES[nivelActual]
+  world.vestir(suyo.bioma, suyo.hitos, suyo.suelo, suyo.tonoSuelo)
+  ambient.vestir(suyo, world.alturaEn)
+  baseHp = BASE.hp
+  running = true
+  ui.hideOverlay()
+  document.getElementById('mapa-capa')?.classList.add('hidden')
+  audio.unlock()
+  audio.startMusic()
+  ui.banner('DEFENSA COMPARTIDA')
+}
+
+document.getElementById('mapa-coop')?.addEventListener('click', async () => {
+  audio.unlock()
+  elCoopHecho.hidden = true
+  elCoopAviso.textContent = ''
+  elMapaCapa.classList.add('hidden')
+  elCoopCapa.classList.remove('hidden')
+})
+
+document.getElementById('coop-crear')?.addEventListener('click', async () => {
+  elCoopAviso.textContent = 'Abriendo la sala…'
+  try {
+    const { codigoDeSala } = await import('./systems/cooperativo.js')
+    const codigo = codigoDeSala()
+    await montarSala(codigo, 'anfitrion')
+    coop.yo = cuenta.usuario?.uid ?? 'yo'
+    coop.anunciar([coop.yo])
+    document.getElementById('coop-codigo').textContent = codigo
+    elCoopHecho.hidden = false
+    elCoopAviso.textContent = ''
+  } catch (err) {
+    console.warn('Sin sala:', err)
+    elCoopAviso.textContent = 'No se ha podido abrir la sala. Falta activar la base de datos en tiempo real.'
+  }
+})
+
+document.getElementById('coop-unirse')?.addEventListener('click', async () => {
+  const codigo = document.getElementById('coop-codigo-campo').value.trim().toUpperCase()
+  if (!/^[A-Z2-9]{4}$/.test(codigo)) { elCoopAviso.textContent = 'El código son cuatro letras o números.'; return }
+  elCoopAviso.textContent = 'Entrando…'
+  try {
+    await montarSala(codigo, 'invitado')
+    coop.yo = cuenta.usuario?.uid ?? 'yo-2'
+    coop.anunciar([coop.yo, 'invitado'])
+    elCoopAviso.textContent = 'Dentro. Esperando a que el anfitrión empiece…'
+  } catch (err) {
+    console.warn('Sin entrar:', err)
+    elCoopAviso.textContent = 'No se ha podido entrar en la sala.'
+  }
+})
+
+elCoopEmpezar?.addEventListener('click', () => {
+  elCoopCapa.classList.add('hidden')
+  start(nivelActual)
+})
+
+document.getElementById('coop-volver')?.addEventListener('click', () => {
+  coop?.cerrar()
+  coop = null
+  limpiarEspejo()
+  elCoopCapa.classList.add('hidden')
   elMapaCapa.classList.remove('hidden')
 })

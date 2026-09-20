@@ -398,6 +398,7 @@
         <p class="mapa-pie">Desliza el mapa, pellizca para acercarlo y toca un país.</p>
         <button id="mapa-tienda" class="chip tienda-boton"><svg aria-hidden="true"><use href="#i-billete"></use></svg>Tienda</button>
         <button id="mapa-retos" class="chip tienda-boton">Retos entre jugadores</button>
+        <button id="mapa-coop" class="chip tienda-boton">Defender entre dos</button>
         <button id="mapa-volver" class="chip chip-ghost">Volver a la portada</button>
       </div>
     </div>
@@ -430,6 +431,32 @@
           <button id="reto-copiar" class="chip" type="button">Copiar el código</button>
         </div>
         <button id="retos-volver" class="chip chip-ghost">Volver al mapa</button>
+      </div>
+    </div>
+
+    <!-- Cooperativo: dos jugadores en el mismo tramo, a la vez. Uno abre la
+         sala y lleva la partida; el otro entra con el código. -->
+    <div id="coop-capa" class="overlay coop-capa hidden">
+      <div class="panel panel-retos">
+        <p class="eyebrow">Mando del búnker · doble turno</p>
+        <h2>Defender entre dos</h2>
+        <p class="retos-intro">Uno abre la sala y el otro entra con el código. Jugáis el mismo tramo a la vez, con la misma caja de monedas: los dos colocáis en la misma línea.</p>
+
+        <button id="coop-crear" class="big-btn">ABRIR UNA SALA</button>
+        <div class="reto-hecho" id="coop-hecho" hidden>
+          <p>Sala abierta. Que el otro entre con:</p>
+          <b class="reto-codigo-grande" id="coop-codigo"></b>
+          <p id="coop-gente">Esperando al segundo jugador…</p>
+          <button id="coop-empezar" class="chip" type="button" disabled>Empezar la partida</button>
+        </div>
+
+        <p class="retos-tit">O entra en la sala de otro</p>
+        <div class="alias-fila">
+          <input id="coop-codigo-campo" class="alias-campo reto-codigo" type="text" maxlength="4" autocomplete="off" spellcheck="false" placeholder="ABC2" aria-label="Código de la sala">
+          <button id="coop-unirse" class="chip" type="button">Entrar</button>
+        </div>
+        <p class="ajuste-pie" id="coop-aviso"></p>
+        <button id="coop-volver" class="chip chip-ghost">Volver al mapa</button>
       </div>
     </div>
 

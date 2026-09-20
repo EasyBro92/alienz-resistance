@@ -8,7 +8,9 @@
 // Firebase pesa: se carga en diferido y solo si hay sesión abierta o se pulsa
 // «Entrar», así que quien no la usa no descarga nada.
 
-const CONFIG = {
+// La configuración web de Firebase es pública por diseño; la usa también el
+// cooperativo para abrir la Realtime Database.
+export const CONFIG = {
   apiKey: 'AIzaSyAwzbv3vb6Ju-ie3mgYPBp9C-V0QMw_ZKY',
   authDomain: 'alienz-resistance.firebaseapp.com',
   projectId: 'alienz-resistance',
