@@ -2050,6 +2050,7 @@ export const HITOS = {
 // tierra sería el detalle que rompe todo lo demás.
 export const BIOMAS = {
   mediterraneo: {
+    hora: 'tarde',
     restos: [['camioneta', 0x9a6a4a, 2]],
     asfalto: 0x83807a, raya: 0xe8dcc0, bordillo: 0xbdb6a8,
     terreno: 'hierba', tierra: 0xaab27c, cerro: 0xb99a72, meseta: 0xc7ab86,
@@ -2060,6 +2061,7 @@ export const BIOMAS = {
   // lo pone el hito `campoDeMarte`. Los cerros del fondo, en verde oscuro, se
   // leen como arboledas lejanas.
   parque: {
+    hora: 'dia',
     restos: [],
     asfalto: 0x8fb46a, raya: 0x8fb46a, bordillo: 0xd9c9a0,
     terreno: 'hierba', tierra: 0x86ad62, cerro: 0x4a6b3a, meseta: 0x5a7c46,
@@ -2067,6 +2069,7 @@ export const BIOMAS = {
     flora: []
   },
   costa: {
+    hora: 'manana',
     restos: [['contenedor', 0xa8563f, 2]],
     asfalto: 0x8e8b83, raya: 0xf0e8d2, bordillo: 0xd2cbb8,
     terreno: 'hierba', tierra: 0xa2b47e, cerro: 0xc9bda4, meseta: 0xd6cdb6,
@@ -2074,6 +2077,7 @@ export const BIOMAS = {
     flora: [['cipres', 0x33532f, 14], ['pino', 0x4e6b3c, 10]]
   },
   volcanico: {
+    hora: 'ocaso',
     restos: [['autobus', 0xc4923a, 2]],
     asfalto: 0x4a453f, raya: 0xd8cdae, bordillo: 0x6e675c,
     terreno: 'roca', tierra: 0x8a7e74, cerro: 0x574c45, meseta: 0x4a413a,
@@ -2082,6 +2086,7 @@ export const BIOMAS = {
     hito: ['volcan', 0x4a3f38, false]
   },
   egeo: {
+    hora: 'alto',
     restos: [['contenedor', 0x3f6f92, 3]],
     asfalto: 0x939086, raya: 0xf2ead0, bordillo: 0xd8d0b8,
     terreno: 'tierra', tierra: 0xd9c8a6, cerro: 0xc3bda6, meseta: 0xd0c9b0,
@@ -2090,6 +2095,7 @@ export const BIOMAS = {
     hito: ['columnas', 0xddd6c2]
   },
   desierto: {
+    hora: 'alto',
     restos: [['autobus', 0xd8b45c, 2]],
     asfalto: 0x9c927e, raya: 0xefe2be, bordillo: 0xc9bb96,
     terreno: 'arena', tierra: 0xf2d48f, cerro: 0xdcb877, meseta: 0xe8c98d,
@@ -2098,6 +2104,7 @@ export const BIOMAS = {
     hito: ['piramides', 0xd9bd88]
   },
   sabana: {
+    hora: 'tarde',
     restos: [['camioneta', 0xb4703a, 3]],
     asfalto: 0x9b7742, raya: 0xc9a86a, bordillo: 0xa8894f,
     terreno: 'tierra', tierra: 0xc99a5c, cerro: 0xc0a054, meseta: 0xcdae5c,
@@ -2105,6 +2112,7 @@ export const BIOMAS = {
     flora: [['acacia', 0x6d7f42, 18], ['palmera', 0x5c7a3c, 6]]
   },
   monzon: {
+    hora: 'dia',
     restos: [['autobus', 0x5a8f6a, 2]],
     asfalto: 0x6f7269, raya: 0xdcd8c4, bordillo: 0x8e9084,
     terreno: 'hierba', tierra: 0x8fa860, cerro: 0x7f8c58, meseta: 0x8b9760,
@@ -2112,6 +2120,7 @@ export const BIOMAS = {
     flora: [['palmera', 0x3f6b33, 16], ['ceiba', 0x40663a, 8]]
   },
   karstico: {
+    hora: 'manana',
     restos: [['contenedor', 0x8a5a4a, 3]],
     asfalto: 0x787d76, raya: 0xe0dcc8, bordillo: 0x969a90,
     terreno: 'hierba', tierra: 0x88a06e, cerro: 0x6f7c66, meseta: 0x7b876f,
@@ -2120,6 +2129,7 @@ export const BIOMAS = {
     hito: ['karst', 0x76836c]
   },
   taiga: {
+    hora: 'dia',
     restos: [['oruga', 0x5c6350, 2]],
     asfalto: 0x8d9298, raya: 0xdde4ea, bordillo: 0xb4bcc4,
     terreno: 'nieve', tierra: 0xeef3f6, cerro: 0xc2cdd4, meseta: 0xd2dade,
@@ -2127,6 +2137,7 @@ export const BIOMAS = {
     flora: [['abeto', 0x2b402f, 22]]
   },
   artico: {
+    hora: 'ocaso',
     restos: [['oruga', 0x6a6f5e, 2]],
     asfalto: 0xa6aeb6, raya: 0xe8eef4, bordillo: 0xc8d0d8,
     terreno: 'nieve', tierra: 0xf4f8fb, cerro: 0xd4dee6, meseta: 0xe2e9ee,
@@ -2134,6 +2145,7 @@ export const BIOMAS = {
     flora: [['abeto', 0x24382b, 18]]
   },
   altiplano: {
+    hora: 'alto',
     restos: [['autobus', 0xd4a03c, 2]],
     asfalto: 0x8a7f70, raya: 0xe6d8ac, bordillo: 0xb0a288,
     terreno: 'tierra', tierra: 0xcaa67b, cerro: 0xa8855e, meseta: 0xb89267,
@@ -2144,6 +2156,7 @@ export const BIOMAS = {
   // La ciudad: acera clara en vez de campo, árboles de alineación y coches
   // aparcados. Es lo que convierte la carretera en una avenida.
   ciudad: {
+    hora: 'ocaso',
     restos: [['camioneta', 0x8a8f96, 2]],
     asfalto: 0x5e5f62, raya: 0xf2f2ee, bordillo: 0xcfcac0,
     terreno: 'losas', tierra: 0xc9c4ba, cerro: 0x9a958c, meseta: 0xa6a198,
@@ -2153,6 +2166,7 @@ export const BIOMAS = {
   // El Caribe: arena blanca, palmeras y cerros verdes al fondo. Sin restos: lo
   // que hay abandonado en la playa lo pone el hito `playa`.
   caribe: {
+    hora: 'manana',
     restos: [],
     asfalto: 0x8e8b83, raya: 0xf0e8d2, bordillo: 0xd2cbb8,
     terreno: 'arena', tierra: 0xf3e6c4, cerro: 0x3f7a45, meseta: 0x4f8a4f,
@@ -2160,6 +2174,7 @@ export const BIOMAS = {
     flora: [['palmera', 0x3f8a3a, 18]]
   },
   selva: {
+    hora: 'dia',
     restos: [['barcaza', 0x7a6a52, 2]],
     asfalto: 0x6b6f5e, raya: 0xd4d6b8, bordillo: 0x878a74,
     terreno: 'hierba', tierra: 0x5f7a40, cerro: 0x4f6339, meseta: 0x5a6d40,

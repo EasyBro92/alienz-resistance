@@ -189,6 +189,93 @@ function decorate (scene, pintables, aparte = scene) {
   }
   scene.add(ridge)
 
+  // --- el campamento de la base ----------------------------------------------
+  //
+  // Detrás de la línea roja no había nada: la base que defiendes era una raya
+  // pintada en el suelo. Esto le pone su campamento —tiendas, sacos terreros,
+  // un camión, la antena y los bidones—, pero a los lados y por fuera del
+  // corredor: en el centro taparía la fila de delante, que es donde se juega.
+  // Va en tonos apagados a propósito, porque es fondo y no tablero.
+  const campo = new THREE.Group()
+  const lona = std(0x5c6348, 0.95)
+  const lonaOscura = std(0x474d38, 0.95)
+  const saco = std(0x7d7358, 0.98)
+  const chapa = std(0x4a5140, 0.7, 0.25)
+  const acero = std(0x6e7472, 0.55, 0.5)
+
+  for (const side of [-1, 1]) {
+    const x0 = side * (fieldWidth / 2 + 1.1)
+
+    // Dos tiendas de campaña: un prisma tumbado de seis caras hace la lona.
+    for (let i = 0; i < 2; i++) {
+      const tienda = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 3.2, 3, 1, true), i ? lonaOscura : lona)
+      tienda.rotation.set(0, 0, Math.PI / 2)
+      tienda.rotation.y = Math.PI / 6
+      tienda.position.set(x0 + side * (0.9 + i * 1.5), 0.75, -11 - i * 7)
+      tienda.scale.set(1, 1, 0.78)
+      campo.add(tienda)
+    }
+
+    // Muro de sacos terreros mirando al campo: dos hileras, la de arriba a media
+    // traba, como se apilan de verdad.
+    for (let fila = 0; fila < 2; fila++) {
+      for (let i = 0; i < 7; i++) {
+        const s = new THREE.Mesh(new THREE.CapsuleGeometry(0.22, 0.42, 3, 6), saco)
+        s.rotation.z = Math.PI / 2
+        s.position.set(x0 + side * (fila ? 0.31 : 0), 0.22 + fila * 0.4, -5.6 - i * 0.62)
+        campo.add(s)
+      }
+    }
+
+    // Bidones y cajas sueltos, que es lo que hace que un campamento parezca
+    // usado y no una maqueta.
+    for (let i = 0; i < 3; i++) {
+      const caja = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.5, 0.7), chapa)
+      caja.position.set(x0 + side * rand(0.4, 2.6), 0.25, rand(-20, -4))
+      caja.rotation.y = rand(0, Math.PI)
+      campo.add(caja)
+    }
+  }
+
+  // El camión de intendencia, a un lado, y la antena de mando al otro.
+  const camion = new THREE.Group()
+  const caja = new THREE.Mesh(new THREE.BoxGeometry(2.1, 1.5, 4.4), lonaOscura)
+  caja.position.y = 1.35
+  camion.add(caja)
+  const cabina = new THREE.Mesh(new THREE.BoxGeometry(2, 1.25, 1.7), chapa)
+  cabina.position.set(0, 1.2, 2.9)
+  camion.add(cabina)
+  for (const [x, z] of [[-1, 2.6], [1, 2.6], [-1, -0.6], [1, -0.6], [-1, -1.9], [1, -1.9]]) {
+    const rueda = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.36, 10), std(0x22262a, 0.95))
+    rueda.rotation.z = Math.PI / 2
+    rueda.position.set(x * 1.05, 0.55, z)
+    camion.add(rueda)
+  }
+  camion.position.set(-(fieldWidth / 2 + 1.7), 0, -17)
+  camion.rotation.y = 0.12
+  campo.add(camion)
+
+  const antena = new THREE.Group()
+  const mastil = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.1, 5.4, 6), acero)
+  mastil.position.y = 2.7
+  antena.add(mastil)
+  const plato = new THREE.Mesh(new THREE.SphereGeometry(0.85, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2.4), chapa)
+  plato.position.set(0, 4.6, 0.3)
+  plato.rotation.x = -1.15
+  antena.add(plato)
+  for (let i = 0; i < 3; i++) {
+    const viento = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 4.6, 4), acero)
+    const a = i * Math.PI * 2 / 3
+    viento.position.set(Math.cos(a) * 0.9, 2.2, Math.sin(a) * 0.9)
+    viento.rotation.set(Math.sin(a) * 0.38, 0, -Math.cos(a) * 0.38)
+    antena.add(viento)
+  }
+  antena.position.set(fieldWidth / 2 + 1.6, 0, -20)
+  campo.add(antena)
+
+  campo.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true } })
+  scene.add(campo)
+
   // Cápsula alienígena estrellada, clavada de canto en la arena con el surco
   // que dejó al arar el suelo. Es el origen de todo: conviene que se vea.
   const wreckShip = new THREE.Group()
@@ -1028,6 +1115,21 @@ export function createWorld (canvas) {
   // `hitosMision` son los monumentos de una ciudad concreta. Forman parte de la
   // llave del bosque: Valencia y Tarragona comparten bioma pero no paisaje.
   // `suelo`: 'parque' quita la carretera (París, el Campo de Marte).
+  // La hora del día de cada región. No es adorno: el sol bajo alarga las
+  // sombras por la calzada y cambia por completo la cara de un nivel, así que
+  // doce destinos seguidos dejan de parecer el mismo mediodía con otra pintura.
+  // El sol se mueve y cambia de fuerza; el contraluz sube donde el sol baja,
+  // para que las siluetas se sigan leyendo.
+  const HORAS = {
+    dia: { pos: [-11, 36, 13], sol: 2.6, rim: 0.7, ambiente: 0.6, ancho: 16 },
+    alto: { pos: [-4, 44, 6], sol: 3.0, rim: 0.5, ambiente: 0.75, ancho: 16 },
+    // Con el sol bajo, la sombra de un soldado se va cuatro metros de lado: si
+    // la caja de sombra no se ensancha con él, se corta en seco a media calzada.
+    tarde: { pos: [-26, 15, 16], sol: 2.4, rim: 0.9, ambiente: 0.55, ancho: 26 },
+    ocaso: { pos: [-32, 9, 12], sol: 2.0, rim: 1.15, ambiente: 0.5, ancho: 32 },
+    manana: { pos: [22, 18, 14], sol: 2.3, rim: 0.85, ambiente: 0.6, ancho: 24 }
+  }
+
   function vestir (clave, hitosMision = [], suelo = 'carretera', tonoSuelo = null) {
     const b = BIOMAS[clave]
     const llave = clave + '|' + (hitosMision ?? []).map(h => h.join(':')).join(',') + '|' + suelo + '|' + tonoSuelo
@@ -1088,6 +1190,15 @@ export function createWorld (canvas) {
     sun.color.setHex(b.sol)
     cielo.color.setHex(b.cielo)
     cielo.groundColor.setHex(b.ambiente)
+
+    const hora = HORAS[b.hora] ?? HORAS.dia
+    sun.position.set(...hora.pos)
+    sun.intensity = hora.sol
+    rim.intensity = hora.rim
+    cielo.intensity = hora.ambiente
+    sun.shadow.camera.left = -hora.ancho
+    sun.shadow.camera.right = hora.ancho
+    sun.shadow.camera.updateProjectionMatrix()
 
     for (const [k, g] of bosques) g.visible = k === llave
     const mio = bosques.get(llave) ?? poblar(llave, b, hitosMision, suelo)
