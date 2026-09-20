@@ -8,6 +8,7 @@ import { createWaveDirector } from './systems/waves.js'
 import { createDropship } from './entities/dropship.js'
 import { createEffects } from './systems/effects.js'
 import { createGrietas } from './systems/grietas.js'
+import { crearMarcas } from './systems/marcas.js'
 import { crearCuenta, haySesionGuardada } from './systems/cuenta.js'
 import { createAmbient } from './systems/ambient.js'
 import { createAudio } from './audio.js'
@@ -39,6 +40,7 @@ const world = createWorld(canvas)
 const { scene, camera, renderer } = world
 const effects = createEffects(scene, camera)
 const grietas = createGrietas(scene, world)
+const marcas = crearMarcas(scene)
 const economy = createEconomy(scene)
 // El ambiente vive aunque la partida esté parada: en el menú también sopla viento.
 const ambient = createAmbient(scene)
@@ -333,6 +335,7 @@ function useStrike (item, point) {
   // la horda ha andado: el golpe deja de ser "dónde están" y pasa a ser "dónde
   // van a estar". Por eso el aro marca el sitio desde el instante del toque.
   golpes.lanzar(item.key, point, (donde, radio) => {
+    marcas.poner(donde.x, donde.z, 'quemado', radio * 1.5)
     for (const z of zombies) {
       if (z.intocable) continue
       const d = z.mesh.position.distanceTo(donde)
@@ -675,6 +678,7 @@ function soldierFire (soldier, target) {
       audio.boom()
       effects.burst(p, 0xffb03a, 14, 1.8)
       effects.burst(p, 0x4a4a4a, 8, 1.1)
+      marcas.poner(p.x, p.z, 'quemado', spec.splash * 1.4)
       splashDamage(p, spec.splash, soldier.damage, pierce)
     })
     return   // el daño lo hace la explosión, no el disparo
@@ -832,6 +836,9 @@ function killZombie (z, index) {
     }
   }
   z.bar.group.visible = false
+  // El charco que deja al caer. Se borra solo a los pocos segundos: ver por
+  // dónde han caído ayuda, tener el asfalto alfombrado de manchas, no.
+  if (!z.bajoTierra) marcas.poner(z.mesh.position.x, z.mesh.position.z, 'icor', 1.1 * (z.spec.scale ?? 1))
   dropCorpse(z.mesh, -1)          // cae de espaldas, hacia donde venía
   economy.drop(z.mesh.position, Math.max(1, Math.round(z.spec.coins * ECONOMY.botinHuesped)))
   effects.burst(z.mesh.position, 0x8fbf4a, z.spec.boss ? 30 : 8, z.spec.boss ? 2.4 : 1)
@@ -1189,6 +1196,7 @@ function simulate (dt) {
   if (asalto) actualizarAsalto(dt)
   effects.update(dt)
   grietas.update(dt)
+  marcas.update(dt)
   golpes.update(dt)
   updateCorpses(dt)
   if (running) updateBrasas(dt)
@@ -1457,7 +1465,7 @@ function win () {
     // pantalla que no se parezca a las otras cinco.
     // Por país y no por misión: treinta y seis líneas seguidas no se leen, y lo
     // que se quiere ver al acabar es cómo quedó cada país.
-    const marcas = PAISES.map(p => {
+    const lineasPais = PAISES.map(p => {
       let suyas = 0
       for (let i = p.primera; i <= p.ultima; i++) suyas += progreso.rangos[i] ?? 0
       return `<li><span class="marca-pais">${p.nombre}</span><b>${suyas}</b>&nbsp;<small>/ ${p.misiones.length * 3} ★</small></li>`
@@ -1470,7 +1478,7 @@ function win () {
       <p class="cierre">${nivel.cierre ?? ''} Los búnkeres abren y la gente
       empieza a salir. Pero los túneles siguen bajando en los trece sitios, y
       nadie de los que firmamos aquello sabe hasta dónde.</p>
-      <ol class="marcas">${marcas}</ol>
+      <ol class="marcas">${lineasPais}</ol>
       ${htmlBotin()}
       <button class="big-btn" onclick="volverA('mapa')">AL MAPA</button>`)
     abrirCofre(true, estrellas)
@@ -1516,6 +1524,7 @@ function limpiarPartida () {
   for (const z of zombies) scene.remove(z.mesh)
   for (const c of corpses) scene.remove(c.mesh)
   grietas.limpiar()
+  marcas.limpiar()
   soldiers.length = 0
   zombies.length = 0
   corpses.length = 0
