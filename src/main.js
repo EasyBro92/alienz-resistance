@@ -810,6 +810,56 @@ function blockerAhead (zombie) {
   return best
 }
 
+// --- la entrada del jefe -----------------------------------------------------
+//
+// LA MADRE salía como un huésped más, solo que grande: mismo paso, mismo aviso.
+// Ahora la tierra se abre en una onda a sus pies y le queda un halo pegado
+// debajo mientras vive, así que en una pantalla llena se sabe dónde está sin
+// buscarla.
+const ondasJefe = []
+
+function entradaJefe (z) {
+  const p = z.mesh.position
+  const anillo = new THREE.Mesh(
+    new THREE.RingGeometry(0.7, 1.1, 40),
+    new THREE.MeshBasicMaterial({ color: 0x8fffc4, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide })
+  )
+  anillo.rotation.x = -Math.PI / 2
+  anillo.position.set(p.x, 0.07, p.z)
+  scene.add(anillo)
+  ondasJefe.push({ malla: anillo, t: 0 })
+  effects.burst(p, 0x8fbf4a, 26, 2.6)
+  effects.smoke(p, 6, 0x6b7a4a)
+
+  // El halo va DENTRO de la figura, que ya viene escalada: el radio se divide
+  // por su escala o al Coloso le quedaría un plato de quince metros.
+  const k = z.spec.scale ?? 1
+  const aura = new THREE.Mesh(
+    new THREE.CircleGeometry(1.45 / k, 28),
+    new THREE.MeshBasicMaterial({ color: 0x7dff9e, transparent: true, opacity: 0.22, depthWrite: false })
+  )
+  aura.rotation.x = -Math.PI / 2
+  aura.position.y = 0.05 / k
+  aura.renderOrder = 1
+  z.mesh.add(aura)
+  z.aura = aura
+}
+
+function actualizarJefes (dt, t) {
+  for (let i = ondasJefe.length - 1; i >= 0; i--) {
+    const o = ondasJefe[i]
+    o.t += dt
+    const k = o.t / 1.4
+    o.malla.scale.setScalar(1 + k * 6)
+    o.malla.material.opacity = Math.max(0, 0.85 * (1 - k))
+    if (k >= 1) { scene.remove(o.malla); o.malla.geometry.dispose(); o.malla.material.dispose(); ondasJefe.splice(i, 1) }
+  }
+  for (const z of zombies) {
+    if (!z.aura) continue
+    z.aura.material.opacity = 0.16 + 0.1 * (0.5 + 0.5 * Math.sin(t * 3.4))
+  }
+}
+
 function killZombie (z, index) {
   zombies.splice(index, 1)
   // El suelo que rompió el Escarbador se recupera ahora, despacio.
@@ -1197,6 +1247,7 @@ function simulate (dt) {
   effects.update(dt)
   grietas.update(dt)
   marcas.update(dt)
+  actualizarJefes(dt, performance.now() / 1000)
   golpes.update(dt)
   updateCorpses(dt)
   if (running) updateBrasas(dt)
@@ -1525,6 +1576,8 @@ function limpiarPartida () {
   for (const c of corpses) scene.remove(c.mesh)
   grietas.limpiar()
   marcas.limpiar()
+  for (const o of ondasJefe) scene.remove(o.malla)
+  ondasJefe.length = 0
   soldiers.length = 0
   zombies.length = 0
   corpses.length = 0
@@ -1564,7 +1617,7 @@ function start (indice = nivelActual) {
   audio.startMusic()
   director = createWaveDirector(
     NIVELES[nivelActual],
-    z => { marcarBrillo(z.mesh); scene.add(z.mesh); zombies.push(z) },
+    z => { marcarBrillo(z.mesh); scene.add(z.mesh); zombies.push(z); if (z.spec.boss) entradaJefe(z) },
     (n, total, boss) => {
       ui.setWave(`Oleada ${n} / ${total}`)
       ui.banner(boss ? 'LA MADRE' : `OLEADA ${n}`)
