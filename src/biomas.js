@@ -2051,7 +2051,7 @@ export const HITOS = {
 export const BIOMAS = {
   mediterraneo: {
     hora: 'tarde',
-    restos: [['camioneta', 0x9a6a4a, 2]],
+    restos: [['camioneta', 0x9a6a4a, 3], ['contenedor', 0x8a6f4a, 2]],
     asfalto: 0x83807a, raya: 0xe8dcc0, bordillo: 0xbdb6a8,
     terreno: 'hierba', tierra: 0xaab27c, cerro: 0xb99a72, meseta: 0xc7ab86,
     cielo: 0x7cb6e0, niebla: 0xc2d6dd, sol: 0xfff2d8, ambiente: 0xd6a86f,
@@ -2070,7 +2070,7 @@ export const BIOMAS = {
   },
   costa: {
     hora: 'manana',
-    restos: [['contenedor', 0xa8563f, 2]],
+    restos: [['contenedor', 0xa8563f, 3], ['camioneta', 0x8a5f4a, 2]],
     asfalto: 0x8e8b83, raya: 0xf0e8d2, bordillo: 0xd2cbb8,
     terreno: 'hierba', tierra: 0xa2b47e, cerro: 0xc9bda4, meseta: 0xd6cdb6,
     cielo: 0x6fb2e8, niebla: 0xd2e2ea, sol: 0xfff6e4, ambiente: 0xc9c2ac,
@@ -2078,7 +2078,7 @@ export const BIOMAS = {
   },
   volcanico: {
     hora: 'ocaso',
-    restos: [['autobus', 0xc4923a, 2]],
+    restos: [['autobus', 0xc4923a, 2], ['contenedor', 0x9a6a3a, 3]],
     asfalto: 0x4a453f, raya: 0xd8cdae, bordillo: 0x6e675c,
     terreno: 'roca', tierra: 0x8a7e74, cerro: 0x574c45, meseta: 0x4a413a,
     cielo: 0x9ab4c4, niebla: 0xa8a49c, sol: 0xffe6c4, ambiente: 0x6b5f52,
@@ -2087,7 +2087,7 @@ export const BIOMAS = {
   },
   egeo: {
     hora: 'alto',
-    restos: [['contenedor', 0x3f6f92, 3]],
+    restos: [['contenedor', 0x3f6f92, 4], ['camioneta', 0x6a7f92, 2]],
     asfalto: 0x939086, raya: 0xf2ead0, bordillo: 0xd8d0b8,
     terreno: 'tierra', tierra: 0xd9c8a6, cerro: 0xc3bda6, meseta: 0xd0c9b0,
     cielo: 0x59a8e6, niebla: 0xdae8ee, sol: 0xfff4dc, ambiente: 0xcfc7ae,
@@ -2096,7 +2096,7 @@ export const BIOMAS = {
   },
   desierto: {
     hora: 'alto',
-    restos: [['autobus', 0xd8b45c, 2]],
+    restos: [['autobus', 0xd8b45c, 2], ['camioneta', 0xb49a5c, 3]],
     asfalto: 0x9c927e, raya: 0xefe2be, bordillo: 0xc9bb96,
     terreno: 'arena', tierra: 0xf2d48f, cerro: 0xdcb877, meseta: 0xe8c98d,
     cielo: 0x86c2e8, niebla: 0xf0dcb4, sol: 0xfff0c8, ambiente: 0xe0b878,
@@ -2105,7 +2105,7 @@ export const BIOMAS = {
   },
   sabana: {
     hora: 'tarde',
-    restos: [['camioneta', 0xb4703a, 3]],
+    restos: [['camioneta', 0xb4703a, 4], ['contenedor', 0x94603a, 2]],
     asfalto: 0x9b7742, raya: 0xc9a86a, bordillo: 0xa8894f,
     terreno: 'tierra', tierra: 0xc99a5c, cerro: 0xc0a054, meseta: 0xcdae5c,
     cielo: 0x8fc4dd, niebla: 0xe6d6a0, sol: 0xffe8b0, ambiente: 0xd2ab5c,
@@ -2113,7 +2113,7 @@ export const BIOMAS = {
   },
   monzon: {
     hora: 'dia',
-    restos: [['autobus', 0x5a8f6a, 2]],
+    restos: [['autobus', 0x5a8f6a, 2], ['contenedor', 0x4a6f5a, 3]],
     asfalto: 0x6f7269, raya: 0xdcd8c4, bordillo: 0x8e9084,
     terreno: 'hierba', tierra: 0x8fa860, cerro: 0x7f8c58, meseta: 0x8b9760,
     cielo: 0xa8bcc8, niebla: 0xc4cdd0, sol: 0xf2eddc, ambiente: 0x8a9470,
@@ -2121,7 +2121,7 @@ export const BIOMAS = {
   },
   karstico: {
     hora: 'manana',
-    restos: [['contenedor', 0x8a5a4a, 3]],
+    restos: [['contenedor', 0x8a5a4a, 4], ['camioneta', 0x7a6a5a, 2]],
     asfalto: 0x787d76, raya: 0xe0dcc8, bordillo: 0x969a90,
     terreno: 'hierba', tierra: 0x88a06e, cerro: 0x6f7c66, meseta: 0x7b876f,
     cielo: 0xb6c4ca, niebla: 0xcdd6d6, sol: 0xf0ead8, ambiente: 0x7f8a74,
@@ -2130,7 +2130,7 @@ export const BIOMAS = {
   },
   taiga: {
     hora: 'dia',
-    restos: [['oruga', 0x5c6350, 2]],
+    restos: [['oruga', 0x5c6350, 2], ['contenedor', 0x4c5350, 3]],
     asfalto: 0x8d9298, raya: 0xdde4ea, bordillo: 0xb4bcc4,
     terreno: 'nieve', tierra: 0xeef3f6, cerro: 0xc2cdd4, meseta: 0xd2dade,
     cielo: 0x9db4c4, niebla: 0xd8e2e8, sol: 0xeaf0f8, ambiente: 0xb8c6d0,
@@ -2138,7 +2138,7 @@ export const BIOMAS = {
   },
   artico: {
     hora: 'ocaso',
-    restos: [['oruga', 0x6a6f5e, 2]],
+    restos: [['oruga', 0x6a6f5e, 2], ['camioneta', 0x7a7f6e, 2]],
     asfalto: 0xa6aeb6, raya: 0xe8eef4, bordillo: 0xc8d0d8,
     terreno: 'nieve', tierra: 0xf4f8fb, cerro: 0xd4dee6, meseta: 0xe2e9ee,
     cielo: 0x8fa8bc, niebla: 0xe4ecf2, sol: 0xe6f0fa, ambiente: 0xc4d2de,
@@ -2157,7 +2157,7 @@ export const BIOMAS = {
   // aparcados. Es lo que convierte la carretera en una avenida.
   ciudad: {
     hora: 'ocaso',
-    restos: [['camioneta', 0x8a8f96, 2]],
+    restos: [['camioneta', 0x8a8f96, 3], ['contenedor', 0x6a7f86, 2]],
     asfalto: 0x5e5f62, raya: 0xf2f2ee, bordillo: 0xcfcac0,
     terreno: 'losas', tierra: 0xc9c4ba, cerro: 0x9a958c, meseta: 0xa6a198,
     cielo: 0x8fbfe6, niebla: 0xcfd8de, sol: 0xfff4e0, ambiente: 0xb8b0a0,
@@ -2175,7 +2175,7 @@ export const BIOMAS = {
   },
   selva: {
     hora: 'dia',
-    restos: [['barcaza', 0x7a6a52, 2]],
+    restos: [['barcaza', 0x7a6a52, 2], ['contenedor', 0x6a7a62, 3]],
     asfalto: 0x6b6f5e, raya: 0xd4d6b8, bordillo: 0x878a74,
     terreno: 'hierba', tierra: 0x5f7a40, cerro: 0x4f6339, meseta: 0x5a6d40,
     cielo: 0x9cb8b0, niebla: 0xb4c8ba, sol: 0xeef2da, ambiente: 0x6f8055,
