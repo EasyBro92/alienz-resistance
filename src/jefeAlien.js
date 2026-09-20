@@ -121,37 +121,6 @@ export function crearJefeAlien (contenedor) {
   const esporas = new THREE.Points(geoEsporas, matEsporas)
   escena.add(esporas)
 
-  // --- naves que cruzan el cielo ---
-  //
-  // Primero fueron siluetas de huéspedes andando por detrás, y no se veían: a
-  // esa altura la pantalla la ocupan las viñetas de la historia. La banda que
-  // queda libre es el cielo, entre el título y las viñetas, así que la vida va
-  // ahí: cazas de la flota cruzando despacio, con su luz de posición latiendo.
-  const naves = []
-  // Sin niebla y con color propio: a esa distancia la niebla las dejaba negras
-  // sobre fondo negro y no se veía ninguna.
-  const matNave = new THREE.MeshBasicMaterial({ color: 0x3e7d5e, fog: false })
-  const matLuz = new THREE.MeshBasicMaterial({ color: 0x7dffb0, fog: false })
-  for (let i = 0; i < 3; i++) {
-    const n = new THREE.Group()
-    const casco = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 8), matNave)
-    casco.scale.set(1, 0.34, 0.72)
-    n.add(casco)
-    const cupula = new THREE.Mesh(new THREE.SphereGeometry(0.062, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), matNave)
-    cupula.position.y = 0.032
-    n.add(cupula)
-    const luz = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 6), matLuz)
-    luz.position.set(0, -0.03, 0)
-    n.add(luz)
-    n.userData = { luz, v: (Math.random() < 0.5 ? -1 : 1) * (0.5 + Math.random() * 0.5), fase: Math.random() * 7 }
-    n.position.set((Math.random() - 0.5) * 5.4, 2.7 + Math.random() * 0.5, -7 - Math.random() * 3)
-    escena.add(n)
-    naves.push(n)
-  }
-
-  // En desarrollo, la escena a mano para poder medirla desde la consola.
-  if (import.meta.env?.DEV) contenedor.__escena = { escena, camara, naves }
-
   // --- el jefe ---
   const jefe = new THREE.Group()
   escena.add(jefe)
@@ -315,21 +284,6 @@ export function crearJefeAlien (contenedor) {
     const destello = luzRelampago > 0.55 ? luzRelampago : luzRelampago > 0.3 ? 0 : luzRelampago * 1.4
     relampago.intensity = destello * 6
     escena.background.setHex(FONDO).lerp(new THREE.Color(claro ? 0xffffff : 0x1a2630), destello * 0.6)
-
-    // Las naves: cruzan, se balancean un poco y su luz late. Al salir por un
-    // lado vuelven a entrar por el otro, a otra altura.
-    for (const n of naves) {
-      n.position.x += n.userData.v * dt
-      // El cuadro es estrecho —un móvil de pie—: a esa distancia solo se ven dos
-      // metros y medio a cada lado, así que dan la vuelta ahí.
-      if (n.position.x > 2.7 || n.position.x < -2.7) {
-        n.position.x = n.userData.v > 0 ? -2.7 : 2.7
-        n.position.y = 2.7 + Math.random() * 0.5
-      }
-      n.rotation.z = Math.sin(t * 0.7 + n.userData.fase) * 0.16
-      n.rotation.y = n.userData.v > 0 ? 0.3 : -0.3
-      n.userData.luz.visible = (t * 2 + n.userData.fase) % 1.6 < 0.8
-    }
 
     // Niebla y esporas.
     for (const s of nieblas) {
