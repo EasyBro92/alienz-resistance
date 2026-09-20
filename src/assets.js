@@ -867,6 +867,29 @@ function placeholderSoldier (key, spec) {
     ], 10), pelo, 0, 1.12, 0.14).scale.set(1.2, 1, 0.45)
     // Hombros al aire, con la piel.
     for (const side of [-1, 1]) piece(statics, ball(0.075, 12, 10), skin, side * shoulderX, SHOULDER, 0)
+
+    // Capa con capucha, verde bosque.
+    //
+    // Vestida solo de cuero, la figura era una mancha parda de la cabeza a las
+    // botas: al lado de un fusilero azul o de un tirador verde, parecía sin
+    // acabar. La capa arregla las dos cosas a la vez — mete un color que no es
+    // marrón y le cambia la silueta, que es lo que se reconoce de lejos.
+    const capaTela = mat(0x3f5a37, 0.92)
+    const capaOsc = mat(0x2c3f27, 0.94)
+    const capa = piece(statics, new THREE.CylinderGeometry(0.21, 0.29, 0.56, 14, 1, true, Math.PI * 0.52, Math.PI * 0.96), capaTela, 0, 1.22, 0.02)
+    capa.scale.z = 0.8
+    // Capucha caída sobre la espalda, y el broche que la sujeta por delante.
+    piece(statics, new THREE.SphereGeometry(0.21, 14, 10, 0, Math.PI * 2, 0, 1.15), capaTela, 0, 1.52, 0.14)
+      .scale.set(1, 0.95, 0.8)
+    piece(statics, tube(0.03, 0.03, 0.03, 8), bronze, 0, 1.47, -0.15)
+    // Dobladillo y los pliegues de la espalda: sin ellos la capa es un cono liso.
+    piece(statics, new THREE.CylinderGeometry(0.285, 0.295, 0.045, 14, 1, true, Math.PI * 0.52, Math.PI * 0.96), capaOsc, 0, 0.95, 0.02).scale.z = 0.8
+    for (let i = 0; i < 5; i++) {
+      const a = Math.PI * 0.58 + (i / 4) * Math.PI * 0.84
+      piece(statics, box(0.025, 0.5, 0.02, 0.008), capaOsc, Math.sin(a) * 0.25, 1.22, Math.cos(a) * 0.2)
+    }
+    // Brazaletes de cuero: el arquero se protege el antebrazo de la cuerda.
+    for (const side of [-1, 1]) piece(statics, tube(0.062, 0.068, 0.13, 10), leatherDark, side * 0.235, 1.13, -0.02)
   } else {
     // chaleco portaplacas con placa frontal y trasera
     piece(statics, box(0.38, 0.42, 0.24, 0.05), clothDark, 0, 1.24, 0)
@@ -900,6 +923,36 @@ function placeholderSoldier (key, spec) {
       for (let i = 0; i < 7; i++) {
         piece(statics, box(0.05, 0.035, 0.035, 0.008), mat(0xc9a63c, 0.4, 0.7),
           -0.19 + i * 0.031, 1.44 - i * 0.028, 0.135)
+      }
+      // Caja de munición en la cadera, con su cinta saliendo hacia el arma: es
+      // lo que separa a un ametrallador de un fusilero con un arma más larga.
+      const cajon = mat(0x3f4a3a, 0.6, 0.25)
+      piece(statics, box(0.17, 0.15, 0.11, 0.02), cajon, 0.19, 0.99, -0.02)
+      piece(statics, box(0.15, 0.03, 0.03, 0.01), gearDark, 0.19, 1.07, -0.02)
+      for (let i = 0; i < 5; i++) {
+        piece(statics, box(0.045, 0.03, 0.03, 0.006), mat(0xc9a63c, 0.4, 0.7),
+          0.19 - i * 0.012, 1.09 + i * 0.03, -0.06 - i * 0.012, 0.3)
+      }
+      // Hombrera reforzada del lado que aguanta el arma.
+      piece(statics, box(0.2, 0.09, 0.24, 0.04), mat(0x2f3630, 0.45, 0.35), -SH, 1.53, 0.01)
+    }
+    if (key === 'mortar') {
+      // El tubo de repuesto y dos granadas a la espalda: el mortero se lleva a
+      // cuestas, y así se le reconoce sin verle el arma.
+      const tuboMat = mat(0x3a4038, 0.4, 0.5)
+      piece(statics, tube(0.05, 0.055, 0.62, 10), tuboMat, -0.05, 1.28, 0.3, 0.35, 0, 0.45)
+      piece(statics, box(0.14, 0.05, 0.14, 0.02), gearDark, -0.19, 1.0, 0.33, 0.35, 0, 0.45)
+      for (const side of [-1, 1]) {
+        const obus = new THREE.Group()
+        obus.position.set(side * 0.17, 1.12, 0.29)
+        obus.rotation.set(0.25, 0, side * 0.12)
+        statics.add(obus)
+        piece(obus, cap(0.045, 0.14, 5, 8), mat(0x556048, 0.55, 0.3), 0, 0, 0)
+        piece(obus, tube(0.001, 0.045, 0.07, 8), mat(0x3a3f45, 0.4, 0.6), 0, 0.13, 0)
+        for (let i = 0; i < 4; i++) {
+          const a = (i / 4) * Math.PI * 2
+          piece(obus, box(0.012, 0.05, 0.03, 0.004), mat(0x6b7256, 0.7), Math.cos(a) * 0.04, -0.1, Math.sin(a) * 0.04, 0, a, 0)
+        }
       }
     }
     if (key === 'flamer') {
