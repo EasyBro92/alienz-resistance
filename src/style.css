@@ -926,12 +926,25 @@ html, body {
   background: var(--velo-1);
 }
 .mapa { display: block; width: 100%; height: auto; }
-.mapa-mar { fill: var(--velo-2); }
+.mapa-mar { fill: url(#mapa-agua); }
+.agua-alto { stop-color: var(--velo-2); }
+.agua-bajo { stop-color: var(--velo-1); }
+.suelo-alto { stop-color: var(--velo-4); }
+.suelo-bajo { stop-color: var(--velo-3); }
+/* La orilla: el mismo contorno repetido por debajo con un trazo ancho y claro.
+   Es lo que separa el continente del mar sin pintarle un borde duro. */
+.mapa-orilla path {
+  fill: none;
+  stroke: var(--verde-texto);
+  stroke-width: 2.6;
+  stroke-linejoin: round;
+  opacity: 0.16;
+}
 /* La rejilla no es decoración: sin ella el mapa parece un dibujo suelto, y con
    ella se lee como un parte de operaciones, que es lo que es. */
 .mapa-rejilla line { stroke: var(--borde-1); stroke-width: 0.4; }
 .mapa-tierra path {
-  fill: var(--velo-4);
+  fill: url(#mapa-suelo);
   stroke: var(--borde-3);
   stroke-width: 0.6;
   stroke-linejoin: round;
@@ -943,9 +956,19 @@ html, body {
   stroke: var(--verde-texto);
   stroke-width: 0.9;
   stroke-dasharray: 3 2.5;
-  opacity: 0.5;
+  opacity: 0.35;
   stroke-linejoin: round;
 }
+/* Lo ya recorrido, en línea llena y más gruesa: el avance se ve sin leer nada. */
+.mapa-ruta-hecha {
+  fill: none;
+  stroke: var(--verde-texto);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.9;
+}
+.pin-estrella { fill: #ffcf45; }
 
 .pin { cursor: pointer; }
 /* El aro va RELLENO con el fondo del panel, no hueco. Cinco de los doce
@@ -1008,11 +1031,34 @@ html, body {
    poco más de cien píxeles de alto, con los doce países amontonados. Se dibuja
    al 220% y la caja se desliza con el dedo: llena media pantalla y los nombres
    se leen. Arranca centrada en el país que toca. */
+/* El marco lleva los botones de zoom encima de la esquina del mapa. */
+.mapa-marco { position: relative; width: 100%; min-width: 0; }
+.mapa-zoom {
+  position: absolute; right: 8px; bottom: 8px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.zoom-btn {
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  border: 1px solid var(--borde-2);
+  background: var(--panel-fondo);
+  color: var(--tinta);
+  font-size: 19px; font-weight: 700; line-height: 1;
+  display: grid; place-items: center;
+  cursor: pointer;
+}
+.zoom-btn:disabled { opacity: 0.35; cursor: default; }
+
 .mapa-grande {
+  --mapa-zoom: 1;
   width: 100%;
   min-width: 0;
   max-width: 100%;
-  overflow-x: auto; overflow-y: hidden;
+  /* Con zoom el dibujo también crece a lo alto, así que la caja manda en la
+     altura: si no, el mapa empujaba la leyenda fuera de la pantalla. */
+  aspect-ratio: 1.19;
+  overflow: auto;
+  touch-action: pan-x pan-y;
   border: 2px solid var(--borde-2);
   border-radius: 16px;
   background: var(--velo-1);
@@ -1020,7 +1066,15 @@ html, body {
   scrollbar-width: none;
 }
 .mapa-grande::-webkit-scrollbar { display: none; }
-.mapa-grande .mapa { width: 220%; min-width: 760px; max-width: none; height: auto; display: block; }
+.mapa-grande .mapa {
+  width: calc(220% * var(--mapa-zoom));
+  min-width: calc(760px * var(--mapa-zoom));
+  max-width: none; height: auto; display: block;
+}
+/* Ampliado, los nombres se quedarían enormes: encogen con el zoom para que el
+   mapa gane detalle y no letra. */
+.mapa-ampliado .pin-nombre { font-size: calc(5.6px / var(--mapa-zoom)); }
+.mapa-ampliado .pin-elegido .pin-nombre { font-size: calc(6.4px / var(--mapa-zoom)); }
 
 /* El nombre del país junto a su chincheta. El halo es el propio fondo del panel
    pintado por debajo del texto: sin él, el nombre se perdía sobre los

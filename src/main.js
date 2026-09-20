@@ -14,6 +14,7 @@ import { createAudio } from './audio.js'
 import { createUI } from './ui.js'
 import { renderPortraits } from './portraits.js'
 import { pintarMapa } from './mapa.js'
+import { montarZoomMapa } from './mapaZoom.js'
 import { cargarCartera, sumarBilletes, sumarMonedas, canjear, PRECIOS, MONEDAS_POR_DOLAR } from './systems/cartera.js'
 import { tirarCofre, girarCarrusel } from './cofre.js'
 import { crearTienda } from './tienda.js'
@@ -1997,6 +1998,7 @@ document.getElementById('enemigos-volver').addEventListener('click', () => elEne
 const elMapaCapa = document.getElementById('mapa-capa')
 const elPaisCapa = document.getElementById('pais-capa')
 const elMapaLienzo = document.getElementById('mapa-lienzo')
+const zoomMapa = montarZoomMapa(elMapaLienzo, [document.getElementById('mapa-mas'), document.getElementById('mapa-menos')])
 let paisActual = 0
 
 // Volver a una pantalla concreta DESPUÉS de recargar.
@@ -2052,12 +2054,14 @@ function abrirMapa () {
   // Centrar el país que toca en la caja deslizable. Con un temporizador y no con
   // requestAnimationFrame: en una pestaña de fondo no llegan fotogramas y el
   // mapa se quedaba en Alaska.
+  zoomMapa.reiniciar()
   setTimeout(() => {
     const pin = elMapaLienzo.querySelector('.pin-elegido')
     if (!pin) return
     const caja = elMapaLienzo.getBoundingClientRect()
     const p = pin.getBoundingClientRect()
     elMapaLienzo.scrollLeft += (p.left + p.width / 2) - (caja.left + caja.width / 2)
+    elMapaLienzo.scrollTop += (p.top + p.height / 2) - (caja.top + caja.height / 2)
   }, 0)
 }
 

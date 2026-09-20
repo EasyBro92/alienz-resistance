@@ -376,13 +376,19 @@
         <h2>El mundo</h2>
         <p class="mapa-relato" id="mapa-relato"></p>
         <p class="estrellas-total" id="mapa-estrellas"></p>
-        <div class="mapa-grande" id="mapa-lienzo"></div>
+        <div class="mapa-marco">
+          <div class="mapa-grande" id="mapa-lienzo"></div>
+          <div class="mapa-zoom">
+            <button type="button" class="zoom-btn" id="mapa-mas" data-paso="1" aria-label="Acercar el mapa">+</button>
+            <button type="button" class="zoom-btn" id="mapa-menos" data-paso="-1" aria-label="Alejar el mapa" disabled>−</button>
+          </div>
+        </div>
         <div class="mapa-leyenda">
           <span><i class="leg-hecho"></i>Limpio</span>
           <span><i class="leg-abierto"></i>Disponible</span>
           <span><i class="leg-cerrado"></i>Cerrado</span>
         </div>
-        <p class="mapa-pie">Desliza el mapa y toca un país.</p>
+        <p class="mapa-pie">Desliza el mapa, pellizca para acercarlo y toca un país.</p>
         <button id="mapa-tienda" class="chip tienda-boton"><svg aria-hidden="true"><use href="#i-billete"></use></svg>Tienda</button>
         <button id="mapa-volver" class="chip chip-ghost">Volver a la portada</button>
       </div>

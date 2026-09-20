@@ -45,6 +45,13 @@ function ruta (destinos) {
   ).join(' ')
 }
 
+// El tramo de ruta ya recorrido, hasta el destino que toca. La campaña se lee
+// entonces de un vistazo: línea llena por donde has pasado, punteada por donde
+// falta. Con una sola línea punteada para todo no se veía el avance.
+function rutaHecha (destinos, hasta) {
+  return ruta(destinos.slice(0, Math.max(hasta + 1, 1)))
+}
+
 // `estado(i)` devuelve 'hecho' | 'actual' | 'abierto' | 'cerrado'.
 export function pintarMapa (destinos, estado, elegido) {
   const chinchetas = destinos.map((d, i) => {
@@ -67,7 +74,9 @@ export function pintarMapa (destinos, estado, elegido) {
         ${i === elegido ? '<circle class="pin-halo" r="7"/>' : ''}
         <circle class="pin-toque" r="9"/>
         <circle class="pin-aro" r="3.6"/>
-        <circle class="pin-centro" r="1.7"/>
+        ${e === 'hecho'
+          ? '<path class="pin-estrella" d="M0,-2.4 0.7,-0.8 2.4,-0.7 1.1,0.4 1.5,2.1 0,1.2 -1.5,2.1 -1.1,0.4 -2.4,-0.7 -0.7,-0.8 Z"/>'
+          : '<circle class="pin-centro" r="1.7"/>'}
         <text class="pin-nombre" x="${dx}" y="${dy}" text-anchor="${ancla}">${nombre}</text>
       </g>`
   }).join('')
@@ -78,13 +87,28 @@ export function pintarMapa (destinos, estado, elegido) {
          todo un cuarto sin perder un solo destino, y en un movil ese cuarto es
          la diferencia entre acertarle a una chincheta y no. -->
     <svg class="mapa" viewBox="0 12 360 138" role="img" aria-label="Mapa de la campaña">
+      <defs>
+        <!-- El mar y la tierra en degradado, y una orilla clara alrededor de
+             cada continente. Son tres recursos baratos que separan el mapa del
+             dibujo plano de antes sin cargar nada: siguen siendo trazos. -->
+        <linearGradient id="mapa-agua" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" class="agua-alto"/>
+          <stop offset="1" class="agua-bajo"/>
+        </linearGradient>
+        <linearGradient id="mapa-suelo" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" class="suelo-alto"/>
+          <stop offset="1" class="suelo-bajo"/>
+        </linearGradient>
+      </defs>
       <rect class="mapa-mar" x="0" y="0" width="360" height="180"/>
       <g class="mapa-rejilla">
         ${[30, 60, 90, 120, 150].map(y => `<line x1="0" y1="${y}" x2="360" y2="${y}"/>`).join('')}
         ${[60, 120, 180, 240, 300].map(x => `<line x1="${x}" y1="0" x2="${x}" y2="180"/>`).join('')}
       </g>
+      <g class="mapa-orilla">${TIERRAS.map(d => `<path d="${d}"/>`).join('')}</g>
       <g class="mapa-tierra">${TIERRAS.map(d => `<path d="${d}"/>`).join('')}</g>
       <path class="mapa-ruta" d="${ruta(destinos)}"/>
+      <path class="mapa-ruta-hecha" d="${rutaHecha(destinos, elegido)}"/>
       ${chinchetas}
     </svg>`
 }
