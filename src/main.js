@@ -86,6 +86,11 @@ let running = false
 // Qué nivel se está jugando. Se elige en el menú y hace falta al ganar, para
 // saber cuál marcar como superado y cuál ofrecer después.
 let nivelActual = 0
+// El reto que se está jugando, si se está jugando uno: lleva su propio nivel
+// —el escenario de la campaña con las oleadas que montó otro jugador— y es lo
+// que hace que la partida no cuente como misión al acabar.
+let retoEnCurso = null
+const nivelActivo = () => retoEnCurso?.nivel ?? NIVELES[nivelActual]
 let pausado = false
 let moving = null                     // soldado esperando destino
 let director = null
@@ -1286,7 +1291,7 @@ function empezarVuelo () {
     // Algunos monumentos piden su ángulo (el Bernabéu, desde arriba de la avenida).
     vista: world.vistaMonumento()
   }
-  ui.banner(NIVELES[nivelActual].name.toUpperCase())
+  ui.banner(nivelActivo().name.toUpperCase())
   actualizarVuelo(0)
 }
 
@@ -1482,6 +1487,9 @@ function win () {
   audio.stopMusic()
   cerrarCuentas()
   vibrar([50, 40, 50])
+  // Un reto no es una misión de campaña: no desbloquea nada, no da estrellas y
+  // su resultado va a la tabla del reto, no a la del tramo.
+  if (retoEnCurso) return finReto(true)
   const nivel = NIVELES[nivelActual]
   const antes = cargarProgreso()
   const porcentaje = Math.round(baseHp / BASE.hp * 100)
@@ -1560,6 +1568,7 @@ function lose () {
   running = false
   audio.stopMusic()
   cerrarCuentas()
+  if (retoEnCurso) return finReto(false)
   ui.banner('DESBORDADOS')
   setTimeout(() => {
     ui.showOverlay(`
@@ -1605,9 +1614,10 @@ function start (indice = nivelActual) {
   limpiarPartida()
   // El paisaje de la región, antes de enseñar nada: si se vistiera después, el
   // primer fotograma del nivel saldría con la tierra del destino anterior.
-  world.vestir(NIVELES[nivelActual].bioma, NIVELES[nivelActual].hitos, NIVELES[nivelActual].suelo, NIVELES[nivelActual].tonoSuelo)
+  const nivelDeHoy = nivelActivo()
+  world.vestir(nivelDeHoy.bioma, nivelDeHoy.hitos, nivelDeHoy.suelo, nivelDeHoy.tonoSuelo)
   // Lo que arrastra el viento en este sitio, y por dónde vuelan las naves de paso.
-  ambient.vestir(NIVELES[nivelActual], world.alturaEn)
+  ambient.vestir(nivelDeHoy, world.alturaEn)
   billetesPartida = 0
   pintarBilletes()
   cuentas = null
@@ -1623,7 +1633,7 @@ function start (indice = nivelActual) {
   audio.unlock()
   audio.startMusic()
   director = createWaveDirector(
-    NIVELES[nivelActual],
+    nivelDeHoy,
     z => { marcarBrillo(z.mesh); scene.add(z.mesh); zombies.push(z); if (z.spec.boss) entradaJefe(z) },
     (n, total, boss) => {
       ui.setWave(`Oleada ${n} / ${total}`)
@@ -2404,6 +2414,12 @@ if (import.meta.env.DEV) {
   window.__zr = {
     start,
     simulate,
+    // Un reto de prueba sin pasar por la nube: hace falta para poder probar la
+    // partida de un reto sin tener dos cuentas de Google delante.
+    retoDePrueba: async composicion => {
+      const { oleadasDeReto } = await import('./systems/retos.js')
+      empezarReto({ codigo: 'PRUEB', alias: 'Prueba', composicion, escenario: nivelActual }, oleadasDeReto(composicion))
+    },
     render: () => resplandor.render(),
     resplandor,
     camera,
@@ -2522,3 +2538,155 @@ renderPortraits(renderer, (hechas, total) => {
   // una pantalla de carga eterna sería mucho peor que unas fichas sin foto.
   .finally(cerrarCarga)
 requestAnimationFrame(frame)
+
+// --- retos entre jugadores ---------------------------------------------------
+//
+// Montas una oleada con un presupuesto de biomasa, sale un código de cinco
+// letras y se lo pasas a quien quieras. El otro la defiende en el mismo
+// escenario y los dos veis quién dejó la base más entera. No hay que jugar a la
+// vez, que en un móvil es lo único que funciona de verdad.
+const elRetosCapa = document.getElementById('retos-capa')
+const elRetosLista = document.getElementById('retos-lista')
+const elRetoGastado = document.getElementById('reto-gastado')
+const elRetoBarra = document.getElementById('reto-barra')
+const elRetoCrear = document.getElementById('reto-crear')
+const elRetoAviso = document.getElementById('reto-aviso')
+const elRetoHecho = document.getElementById('reto-hecho')
+let composicion = {}
+let catalogoReto = []
+
+async function abrirRetos () {
+  const { CATALOGO, PRESUPUESTO } = await import('./systems/retos.js')
+  catalogoReto = CATALOGO
+  document.getElementById('reto-presu').textContent = PRESUPUESTO
+  if (!Object.keys(composicion).length) composicion = {}
+  elRetoHecho.hidden = true
+  elRetoAviso.textContent = cuenta.usuario ? '' : 'Para montar retos o jugarlos hace falta entrar con tu cuenta.'
+  elRetosLista.innerHTML = catalogoReto.map(c => `
+    <li class="reto-fila" data-clave="${c.clave}">
+      <span class="reto-nombre">${c.nombre}</span>
+      <span class="reto-coste">${c.coste}</span>
+      <span class="reto-mandos">
+        <button type="button" class="reto-mas" data-menos="${c.clave}" aria-label="Quitar un ${c.nombre}">−</button>
+        <b class="reto-cuantos" id="reto-n-${c.clave}">0</b>
+        <button type="button" class="reto-mas" data-mas="${c.clave}" aria-label="Añadir un ${c.nombre}">+</button>
+      </span>
+    </li>`).join('')
+  pintarComposicion()
+  elMapaCapa.classList.add('hidden')
+  elRetosCapa.classList.remove('hidden')
+}
+
+async function pintarComposicion () {
+  const { costeDe, PRESUPUESTO } = await import('./systems/retos.js')
+  const gastado = costeDe(composicion)
+  elRetoGastado.textContent = gastado
+  elRetoBarra.style.width = `${Math.min(100, gastado / PRESUPUESTO * 100)}%`
+  for (const c of catalogoReto) {
+    const n = composicion[c.clave] ?? 0
+    document.getElementById('reto-n-' + c.clave).textContent = n
+    // El botón de sumar se apaga cuando ya no cabe: es más claro que dejarte
+    // pulsar y no pasar nada.
+    const mas = elRetosLista.querySelector(`[data-mas="${c.clave}"]`)
+    if (mas) mas.disabled = gastado + c.coste > PRESUPUESTO
+    elRetosLista.querySelector(`[data-menos="${c.clave}"]`).disabled = n === 0
+  }
+  elRetoCrear.disabled = !gastado || !cuenta.usuario
+}
+
+elRetosLista?.addEventListener('click', async e => {
+  const mas = e.target.closest('[data-mas]')?.dataset.mas
+  const menos = e.target.closest('[data-menos]')?.dataset.menos
+  if (!mas && !menos) return
+  const clave = mas ?? menos
+  const n = composicion[clave] ?? 0
+  composicion[clave] = Math.max(0, n + (mas ? 1 : -1))
+  if (!composicion[clave]) delete composicion[clave]
+  audio.unlock()
+  pintarComposicion()
+})
+
+elRetoCrear?.addEventListener('click', async () => {
+  elRetoCrear.disabled = true
+  try {
+    const { crearReto } = await import('./systems/retos.js')
+    // El escenario es el último tramo que tocaba en la campaña: el que monta el
+    // reto ya lo conoce, y el que lo recibe juega en un sitio de verdad.
+    const codigo = await crearReto(cuenta.usuario, composicion, nivelActual)
+    document.getElementById('reto-codigo-nuevo').textContent = codigo
+    elRetoHecho.hidden = false
+  } catch (err) {
+    console.warn('Sin crear el reto:', err)
+    elRetoAviso.textContent = 'No se ha podido crear el reto. Inténtalo otra vez.'
+  } finally {
+    elRetoCrear.disabled = false
+  }
+})
+
+document.getElementById('reto-copiar')?.addEventListener('click', async () => {
+  const codigo = document.getElementById('reto-codigo-nuevo').textContent
+  try {
+    await navigator.clipboard.writeText(codigo)
+    elRetoAviso.textContent = `Código ${codigo} copiado.`
+  } catch {
+    elRetoAviso.textContent = `Apunta el código: ${codigo}`
+  }
+})
+
+document.getElementById('reto-buscar')?.addEventListener('click', async () => {
+  const campo = document.getElementById('reto-codigo')
+  elRetoAviso.textContent = 'Buscando…'
+  try {
+    const { leerReto, oleadasDeReto } = await import('./systems/retos.js')
+    const reto = await leerReto(campo.value)
+    if (!reto) { elRetoAviso.textContent = 'No hay ningún reto con ese código.'; return }
+    empezarReto(reto, oleadasDeReto(reto.composicion))
+  } catch (err) {
+    console.warn('Sin leer el reto:', err)
+    elRetoAviso.textContent = 'No se ha podido leer el reto.'
+  }
+})
+
+function empezarReto (reto, waves) {
+  const base = NIVELES[Math.max(0, Math.min(NIVELES.length - 1, reto.escenario ?? 0))]
+  // El escenario de la campaña, con las oleadas del reto encima.
+  retoEnCurso = { ...reto, nivel: { ...base, name: `Reto de ${reto.alias ?? 'otro jugador'}`, waves } }
+  elRetosCapa.classList.add('hidden')
+  start(nivelActual)
+}
+
+// Al acabar un reto: se apunta la marca, se piden los intentos de todos y se
+// enseña la tabla. Aquí es donde el reto deja de ser una partida suelta.
+async function finReto (ganado) {
+  const reto = retoEnCurso
+  retoEnCurso = null
+  const porcentaje = ganado ? Math.round(baseHp / BASE.hp * 100) : 0
+  ui.banner(ganado ? 'RETO SUPERADO' : 'DESBORDADOS')
+  let tabla = ''
+  try {
+    const { apuntarIntento, intentosDe } = await import('./systems/retos.js')
+    await apuntarIntento(cuenta.usuario, reto.codigo, porcentaje)
+    const filas = await intentosDe(reto.codigo)
+    tabla = `<ol class="marcador-lista">${filas.map(f => `
+      <li class="${f.uid === cuenta.usuario?.uid ? 'marcador-yo' : ''}">
+        <span class="marcador-puesto">${f.puesto}</span>
+        <span class="marcador-alias">${escaparTexto(f.alias ?? '')}</span>
+        <span class="marcador-marca">${f.porcentaje}%</span>
+      </li>`).join('')}</ol>`
+  } catch (err) {
+    console.warn('Sin tabla del reto:', err)
+  }
+  setTimeout(() => {
+    ui.showOverlay(`
+      <h1 class="${ganado ? 'won' : 'lost'}">${ganado ? 'AGUANTASTE' : 'PERÍMETRO ROTO'}</h1>
+      <p class="tagline">Reto <b>${escaparTexto(reto.codigo)}</b> de ${escaparTexto(reto.alias ?? 'otro jugador')}. Dejaste la base al ${porcentaje}%.</p>
+      <div class="marcador">${tabla || '<p class="marcador-vacio">Sin tabla: no se ha podido leer.</p>'}</div>
+      <button class="big-btn" onclick="volverA('mapa')">VOLVER AL MAPA</button>`)
+  }, 900)
+}
+
+document.getElementById('mapa-retos')?.addEventListener('click', () => { audio.unlock(); abrirRetos() })
+document.getElementById('retos-volver')?.addEventListener('click', () => {
+  elRetosCapa.classList.add('hidden')
+  elMapaCapa.classList.remove('hidden')
+})

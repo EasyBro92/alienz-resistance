@@ -397,7 +397,39 @@
         </div>
         <p class="mapa-pie">Desliza el mapa, pellizca para acercarlo y toca un país.</p>
         <button id="mapa-tienda" class="chip tienda-boton"><svg aria-hidden="true"><use href="#i-billete"></use></svg>Tienda</button>
+        <button id="mapa-retos" class="chip tienda-boton">Retos entre jugadores</button>
         <button id="mapa-volver" class="chip chip-ghost">Volver a la portada</button>
+      </div>
+    </div>
+
+    <!-- Retos: montas una oleada con un presupuesto y se la mandas a alguien
+         por un código de cinco letras. No hace falta que juguéis a la vez. -->
+    <div id="retos-capa" class="overlay retos-capa hidden">
+      <div class="panel panel-retos">
+        <p class="eyebrow">Mando del búnker · partes cruzados</p>
+        <h2>Retos</h2>
+        <p class="retos-intro" id="retos-intro">Monta una oleada con tu presupuesto de biomasa y pásale el código a otro jugador. El que deje la base más entera, gana.</p>
+
+        <div class="retos-jugar">
+          <label class="retos-label" for="reto-codigo">¿Te han pasado un código?</label>
+          <div class="alias-fila">
+            <input id="reto-codigo" class="alias-campo reto-codigo" type="text" maxlength="5" autocomplete="off" spellcheck="false" placeholder="ABC23" aria-label="Código del reto">
+            <button id="reto-buscar" class="chip" type="button">Buscar</button>
+          </div>
+          <p class="ajuste-pie" id="reto-aviso"></p>
+        </div>
+
+        <p class="retos-tit">Monta el tuyo</p>
+        <div class="retos-presu"><b id="reto-gastado">0</b> de <span id="reto-presu">700</span> de biomasa</div>
+        <div class="retos-barra"><i id="reto-barra"></i></div>
+        <ul class="retos-lista" id="retos-lista"></ul>
+        <button id="reto-crear" class="big-btn" disabled>CREAR EL RETO</button>
+        <div class="reto-hecho" id="reto-hecho" hidden>
+          <p>Tu reto está listo. Pásale este código:</p>
+          <b class="reto-codigo-grande" id="reto-codigo-nuevo"></b>
+          <button id="reto-copiar" class="chip" type="button">Copiar el código</button>
+        </div>
+        <button id="retos-volver" class="chip chip-ghost">Volver al mapa</button>
       </div>
     </div>
 
