@@ -18,7 +18,20 @@ const PESTANAS = [
   { id: 'soldados', nombre: 'Soldados' },
   { id: 'defensas', nombre: 'Defensas' },
   { id: 'apoyo', nombre: 'Apoyo' },
-  { id: 'mejoras', nombre: 'Mejoras' }
+  { id: 'mejoras', nombre: 'Mejoras' },
+  { id: 'comparar', nombre: 'Comparar' }
+]
+
+// Las columnas de la tabla de comparar. `dpm` no está en la ficha de nadie: es
+// daño por segundo, que es lo que de verdad se compara entre dos soldados y lo
+// que no se puede calcular de cabeza mirando dos fichas distintas.
+const COLUMNAS = [
+  // Cuatro columnas y no seis: en un móvil, la séptima se sale de la pantalla y
+  // golpe y cadencia ya están dentro de daño por segundo.
+  { id: 'dps', nombre: 'Daño/s', valor: s => s.damage * (s.pellets ?? 1) * s.fireRate },
+  { id: 'range', nombre: 'Alcance', valor: s => s.range },
+  { id: 'hp', nombre: 'Vida', valor: s => s.hp },
+  { id: 'cost', nombre: 'Monedas', valor: s => s.cost, bajoMejor: true }
 ]
 
 const GRUPOS = {
@@ -58,9 +71,13 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
     const precio = PRECIOS[clave]
     const puede = !tuya && precio != null && c.billetes >= precio
     const tinte = spec.color != null ? hex(spec.color) : 'var(--verde-texto)'
+    // Cuando no llega el dinero, el botón no se limita a estar apagado: dice
+    // cuánto falta. Es la diferencia entre "no puedo" y "me faltan 30".
+    const falta = !tuya && precio != null ? precio - c.billetes : 0
     const pie = tuya
       ? `<span class="articulo-tuyo">${precio == null ? 'De serie' : 'Tuyo'}</span>`
-      : `<button type="button" class="articulo-comprar" data-comprar="${clave}" ${puede ? '' : 'disabled'}>${billete}${precio}</button>`
+      : `<button type="button" class="articulo-comprar" data-comprar="${clave}" ${puede ? '' : 'disabled'}>${billete}${precio}</button>
+         ${falta > 0 ? `<span class="articulo-falta">Te faltan ${billete}${falta}</span>` : ''}`
     return `
       <div class="articulo${tuya ? ' propio' : ''}" style="--u-tint:${tinte}">
         <div class="articulo-cara">${cara(clave)}</div>
@@ -82,9 +99,17 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
         const boton = precio == null
           ? '<span class="mejora-max">Máximo</span>'
           : `<button type="button" class="articulo-comprar" data-mejora="${clave}:${tipo}" ${c.billetes >= precio ? '' : 'disabled'}>${billete}${precio}</button>`
+        // Lo que se gana, en el número que importa: daño por disparo y disparos
+        // por segundo. Un "+15%" no dice nada; "9,5 → 10,9" sí.
+        const base = tipo === 'dano' ? spec.damage : spec.fireRate
+        const val = n => (base * (1 + n * m.paso)).toFixed(base < 10 ? 1 : 0).replace('.', ',')
+        const salto = precio == null
+          ? `<span class="mejora-salto">${val(nivel)}</span>`
+          : `<span class="mejora-salto">${val(nivel)} <i>→</i> <b>${val(nivel + 1)}</b></span>`
         return `
           <div class="mejora-pista">
-            <span class="mejora-nombre">${m.nombre} <em>+${Math.round(nivel * m.paso * 100)}%</em></span>
+            <span class="mejora-nombre">${m.nombre}</span>
+            ${salto}
             <span class="pips">${pips}</span>
             ${boton}
           </div>`
@@ -98,6 +123,34 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
           ${pistas}
         </div>`
     }).join('')
+  }
+
+  // La tabla de comparar. Cada columna pinta una barra sobre el mejor de todos,
+  // que es lo que deja ver de un vistazo quién pega más y quién cuesta menos,
+  // sin leer seis fichas seguidas. Los que aún no son tuyos salen en gris.
+  function comparar (c) {
+    const filas = Object.entries(SOLDIERS)
+    const topes = Object.fromEntries(COLUMNAS.map(col =>
+      [col.id, Math.max(...filas.map(([, s]) => col.valor(s)))]))
+    const num = v => v >= 100 ? Math.round(v) : v.toFixed(1).replace('.0', '').replace('.', ',')
+    return `
+      <table class="comparar">
+        <thead>
+          <tr><th>Soldado</th>${COLUMNAS.map(col => `<th>${col.nombre}</th>`).join('')}</tr>
+        </thead>
+        <tbody>
+          ${filas.map(([clave, s]) => `
+            <tr class="${c.desbloqueadas.includes(clave) ? 'tuyo' : 'ajeno'}" style="--u-tint:${hex(s.color)}">
+              <th scope="row"><i class="comparar-color"></i>${s.name}</th>
+              ${COLUMNAS.map(col => {
+                const v = col.valor(s)
+                const parte = Math.max(0.06, v / topes[col.id])
+                return `<td><span class="comparar-barra" style="--parte:${(parte * 100).toFixed(0)}%"></span><em>${num(v)}</em></td>`
+              }).join('')}
+            </tr>`).join('')}
+        </tbody>
+      </table>
+      <p class="tienda-nota">Daño/s es lo que hace en un segundo disparando sin parar. Monedas es lo que cuesta ponerlo en el campo.</p>`
   }
 
   function pintar () {
@@ -115,10 +168,12 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
       <button type="button" class="pestana${p.id === pestana ? ' activa' : ''}" data-pestana="${p.id}"
               role="tab" aria-selected="${p.id === pestana}">${p.nombre}</button>`).join('')
 
-    elLista.classList.toggle('lista-mejoras', pestana === 'mejoras')
+    elLista.classList.toggle('lista-mejoras', pestana === 'mejoras' || pestana === 'comparar')
     elLista.innerHTML = pestana === 'mejoras'
       ? mejoras(c)
-      : GRUPOS[pestana].flatMap(g => Object.entries(g)).map(([k, s]) => articulo(k, s, c)).join('')
+      : pestana === 'comparar'
+        ? comparar(c)
+        : GRUPOS[pestana].flatMap(g => Object.entries(g)).map(([k, s]) => articulo(k, s, c)).join('')
   }
 
   elPestanas.addEventListener('click', e => {
