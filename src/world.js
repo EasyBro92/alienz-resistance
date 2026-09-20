@@ -838,8 +838,12 @@ export function createWorld (canvas) {
   function resaltarSlot (lane, row, libre = true) {
     for (const c of slots.children) {
       const suya = c.userData.lane === lane && c.userData.row === row
-      c.material.opacity = suya ? (libre ? 0.5 : 0.34) : 0.14
-      c.material.color.setHex(suya ? (libre ? 0x8dffb8 : 0xff7a6a) : 0xffffff)
+      const suCarril = c.userData.lane === lane
+      // El carril entero se enciende un punto más que el resto: al soltar a un
+      // soldado, lo que importa no es solo la casilla, es por dónde le van a
+      // venir. Con la rejilla plana no se leía el carril que estabas eligiendo.
+      c.material.opacity = suya ? (libre ? 0.5 : 0.34) : suCarril ? 0.26 : 0.12
+      c.material.color.setHex(suya ? (libre ? 0x8dffb8 : 0xff7a6a) : suCarril ? 0xd6ffe6 : 0xffffff)
     }
   }
 
