@@ -1336,45 +1336,86 @@ html, body {
 .botin-billetes svg { width: 18px; height: 18px; color: var(--verde-texto); }
 .botin-billetes b { color: var(--verde-texto); font-size: 16px; }
 
-.cofre-tit { margin: 0 0 6px; font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--verde-texto); text-align: center; }
+.cofre-tit { margin: 0 0 8px; font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--tinta-3); text-align: center; }
+
+/* La ventana del carrusel va SIEMPRE oscura, también con el tema claro: es una
+   caja que se abre, y la gracia de estas cajas es que el color de la rareza sea
+   lo único que brilla. Sobre fondo claro no brilla nada. */
 .cofre-ventana {
   position: relative; overflow: hidden;
-  height: 104px; border-radius: 12px;
-  border: 2px solid var(--borde-2); background: var(--velo-2);
+  height: 132px; border-radius: 10px;
+  border: 1px solid #000; background: linear-gradient(180deg, #14181d 0%, #0b0e11 100%);
+  box-shadow: inset 0 2px 14px rgba(0, 0, 0, 0.8);
 }
-/* Los bordes de la ventana se funden a transparente: las piezas aparecen y se
-   van en vez de cortarse en seco, que es lo que hace que parezca una tira que
-   pasa y no una fila que se mueve. */
-.cofre-ventana::before,
-.cofre-ventana::after {
-  content: ''; position: absolute; top: 0; bottom: 0; width: 34px; z-index: 2; pointer-events: none;
+/* Los lados se funden a negro: las piezas entran y salen en vez de cortarse. */
+.cofre-velo {
+  position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background:
+    linear-gradient(90deg, #0b0e11 0%, rgba(11, 14, 17, 0) 22%),
+    linear-gradient(270deg, #0b0e11 0%, rgba(11, 14, 17, 0) 22%);
 }
-.cofre-ventana::before { left: 0; background: linear-gradient(90deg, var(--panel-fondo), transparent); }
-.cofre-ventana::after { right: 0; background: linear-gradient(270deg, var(--panel-fondo), transparent); }
-.cofre-marca {
+/* La aguja: línea dorada en el centro con las dos púas, arriba y abajo. */
+.cofre-aguja {
   position: absolute; left: 50%; top: 0; bottom: 0; z-index: 3;
-  width: 3px; margin-left: -1.5px;
-  background: #ffcf45; box-shadow: 0 0 10px rgba(255, 207, 69, 0.7);
+  width: 2px; margin-left: -1px;
+  background: #f0c419; box-shadow: 0 0 12px rgba(240, 196, 25, 0.85);
 }
-.cofre-tira { display: flex; gap: 8px; padding: 10px 0; will-change: transform; }
+.cofre-aguja::before,
+.cofre-aguja::after {
+  content: ''; position: absolute; left: 50%; margin-left: -7px;
+  border-left: 7px solid transparent; border-right: 7px solid transparent;
+}
+.cofre-aguja::before { top: 0; border-top: 9px solid #f0c419; }
+.cofre-aguja::after { bottom: 0; border-bottom: 9px solid #f0c419; }
+
+.cofre-tira { display: flex; gap: 6px; padding: 12px 0; will-change: transform; }
+/* La pieza: caja oscura, halo del color de la rareza detrás del objeto y la
+   barra de color abajo del todo, que es lo único legible cuando pasa rápido. */
 .cofre-pieza {
-  flex: 0 0 84px; height: 80px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
-  border-radius: 10px; background: var(--velo-1);
-  border-bottom: 4px solid var(--rareza);
+  position: relative; overflow: hidden;
+  flex: 0 0 92px; height: 108px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #2c323b 0%, #1b1f25 62%, #15181d 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
-.cofre-pieza svg { width: 28px; height: 28px; color: var(--rareza); }
-.cofre-pieza b { font-size: 16px; font-weight: 900; color: var(--tinta); }
-.cofre-pieza small { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--tinta-3); }
-.cofre-pieza.gana { box-shadow: 0 0 0 2px var(--rareza), 0 0 18px var(--rareza); }
-.cofre-resultado { min-height: 20px; margin: 8px 0 0; text-align: center; font-size: 13px; line-height: 1.45; color: var(--tinta-2); }
-.cofre-resultado span { font-weight: 800; color: var(--rareza); }
-/* Los colores de rareza de siempre: gris, azul, morado, rosa y oro. */
-.r-comun { --rareza: #8ea3b5; }
-.r-poco { --rareza: #4b8df0; }
-.r-raro { --rareza: #8a5cf0; }
-.r-epico { --rareza: #e04fa8; }
-.r-legendario { --rareza: #ffb52e; }
+.pieza-halo {
+  position: absolute; left: 50%; top: 42%; width: 116px; height: 116px;
+  margin: -58px 0 0 -58px; border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--rareza) 55%, transparent) 0%, transparent 68%);
+  opacity: 0.55;
+}
+.pieza-cara { position: relative; display: grid; place-items: center; height: 54px; }
+.cofre-pieza svg { width: 30px; height: 30px; color: #e8edf2; }
+.cofre-pieza img { max-height: 54px; max-width: 76px; object-fit: contain; }
+.cofre-pieza b {
+  position: relative; font-size: 13px; font-weight: 800; color: #e8edf2;
+  max-width: 86px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cofre-pieza small { position: relative; font-size: 8.5px; letter-spacing: 1px; text-transform: uppercase; color: #8b95a1; }
+.pieza-barra { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: var(--rareza); }
+/* La ganadora, al parar: se enciende su color y da un latido. */
+.cofre-pieza.gana { animation: cofre-late 0.5s ease-out 2; }
+.cofre-pieza.gana .pieza-halo { opacity: 1; }
+@keyframes cofre-late {
+  0% { box-shadow: inset 0 0 0 1px var(--rareza), 0 0 0 rgba(0, 0, 0, 0); }
+  40% { box-shadow: inset 0 0 0 2px var(--rareza), 0 0 26px var(--rareza); }
+  100% { box-shadow: inset 0 0 0 1px var(--rareza), 0 0 10px var(--rareza); }
+}
+/* Y si es la pieza única, la ventana entera se tiñe de oro. */
+.cofre-unico .cofre-ventana { border-color: #f0c419; box-shadow: inset 0 2px 14px rgba(0, 0, 0, 0.8), 0 0 26px rgba(240, 196, 25, 0.45); }
+
+.cofre-resultado { min-height: 20px; margin: 10px 0 0; text-align: center; font-size: 13px; line-height: 1.45; color: var(--tinta-2); }
+.cofre-resultado span { font-weight: 800; color: var(--rareza); text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* La escalera de rarezas, con los colores de las cajas de siempre: gris azulado,
+   azul, morado, rosa, rojo y, arriba del todo, el oro del Capitán. */
+.r-comun { --rareza: #b0c3d9; }
+.r-poco { --rareza: #5e98d9; }
+.r-raro { --rareza: #8847ff; }
+.r-epico { --rareza: #d32ce6; }
+.r-legendario { --rareza: #eb4b4b; }
+.r-unico { --rareza: #f0c419; }
 
 /* ---------- estrellas ---------- */
 /* La unidad de medida de toda la campaña: el mismo dibujo en la ficha del
@@ -2285,4 +2326,12 @@ html, body {
 .reto-codigo-grande {
   display: block; margin: 6px 0 10px;
   font-size: 30px; letter-spacing: 8px; font-weight: 800; color: var(--verde-texto);
+}
+
+/* Lo que solo sale del cofre: se ve en la tienda, pero apagado y sin botón. El
+   objetivo es que se sepa que existe, no venderlo. */
+.articulo.bloqueado .articulo-cara { filter: grayscale(0.8) brightness(0.62); }
+.articulo-premio {
+  margin-top: 6px; font-size: 10.5px; font-weight: 800; letter-spacing: 1px;
+  text-transform: uppercase; color: #f0c419;
 }

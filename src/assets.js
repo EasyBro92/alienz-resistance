@@ -962,6 +962,21 @@ function placeholderSoldier (key, spec) {
       piece(statics, box(0.46, 0.26, 0.05, 0.03), mat(0x8a7a5c, 0.95), 0, 1.36, 0.15, -0.35)
       piece(statics, box(0.46, 0.04, 0.05, 0.015), leatherDark, 0, 1.22, 0.19)
     }
+    if (key === 'capitan') {
+      // Galones en las dos hombreras y la banda cruzada: el mando se lleva
+      // encima, y desde atrás las hombreras son lo que más se ve.
+      const oro = mat(0xd8b04a, 0.35, 0.8)
+      for (const side of [-1, 1]) {
+        for (let i = 0; i < 3; i++) {
+          piece(statics, box(0.1, 0.016, 0.02, 0.005), oro, side * (SH - 0.02), 1.53, -0.06 + i * 0.05)
+        }
+      }
+      piece(statics, box(0.06, 0.5, 0.02, 0.008), mat(0x6b1f1f, 0.9), 0, 1.2, -0.17, 0, 0, 0.55)
+      // Las medallas, en el pecho, sobre la banda.
+      for (let i = 0; i < 3; i++) {
+        piece(statics, box(0.035, 0.05, 0.012, 0.004), oro, -0.1 + i * 0.05, 1.3, -0.185)
+      }
+    }
 
     // cinturón, cartucheras y pistolera
     piece(statics, tube(0.175, 0.175, 0.07, 16), webbing, 0, 0.96, 0)
@@ -1054,7 +1069,24 @@ function placeholderSoldier (key, spec) {
   // que no cuestan ni una llamada de dibujo más.
   const sorteo = Math.random()
 
-  if (ancient) {
+  if (key === 'capitan') {
+    // El Capitán no lleva casco: boina ladeada con su chapa. Es el premio más
+    // raro del juego, así que tiene que reconocerse de un vistazo en el tablero
+    // sin leer ninguna etiqueta.
+    const boina = mat(0x2f3a2a, 0.9)
+    piece(headParts, new THREE.SphereGeometry(0.2, 14, 10, 0, Math.PI * 2, 0, 1.25), boina, 0, 0.055, 0.01)
+      .scale.set(1.08, 0.72, 1.1)
+    piece(headParts, tube(0.185, 0.19, 0.035, 14), boina, 0, -0.01, 0.01)
+    // El vuelo de la boina, caído hacia un lado.
+    piece(headParts, ball(0.085, 10, 8), boina, -0.17, 0.05, 0.02).scale.set(1, 0.5, 1)
+    piece(headParts, box(0.055, 0.06, 0.012, 0.006), mat(0xd8b04a, 0.35, 0.8), 0.11, 0.06, -0.14)
+    // Barba corta y ceño: la cara del que lleva años en esto.
+    piece(headParts, box(0.13, 0.055, 0.075, 0.02), mat(0x3f3a34, 0.9), 0, -0.125, -0.095)
+    for (const side of [-1, 1]) {
+      piece(headParts, box(0.045, 0.012, 0.012, 0.004), mat(0x2e2a24, 0.85), side * 0.055, 0.035, -0.178)
+      piece(headParts, ball(0.015, 6, 5), mat(0x2a1d14, 0.4), side * 0.052, 0.005, -0.176)
+    }
+  } else if (ancient) {
     // Sin casco: la melena castaña con raya al medio, los mechones que caen a
     // los lados de la cara y la trenza fina, las cejas oscuras y los labios.
     // El pelo es un casquete abierto por delante: cubre la coronilla, la nuca y

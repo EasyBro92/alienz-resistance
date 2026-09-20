@@ -87,6 +87,17 @@ export const SOLDIERS = {
     // Rasgo: apunta donde hay más juntos, no al que va primero.
     buscaCorro: true,
     blurb: 'Bomba en arco que cae donde más apretados van. Lento, caro y devastador.'
+  },
+  // El Capitán no se compra: solo sale del cofre, y casi nunca. Es el premio
+  // más raro del juego, así que no puede ser "un fusilero mejor": hace algo que
+  // no hace nadie más, tirar del resto de la línea.
+  capitan: {
+    name: 'Capitán Cuervo', cost: 300, hp: 190, color: 0xd8b04a, accent: 0x6b4f14,
+    damage: 22, fireRate: 2.4, range: 22, armorPierce: 0.45,
+    magazine: 12, reloadTime: 1.2,
+    // Rasgo: los soldados de su carril y de los de al lado disparan más rápido.
+    anima: { factor: 1.25, carriles: 1 },
+    blurb: 'No se compra: aparece en el cofre y casi nunca. Su carril y los de al lado disparan un 25% más rápido.'
   }
 }
 

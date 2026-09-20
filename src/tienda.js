@@ -74,12 +74,17 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
     // Cuando no llega el dinero, el botón no se limita a estar apagado: dice
     // cuánto falta. Es la diferencia entre "no puedo" y "me faltan 30".
     const falta = !tuya && precio != null ? precio - c.billetes : 0
-    const pie = tuya
+    // Lo que no tiene precio y no es de serie es un premio del cofre: se enseña
+    // bloqueado y sin botón, porque no hay forma de pagarlo.
+    const premio = !tuya && precio == null
+    const pie = premio
+      ? '<span class="articulo-premio">Solo en el cofre</span>'
+      : tuya
       ? `<span class="articulo-tuyo">${precio == null ? 'De serie' : 'Tuyo'}</span>`
       : `<button type="button" class="articulo-comprar" data-comprar="${clave}" ${puede ? '' : 'disabled'}>${billete}${precio}</button>
          ${falta > 0 ? `<span class="articulo-falta">Te faltan ${billete}${falta}</span>` : ''}`
     return `
-      <div class="articulo${tuya ? ' propio' : ''}" style="--u-tint:${tinte}">
+      <div class="articulo${tuya ? ' propio' : ''}${premio ? ' bloqueado' : ''}" style="--u-tint:${tinte}">
         <div class="articulo-cara">${cara(clave)}</div>
         <b>${spec.name}</b>
         <p>${spec.blurb ?? ''}</p>

@@ -199,7 +199,11 @@ export async function createSoldier (key, spec, lane, row) {
     // Cada mejora sube daño y cadencia: pagar por uno bueno compite de verdad
     // con pagar por uno más.
     get damage () { return spec.damage * (1 + 0.55 * (this.level - 1)) * mejoraDano },
-    get fireRate () { return spec.fireRate * (1 + 0.18 * (this.level - 1)) * mejoraCadencia },
+    // `animo` lo pone el Capitán desde fuera: su presencia en el carril acelera
+    // a los de al lado. Se guarda como número y no como bandera para que dos
+    // capitanes no se multipliquen entre sí sin control.
+    animo: 1,
+    get fireRate () { return spec.fireRate * (1 + 0.18 * (this.level - 1)) * mejoraCadencia * this.animo },
 
     // Reubicar ya no es teletransportar: el soldado se va andando. La casilla se
     // le asigna en el acto —para que nadie más la ocupe mientras cruza— pero su

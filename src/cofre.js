@@ -14,14 +14,17 @@
 // que se pudiera pagar con dinero sería una caja de botín de las que regulan
 // varios países.
 
-import { sumarBilletes, sumarMonedas } from './systems/cartera.js'
+import { sumarBilletes, sumarMonedas, desbloquearPremio, cargarCartera } from './systems/cartera.js'
 
 export const RAREZAS = {
   comun: 'Común',
   poco: 'Poco común',
   raro: 'Raro',
   epico: 'Épico',
-  legendario: 'Legendario'
+  legendario: 'Legendario',
+  // El escalón de arriba del todo, el del Capitán. Sale una vez en la vida o
+  // ninguna: por eso tiene nombre propio y no un adjetivo más.
+  unico: 'Pieza única'
 }
 
 // Pesos al PERDER. De media dan unos tres billetes; con tres estrellas, unos
@@ -35,7 +38,11 @@ export const PREMIOS = [
   { tipo: 'monedas', cantidad: 90, rareza: 'poco', peso: 8 },
   { tipo: 'billetes', cantidad: 12, rareza: 'raro', peso: 4 },
   { tipo: 'billetes', cantidad: 30, rareza: 'epico', peso: 1.6 },
-  { tipo: 'billetes', cantidad: 120, rareza: 'legendario', peso: 0.4 }
+  { tipo: 'billetes', cantidad: 120, rareza: 'legendario', peso: 0.4 },
+  // El Capitán. Peso 0,15 sobre unos 100 de total, y solo entra en el bombo al
+  // ganar con tres estrellas: sale una vez cada setecientas victorias
+  // perfectas. Es el premio más raro del juego a propósito.
+  { tipo: 'unidad', clave: 'capitan', nombre: 'Capitán Cuervo', rareza: 'unico', peso: 0.15, soloPerfecta: true }
 ]
 
 function sortear (pesos) {
@@ -48,20 +55,38 @@ function sortear (pesos) {
   return PREMIOS[PREMIOS.length - 1]
 }
 
-const PESOS_BASE = PREMIOS.map(p => p.peso)
+// Los pesos de la tira de relleno: sin la pieza única, que no se enseña como si
+// pudiera caer en cualquier partida.
+const PESOS_BASE = PREMIOS.map(p => (p.soloPerfecta ? 0 : p.peso))
+
+// Qué puede tocar en ESTA partida. La pieza única solo entra en el bombo al
+// ganar con las tres estrellas y si no la tienes ya: sin las dos condiciones,
+// su peso es cero y la tirada es la de siempre.
+function pesosDe (gano, estrellas) {
+  const f = gano ? 1 + estrellas * 0.6 : 1
+  const tengo = new Set(cargarCartera().desbloqueadas)
+  return PREMIOS.map(p => {
+    if (p.soloPerfecta) {
+      return gano && estrellas >= 3 && !tengo.has(p.clave) ? p.peso : 0
+    }
+    return p.rareza === 'comun' ? p.peso : p.peso * f
+  })
+}
 
 // Decide el premio y lo guarda. Ganar multiplica lo que no es común: con tres
 // estrellas, lo raro sale casi el triple de veces que perdiendo.
 export function tirarCofre ({ gano = false, estrellas = 0 } = {}) {
-  const f = gano ? 1 + estrellas * 0.6 : 1
-  const premio = sortear(PREMIOS.map(p => (p.rareza === 'comun' ? p.peso : p.peso * f)))
+  const premio = sortear(pesosDe(gano, estrellas))
   if (premio.tipo === 'billetes') sumarBilletes(premio.cantidad)
+  else if (premio.tipo === 'unidad') desbloquearPremio(premio.clave)
   else sumarMonedas(premio.cantidad)
   return premio
 }
 
-const ANCHO = 84
-const HUECO = 8
+// Tienen que cuadrar con .cofre-pieza y el hueco de .cofre-tira del CSS: si no,
+// la tira frena con la ganadora al lado de la aguja en vez de debajo.
+const ANCHO = 92
+const HUECO = 6
 const PASO = ANCHO + HUECO
 const PIEZAS = 44
 // La ganadora va casi al final de la tira: así pasan treinta y tantas por
@@ -69,19 +94,33 @@ const PIEZAS = 44
 const GANADORA = 38
 const DURA = 5200
 
-const pieza = p => `
+// Cada pieza, como las cajas de Counter-Strike de hace diez años: el objeto
+// sobre un halo de su color de rareza y la barra de color abajo del todo, que
+// es lo único que se lee de verdad cuando la tira va a toda velocidad.
+const cara = (p, retratos) => {
+  if (p.tipo !== 'unidad') {
+    return `<svg aria-hidden="true"><use href="#${p.tipo === 'billetes' ? 'i-billete' : 'i-moneda'}"></use></svg>`
+  }
+  const foto = retratos?.get?.(p.clave)
+  return foto ? `<img src="${foto}" alt="">` : '<svg aria-hidden="true"><use href="#i-rifle"></use></svg>'
+}
+
+const pieza = (p, retratos) => `
   <div class="cofre-pieza r-${p.rareza}">
-    <svg aria-hidden="true"><use href="#${p.tipo === 'billetes' ? 'i-billete' : 'i-moneda'}"></use></svg>
-    <b>${p.cantidad}</b>
-    <small>${p.tipo}</small>
+    <span class="pieza-halo"></span>
+    <span class="pieza-cara">${cara(p, retratos)}</span>
+    <b>${p.tipo === 'unidad' ? p.nombre : p.cantidad}</b>
+    <small>${p.tipo === 'unidad' ? 'unidad' : p.tipo}</small>
+    <i class="pieza-barra"></i>
   </div>`
 
-export function girarCarrusel (caja, premio, audio) {
+export function girarCarrusel (caja, premio, audio, retratos) {
   caja.innerHTML = `
     <p class="cofre-tit">Cofre de la partida</p>
     <div class="cofre-ventana">
-      <div class="cofre-marca"></div>
       <div class="cofre-tira"></div>
+      <div class="cofre-velo"></div>
+      <div class="cofre-aguja"></div>
     </div>
     <p class="cofre-resultado" aria-live="polite"></p>`
   const ventana = caja.querySelector('.cofre-ventana')
@@ -91,7 +130,7 @@ export function girarCarrusel (caja, premio, audio) {
   // Las de relleno se sortean con los pesos de siempre: una tira llena de
   // legendarios delataría que lo que pasa por delante no es lo que puede tocar.
   const piezas = Array.from({ length: PIEZAS }, (_, i) => (i === GANADORA ? premio : sortear(PESOS_BASE)))
-  tira.innerHTML = piezas.map(pieza).join('')
+  tira.innerHTML = piezas.map(p => pieza(p, retratos)).join('')
 
   const ancho = ventana.clientWidth || 320
   // No frena siempre en el centro exacto de la pieza: parar clavado en el medio
@@ -106,11 +145,16 @@ export function girarCarrusel (caja, premio, audio) {
     hecho = true
     clearInterval(reloj)
     tira.children[GANADORA]?.classList.add('gana')
-    resultado.innerHTML = premio.tipo === 'billetes'
-      ? `<span class="r-${premio.rareza}">${RAREZAS[premio.rareza]}</span> · <b>+${premio.cantidad} billetes</b>`
-      : `<span class="r-${premio.rareza}">${RAREZAS[premio.rareza]}</span> · <b>+${premio.cantidad} monedas</b> guardadas: cada 100 son un billete en la tienda`
-    if (premio.rareza === 'raro' || premio.rareza === 'epico' || premio.rareza === 'legendario') audio?.desbloqueo?.()
-    else audio?.coin?.()
+    caja.classList.add('cofre-abierto')
+    caja.classList.toggle('cofre-unico', premio.rareza === 'unico')
+    const sello = `<span class="r-${premio.rareza}">${RAREZAS[premio.rareza]}</span>`
+    resultado.innerHTML = premio.tipo === 'unidad'
+      ? `${sello} · <b>${premio.nombre}</b> desbloqueado. Ya lo tienes en la tienda, sin pagar nada.`
+      : premio.tipo === 'billetes'
+        ? `${sello} · <b>+${premio.cantidad} billetes</b>`
+        : `${sello} · <b>+${premio.cantidad} monedas</b> guardadas: cada 100 son un billete en la tienda`
+    if (premio.rareza === 'comun' || premio.rareza === 'poco') audio?.coin?.()
+    else audio?.desbloqueo?.()
   }
 
   // Quien tiene pedido reducir movimiento no ve la tira girar: ve directamente

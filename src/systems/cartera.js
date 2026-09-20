@@ -31,6 +31,21 @@ export const MONEDAS_POR_DOLAR = 100
 // final hasta 237. El fusilero sale a las dos partidas; el mortero, cerca del
 // final de la campaña. Lo que se quiere es que siempre haya algo a tiro de
 // dos o tres partidas más.
+// Unidades que no se compran con dinero: salen del cofre. No tienen precio a
+// propósito, para que no haya forma de pagarlas.
+export const PREMIOS_UNIDAD = ['capitan']
+
+// Desbloquea una unidad de premio. Devuelve false si ya la tenía, que es lo que
+// el cofre necesita saber para no repetir el premio más raro del juego.
+export function desbloquearPremio (clave) {
+  if (!PREMIOS_UNIDAD.includes(clave)) return false
+  const c = cargarCartera()
+  if (c.desbloqueadas.includes(clave)) return false
+  c.desbloqueadas.push(clave)
+  guardar(c)
+  return true
+}
+
 export const PRECIOS = {
   rifle: 45,
   shotgun: 120,
@@ -60,7 +75,9 @@ export const NIVEL_MAX = 3
 // El precio de cada nivel sale del precio del soldado: mejorar un mortero cuesta
 // lo que cuesta un mortero. El arquero, que es gratis, cuenta como 30.
 const ESCALERA = [0.5, 1, 1.8]
-const baseMejora = clave => PRECIOS[clave] ?? 30
+// Las unidades de premio no tienen precio, pero mejorarlas no puede salir por
+// lo que cuesta mejorar al arquero: se les pone un precio implícito alto.
+const baseMejora = clave => PRECIOS[clave] ?? (PREMIOS_UNIDAD.includes(clave) ? 500 : 30)
 
 const entero = v => {
   const n = Number(v)
@@ -88,7 +105,7 @@ function guardar (c) {
 
 export function cargarCartera () {
   const crudo = leer() ?? {}
-  const validas = new Set([...INICIALES, ...Object.keys(PRECIOS)])
+  const validas = new Set([...INICIALES, ...Object.keys(PRECIOS), ...PREMIOS_UNIDAD])
 
   const desbloqueadas = new Set(INICIALES)
   if (Array.isArray(crudo.desbloqueadas)) {

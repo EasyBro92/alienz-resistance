@@ -989,6 +989,20 @@ function simulate (dt) {
     if (economy.update(dt)) audio.coin()
     director.update(dt, zombies.length)
 
+    // El ánimo del Capitán: su carril y los de al lado disparan más rápido. Se
+    // recalcula cada fotograma porque los soldados se mueven de casilla y él
+    // también; guardarlo al colocar dejaría carriles animados por un capitán
+    // que ya se fue.
+    for (const s of soldiers) s.animo = 1
+    for (const jefe of soldiers) {
+      const aura = jefe.spec.anima
+      if (!aura || jefe.dead || jefe.andando) continue
+      for (const s of soldiers) {
+        if (s === jefe || Math.abs(s.lane - jefe.lane) > aura.carriles) continue
+        s.animo = Math.max(s.animo, aura.factor)
+      }
+    }
+
     for (let i = soldiers.length - 1; i >= 0; i--) {
       const s = soldiers[i]
       s.update(dt, camera)
@@ -2416,7 +2430,7 @@ function htmlBotin () {
 function abrirCofre (gano, estrellas) {
   const premio = tirarCofre({ gano, estrellas })
   const caja = document.getElementById('cofre')
-  if (caja) girarCarrusel(caja, premio, audio)
+  if (caja) girarCarrusel(caja, premio, audio, retratosGuardados)
 }
 
 document.getElementById('ir-mapa').addEventListener('click', () => { audio.unlock(); abrirMapa() })
