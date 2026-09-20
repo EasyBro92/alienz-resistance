@@ -1244,14 +1244,18 @@ html, body {
 .articulo-cara {
   /* Ocupa el ancho de la ficha: en un móvil, la diferencia entre mirar al
      soldado y adivinarlo. El foco de luz va con el color de la unidad. */
-  width: 100%; height: 148px; display: grid; place-items: center;
-  border-radius: 12px;
+  /* En flex y no en rejilla: con `place-items` la fila crecía con el retrato y
+     el 100% del alto se medía contra la fila crecida, no contra la caja. */
+  width: 100%; height: 148px; display: flex; align-items: center; justify-content: center;
+  border-radius: 12px; overflow: hidden;
   background:
     radial-gradient(ellipse at 50% 34%, color-mix(in srgb, var(--u-tint, var(--verde-texto)) 34%, transparent), transparent 70%),
     linear-gradient(180deg, transparent 55%, color-mix(in srgb, var(--u-tint, var(--verde-texto)) 12%, transparent) 100%);
 }
 .articulo-cara.mini { width: 44px; height: 54px; background: none; flex: none; }
-.articulo-cara img { max-width: 100%; max-height: 100%; object-fit: contain; }
+/* Ancho y alto fijos con `contain`: con solo `max-height` el retrato se
+   estiraba a 176 px dentro de una caja de 148 y le pisaba el nombre. */
+.articulo-cara img { max-width: 100%; max-height: 100%; min-height: 0; object-fit: contain; }
 .articulo-cara svg { width: 40px; height: 40px; color: var(--tinta-2); }
 .articulo-cara.mini svg { width: 26px; height: 26px; }
 .articulo b { font-size: 13px; }
