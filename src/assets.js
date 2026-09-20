@@ -2830,6 +2830,70 @@ export async function buildZombieMesh (key, spec) {
   return placeholderAlien(key, spec)
 }
 
+// El equipo que se le ve puesto a un soldado mejorado.
+//
+// Pagar dos mejoras y que la figura siga siendo idéntica era el agujero: el
+// dinero se iba en números que solo salen en la tienda. Ahora el veterano se
+// reconoce en el campo — casco, hombreras y bocacha —, que es donde se mira.
+//
+// Las piezas cuelgan de los huesos, como los brazos-herramienta de los
+// huéspedes: el hueso ya se mueve con la animación, así que la pieza va sola.
+// Los tamaños se dan en unidades del mundo y se dividen por la escala del
+// hueso, porque cada modelo viene con la suya.
+export function vestirMejoras (mesh, nivel) {
+  if (!nivel) return
+  const acero = mat(0x6f7a74, 0.45, 0.55)
+  const oliva = mat(0x4d5540, 0.8, 0.1)
+  const oro = mat(0xd9a93a, 0.35, 0.7)
+  const esc = new THREE.Vector3()
+
+  const colgar = (hueso, pieza, [x, y, z]) => {
+    if (!hueso) return
+    hueso.getWorldScale(esc)
+    const k = 1 / Math.max(1e-4, esc.x)
+    pieza.scale.multiplyScalar(k)
+    pieza.position.set(x * k, y * k, z * k)
+    hueso.add(pieza)
+  }
+
+  // Todo va a la ESPALDA y a los hombros: la cámara del juego mira a los
+  // soldados desde atrás, así que un detalle en el pecho no lo ve nadie.
+  const espalda = mesh.getObjectByName('Spine02') ?? mesh.getObjectByName('Spine01')
+  if (nivel >= 1 && espalda) {
+    // Petate y manta enrollada: el primer galón se lleva a la espalda.
+    const carga = new THREE.Group()
+    const petate = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.22, 0.11), oliva)
+    carga.add(petate)
+    const manta = new THREE.Mesh(new THREE.CapsuleGeometry(0.045, 0.19, 3, 8), oliva)
+    manta.rotation.z = Math.PI / 2
+    manta.position.set(0, -0.13, 0.01)
+    carga.add(manta)
+    colgar(espalda, carga, [0, 0.06, 0.13])
+  }
+
+  if (nivel >= 3) {
+    for (const lado of ['Left', 'Right']) {
+      const hombro = mesh.getObjectByName(lado + 'Shoulder')
+      const placa = new THREE.Mesh(new THREE.SphereGeometry(0.085, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2.2), acero)
+      placa.scale.set(1.05, 0.62, 1.15)
+      colgar(hombro, placa, [0, 0.04, 0])
+    }
+  }
+
+  // El último galón se ve de lejos: la antena de la radio, con su punta.
+  if (nivel >= 5 && espalda) {
+    const radio = new THREE.Group()
+    const palo = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.012, 0.42, 5), acero)
+    palo.position.y = 0.21
+    palo.rotation.z = -0.22
+    radio.add(palo)
+    const punta = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 6), oro)
+    punta.position.set(0.09, 0.42, 0)
+    radio.add(punta)
+    colgar(espalda, radio, [-0.07, 0.1, 0.14])
+  }
+}
+
 export function buildSandbagsMesh (spec) {
   const parts = new THREE.Group()
   const a = mat(spec.color, 0.97)

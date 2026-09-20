@@ -1,8 +1,8 @@
 import * as THREE from 'three'
-import { buildSoldierMesh, buildSandbagsMesh } from '../assets.js'
+import { buildSoldierMesh, buildSandbagsMesh, vestirMejoras } from '../assets.js'
 import { laneX, rowZ } from '../world.js'
 import { createHealthBar } from './healthbar.js'
-import { factorMejora } from '../systems/cartera.js'
+import { factorMejora, nivelMejora } from '../systems/cartera.js'
 
 // Uno solo para todos los soldados: esto se usa seis veces por figura y por
 // fotograma, y crear un cuaternión cada vez es basura que recoger cuarenta
@@ -123,6 +123,8 @@ export async function createSoldier (key, spec, lane, row) {
   // sería absurdo: lo que se compra entre partidas no cambia a mitad de una.
   const mejoraDano = factorMejora(key, 'dano')
   const mejoraCadencia = factorMejora(key, 'cadencia')
+  // Y lo que se le ve puesto: casco, hombreras y bocacha según lo mejorado.
+  if (!spec.blocker) vestirMejoras(mesh, nivelMejora(key, 'dano') + nivelMejora(key, 'cadencia'))
 
   const bar = createHealthBar(1.4, spec.blocker ? 1.6 : 2.45)
   mesh.add(bar.group)
