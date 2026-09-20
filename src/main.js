@@ -685,8 +685,7 @@ function soldierFire (soldier, target) {
   }
 
   const shots = spec.pellets ?? 1
-  target.hurt(soldier.damage * shots, pierce)
-  effects.burst(target.mesh.position, 0xc0402f, 3, 0.7)
+  target.hurt(soldier.damage * shots, pierce)   // la salpicadura la pone el bucle, al acusar el golpe
 
   // Arquero: la flecha se queda clavada y el huésped cojea.
   if (spec.clava) target.frenar(spec.clava.factor, spec.clava.dura)
@@ -1126,6 +1125,16 @@ function simulate (dt) {
 
       z.suelo = dropship.alturaRampa(z.z)
       z.update(dt, camera, !attacking)
+
+      // La salpicadura del golpe, venga de donde venga: de un disparo, del
+      // fuego, de una granada o de las púas de un saco terrero. Va aquí y no en
+      // cada arma para que todas se vean igual de contundentes.
+      if (z.golpeNuevo) {
+        z.golpeNuevo = false
+        const alto = 0.55 + (z.spec.scale ?? 1) * 0.5
+        effects.burst(tmpB.set(z.mesh.position.x, alto, z.mesh.position.z),
+          0xc0402f, 2 + Math.round(z.golpeFuerza * 5), 0.5 + z.golpeFuerza * 0.7)
+      }
 
       if (attacking) {
         // Se planta a distancia de mordisco y ahí se queda. Sin este tope, la

@@ -5,6 +5,10 @@ import { FIELD } from '../config.js'
 
 let nextId = 1
 
+// Lo que dura el respingo del golpe. Más largo se convierte en un baile y tapa
+// el ciclo de andar; más corto no llega a verse en un móvil.
+const GOLPE_DURA = 0.18
+
 export async function createZombie (key, spec, lane, waveScale = 1) {
   const mesh = await buildZombieMesh(key, spec)
   const jitter = (Math.random() - 0.5) * FIELD.laneWidth * 0.3
@@ -53,6 +57,9 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
     // Un ametrallador dispara once veces por segundo: un número por disparo era
     // una nevada ilegible. Se acumula y sale una cifra sola cada poco.
     dañoAcumulado: 0,
+    golpe: 0,
+    golpeFuerza: 0,
+    golpeNuevo: false,
     tDaño: 0,
     // Lastre: lo que le frena y cuánto le queda. La flecha del arquero se clava
     // y el ametrallador suprime; los dos escriben aquí y gana el más fuerte,
@@ -117,6 +124,13 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
       this.hp -= real
       this.dañoAcumulado += real
       this.bar.set(this.hp / this.maxHp)
+      // Acusa el golpe: se sacude y retrocede un instante. Sin esto, dispararle
+      // a un huésped no se distinguía de no dispararle hasta que caía muerto.
+      // La fuerza va con lo que le has quitado de su vida, no con el daño en
+      // bruto: al Coloso un fusilazo lo despeina, al Portador lo dobla.
+      this.golpe = GOLPE_DURA
+      this.golpeFuerza = Math.min(1, 0.25 + (real / this.maxHp) * 3)
+      this.golpeNuevo = true
       if (this.hp <= 0) this.dead = true
       return real
     },
@@ -125,6 +139,26 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
       // Bajo tierra no hay barra que enseñar: no se le ve, no se le puede tocar.
       this.bar.group.visible = this.bar.group.visible && !this.bajoTierra
       this.bar.face(camera, dt)
+
+      // El respingo del golpe. La figura se echa atrás y se dobla, y vuelve a su
+      // sitio sola: va sobre la figura y no sobre el grupo, que es quien lleva
+      // el avance por el carril.
+      if (this.golpe > 0) {
+        this.golpe = Math.max(0, this.golpe - dt)
+        const k = this.golpe / GOLPE_DURA
+        const f = this.mesh.userData.figura
+        const doblez = Math.sin(k * Math.PI) * 0.16 * this.golpeFuerza
+        if (f) {
+          f.position.z = -k * 0.2 * this.golpeFuerza
+          f.rotation.x = doblez
+        } else {
+          this.mesh.rotation.x = doblez
+        }
+        if (this.golpe === 0) {
+          if (f) { f.position.z = 0; f.rotation.x = 0 } else this.mesh.rotation.x = 0
+        }
+      }
+
       if (this.tLastre > 0) {
         this.tLastre -= dt
         if (this.tLastre <= 0) this.lastre = 1

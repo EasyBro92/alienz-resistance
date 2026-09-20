@@ -2708,6 +2708,9 @@ async function alienAnimado (key, spec) {
 
   const g = new THREE.Group()
   g.userData.esqueleto = true
+  // La figura, aparte del grupo: los golpes la sacuden a ella y no al grupo,
+  // que es quien lleva la posición en el carril y la barra de vida.
+  g.userData.figura = pivote
   g.add(pivote)
   g.add(contactShadow((spec.scale ?? 1) >= 1.5 ? 1.1 : 0.9))
 
