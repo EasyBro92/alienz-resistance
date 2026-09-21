@@ -4,6 +4,9 @@ import { FIELD } from './config.js'
 import { texturasDelSuelo } from './systems/texturas.js'
 import { bake } from './assets.js'
 import { BIOMAS, FLORA, HITOS, RESTOS, baseAlien } from './biomas.js'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
+import { apagarEmision } from './systems/resplandor.js'
 
 export const laneX = i => (i - (FIELD.lanes - 1) / 2) * FIELD.laneWidth
 export const rowZ = r => FIELD.frontRowZ - r * FIELD.rowDepth
@@ -1203,7 +1206,128 @@ export function createWorld (canvas) {
     // la caja de sombra no se ensancha con él, se corta en seco a media calzada.
     tarde: { pos: [-26, 15, 16], sol: 2.4, rim: 0.9, ambiente: 0.55, ancho: 26 },
     ocaso: { pos: [-32, 9, 12], sol: 2.0, rim: 1.15, ambiente: 0.5, ancho: 32 },
-    manana: { pos: [22, 18, 14], sol: 2.3, rim: 0.85, ambiente: 0.6, ancho: 24 }
+    manana: { pos: [22, 18, 14], sol: 2.3, rim: 0.85, ambiente: 0.6, ancho: 24 },
+    // Las arenas del duelo: de noche, y la "luz del sol" hace de foco de estadio,
+    // alto y a un lado, para que el campo se vea claro y lo de alrededor no.
+    noche: { pos: [16, 34, 18], sol: 1.75, rim: 0.3, ambiente: 0.3, ancho: 20 }
+  }
+
+  // --- arenas del 1 contra 1 -----------------------------------------------------
+  //
+  // Hechas en Blender (herramientas/blender/) con piezas del propio juego. Se
+  // cargan la primera vez que hacen falta y luego solo se enseñan o esconden.
+  // Por nombre, el juego encuentra lo que tiene que moverse: el público
+  // (publico_0…2, cada grupo con su ritmo) y los platillos (platillo_0…).
+  const cargadorArenas = new GLTFLoader().setDRACOLoader(
+    new DRACOLoader().setDecoderPath(`${import.meta.env.BASE_URL}draco/`).setDecoderConfig({ type: 'wasm' })
+  )
+  const arenas = new Map()
+  let arenaPedida = null
+  let arenaVista = null
+  let vitoreo = 0
+  function ponerArena (nombre) {
+    arenaPedida = nombre
+    for (const [n, a] of arenas) if (a.grupo) a.grupo.visible = n === nombre
+    arenaVista = nombre ? arenas.get(nombre)?.grupo ?? null : null
+    if (!nombre || arenas.has(nombre)) return
+    const a = { grupo: null }
+    arenas.set(nombre, a)
+    cargadorArenas.loadAsync(`${import.meta.env.BASE_URL}models/${nombre}.glb`).then(gltf => {
+      const g = gltf.scene
+      // Los paneles de los focos SÍ brillan; lo demás, como el resto de modelos.
+      g.traverse(o => {
+        if (!o.isMesh) return
+        if (!/^foco_/.test(o.name)) apagarEmision(o)
+        o.receiveShadow = /graderio|palco/.test(o.name)
+        o.castShadow = false
+      })
+      g.userData.publico = [0, 1, 2].map(i => g.getObjectByName(`publico_${i}`)).filter(Boolean)
+      // El grupo está donde estaba su primer alien, no en el suelo: se guarda su
+      // altura para mecerlo SUMANDO a ella.
+      for (const p of g.userData.publico) p.userData.y0 = p.position.y
+      g.add(destellos(g.userData.publico))
+      g.userData.platillos = [0, 1].map(i => g.getObjectByName(`platillo_${i}`)).filter(Boolean)
+        .map(o => ({ o, r: Math.hypot(o.position.x, o.position.z + 60), y: o.position.y, a: Math.atan2(o.position.z + 60, o.position.x) }))
+      scene.add(g)
+      a.grupo = g
+      g.visible = arenaPedida === nombre
+      if (g.visible) arenaVista = g
+    }).catch(e => console.warn('Sin arena:', e))
+  }
+
+  // Flashes de cámara por la grada: puntos sobre las cabezas del público que se
+  // encienden un instante cada uno a su ritmo. De noche es lo que dice "aquí
+  // hay un estadio lleno", y cuesta una sola llamada de dibujo.
+  let matDestellos = null
+  function destellos (publico) {
+    const pos = []
+    const fase = []
+    const v = new THREE.Vector3()
+    // Cada grupo llega como varias mallas, una por material (tipo de alien).
+    const mallas = []
+    for (const g of publico) g.traverse(o => { if (o.isMesh) mallas.push(o) })
+    for (const p of mallas) {
+      p.updateMatrixWorld(true)
+      const at = p.geometry.attributes.position
+      // Vértices al azar de la mitad de arriba de cada figura: las cabezas y
+      // las manos, más o menos, que es de donde sale un flash.
+      for (let i = 0; i < 40; i++) {
+        v.fromBufferAttribute(at, Math.floor(Math.random() * at.count)).applyMatrix4(p.matrixWorld)
+        pos.push(v.x, v.y + 0.6, v.z)
+        fase.push(Math.random() * 100, 0.4 + Math.random() * 1.4)
+      }
+    }
+    const geo = new THREE.BufferGeometry()
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
+    geo.setAttribute('fase', new THREE.Float32BufferAttribute(fase, 2))
+    matDestellos = new THREE.ShaderMaterial({
+      uniforms: { t: { value: 0 } },
+      vertexShader: `
+        attribute vec2 fase;
+        uniform float t;
+        varying float vLuz;
+        void main () {
+          float s = fract(t * fase.y * 0.23 + fase.x);
+          vLuz = pow(max(0.0, 1.0 - s * 14.0), 2.0);
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          gl_PointSize = 26.0 * vLuz * (60.0 / -mv.z);
+          gl_Position = projectionMatrix * mv;
+        }`,
+      fragmentShader: `
+        varying float vLuz;
+        void main () {
+          float d = length(gl_PointCoord - 0.5);
+          float a = smoothstep(0.5, 0.0, d) * vLuz;
+          gl_FragColor = vec4(1.0, 0.97, 0.9, a);
+        }`,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      fog: false
+    })
+    const puntos = new THREE.Points(geo, matDestellos)
+    puntos.frustumCulled = false
+    return puntos
+  }
+
+  // El público: cada grupo se mece a su ritmo, y cuando pasa algo gordo
+  // (vitorear) saltan todos un rato.
+  function animarArena (dt) {
+    const g = arenaVista
+    if (!g) return
+    const t = performance.now() / 1000
+    vitoreo = Math.max(0, vitoreo - dt * 0.6)
+    // Con el público animado, más flashes.
+    if (matDestellos) matDestellos.uniforms.t.value = t * (1 + vitoreo * 2)
+    g.userData.publico.forEach((p, i) => {
+      const salto = Math.abs(Math.sin(t * (2.2 + i * 0.7) + i * 2.1))
+      p.position.y = p.userData.y0 + salto * (0.08 + vitoreo * 0.55)
+    })
+    g.userData.platillos.forEach((p, i) => {
+      const a = p.a + t * (0.12 + i * 0.05) * (i % 2 ? -1 : 1)
+      p.o.position.set(Math.cos(a) * p.r, p.y + Math.sin(t * 0.8 + i) * 0.8, -60 + Math.sin(a) * p.r)
+      p.o.rotation.y = t * 0.6
+    })
   }
 
   function vestir (clave, hitosMision = [], suelo = 'carretera', tonoSuelo = null) {
@@ -1213,7 +1337,11 @@ export function createWorld (canvas) {
     bioma = llave
     // La nave estrellada tapaba justo el sitio de los monumentos.
     const estrellada = scene.getObjectByName('nave-estrellada')
-    if (estrellada) estrellada.visible = !(hitosMision?.length)
+    if (estrellada) estrellada.visible = !(hitosMision?.length) && !b.arena
+    // En una arena, el recinto cierra el horizonte: fuera cerros y mesetas.
+    ponerArena(b.arena ?? null)
+    pintables.cerro.visible = !b.arena
+    pintables.meseta.visible = !b.arena
     // Al fondo, la base que venimos a limpiar. El modelo sale del nombre de la
     // misión: cada sitio tiene la suya y no cambia al repetir.
     let semilla = 7
@@ -1295,6 +1423,8 @@ export function createWorld (canvas) {
     // de sombras, y ese mapa es lo más caro que hay en la escena.
     // `road` sale para el Escarbador: sus cascotes usan el material del suelo.
     renderer, scene, camera, sun, resize, slots, setSlotsVisible, resaltarSlot, vestir, road,
+    animarArena,
+    vitorear: (fuerza = 1) => { vitoreo = Math.min(1, vitoreo + fuerza) },
     // La base del fondo de esta misión: el asalto final la hace reventar.
     baseActual: () => baseVisible,
     // La caja del monumento de esta misión, para el vuelo de presentación.

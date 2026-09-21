@@ -884,7 +884,11 @@ function killZombie (z, index) {
   zombies.splice(index, 1)
   // El suelo que rompió el Escarbador se recupera ahora, despacio.
   z.rastro?.cerrar()
-  if (dueloEnCurso) duelo.alMatar(z.spec)
+  if (dueloEnCurso) {
+    duelo.alMatar(z.spec)
+    // El público de la arena lo celebra; más cuanto más gordo era el bicho.
+    world.vitorear(Math.min(1, 0.15 + (z.spec.coins ?? 10) / 120))
+  }
 
   // Revientaesporas: al caer se lleva por delante lo que tenga cerca. Es el
   // único enemigo que castiga apilar tropa en un carril, y por eso el daño va a
@@ -1296,6 +1300,7 @@ function simulate (dt) {
   updateCorpses(dt)
   if (running) updateBrasas(dt)
   ambient.update(dt)
+  world.animarArena(dt)
   // Fuera del bloque de partida en curso: al perder, la nave tiene que poder
   // terminar de irse en vez de quedarse congelada sobre la carretera.
   dropship.update(dt)
@@ -2533,6 +2538,8 @@ if (import.meta.env.DEV) {
     ganarYa: () => { if (running) win() },
     asaltarYa: () => { if (running) empezarAsalto() },
     sinVuelo: () => { if (vuelo) terminarVuelo() },
+    // Ver una arena del duelo sin montar un duelo: __zr.arena()
+    arena: (clave = 'arena') => world.vestir(clave, [], 'tierra', 0x9a8462),
     // Para capturar el vuelo: pone la cámara donde empieza y dibuja.
     verVuelo: (k = 0) => {
       const v = world.vistaMonumento()
@@ -2816,7 +2823,8 @@ const duelo = crearDuelo({
         pais: 'Arena',
         bioma: 'arena',
         suelo: 'tierra',
-        tonoSuelo: null,
+        // La arena del Coliseo: más oscura que la de la campaña, que es de noche.
+        tonoSuelo: 0x9a8462,
         hitos: [],
         dureza: 0.07,
         waves: oleadasArena(semilla),
