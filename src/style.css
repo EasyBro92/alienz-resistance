@@ -2282,7 +2282,9 @@ html, body {
 /* Tu fila, marcada: en una lista de veinte nombres, el tuyo es el que buscas. */
 .marcador-yo { background: color-mix(in srgb, var(--verde-texto) 12%, transparent); border-radius: 6px; }
 .marcador-yo .marcador-alias { font-weight: 800; }
-.marcador-cargando, .marcador-vacio { display: block; font-size: 11.5px; color: var(--tinta-4); padding: 4px 0; }
+/* Con la especificidad de la fila (`.marcador-lista li`): si no, el aviso caía
+   en la columna del puesto, de 20 px, y bajaba letra a letra. */
+.marcador-cargando, .marcador-vacio, .marcador-lista li.marcador-cargando, .marcador-lista li.marcador-vacio { display: block; font-size: 11.5px; color: var(--tinta-4); padding: 4px 0; }
 .marcador-pie { margin: 6px 0 0; font-size: 11px; color: var(--tinta-3); }
 
 /* El alias, en Ajustes. */
