@@ -167,7 +167,13 @@ export function comprar (clave) {
   return true
 }
 
+// En el duelo nadie lleva mejoras: gana quien juega mejor, no quien más ha
+// jugado. Mientras está puesto, todo soldado sale de nivel cero.
+let sinMejoras = false
+export function ponerSinMejoras (v) { sinMejoras = !!v }
+
 export function nivelMejora (clave, tipo) {
+  if (sinMejoras) return 0
   return cargarCartera().mejoras[clave]?.[tipo] ?? 0
 }
 

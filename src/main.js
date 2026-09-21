@@ -19,7 +19,9 @@ import { createUI } from './ui.js'
 import { renderPortraits } from './portraits.js'
 import { pintarMapa } from './mapa.js'
 import { montarZoomMapa } from './mapaZoom.js'
-import { cargarCartera, sumarBilletes, sumarMonedas, canjear, PRECIOS, MONEDAS_POR_DOLAR } from './systems/cartera.js'
+import { cargarCartera, sumarBilletes, sumarMonedas, canjear, PRECIOS, MONEDAS_POR_DOLAR, PREMIOS_UNIDAD, ponerSinMejoras } from './systems/cartera.js'
+import { crearDuelo, montarBandeja } from './duelo.js'
+import { oleadasArena, azarConSemilla } from './systems/duelo.js'
 import { tirarCofre, girarCarrusel } from './cofre.js'
 import { crearTienda } from './tienda.js'
 import { escenaDe, PAISES, paisDe } from './campana.js'
@@ -93,7 +95,9 @@ let nivelActual = 0
 // —el escenario de la campaña con las oleadas que montó otro jugador— y es lo
 // que hace que la partida no cuente como misión al acabar.
 let retoEnCurso = null
-const nivelActivo = () => retoEnCurso?.nivel ?? NIVELES[nivelActual]
+// El duelo en curso, si lo hay: lleva la arena, con la horda de la semilla.
+let dueloEnCurso = null
+const nivelActivo = () => dueloEnCurso?.nivel ?? retoEnCurso?.nivel ?? NIVELES[nivelActual]
 let pausado = false
 let moving = null                     // soldado esperando destino
 let director = null
@@ -180,7 +184,8 @@ const elBilletesValor = document.getElementById('billetes-valor')
 function pintarBilletes () { elBilletesValor.textContent = cargarCartera().billetes }
 pintarBilletes()
 economy.onBillete(() => {
-  if (!running) return
+  // El duelo no da billetes por monedas: su premio es el cofre del ganador.
+  if (!running || dueloEnCurso) return
   billetesPartida++
   sumarBilletes(1)
   pintarBilletes()
@@ -879,6 +884,7 @@ function killZombie (z, index) {
   zombies.splice(index, 1)
   // El suelo que rompió el Escarbador se recupera ahora, despacio.
   z.rastro?.cerrar()
+  if (dueloEnCurso) duelo.alMatar(z.spec)
 
   // Revientaesporas: al caer se lleva por delante lo que tenga cerca. Es el
   // único enemigo que castiga apilar tropa en un carril, y por eso el daño va a
@@ -988,6 +994,7 @@ function simulate (dt) {
   if (running) {
     if (economy.update(dt)) audio.coin()
     director.update(dt, zombies.length)
+    if (dueloEnCurso) duelo.tic(dt)
 
     // El ánimo del Capitán: su carril y los de al lado disparan más rápido. Se
     // recalcula cada fotograma porque los soldados se mueven de casilla y él
@@ -1599,6 +1606,9 @@ function win () {
 function lose () {
   running = false
   audio.stopMusic()
+  // En el duelo, caer es perder contra el otro: ni monedas a la cartera ni
+  // cofre de consolación.
+  if (dueloEnCurso) { ui.banner('DESBORDADOS'); return duelo.perdi() }
   cerrarCuentas()
   if (retoEnCurso) return finReto(false)
   ui.banner('DESBORDADOS')
@@ -1641,6 +1651,13 @@ function limpiarPartida () {
   ui.closeInspector()
 }
 
+function alAparecer (z) {
+  marcarBrillo(z.mesh)
+  scene.add(z.mesh)
+  zombies.push(z)
+  if (z.spec.boss) entradaJefe(z)
+}
+
 function start (indice = nivelActual) {
   nivelActual = Math.max(0, Math.min(NIVELES.length - 1, indice))
   limpiarPartida()
@@ -1669,13 +1686,14 @@ function start (indice = nivelActual) {
   if (coop?.esAnfitrion) coop.transporte.mandar('partida', { nivel: nivelActual })
   director = createWaveDirector(
     nivelDeHoy,
-    z => { marcarBrillo(z.mesh); scene.add(z.mesh); zombies.push(z); if (z.spec.boss) entradaJefe(z) },
+    alAparecer,
     (n, total, boss) => {
       ui.setWave(`Oleada ${n} / ${total}`)
       ui.banner(boss ? 'LA MADRE' : `OLEADA ${n}`)
       if (boss) audio.groan(true)
     },
-    () => setTimeout(empezarAsalto, 1200),
+    // En el duelo la horda no se acaba (y si alguien la vaciara, sigue ahí).
+    () => { if (!dueloEnCurso) setTimeout(empezarAsalto, 1200) },
     (n, jefe) => { dropship.llegar(n, jefe); audio.nave(jefe) },
     () => dropship.partir()
   )
@@ -1697,7 +1715,9 @@ function pausar (v) {
   // cuando el dedo tapa el botón, y además apaga la música, que se quedaba
   // sonando alegremente con el juego congelado.
   audio.pausa(v)
-  pausado = v
+  // En un duelo el rival no se para: la pausa abre el menú, pero tu campo
+  // sigue corriendo.
+  pausado = v && !dueloEnCurso
   elPausaCapa.classList.toggle('hidden', !v)
   elPausa.setAttribute('aria-pressed', v ? 'true' : 'false')
   // Al reanudar hay que refrescar el reloj: si no, el primer fotograma tras la
@@ -1722,6 +1742,11 @@ const CAPAS_ATRAS = [
   ['parte-capa', 'parte-volver'],
   ['tienda-capa', 'tienda-volver'],
   ['pais-capa', 'pais-volver'],
+  ['duelo-capa', 'duelo-volver'],
+  ['ranking-capa', 'ranking-volver'],
+  ['retos-capa', 'retos-volver'],
+  ['coop-capa', 'coop-volver'],
+  ['multi-capa', 'multi-volver'],
   ['mapa-capa', 'mapa-volver']
 ]
 function destinoAtras () {
@@ -1769,6 +1794,8 @@ import('./jefeAlien.js')
 document.getElementById('pausa-seguir').addEventListener('click', () => pausar(false))
 document.getElementById('pausa-salir').addEventListener('click', () => {
   pausar(false)
+  // Salir de un duelo es rendirse: cuenta como derrota.
+  if (dueloEnCurso) return duelo.abandonar()
   volverAlInforme()
 })
 
@@ -2032,6 +2059,7 @@ const cuenta = crearCuenta({
       ? `Progreso guardado en la nube como ${u.displayName ?? u.email}.`
       : 'Guarda tu progreso en la nube y recupéralo en cualquier móvil.'
     pintarAlias(u)
+    montarBandeja({ cuenta, escapar: escaparTexto }).catch(e => console.warn('Sin bandeja:', e))
   }
 })
 
@@ -2393,6 +2421,7 @@ document.getElementById('parte-volver').addEventListener('click', () => {
 // --- tienda y cofre -----------------------------------------------------------
 // La tienda reaprovecha los retratos que se sacan al arrancar para la armería.
 let retratosGuardados = new Map()
+let retratosAlien = new Map()
 
 // Al cerrar la tienda solo se recarga si se ha DESBLOQUEADO algo: la armería de
 // la partida se monta al arrancar con lo que hay abierto, y una carta comprada
@@ -2449,6 +2478,8 @@ try {
   const destino = sessionStorage.getItem('alienz-abrir')
   sessionStorage.removeItem('alienz-abrir')
   if (destino === 'mapa') abrirMapa()
+  // El duelo se monta más abajo: se abre en cuanto termina de cargar el módulo.
+  else if (destino === 'duelo') { abrirMapa(); elMapaCapa.classList.add('hidden'); setTimeout(() => duelo.abrir()) }
   else if (destino?.startsWith('pais:')) { abrirMapa(); abrirPais(Number(destino.slice(5)) || 0) }
 } catch { /* sin almacén de sesión: se queda en la portada */ }
 
@@ -2574,7 +2605,7 @@ renderPortraits(renderer, (hechas, total) => {
   // Del 12% al 100%: lo de antes ya está hecho y no se puede volver a contar.
   pintarCarga(0.12 + (hechas / total) * 0.88)
 })
-  .then(({ retratos, amenazas }) => { retratosGuardados = retratos; ui.setPortraits(retratos); pintarAmenazas(amenazas) })
+  .then(({ retratos, amenazas }) => { retratosGuardados = retratos; retratosAlien = amenazas; ui.setPortraits(retratos); pintarAmenazas(amenazas) })
   .catch(err => console.warn('Sin retratos:', err))
   // Pase lo que pase con los retratos, la pantalla se quita: si fallaran, el
   // juego sigue con el icono del arma en las fichas, y quedarse tapado detrás de
@@ -2772,6 +2803,71 @@ document.getElementById('multi-ranking')?.addEventListener('click', () => {
 })
 document.getElementById('ranking-antes')?.addEventListener('click', () => { tramoRanking = Math.max(0, tramoRanking - 1); pintarRanking() })
 document.getElementById('ranking-despues')?.addEventListener('click', () => { tramoRanking = Math.min(NIVELES.length - 1, tramoRanking + 1); pintarRanking() })
+// --- 1 contra 1 ------------------------------------------------------------------
+const duelo = crearDuelo({
+  cuenta,
+  audio,
+  escapar: escaparTexto,
+  juego: {
+    empezar (semilla) {
+      const nivel = {
+        ...NIVELES[0],
+        name: 'Arena',
+        pais: 'Arena',
+        bioma: 'arena',
+        suelo: 'tierra',
+        tonoSuelo: null,
+        hitos: [],
+        dureza: 0.07,
+        waves: oleadasArena(semilla),
+        azar: azarConSemilla(semilla),
+        escala: () => duelo.escala()
+      }
+      dueloEnCurso = { nivel }
+      // Todo el arsenal abierto y sin mejoras, igual para los dos. El premio
+      // único del cofre se queda fuera: no lo tiene casi nadie.
+      const todas = new Set([...Object.keys(SOLDIERS), ...Object.keys(DEFENSES), ...Object.keys(STRIKES), 'collector'])
+      for (const k of PREMIOS_UNIDAD) todas.delete(k)
+      ui.filtrarCartas(todas)
+      ponerSinMejoras(true)
+      for (const id of ['multi-capa', 'duelo-capa', 'retos-capa', 'coop-capa', 'ranking-capa']) document.getElementById(id)?.classList.add('hidden')
+      start(nivelActual)
+    },
+    meterAlien (clave, lane) {
+      const spec = ZOMBIES[clave]
+      const escala = (1 + 0.07 * Math.max(0, director.wave - 1)) * duelo.escala()
+      createZombie(clave, spec, lane, escala).then(z => { if (running) alAparecer(z); else scene.remove(z.mesh) })
+    },
+    campo: () => ({
+      base: baseHp / BASE.hp * 100,
+      zombies: zombies.map(z => ({ key: z.key, x: z.mesh.position.x, z: z.mesh.position.z })),
+      soldiers: soldiers.map(s => ({ key: s.key, lane: s.lane, row: s.row }))
+    }),
+    parar () { running = false; audio.stopMusic() },
+    banner: t => ui.banner(t),
+    rotulo: t => ui.setWave(t),
+    retratoAlien: k => retratosAlien.get?.(k) ?? null,
+    final (gane, html, conCofre) {
+      setTimeout(() => {
+        ui.showOverlay(`${html}
+          ${conCofre ? '<div class="botin"><div class="cofre" id="cofre"></div></div>' : ''}
+          <button class="big-btn" onclick="volverA('duelo')">OTRO DUELO</button>
+          <button class="chip chip-ghost" onclick="volverA('mapa')">Volver al mapa</button>`)
+        if (conCofre) abrirCofre(true, 2)
+      }, 900)
+    }
+  }
+})
+document.getElementById('multi-duelo')?.addEventListener('click', () => {
+  audio.unlock()
+  elMultiCapa.classList.add('hidden')
+  duelo.abrir()
+})
+document.getElementById('duelo-volver')?.addEventListener('click', () => {
+  duelo.cerrar()
+  elMultiCapa.classList.remove('hidden')
+})
+
 document.getElementById('ranking-volver')?.addEventListener('click', () => {
   elRankingCapa.classList.add('hidden')
   elMultiCapa.classList.remove('hidden')

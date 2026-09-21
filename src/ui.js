@@ -134,7 +134,9 @@ export function createUI ({ onSelect, onUpgrade, onMove, onDeselect, onArrastreC
   window.addEventListener('pointerup', e => acabarGesto(e, false))
   window.addEventListener('pointercancel', e => acabarGesto(e, true))
 
-  const catalog = buildCatalog()
+  // Se montan TODAS las cartas y se esconden las cerradas: así el duelo, que
+  // abre el arsenal entero, no tiene que reconstruir la barra.
+  const catalog = buildCatalog({ has: () => true })
   const cards = new Map()
   let selected = null
   let inspected = null
@@ -221,6 +223,21 @@ export function createUI ({ onSelect, onUpgrade, onMove, onDeselect, onArrastreC
     cards.set(item.key, card)
   })
 
+  function filtrarCartas (abiertas) {
+    for (const [key, card] of cards) card.hidden = !abiertas.has(key)
+    // Un separador solo si su grupo tiene algo a la vista y hay algo antes.
+    let antes = false
+    for (const n of el.armory.children) {
+      if (n.classList.contains('armory-sep')) {
+        let sig = n.nextElementSibling
+        let hay = false
+        while (sig && !sig.classList.contains('armory-sep')) { if (!sig.hidden) hay = true; sig = sig.nextElementSibling }
+        n.hidden = !(hay && antes)
+      } else if (!n.hidden) antes = true
+    }
+  }
+  filtrarCartas(cartasAbiertas())
+
   function refreshSelection () {
     for (const [key, card] of cards) {
       const on = selected?.key === key
@@ -302,6 +319,8 @@ export function createUI ({ onSelect, onUpgrade, onMove, onDeselect, onArrastreC
 
     clearSelection () { selected = null; refreshSelection() },
     get selected () { return selected },
+
+    filtrarCartas,
 
     removeCard (key) {
       cards.get(key)?.remove()

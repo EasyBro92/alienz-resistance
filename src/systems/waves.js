@@ -26,6 +26,9 @@ export function createWaveDirector (level, onSpawn, onWaveStart, onCleared, onLl
   // otras repartidas: la misma defensa ganaba o perdía por suerte. Barajando
   // los carriles y repartiendo hasta agotarlos, el orden sigue siendo sorpresa
   // pero deja de haber rachas.
+  // En el duelo la horda sale de una semilla, para que los dos móviles vean la
+  // misma; en la campaña, el azar de siempre.
+  const azar = level.azar ?? Math.random
   let deck = []
   let deckKey = ''
   function drawLane (pool) {
@@ -34,7 +37,7 @@ export function createWaveDirector (level, onSpawn, onWaveStart, onCleared, onLl
       deckKey = key
       deck = [...pool]
       for (let i = deck.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1))
+        const j = Math.floor(azar() * (i + 1))
         ;[deck[i], deck[j]] = [deck[j], deck[i]]
       }
     }
@@ -48,7 +51,7 @@ export function createWaveDirector (level, onSpawn, onWaveStart, onCleared, onLl
     queue = []
     for (const s of wave.spawns) {
       for (let i = 0; i < s.count; i++) {
-        queue.push({ type: s.type, at: i * s.every + Math.random() * 0.35, lanes: s.lanes })
+        queue.push({ type: s.type, at: i * s.every + azar() * 0.35, lanes: s.lanes })
       }
     }
     queue.sort((a, b) => a.at - b.at)
@@ -90,7 +93,7 @@ export function createWaveDirector (level, onSpawn, onWaveStart, onCleared, onLl
         // Cada oleada endurece un poco a la horda: el mismo zombi aguanta más.
         // Cuánto, lo decide el nivel: el primero enseña y apenas sube, el último
         // tiene que apretar de verdad en las oleadas finales.
-        const scale = 1 + (level.dureza ?? 0.09) * waveIndex
+        const scale = (1 + (level.dureza ?? 0.09) * waveIndex) * (level.escala?.() ?? 1)
         createZombie(type, spec, lane, scale).then(z => { pending--; onSpawn(z) })
       }
 

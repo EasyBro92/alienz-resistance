@@ -1,0 +1,685 @@
+// Duelo en directo: la sala, el emparejamiento, lo que se ve durante la partida
+// (miniatura del rival, biomasa para atacar, avisos, chat) y el final.
+//
+// Cada jugador simula SU campo. Por la red solo cruza:
+//   duelos/{codigo}/jugadores/{uid}   quién está (se borra solo si se cae)
+//   duelos/{codigo}/inicio            la semilla de la horda, cuando están los dos
+//   duelos/{codigo}/campo/{uid}       la miniatura, cuatro veces por segundo
+//   duelos/{codigo}/envios/{uid}      los alienz que le mandan a ese jugador
+//   duelos/{codigo}/chat              los mensajes
+//   duelos/{codigo}/fin/{uid}         «he caído»
+// y, fuera de la sala, `cola` (partida rápida), `denuncias` y `bloqueados`.
+//
+// La lógica de la partida sigue en main.js: aquí se le pide lo justo a través
+// de `juego` (empezar, meter un alien, leer el campo, pintar el final).
+
+import { ZOMBIES, SOLDIERS, DEFENSES, FIELD } from './config.js'
+import {
+  semillaNueva, ENVIOS, CLAVES_ENVIO, biomasaDe, AVISO, MUERTE_SUBITA,
+  PUNTOS_INICIALES, rangoDe, insignia, cambioDePuntos,
+  FRASES, MAX_MENSAJE, ESPERA_MENSAJE, filtrar
+} from './systems/duelo.js'
+
+const CLAVES_Z = Object.keys(ZOMBIES)
+const CLAVES_S = [...Object.keys(SOLDIERS), ...Object.keys(DEFENSES)]
+const LETRAS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+const codigoNuevo = () => Array.from({ length: 4 }, () => LETRAS[Math.floor(Math.random() * LETRAS.length)]).join('')
+const CLAVE_VISTA = 'alienz-duelo-vista-v1'
+const ESPERA_VUELTA = 20
+const hex = n => '#' + (n ?? 0x888888).toString(16).padStart(6, '0')
+const $ = id => document.getElementById(id)
+
+// Con `?local` en desarrollo, el duelo va entre pestañas de este navegador y
+// no necesita cuenta ni red: es como se prueba en el ordenador.
+const modoLocal = () => import.meta.env.DEV && new URLSearchParams(location.search).has('local')
+
+export function crearDuelo ({ cuenta, audio, escapar, juego }) {
+  let almacen = null
+  let yo = null                 // { uid, alias, puntos, conCuenta }
+  let sala = null               // { codigo, anfitrion, rival, semilla, … }
+  let sueltas = []
+  let enCurso = false
+  let t = 0
+  let biomasa = 0
+  let recargas = {}
+  let avisos = []
+  let envioCampo = 0
+  let carrilElegido = -1
+  let silenciado = false
+  let ultimoMensaje = 0
+  let bloqueado = false
+  let ausencia = null           // segundos que lleva fuera el rival
+  let subita = false
+  let terminado = false
+  let buscando = null
+
+  const lienzo = $('duelo-mini')
+  const pincel = lienzo?.getContext('2d')
+
+  // --- conexión -----------------------------------------------------------------
+  async function conectar () {
+    if (almacen) return almacen
+    if (modoLocal()) {
+      const { almacenLocal } = await import('./systems/almacen.js')
+      almacen = almacenLocal('local-' + Math.random().toString(36).slice(2, 8))
+    } else {
+      const { asegurarSesion } = await import('./systems/cuenta.js')
+      const u = cuenta.usuario ?? await asegurarSesion()
+      const { almacenNube } = await import('./systems/almacen.js')
+      almacen = await almacenNube(u)
+    }
+    const { aliasActual } = await import('./systems/marcadores.js')
+    const conCuenta = !!cuenta.usuario && !modoLocal()
+    yo = {
+      uid: almacen.uid,
+      alias: conCuenta ? aliasActual(cuenta.usuario) : 'Invitado ' + almacen.uid.slice(-4).toUpperCase(),
+      conCuenta,
+      puntos: conCuenta ? (await leerFicha())?.puntos ?? PUNTOS_INICIALES : PUNTOS_INICIALES
+    }
+    bloqueado = !!(await almacen.leer(`bloqueados/${yo.uid}`).catch(() => null))
+    return almacen
+  }
+
+  async function leerFicha () {
+    const { cargarFirebase } = await import('./systems/cuenta.js')
+    const { fs, db } = await cargarFirebase()
+    return (await fs.getDoc(fs.doc(db, 'duelo', cuenta.usuario.uid))).data() ?? null
+  }
+
+  // --- vestíbulo -----------------------------------------------------------------
+  const aviso = texto => { $('duelo-aviso').textContent = texto }
+
+  async function abrir () {
+    $('duelo-capa').classList.remove('hidden')
+    $('duelo-sala').hidden = true
+    aviso('')
+    $('duelo-sin-cuenta').hidden = !!cuenta.usuario
+    pintarMiRango()
+    pintarTabla()
+    try {
+      await conectar()
+      pintarMiRango()
+    } catch (e) {
+      console.warn('Sin duelo:', e)
+      // Sin cuenta se entra con una sesión anónima; si el servidor no la
+      // permite, lo honrado es decir qué hacer en vez de un error genérico.
+      aviso(!cuenta.usuario && /operation-not-allowed|admin-restricted/.test(e?.code ?? '')
+        ? 'Ahora mismo hace falta entrar con tu cuenta (en Ajustes) para jugar en línea.'
+        : 'No se ha podido conectar. Revisa la conexión e inténtalo otra vez.')
+    }
+  }
+
+  function pintarMiRango () {
+    const caja = $('duelo-yo')
+    if (!cuenta.usuario) {
+      caja.innerHTML = `${insignia(rangoDe(PUNTOS_INICIALES).indice, 52)}<div><b>Sin rango</b><small>Juegas como invitado</small></div>`
+      return
+    }
+    const p = yo?.puntos ?? PUNTOS_INICIALES
+    const r = rangoDe(p)
+    caja.innerHTML = `${insignia(r.indice, 52)}<div><b>${r.nombre}</b><small>${p} puntos</small></div>`
+  }
+
+  async function pintarTabla () {
+    const lista = $('duelo-tabla')
+    if (!cuenta.usuario) { lista.innerHTML = '<li class="marcador-vacio">Entra con tu cuenta para ver la clasificación.</li>'; return }
+    lista.innerHTML = '<li class="marcador-cargando">Pidiendo la tabla…</li>'
+    try {
+      const { cargarFirebase } = await import('./systems/cuenta.js')
+      const { fs, db } = await cargarFirebase()
+      const q = fs.query(fs.collection(db, 'duelo'), fs.orderBy('puntos', 'desc'), fs.limit(10))
+      const filas = (await fs.getDocs(q)).docs.map((d, i) => ({ puesto: i + 1, uid: d.id, ...d.data() }))
+      lista.innerHTML = filas.length
+        ? filas.map(f => `
+          <li class="${f.uid === cuenta.usuario.uid ? 'marcador-yo' : ''}">
+            <span class="marcador-puesto">${f.puesto}</span>
+            <span class="marcador-alias duelo-fila">${insignia(rangoDe(f.puntos).indice, 20)}${escapar(f.alias ?? '')}</span>
+            <span class="marcador-marca">${f.puntos}</span>
+          </li>`).join('')
+        : '<li class="marcador-vacio">Nadie ha jugado todavía. Estrena la tabla.</li>'
+    } catch (e) {
+      console.warn('Sin tabla de duelo:', e)
+      lista.innerHTML = '<li class="marcador-vacio">No se ha podido leer la tabla.</li>'
+    }
+  }
+
+  async function crearSala () {
+    await conectar()
+    await entrarEnSala(codigoNuevo(), true)
+    $('duelo-codigo').textContent = sala.codigo
+    $('duelo-sala').hidden = false
+    aviso('')
+  }
+
+  async function unirse (codigo) {
+    if (!/^[A-Z2-9]{4}$/.test(codigo)) return aviso('El código son cuatro letras o números.')
+    await conectar()
+    const gente = await almacen.leer(`duelos/${codigo}/jugadores`)
+    const n = Object.keys(gente ?? {}).length
+    if (!n) return aviso('No hay ninguna sala abierta con ese código.')
+    if (n >= 2 && !gente[yo.uid]) return aviso('Esa sala ya está llena.')
+    await entrarEnSala(codigo, false)
+    aviso('Dentro. Empieza en cuanto la sala esté lista…')
+  }
+
+  // Partida rápida: una sola casilla, `cola`. Si hay alguien esperando (y no
+  // lleva más de un minuto), se entra en su sala; si no, se deja la tuya y se
+  // espera a que alguien la coja.
+  async function partidaRapida () {
+    await conectar()
+    const mia = codigoNuevo()
+    let cogida = null
+    await almacen.transaccion('cola', actual => {
+      cogida = null
+      if (actual && actual.uid !== yo.uid && Date.now() - (actual.en ?? 0) < 60000) {
+        cogida = actual
+        return null
+      }
+      return { codigo: mia, uid: yo.uid, en: Date.now() }
+    })
+    if (cogida) {
+      await entrarEnSala(cogida.codigo, false)
+      aviso('¡Rival encontrado! Preparando la arena…')
+      return
+    }
+    await entrarEnSala(mia, true)
+    buscando = mia
+    // La cola caduca al minuto (por si alguien cierra el juego buscando), así
+    // que mientras sigas buscando se renueva la hora.
+    const renovar = setInterval(() => {
+      if (buscando !== mia) return clearInterval(renovar)
+      almacen.transaccion('cola', actual => (actual?.codigo === mia ? { ...actual, en: Date.now() } : actual)).catch(() => {})
+    }, 25000)
+    aviso('Buscando rival… (tarda lo que tarde en entrar alguien más)')
+    $('duelo-cancelar').hidden = false
+  }
+
+  async function cancelarBusqueda () {
+    $('duelo-cancelar').hidden = true
+    if (buscando && almacen) {
+      const mia = buscando
+      await almacen.transaccion('cola', actual => (actual?.codigo === mia ? null : actual)).catch(() => {})
+    }
+    buscando = null
+    salirDeSala()
+    aviso('')
+  }
+
+  async function entrarEnSala (codigo, anfitrion) {
+    salirDeSala()
+    sala = { codigo, anfitrion, rival: null, raiz: `duelos/${codigo}` }
+    const fila = `${sala.raiz}/jugadores/${yo.uid}`
+    const apuntarme = () => {
+      almacen.alIrme(fila)
+      return almacen.poner(fila, { alias: yo.alias, puntos: yo.puntos, cuenta: yo.conCuenta })
+    }
+    await apuntarme()
+    // Si el móvil pierde la cobertura un momento, el servidor le borra la fila;
+    // al volver hay que apuntarse otra vez o el rival le daría por ido.
+    if (almacen.alConexion) sueltas.push(almacen.alConexion(ok => { if (ok && sala) apuntarme() }))
+
+    sueltas.push(almacen.alCambiar(`${sala.raiz}/jugadores`, gente => alCambiarGente(gente ?? {})))
+    sueltas.push(almacen.alCambiar(`${sala.raiz}/inicio`, inicio => { if (inicio && !enCurso && !sala.cuenta) cuentaAtras(inicio) }))
+  }
+
+  function alCambiarGente (gente) {
+    if (!sala) return
+    const otros = Object.entries(gente).filter(([uid]) => uid !== yo.uid)
+    const [uidRival, datos] = otros[0] ?? []
+    if (uidRival) sala.rival = { uid: uidRival, ...datos }
+    $('duelo-gente').textContent = uidRival ? `Rival: ${datos.alias}` : 'Esperando al rival…'
+
+    if (enCurso) {
+      // Durante la partida, que el rival desaparezca abre la cuenta de 20 s.
+      if (!uidRival && ausencia == null) { ausencia = 0; juego.banner('RIVAL DESCONECTADO') }
+      if (uidRival && ausencia != null) { ausencia = null; $('duelo-ausencia').hidden = true }
+      return
+    }
+    // El anfitrión arranca en cuanto hay dos. En partida rápida, además, la
+    // casilla de la cola ya no pinta nada.
+    if (uidRival && sala.anfitrion && !sala.cuenta) {
+      if (buscando) { buscando = null; $('duelo-cancelar').hidden = true }
+      almacen.poner(`${sala.raiz}/inicio`, { semilla: semillaNueva() })
+    }
+  }
+
+  function salirDeSala () {
+    for (const quitar of sueltas) try { quitar?.() } catch {}
+    sueltas = []
+    if (sala && almacen) almacen.quitar(`${sala.raiz}/jugadores/${yo.uid}`)?.catch?.(() => {})
+    sala = null
+  }
+
+  // --- cuenta atrás y arranque -------------------------------------------------------
+  function cuentaAtras (inicio) {
+    sala.semilla = inicio.semilla
+    sala.cuenta = true
+    $('duelo-capa').classList.add('hidden')
+    let n = 3
+    juego.banner(`${sala.rival?.alias ?? 'RIVAL'} · ${n}`)
+    audio.coin?.()
+    const tic = setInterval(() => {
+      n--
+      if (n > 0) { juego.banner(String(n)); audio.coin?.(); return }
+      clearInterval(tic)
+      empezar()
+    }, 1000)
+  }
+
+  function empezar () {
+    enCurso = true
+    terminado = false
+    t = 0
+    biomasa = 0
+    recargas = {}
+    avisos = []
+    ausencia = null
+    subita = false
+    carrilElegido = -1
+    $('duelo-hud').hidden = false
+    $('duelo-rival-nombre').textContent = sala.rival?.alias ?? 'Rival'
+    aplicarVista(leerVista())
+    pintarBandeja()
+    pintarBiomasa()
+    $('duelo-mensajes').innerHTML = ''
+    pintarChatBloqueado()
+    juego.empezar(sala.semilla)
+
+    sueltas.push(almacen.alCambiar(`${sala.raiz}/campo/${sala.rival?.uid}`, c => { sala.campoRival = c }))
+    sueltas.push(almacen.alNuevo(`${sala.raiz}/envios/${yo.uid}`, (e, clave) => {
+      almacen.quitar(`${sala.raiz}/envios/${yo.uid}/${clave}`)
+      recibirEnvio(e)
+    }))
+    sueltas.push(almacen.alNuevo(`${sala.raiz}/chat`, m => pintarMensaje(m), 30))
+    sueltas.push(almacen.alCambiar(`${sala.raiz}/fin`, fin => {
+      if (!fin || terminado) return
+      if (fin[sala.rival?.uid]) acabar(true, 'cayó')
+    }))
+  }
+
+  // --- durante la partida --------------------------------------------------------------
+  function tic (dt) {
+    if (!enCurso || terminado) return
+    t += dt
+    for (const k in recargas) recargas[k] = Math.max(0, recargas[k] - dt)
+
+    if (!subita && t >= MUERTE_SUBITA) { subita = true; juego.banner('MUERTE SÚBITA'); audio.groan?.(true) }
+    const resta = Math.max(0, MUERTE_SUBITA - t)
+    juego.rotulo(subita
+      ? `Muerte súbita · ×${escala().toFixed(1)}`
+      : `Duelo · ${Math.floor(resta / 60)}:${String(Math.floor(resta % 60)).padStart(2, '0')}`)
+
+    for (let i = avisos.length - 1; i >= 0; i--) {
+      const a = avisos[i]
+      a.queda -= dt
+      if (a.queda <= 0) {
+        avisos.splice(i, 1)
+        a.el.remove()
+        juego.meterAlien(a.k, a.l)
+      } else {
+        a.el.querySelector('i').style.width = `${a.queda / AVISO * 100}%`
+      }
+    }
+
+    envioCampo -= dt
+    if (envioCampo <= 0) {
+      envioCampo = 0.25
+      almacen.poner(`${sala.raiz}/campo/${yo.uid}`, empaquetarCampo())
+      pintarMini()
+      refrescarBandeja()
+    }
+
+    if (ausencia != null) {
+      ausencia += dt
+      const queda = Math.ceil(ESPERA_VUELTA - ausencia)
+      $('duelo-ausencia').hidden = false
+      $('duelo-ausencia').textContent = `El rival se ha desconectado. Ganas por abandono en ${Math.max(0, queda)} s`
+      if (ausencia >= ESPERA_VUELTA) acabar(true, 'abandono')
+    }
+  }
+
+  // Muerte súbita: el doble de duros por cada minuto que pase de los seis.
+  const escala = () => (t <= MUERTE_SUBITA ? 1 : 1 + (t - MUERTE_SUBITA) / 60)
+
+  function empaquetarCampo () {
+    const c = juego.campo()
+    return {
+      b: Math.round(c.base),
+      z: c.zombies.map(z => [CLAVES_Z.indexOf(z.key), Math.round(z.x * 10), Math.round(z.z * 10)]),
+      s: c.soldiers.map(s => [CLAVES_S.indexOf(s.key), s.lane, s.row])
+    }
+  }
+
+  function alMatar (spec) {
+    if (!enCurso) return
+    biomasa += biomasaDe(spec)
+    pintarBiomasa()
+  }
+
+  function pintarBiomasa () { $('duelo-biomasa').textContent = biomasa }
+
+  function mandar (clave) {
+    const e = ENVIOS[clave]
+    if (!e || biomasa < e.precio || recargas[clave] > 0) return audio.denied?.()
+    biomasa -= e.precio
+    recargas[clave] = e.recarga
+    const lane = carrilElegido >= 0 ? carrilElegido : Math.floor(Math.random() * FIELD.lanes)
+    almacen.añadir(`${sala.raiz}/envios/${sala.rival.uid}`, { k: clave, l: lane })
+    audio.place?.()
+    pintarBiomasa()
+    refrescarBandeja()
+  }
+
+  function recibirEnvio ({ k, l }) {
+    if (!ZOMBIES[k] || terminado) return
+    const lane = Math.max(0, Math.min(FIELD.lanes - 1, l | 0))
+    const el = document.createElement('div')
+    el.className = 'duelo-aviso'
+    el.style.setProperty('--tinte', hex(ZOMBIES[k].color))
+    el.innerHTML = `<b>${ZOMBIES[k].name}</b> por el carril ${lane + 1}<i></i>`
+    $('duelo-avisos').appendChild(el)
+    avisos.push({ k, l: lane, queda: AVISO, el })
+    audio.groan?.(false)
+  }
+
+  function pintarBandeja () {
+    $('duelo-carriles').innerHTML = ['Azar', 1, 2, 3, 4, 5].map((c, i) =>
+      `<button type="button" class="duelo-carril${i === 0 ? ' on' : ''}" data-carril="${i - 1}">${c}</button>`).join('')
+    $('duelo-tropas').innerHTML = CLAVES_ENVIO.map(k => {
+      const cara = juego.retratoAlien?.(k)
+      return `<button type="button" class="duelo-envio" data-clave="${k}" style="--tinte:${hex(ZOMBIES[k].color)}">
+        <span class="duelo-envio-cara">${cara ? `<img src="${cara}" alt="">` : '<svg aria-hidden="true"><use href="#i-enemigos"></use></svg>'}</span>
+        <b>${ZOMBIES[k].name}</b><small>${ENVIOS[k].precio}</small><i class="duelo-recarga"></i>
+      </button>`
+    }).join('')
+  }
+
+  function refrescarBandeja () {
+    for (const b of document.querySelectorAll('.duelo-envio')) {
+      const k = b.dataset.clave
+      const r = recargas[k] ?? 0
+      b.disabled = biomasa < ENVIOS[k].precio || r > 0
+      b.querySelector('.duelo-recarga').style.height = `${r / ENVIOS[k].recarga * 100}%`
+    }
+  }
+
+  // --- miniatura del rival ---------------------------------------------------------------
+  const leerVista = () => { try { return localStorage.getItem(CLAVE_VISTA) || 'mini' } catch { return 'mini' } }
+  function aplicarVista (v) {
+    $('duelo-rival').classList.toggle('grande', v === 'grande')
+    try { localStorage.setItem(CLAVE_VISTA, v) } catch {}
+    // Justo debajo de la barra de arriba, que cambia de alto según el móvil.
+    const hud = document.getElementById('hud')?.getBoundingClientRect()
+    if (hud) $('duelo-rival').style.top = `${Math.round(hud.bottom + 4)}px`
+    pintarMini()
+  }
+
+  function pintarMini () {
+    if (!pincel) return
+    // El lienzo se dibuja a la resolución que ocupa de verdad; al cambiar de
+    // tamaño hay una transición, así que se comprueba en cada pintada.
+    const caja = lienzo.getBoundingClientRect()
+    const k = Math.min(2, devicePixelRatio || 1)
+    const w = Math.max(1, Math.round(caja.width * k))
+    const h = Math.max(1, Math.round(caja.height * k))
+    if (lienzo.width !== w || lienzo.height !== h) { lienzo.width = w; lienzo.height = h }
+    const W = lienzo.width
+    const H = lienzo.height
+    const c = sala?.campoRival
+    pincel.clearRect(0, 0, W, H)
+    const ancho = FIELD.lanes * FIELD.laneWidth
+    const z0 = FIELD.spawnZ
+    const z1 = FIELD.baseZ + 1
+    const X = x => (x / ancho + 0.5) * W
+    const Y = z => (z - z0) / (z1 - z0) * H
+    // Carriles.
+    for (let i = 0; i < FIELD.lanes; i++) {
+      pincel.fillStyle = i % 2 ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.09)'
+      pincel.fillRect(i * W / FIELD.lanes, 0, W / FIELD.lanes, H)
+    }
+    // La base, abajo, con su vida.
+    const vida = (c?.b ?? 100) / 100
+    pincel.fillStyle = 'rgba(0,0,0,0.35)'
+    pincel.fillRect(0, Y(FIELD.baseZ), W, H - Y(FIELD.baseZ))
+    pincel.fillStyle = vida > 0.5 ? '#4ad07a' : vida > 0.25 ? '#e0a83c' : '#e8523f'
+    pincel.fillRect(0, H - Math.max(3, H * 0.03), W * vida, Math.max(3, H * 0.03))
+    if (!c) return
+    const r = Math.max(2, Math.min(W / 40, H / 60))
+    for (const [k, lane, row] of c.s ?? []) {
+      const spec = SOLDIERS[CLAVES_S[k]] ?? DEFENSES[CLAVES_S[k]]
+      pincel.fillStyle = hex(spec?.color ?? 0x9fb4c8)
+      const x = (lane + 0.5) * W / FIELD.lanes
+      const y = Y(FIELD.frontRowZ - row * FIELD.rowDepth)
+      pincel.fillRect(x - r * 1.3, y - r * 1.3, r * 2.6, r * 2.6)
+    }
+    for (const [k, x, z] of c.z ?? []) {
+      pincel.fillStyle = hex(ZOMBIES[CLAVES_Z[k]]?.color)
+      pincel.beginPath()
+      pincel.arc(X(x / 10), Y(z / 10), CLAVES_Z[k] === 'tank' ? r * 1.8 : r, 0, Math.PI * 2)
+      pincel.fill()
+    }
+  }
+
+  // --- chat -----------------------------------------------------------------------------
+  function pintarChatBloqueado () {
+    $('duelo-escribir').disabled = bloqueado
+    $('duelo-escribir').placeholder = bloqueado ? 'Tu chat está bloqueado' : `Escribe (máx. ${MAX_MENSAJE})`
+    $('duelo-frases').innerHTML = FRASES.map(f => `<button type="button" class="chip duelo-frase">${f}</button>`).join('')
+  }
+
+  function enviarMensaje (texto) {
+    if (bloqueado || !sala) return
+    const limpio = filtrar(texto)
+    if (!limpio) return
+    const ahora = performance.now() / 1000
+    if (ahora - ultimoMensaje < ESPERA_MENSAJE) { $('duelo-escribir').placeholder = 'Espera un momento…'; return }
+    ultimoMensaje = ahora
+    almacen.añadir(`${sala.raiz}/chat`, { de: yo.uid, alias: yo.alias, t: limpio, en: almacen.marcaDeTiempo() })
+  }
+
+  function pintarMensaje (m) {
+    if (!m?.t) return
+    const mio = m.de === yo.uid
+    if (!mio && silenciado) return
+    const li = document.createElement('li')
+    li.className = mio ? 'mio' : 'suyo'
+    li.innerHTML = `<b>${escapar(m.alias ?? '')}</b> ${escapar(filtrar(m.t))}`
+    if (!mio) {
+      const b = document.createElement('button')
+      b.type = 'button'
+      b.className = 'duelo-denunciar'
+      b.textContent = 'Denunciar'
+      b.addEventListener('click', () => denunciar(m, b))
+      li.appendChild(b)
+      // Aviso discreto de mensaje nuevo si el chat está cerrado.
+      if ($('duelo-chat').hidden) $('duelo-chat-boton').classList.add('nuevo')
+    }
+    const lista = $('duelo-mensajes')
+    lista.appendChild(li)
+    while (lista.children.length > 30) lista.firstElementChild.remove()
+    lista.scrollTop = lista.scrollHeight
+  }
+
+  async function denunciar (m, boton) {
+    boton.disabled = true
+    try {
+      await almacen.añadir('denuncias', {
+        de: m.de, alias: m.alias ?? '', texto: String(m.t).slice(0, MAX_MENSAJE),
+        por: yo.uid, sala: sala?.codigo ?? '', en: almacen.marcaDeTiempo()
+      })
+      boton.textContent = 'Denunciado'
+    } catch (e) {
+      console.warn('Sin denuncia:', e)
+      boton.textContent = 'Error'
+      boton.disabled = false
+    }
+  }
+
+  // --- final ------------------------------------------------------------------------------
+  function perdi () {
+    if (!enCurso || terminado) return
+    almacen.poner(`${sala.raiz}/fin/${yo.uid}`, true)
+    acabar(false, 'cayó')
+  }
+
+  async function acabar (gane, motivo) {
+    if (terminado) return
+    terminado = true
+    enCurso = false
+    juego.parar()
+    for (const a of avisos) a.el.remove()
+    avisos = []
+    $('duelo-hud').hidden = true
+    $('duelo-ausencia').hidden = true
+    const rival = sala?.rival
+    let puntos = ''
+    if (yo.conCuenta) {
+      try {
+        const antes = yo.puntos
+        const d = cambioDePuntos(antes, rival?.puntos ?? PUNTOS_INICIALES, gane)
+        yo.puntos = Math.max(0, antes + d)
+        await guardarFicha(gane)
+        const r = rangoDe(yo.puntos)
+        const subio = rangoDe(antes).indice !== r.indice
+        puntos = `<div class="duelo-resultado">${insignia(r.indice, 64)}
+          <div><b>${r.nombre}</b><small>${yo.puntos} puntos (${d > 0 ? '+' : ''}${d})${subio ? (d > 0 ? ' · ¡Subes de rango!' : ' · Bajas de rango') : ''}</small></div></div>`
+      } catch (e) {
+        console.warn('Sin puntos:', e)
+        puntos = '<p class="ajuste-pie">No se han podido guardar los puntos.</p>'
+      }
+    } else {
+      puntos = '<p class="ajuste-pie">Juegas sin cuenta: esta partida no suma puntos ni da cofre. Entra con Google en Ajustes para progresar.</p>'
+    }
+    const texto = gane
+      ? (motivo === 'abandono' ? `${escapar(rival?.alias ?? 'El rival')} abandonó la partida.` : `Aguantaste más que ${escapar(rival?.alias ?? 'tu rival')}.`)
+      : `${escapar(rival?.alias ?? 'Tu rival')} aguantó más que tú.`
+    juego.final(gane, `
+      <h1 class="${gane ? 'won' : 'lost'}">${gane ? 'VICTORIA' : 'DERROTA'}</h1>
+      <p class="tagline">${texto} Duelo de ${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}.</p>
+      ${puntos}`, gane && yo.conCuenta)
+    // La sala ya no pinta nada: se deja de escuchar y se borra lo propio.
+    const raiz = sala?.raiz
+    salirDeSala()
+    if (raiz && almacen) setTimeout(() => almacen.quitar(`${raiz}/campo/${yo.uid}`)?.catch?.(() => {}), 3000)
+  }
+
+  async function guardarFicha (gane) {
+    const { cargarFirebase } = await import('./systems/cuenta.js')
+    const { fs, db } = await cargarFirebase()
+    const ref = fs.doc(db, 'duelo', cuenta.usuario.uid)
+    const antes = (await fs.getDoc(ref)).data() ?? {}
+    await fs.setDoc(ref, {
+      alias: yo.alias,
+      puntos: yo.puntos,
+      ganadas: (antes.ganadas ?? 0) + (gane ? 1 : 0),
+      perdidas: (antes.perdidas ?? 0) + (gane ? 0 : 1),
+      fecha: fs.serverTimestamp()
+    })
+  }
+
+  // Abandonar desde la pausa cuenta como perder: si no, bastaría con salir
+  // cuando va mal.
+  function abandonar () { if (enCurso) perdi() }
+
+  // --- botones ------------------------------------------------------------------------------
+  const pulsar = (id, fn) => $(id)?.addEventListener('click', e => {
+    audio.unlock?.()
+    Promise.resolve(fn(e)).catch(err => { console.warn(err); aviso('Algo ha fallado. Inténtalo otra vez.') })
+  })
+  pulsar('duelo-rapida', partidaRapida)
+  pulsar('duelo-crear', crearSala)
+  pulsar('duelo-unirse', () => unirse($('duelo-codigo-campo').value.trim().toUpperCase()))
+  pulsar('duelo-cancelar', cancelarBusqueda)
+  pulsar('duelo-rival', () => aplicarVista($('duelo-rival').classList.contains('grande') ? 'mini' : 'grande'))
+  pulsar('duelo-atacar', () => {
+    const abrir = $('duelo-bandeja').hidden
+    $('duelo-bandeja').hidden = !abrir
+    $('duelo-chat').hidden = true
+    if (abrir) refrescarBandeja()
+  })
+  pulsar('duelo-chat-boton', () => {
+    $('duelo-chat').hidden = !$('duelo-chat').hidden
+    $('duelo-bandeja').hidden = true
+    $('duelo-chat-boton').classList.remove('nuevo')
+  })
+  $('duelo-carriles')?.addEventListener('click', e => {
+    const b = e.target.closest('.duelo-carril')
+    if (!b) return
+    carrilElegido = Number(b.dataset.carril)
+    for (const x of document.querySelectorAll('.duelo-carril')) x.classList.toggle('on', x === b)
+  })
+  $('duelo-tropas')?.addEventListener('click', e => {
+    const b = e.target.closest('.duelo-envio')
+    if (b) mandar(b.dataset.clave)
+  })
+  $('duelo-frases')?.addEventListener('click', e => {
+    const b = e.target.closest('.duelo-frase')
+    if (b) enviarMensaje(b.textContent)
+  })
+  $('duelo-escribir-form')?.addEventListener('submit', e => {
+    e.preventDefault()
+    enviarMensaje($('duelo-escribir').value)
+    $('duelo-escribir').value = ''
+  })
+  pulsar('duelo-silenciar', () => {
+    silenciado = !silenciado
+    $('duelo-silenciar').textContent = silenciado ? 'Quitar silencio' : 'Silenciar rival'
+    if (silenciado) for (const li of document.querySelectorAll('#duelo-mensajes .suyo')) li.remove()
+  })
+
+  return {
+    abrir,
+    cerrar () { if (buscando) cancelarBusqueda(); else if (!enCurso) salirDeSala(); $('duelo-capa').classList.add('hidden') },
+    tic,
+    alMatar,
+    perdi,
+    abandonar,
+    escala,
+    get enCurso () { return enCurso }
+  }
+}
+
+// --- bandeja de denuncias ---------------------------------------------------------------------
+//
+// Solo la ve quien esté en `admins/{uid}` de la Realtime Database, y eso solo
+// se puede apuntar desde la consola de Firebase: el juego no tiene forma de
+// hacer administrador a nadie.
+export async function montarBandeja ({ cuenta, escapar }) {
+  const caja = $('denuncias-bloque')
+  if (!caja) return
+  caja.hidden = true
+  if (!cuenta.usuario) return
+  const { almacenNube } = await import('./systems/almacen.js')
+  const { cargarFirebase } = await import('./systems/cuenta.js')
+  await cargarFirebase()
+  const almacen = await almacenNube(cuenta.usuario)
+  const soy = await almacen.leer(`admins/${cuenta.usuario.uid}`).catch(() => null)
+  if (!soy) return
+  caja.hidden = false
+  const lista = $('denuncias-lista')
+  almacen.alCambiar('denuncias', todas => {
+    const filas = Object.entries(todas ?? {}).sort((a, b) => (b[1].en ?? 0) - (a[1].en ?? 0))
+    $('denuncias-cuenta').textContent = filas.length ? `(${filas.length})` : ''
+    lista.innerHTML = filas.length
+      ? filas.map(([id, d]) => `
+        <li data-id="${id}" data-de="${escapar(d.de ?? '')}" data-alias="${escapar(d.alias ?? '')}">
+          <p><b>${escapar(d.alias ?? '¿?')}</b> escribió: «${escapar(d.texto ?? '')}»</p>
+          <small>${d.en ? new Date(d.en).toLocaleString('es-ES') : ''} · sala ${escapar(d.sala ?? '')}</small>
+          <div class="denuncia-botones">
+            <button type="button" class="chip" data-accion="bloquear">Bloquear su chat</button>
+            <button type="button" class="chip chip-ghost" data-accion="descartar">Descartar</button>
+          </div>
+        </li>`).join('')
+      : '<li class="marcador-vacio">No hay denuncias pendientes.</li>'
+  })
+  lista.onclick = async e => {
+    const b = e.target.closest('button[data-accion]')
+    if (!b) return
+    const li = b.closest('li')
+    b.disabled = true
+    if (b.dataset.accion === 'bloquear') {
+      await almacen.poner(`bloqueados/${li.dataset.de}`, { alias: li.dataset.alias, en: almacen.marcaDeTiempo() })
+    }
+    await almacen.quitar(`denuncias/${li.dataset.id}`)
+  }
+}

@@ -2076,6 +2076,17 @@ export const BIOMAS = {
     cielo: 0x6fb2e8, niebla: 0xd2e2ea, sol: 0xfff6e4, ambiente: 0xc9c2ac,
     flora: [['cipres', 0x33532f, 14], ['pino', 0x4e6b3c, 10]]
   },
+  // La arena del 1 contra 1: un cráter al atardecer, rojo y ceniza, que no se
+  // parece a ningún tramo de la campaña para que se sepa en qué modo estás.
+  arena: {
+    hora: 'ocaso',
+    restos: [['oruga', 0x4a423c, 2]],
+    asfalto: 0x3e3a38, raya: 0xf0c419, bordillo: 0x5a524a,
+    terreno: 'roca', tierra: 0x5e4a42, cerro: 0x3e302c, meseta: 0x4a3a34,
+    cielo: 0xc97a5a, niebla: 0x8a5a4a, sol: 0xffb88a, ambiente: 0x6a4a44,
+    flora: [['pino', 0x2e3a2a, 4]],
+    hito: ['volcan', 0x3a2e2a, false]
+  },
   volcanico: {
     hora: 'ocaso',
     restos: [['autobus', 0xc4923a, 2], ['contenedor', 0x9a6a3a, 3]],

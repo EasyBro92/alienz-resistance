@@ -44,6 +44,27 @@ service cloud.firestore {
         && request.resource.size() < 4 * 1024;
     }
 
+    // La clasificación del 1 contra 1: una fila por jugador CON cuenta (las
+    // sesiones anónimas de invitado no puntúan). Cada partida mueve los puntos
+    // como mucho 40 y suma exactamente una partida, ganada o perdida.
+    match /duelo/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid
+        && request.auth.token.firebase.sign_in_provider != 'anonymous'
+        && request.resource.data.keys().hasOnly(['alias', 'puntos', 'ganadas', 'perdidas', 'fecha'])
+        && request.resource.data.alias is string
+        && request.resource.data.alias.size() > 0 && request.resource.data.alias.size() <= 24
+        && request.resource.data.puntos is int
+        && request.resource.data.puntos >= 0 && request.resource.data.puntos <= 5000
+        && request.resource.data.ganadas is int && request.resource.data.perdidas is int
+        && (resource == null
+          ? (math.abs(request.resource.data.puntos - 1000) <= 40
+            && request.resource.data.ganadas + request.resource.data.perdidas == 1)
+          : (math.abs(request.resource.data.puntos - resource.data.puntos) <= 40
+            && request.resource.data.ganadas + request.resource.data.perdidas
+              == resource.data.ganadas + resource.data.perdidas + 1));
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

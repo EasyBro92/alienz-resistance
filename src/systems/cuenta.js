@@ -34,10 +34,20 @@ export function cargarFirebase () {
   fb ??= Promise.all([
     import('firebase/app'), import('firebase/auth'), import('firebase/firestore')
   ]).then(([app, auth, fs]) => {
-    const a = app.initializeApp(CONFIG)
+    // Si el cooperativo abrió Firebase primero, se reutiliza: una segunda
+    // app por defecto hace saltar un error.
+    const a = app.getApps()[0] ?? app.initializeApp(CONFIG)
     return { auth, fs, sesion: auth.getAuth(a), db: fs.getFirestore(a) }
   })
   return fb
+}
+
+// Una sesión para jugar en red SIN cuenta: anónima, no guarda progreso y no
+// cuenta como «haber entrado». La usa el duelo para quien juega sin Google.
+export async function asegurarSesion () {
+  const { auth, sesion } = await cargarFirebase()
+  if (sesion.currentUser) return sesion.currentUser
+  return (await auth.signInAnonymously(sesion)).user
 }
 
 const leer = clave => {
@@ -113,7 +123,10 @@ export function crearCuenta ({ alCambiar }) {
     const { auth, sesion } = await cargarFirebase()
     // Vuelta de un inicio por redirección (móviles que bloquean la ventana).
     auth.getRedirectResult(sesion).catch(() => {})
-    auth.onAuthStateChanged(sesion, async u => {
+    auth.onAuthStateChanged(sesion, async bruto => {
+      // La sesión anónima del duelo no es una cuenta: ni sincroniza ni sale
+      // como «conectado» en Ajustes.
+      const u = bruto && !bruto.isAnonymous ? bruto : null
       usuario = u
       if (u) {
         escribir(CLAVE_SESION, true)

@@ -15,6 +15,60 @@
           }
         }
       }
+    },
+    "duelos": {
+      "$codigo": {
+        ".read": "auth != null",
+        "jugadores": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            ".validate": "!newData.exists() || (newData.hasChildren(['alias', 'puntos']) && newData.child('alias').isString() && newData.child('alias').val().length <= 24)"
+          }
+        },
+        "inicio": { ".write": "auth != null" },
+        "campo": {
+          "$uid": { ".write": "auth != null && auth.uid === $uid" }
+        },
+        "envios": {
+          "$uid": {
+            "$envio": {
+              ".write": "auth != null",
+              ".validate": "!newData.exists() || newData.hasChildren(['k', 'l'])"
+            }
+          }
+        },
+        "chat": {
+          "$msg": {
+            ".write": "auth != null && !data.exists() && newData.child('de').val() === auth.uid && !root.child('bloqueados/' + auth.uid).exists()",
+            ".validate": "newData.child('t').isString() && newData.child('t').val().length <= 60 && newData.child('alias').isString() && newData.child('alias').val().length <= 24"
+          }
+        },
+        "fin": {
+          "$uid": { ".write": "auth != null && auth.uid === $uid" }
+        }
+      }
+    },
+    "cola": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "denuncias": {
+      ".read": "auth != null && root.child('admins/' + auth.uid).exists()",
+      "$denuncia": {
+        ".write": "auth != null && ((!data.exists() && newData.child('por').val() === auth.uid) || root.child('admins/' + auth.uid).exists())",
+        ".validate": "!newData.exists() || (newData.hasChildren(['de', 'texto', 'por']) && newData.child('texto').isString() && newData.child('texto').val().length <= 60)"
+      }
+    },
+    "bloqueados": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('admins/' + auth.uid).exists())",
+        ".write": "auth != null && root.child('admins/' + auth.uid).exists()"
+      }
+    },
+    "admins": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid"
+      }
     }
   }
 }
