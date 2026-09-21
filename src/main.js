@@ -2334,12 +2334,20 @@ function abrirParte (indice) {
 // con sesión: sin cuenta no hay marcador que leer ni fila que escribir, y el
 // juego entero se puede jugar así.
 let marcadorPedido = 0
-async function pintarMarcador (indice) {
-  const caja = document.getElementById('parte-marcador')
-  const lista = document.getElementById('parte-marcador-lista')
-  const pie = document.getElementById('parte-marcador-pie')
+// `donde` es el prefijo de la caja: 'parte' (antes de bajar) o 'ranking'.
+async function pintarMarcador (indice, donde = 'parte') {
+  const caja = document.getElementById(donde + '-marcador')
+  const lista = document.getElementById(donde + '-marcador-lista')
+  const pie = document.getElementById(donde + '-marcador-pie')
   if (!caja) return
-  if (!cuenta.usuario) { caja.hidden = true; return }
+  if (!cuenta.usuario) {
+    // En el parte se esconde sin más; en el ranking, que es a lo que se viene,
+    // hay que decir por qué no sale nada.
+    if (donde === 'parte') { caja.hidden = true; return }
+    lista.innerHTML = '<li class="marcador-vacio">Entra con tu cuenta en Ajustes para ver el ranking.</li>'
+    pie.textContent = ''
+    return
+  }
 
   caja.hidden = false
   lista.innerHTML = '<li class="marcador-cargando">Pidiendo la tabla…</li>'
@@ -2608,7 +2616,7 @@ async function abrirRetos () {
       </span>
     </li>`).join('')
   pintarComposicion()
-  elMapaCapa.classList.add('hidden')
+  elMultiCapa.classList.add('hidden')
   elRetosCapa.classList.remove('hidden')
 }
 
@@ -2720,10 +2728,53 @@ async function finReto (ganado) {
   }, 900)
 }
 
-document.getElementById('mapa-retos')?.addEventListener('click', () => { audio.unlock(); abrirRetos() })
+document.getElementById('multi-retos')?.addEventListener('click', () => { audio.unlock(); abrirRetos() })
 document.getElementById('retos-volver')?.addEventListener('click', () => {
   elRetosCapa.classList.add('hidden')
+  elMultiCapa.classList.remove('hidden')
+})
+
+// --- menú multijugador y ranking ---------------------------------------------
+//
+// Todo lo que se juega con otros cuelga de un solo botón del mapa.
+const elMultiCapa = document.getElementById('multi-capa')
+const elRankingCapa = document.getElementById('ranking-capa')
+let tramoRanking = 0
+
+document.getElementById('mapa-multi')?.addEventListener('click', () => {
+  audio.unlock()
+  document.getElementById('multi-intro').textContent = cuenta.usuario
+    ? 'Juega contra otros o junto a ellos.'
+    : 'Juega contra otros o junto a ellos. Para los retos y el ranking hace falta entrar con tu cuenta en Ajustes.'
+  elMapaCapa.classList.add('hidden')
+  elMultiCapa.classList.remove('hidden')
+})
+document.getElementById('multi-volver')?.addEventListener('click', () => {
+  elMultiCapa.classList.add('hidden')
   elMapaCapa.classList.remove('hidden')
+})
+
+function pintarRanking () {
+  const n = NIVELES[tramoRanking]
+  document.getElementById('ranking-pais').textContent = `${tramoRanking + 1} de ${NIVELES.length} · ${n.pais}`
+  document.getElementById('ranking-lugar').textContent = n.name
+  document.getElementById('ranking-antes').disabled = tramoRanking === 0
+  document.getElementById('ranking-despues').disabled = tramoRanking === NIVELES.length - 1
+  pintarMarcador(tramoRanking, 'ranking')
+}
+document.getElementById('multi-ranking')?.addEventListener('click', () => {
+  audio.unlock()
+  // Se abre en el último tramo que has tocado, que es el que te interesa.
+  tramoRanking = Math.max(0, Math.min(NIVELES.length - 1, nivelActual))
+  pintarRanking()
+  elMultiCapa.classList.add('hidden')
+  elRankingCapa.classList.remove('hidden')
+})
+document.getElementById('ranking-antes')?.addEventListener('click', () => { tramoRanking = Math.max(0, tramoRanking - 1); pintarRanking() })
+document.getElementById('ranking-despues')?.addEventListener('click', () => { tramoRanking = Math.min(NIVELES.length - 1, tramoRanking + 1); pintarRanking() })
+document.getElementById('ranking-volver')?.addEventListener('click', () => {
+  elRankingCapa.classList.add('hidden')
+  elMultiCapa.classList.remove('hidden')
 })
 
 // --- cooperativo: la pantalla del invitado -----------------------------------
@@ -2890,11 +2941,11 @@ function empezarComoInvitado () {
   ui.banner('DEFENSA COMPARTIDA')
 }
 
-document.getElementById('mapa-coop')?.addEventListener('click', async () => {
+document.getElementById('multi-coop')?.addEventListener('click', async () => {
   audio.unlock()
   elCoopHecho.hidden = true
   elCoopAviso.textContent = ''
-  elMapaCapa.classList.add('hidden')
+  elMultiCapa.classList.add('hidden')
   elCoopCapa.classList.remove('hidden')
 })
 
@@ -2940,5 +2991,5 @@ document.getElementById('coop-volver')?.addEventListener('click', () => {
   coop = null
   limpiarEspejo()
   elCoopCapa.classList.add('hidden')
-  elMapaCapa.classList.remove('hidden')
+  elMultiCapa.classList.remove('hidden')
 })
