@@ -2457,3 +2457,21 @@ html, body {
 .denuncias-lista p { margin: 0 0 2px; font-size: 13px; }
 .denuncias-lista small { font-size: 11px; color: var(--tinta-4); }
 .denuncia-botones { display: flex; gap: 6px; margin-top: 6px; }
+
+/* ---------- botones del mapa, como los de la portada ---------- */
+.mapa-menu { width: 100%; margin: 4px 0 8px; }
+.mapa-menu .menu-boton { min-height: 60px; font-size: clamp(12.5px, 3.6vw, 16px); letter-spacing: .5px; gap: 6px; }
+.boton-directo { position: relative; }
+/* La etiqueta cuelga del borde de arriba, como un sello: dice que ahí se
+   juega con gente de verdad sin quitarle sitio al nombre. */
+.en-directo {
+  position: absolute; top: -9px; right: 10px;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 7px; border-radius: 999px;
+  background: #c53a2c; color: #fff;
+  font-size: 9px; font-weight: 900; letter-spacing: .8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.3);
+}
+.en-directo i { width: 6px; height: 6px; border-radius: 50%; background: #fff; animation: directo 1.6s ease-in-out infinite; }
+@keyframes directo { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .en-directo i { animation: none; } }

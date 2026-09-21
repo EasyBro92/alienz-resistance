@@ -428,8 +428,11 @@
           <span><i class="leg-cerrado"></i>Cerrado</span>
         </div>
         <p class="mapa-pie">Desliza el mapa, pellizca para acercarlo y toca un país.</p>
-        <button id="mapa-tienda" class="chip tienda-boton"><svg aria-hidden="true"><use href="#i-billete"></use></svg>Tienda</button>
-        <button id="mapa-multi" class="chip tienda-boton"><svg aria-hidden="true"><use href="#i-multi"></use></svg>Multijugador</button>
+        <!-- Los mismos botones que la portada: tienda y multijugador lado a lado. -->
+        <div class="menu-fila mapa-menu">
+          <button id="mapa-tienda" class="menu-boton" type="button"><svg aria-hidden="true"><use href="#i-billete"></use></svg>TIENDA</button>
+          <button id="mapa-multi" class="menu-boton boton-directo" type="button"><svg aria-hidden="true"><use href="#i-multi"></use></svg>MULTIJUGADOR<span class="en-directo"><i></i>EN DIRECTO</span></button>
+        </div>
         <button id="mapa-volver" class="chip chip-ghost">Volver a la portada</button>
       </div>
     </div>
