@@ -478,6 +478,82 @@ export function createWorld (canvas) {
   scene.background = new THREE.Color(0x7cb6e0)
   scene.fog = new THREE.Fog(0xc2d6dd, 62, 152)
 
+  // --- el cielo --------------------------------------------------------------
+  //
+  // Antes era un color liso, y el horizonte se leía como una raya: la niebla
+  // acababa en un tono y el cielo empezaba en otro. Ahora es una cúpula con
+  // degradado, del color de la niebla abajo al del cielo arriba, así que la
+  // tierra se funde con el aire como pasa de verdad y el cielo gana hondura.
+  //
+  // Va sin niebla (la cúpula ES el fondo) y sigue a la cámara: si se quedara
+  // quieta, en el vuelo de presentación se le vería el borde.
+  const cielos = {
+    cenit: { value: new THREE.Color(0x4f8fc8) },
+    horizonte: { value: new THREE.Color(0xc2d6dd) }
+  }
+  const cupula = new THREE.Mesh(
+    new THREE.SphereGeometry(185, 24, 12),
+    new THREE.ShaderMaterial({
+      uniforms: cielos,
+      side: THREE.BackSide,
+      depthWrite: false,
+      fog: false,
+      vertexShader: `
+        varying vec3 vDir;
+        void main () {
+          vDir = normalize(position);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+      fragmentShader: `
+        uniform vec3 cenit;
+        uniform vec3 horizonte;
+        varying vec3 vDir;
+        void main () {
+          // Casi todo el cambio ocurre cerca del horizonte, que es lo que se ve
+          // desde la cámara del juego: arriba del todo casi no se mira.
+          float h = pow(clamp(vDir.y + 0.02, 0.0, 1.0), 0.5);
+          gl_FragColor = vec4(mix(horizonte, cenit, h), 1.0);
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
+        }`
+    })
+  )
+  cupula.renderOrder = -10
+  cupula.frustumCulled = false
+  cupula.onBeforeRender = (r, s, cam) => { cupula.position.copy(cam.position) }
+  scene.add(cupula)
+
+  // --- la ciudad al fondo ------------------------------------------------------
+  //
+  // Una fila de edificios en el horizonte, detrás de los cerros, casi comida por
+  // la niebla. No se ve ningún detalle y no hace falta: basta el perfil para que
+  // se sepa que ahí detrás hay una ciudad que estás defendiendo, que es la
+  // profundidad que le faltaba al fondo. Solo sale en las regiones con ciudad;
+  // en la taiga o en el desierto un perfil de rascacielos no pinta nada.
+  const perfil = new THREE.Group()
+  const matPerfil = new THREE.MeshLambertMaterial({ color: 0x7d8a92 })
+  const geoBloque = new THREE.BoxGeometry(1, 1, 1)
+  for (let i = 0; i < 46; i++) {
+    const ancho = 3 + Math.random() * 6
+    // Más altos hacia el centro, como el centro de una ciudad de verdad.
+    const x = (Math.random() - 0.5) * 150
+    const alto = (6 + Math.random() * 12) * (1.25 - Math.min(1, Math.abs(x) / 75) * 0.6)
+    const b = new THREE.Mesh(geoBloque, matPerfil)
+    b.scale.set(ancho, alto, 4 + Math.random() * 4)
+    b.position.set(x, alto / 2 - 1, -104 - Math.random() * 12)
+    perfil.add(b)
+    // Alguna antena en lo alto de los más altos: rompe la fila de cajas.
+    if (alto > 16 && Math.random() < 0.5) {
+      const antena = new THREE.Mesh(geoBloque, matPerfil)
+      antena.scale.set(0.3, 4 + Math.random() * 3, 0.3)
+      antena.position.set(x, alto - 1 + antena.scale.y / 2, b.position.z)
+      perfil.add(antena)
+    }
+  }
+  perfil.visible = false
+  scene.add(perfil)
+  const CON_CIUDAD = new Set(['ciudad', 'costa', 'mediterraneo', 'egeo', 'parque', 'caribe', 'monzon'])
+
   const camera = new THREE.PerspectiveCamera(48, 1, 0.1, 200)
   const camTarget = new THREE.Vector3(0, 0, -9)
 
@@ -1187,6 +1263,14 @@ export function createWorld (canvas) {
 
     scene.background.setHex(b.cielo)
     scene.fog.color.setHex(b.niebla)
+    // Arriba, el cielo de la región un punto más hondo; abajo, su niebla, para
+    // que el horizonte no tenga costura.
+    cielos.cenit.value.setHex(b.cielo).multiplyScalar(0.78)
+    cielos.horizonte.value.setHex(b.niebla)
+    // El perfil de la ciudad, en el tono de los cerros de la región y un punto
+    // más frío: lejos, todo tira a azul.
+    perfil.visible = CON_CIUDAD.has(clave)
+    matPerfil.color.setHex(b.cerro).lerp(new THREE.Color(b.niebla), 0.35).multiplyScalar(0.8)
     sun.color.setHex(b.sol)
     cielo.color.setHex(b.cielo)
     cielo.groundColor.setHex(b.ambiente)
