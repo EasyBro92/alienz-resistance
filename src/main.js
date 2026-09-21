@@ -2539,7 +2539,7 @@ if (import.meta.env.DEV) {
     asaltarYa: () => { if (running) empezarAsalto() },
     sinVuelo: () => { if (vuelo) terminarVuelo() },
     // Ver una arena del duelo sin montar un duelo: __zr.arena()
-    arena: (clave = 'arena') => world.vestir(clave, [], 'tierra', 0x9a8462),
+    arena: (i = 0) => { const a = ARENAS[i]; world.vestir(a.bioma, [], a.suelo, a.tono) },
     // Para capturar el vuelo: pone la cámara donde empieza y dibuja.
     verVuelo: (k = 0) => {
       const v = world.vistaMonumento()
@@ -2811,20 +2811,28 @@ document.getElementById('multi-ranking')?.addEventListener('click', () => {
 document.getElementById('ranking-antes')?.addEventListener('click', () => { tramoRanking = Math.max(0, tramoRanking - 1); pintarRanking() })
 document.getElementById('ranking-despues')?.addEventListener('click', () => { tramoRanking = Math.min(NIVELES.length - 1, tramoRanking + 1); pintarRanking() })
 // --- 1 contra 1 ------------------------------------------------------------------
+// Las arenas, hechas en Blender (herramientas/blender/arena_*.py). El suelo del
+// campo va con cada una: arena en el Coliseo, ceniza en el cráter, chapa en la base.
+const ARENAS = [
+  { nombre: 'El Coliseo', bioma: 'arena', suelo: 'tierra', tono: 0x9a8462 },
+  { nombre: 'El Cráter', bioma: 'arenaCrater', suelo: 'tierra', tono: 0x6e5e52 },
+  { nombre: 'La Base', bioma: 'arenaBase', suelo: 'losas', tono: 0x6a737e }
+]
 const duelo = crearDuelo({
   cuenta,
   audio,
   escapar: escaparTexto,
   juego: {
     empezar (semilla) {
+      // Tres arenas; la semilla elige, así los dos móviles juegan en la misma.
+      const arena = ARENAS[semilla % ARENAS.length]
       const nivel = {
         ...NIVELES[0],
-        name: 'Arena',
+        name: arena.nombre,
         pais: 'Arena',
-        bioma: 'arena',
-        suelo: 'tierra',
-        // La arena del Coliseo: más oscura que la de la campaña, que es de noche.
-        tonoSuelo: 0x9a8462,
+        bioma: arena.bioma,
+        suelo: arena.suelo,
+        tonoSuelo: arena.tono,
         hitos: [],
         dureza: 0.07,
         waves: oleadasArena(semilla),

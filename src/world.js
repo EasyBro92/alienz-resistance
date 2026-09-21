@@ -1237,8 +1237,9 @@ export function createWorld (canvas) {
       // Los paneles de los focos SÍ brillan; lo demás, como el resto de modelos.
       g.traverse(o => {
         if (!o.isMesh) return
-        if (!/^foco_/.test(o.name)) apagarEmision(o)
-        o.receiveShadow = /graderio|palco/.test(o.name)
+        // Lo que se llama foco_… o brillo… (o su material) conserva su luz.
+        if (!/^(foco_|brillo)/.test(o.name) && !/^(foco|brillo)/.test(o.material?.name ?? '')) apagarEmision(o)
+        o.receiveShadow = /graderio|palco|ladera|pedestal/.test(o.name)
         o.castShadow = false
       })
       g.userData.publico = [0, 1, 2].map(i => g.getObjectByName(`publico_${i}`)).filter(Boolean)

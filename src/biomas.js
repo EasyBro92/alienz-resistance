@@ -2085,6 +2085,20 @@ export const BIOMAS = {
     terreno: 'arena', tierra: 0x7d6848, cerro: 0x3a3530, meseta: 0x2e2a26,
     cielo: 0x0b1022, niebla: 0x151c30, sol: 0xfff1d6, ambiente: 0x3a4666
   },
+  arenaCrater: {
+    hora: 'noche', arena: 'arena-crater',
+    restos: [], flora: [],
+    asfalto: 0x4a423c, raya: 0xf0c419, bordillo: 0x3d3430,
+    terreno: 'roca', tierra: 0x4a3c34, cerro: 0x2e2622, meseta: 0x261f1c,
+    cielo: 0x1a0f1e, niebla: 0x2a1624, sol: 0xffdcc4, ambiente: 0x4a2e3e
+  },
+  arenaBase: {
+    hora: 'noche', arena: 'arena-base',
+    restos: [], flora: [],
+    asfalto: 0x3a424c, raya: 0x3cff8a, bordillo: 0x22272e,
+    terreno: 'roca', tierra: 0x2a3036, cerro: 0x1e2226, meseta: 0x181c20,
+    cielo: 0x08140f, niebla: 0x0e1f18, sol: 0xe6fff0, ambiente: 0x2e4a3e
+  },
   volcanico: {
     hora: 'ocaso',
     restos: [['autobus', 0xc4923a, 2], ['contenedor', 0x9a6a3a, 3]],
