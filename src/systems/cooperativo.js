@@ -85,6 +85,10 @@ export function crearSesion (transporte, papel) {
   transporte.escuchar('estado', bruto => {
     previa = actual
     actual = desempaquetar(bruto)
+    // La hora de LLEGADA, en el reloj de este móvil. La que trae la foto es la
+    // del anfitrión, y dos teléfonos nunca van en hora el uno con el otro: con
+    // esa, la horda del invitado adelantaba o se quedaba clavada.
+    actual.llegada = performance.now()
     for (const f of oyentes.estado) f(actual)
   })
   transporte.escuchar('orden', o => { for (const f of oyentes.orden) f(o) })
@@ -108,15 +112,16 @@ export function crearSesion (transporte, papel) {
     },
 
     mandarOrden (orden) { transporte.mandar('orden', orden) },
-    anunciar (jugadores) { transporte.mandar('jugadores', jugadores) },
+    // Apuntarse en la sala. La lista de quién hay llega por `alJugadores`.
+    presentarse (uid) { transporte.mandar('yo', uid) },
 
     // Dónde estaría el campo AHORA, entre las dos últimas instantáneas. Sin
     // esto, el invitado ve la horda avanzar a ocho fotogramas por segundo.
     interpolado () {
       if (!actual) return null
       if (!previa) return actual
-      const salto = Math.max(1, actual.t - previa.t)
-      const k = Math.min(1.4, (Date.now() - actual.t) / salto)
+      const salto = Math.max(1, actual.llegada - previa.llegada)
+      const k = Math.min(1.4, (performance.now() - actual.llegada) / salto)
       const antes = new Map(previa.zombies.map(z => [z.id, z]))
       return {
         ...actual,

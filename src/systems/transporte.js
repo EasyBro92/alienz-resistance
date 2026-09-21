@@ -22,13 +22,28 @@ const CANAL = 'alienz-coop'
 export function transporteLocal (codigo) {
   const canal = new BroadcastChannel(`${CANAL}-${codigo}`)
   const oyentes = new Map()
+  const presentes = new Set()
+  const avisar = (tipo, datos) => { for (const f of oyentes.get(tipo) ?? []) f(datos) }
   canal.onmessage = e => {
     const { tipo, datos } = e.data ?? {}
-    for (const f of oyentes.get(tipo) ?? []) f(datos)
+    if (tipo === 'yo') {
+      // El que llega se presenta; los que ya estaban contestan, para que el
+      // recién llegado sepa también quién había.
+      const nuevo = !presentes.has(datos)
+      presentes.add(datos)
+      if (nuevo) for (const uid of presentes) canal.postMessage({ tipo: 'hola', datos: uid })
+      avisar('jugadores', [...presentes])
+      return
+    }
+    if (tipo === 'hola') { presentes.add(datos); avisar('jugadores', [...presentes]); return }
+    avisar(tipo, datos)
   }
   return {
     nombre: 'local',
-    mandar (tipo, datos) { canal.postMessage({ tipo, datos }) },
+    mandar (tipo, datos) {
+      if (tipo === 'yo') presentes.add(datos)
+      canal.postMessage({ tipo, datos })
+    },
     escuchar (tipo, fn) {
       if (!oyentes.has(tipo)) oyentes.set(tipo, [])
       oyentes.get(tipo).push(fn)
@@ -59,6 +74,9 @@ export async function transporteNube (codigo, usuario) {
     mandar (tipo, datos) {
       if (tipo === 'estado') return rtdb.set(rtdb.child(raiz, 'estado'), datos)
       if (tipo === 'orden') return rtdb.push(rtdb.child(raiz, 'ordenes'), datos)
+      // Cada uno se apunta en SU fila: así, al perder la conexión, el servidor
+      // borra solo la suya y el otro se entera de que se ha ido.
+      if (tipo === 'yo') return rtdb.set(mio, { en: rtdb.serverTimestamp() })
       return rtdb.set(rtdb.child(raiz, tipo), datos)
     },
     escuchar (tipo, fn) {
@@ -69,6 +87,10 @@ export async function transporteNube (codigo, usuario) {
           fn(s.val())
           rtdb.remove(s.ref)
         }))
+        return
+      }
+      if (tipo === 'jugadores') {
+        sueltas.push(rtdb.onValue(rtdb.child(raiz, 'jugadores'), s => fn(Object.keys(s.val() ?? {}))))
         return
       }
       sueltas.push(rtdb.onValue(rtdb.child(raiz, tipo), s => {

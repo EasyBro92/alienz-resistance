@@ -2904,8 +2904,8 @@ document.getElementById('coop-crear')?.addEventListener('click', async () => {
     const { codigoDeSala } = await import('./systems/cooperativo.js')
     const codigo = codigoDeSala()
     await montarSala(codigo, 'anfitrion')
-    coop.yo = cuenta.usuario?.uid ?? 'yo'
-    coop.anunciar([coop.yo])
+    coop.yo = cuenta.usuario?.uid ?? 'anfitrion-' + codigo
+    coop.presentarse(coop.yo)
     document.getElementById('coop-codigo').textContent = codigo
     elCoopHecho.hidden = false
     elCoopAviso.textContent = ''
@@ -2921,8 +2921,8 @@ document.getElementById('coop-unirse')?.addEventListener('click', async () => {
   elCoopAviso.textContent = 'Entrando…'
   try {
     await montarSala(codigo, 'invitado')
-    coop.yo = cuenta.usuario?.uid ?? 'yo-2'
-    coop.anunciar([coop.yo, 'invitado'])
+    coop.yo = cuenta.usuario?.uid ?? 'invitado-' + Math.random().toString(36).slice(2, 7)
+    coop.presentarse(coop.yo)
     elCoopAviso.textContent = 'Dentro. Esperando a que el anfitrión empiece…'
   } catch (err) {
     console.warn('Sin entrar:', err)

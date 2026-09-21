@@ -16,7 +16,10 @@ export const CONFIG = {
   projectId: 'alienz-resistance',
   storageBucket: 'alienz-resistance.firebasestorage.app',
   messagingSenderId: '134292140642',
-  appId: '1:134292140642:web:a204f937309a7c933a573b'
+  appId: '1:134292140642:web:a204f937309a7c933a573b',
+  // La base del cooperativo está en Bélgica: sin su dirección, el SDK la busca
+  // en Estados Unidos y no la encuentra.
+  databaseURL: 'https://alienz-resistance-default-rtdb.europe-west1.firebasedatabase.app'
 }
 
 const CLAVE_CARTERA = 'alienz-cartera-v1'
