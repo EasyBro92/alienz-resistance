@@ -656,6 +656,9 @@ export async function montarBandeja ({ cuenta, escapar }) {
   const soy = await almacen.leer(`admins/${cuenta.usuario.uid}`).catch(() => null)
   if (!soy) return
   caja.hidden = false
+  import('./admin.js').then(m => m.montarUsuarios({
+    almacen, escapar, total: n => { $('usuarios-n').textContent = `(${n})` }
+  })).catch(e => console.warn('Sin usuarios:', e))
   const lista = $('denuncias-lista')
   almacen.alCambiar('denuncias', todas => {
     const filas = Object.entries(todas ?? {}).sort((a, b) => (b[1].en ?? 0) - (a[1].en ?? 0))

@@ -37,7 +37,7 @@ export function cargarFirebase () {
     // Si el cooperativo abrió Firebase primero, se reutiliza: una segunda
     // app por defecto hace saltar un error.
     const a = app.getApps()[0] ?? app.initializeApp(CONFIG)
-    return { auth, fs, sesion: auth.getAuth(a), db: fs.getFirestore(a) }
+    return { app: a, auth, fs, sesion: auth.getAuth(a), db: fs.getFirestore(a) }
   })
   return fb
 }
@@ -101,6 +101,30 @@ export function crearCuenta ({ alCambiar }) {
     if (!usuario) return
     const { fs, db } = await cargarFirebase()
     await fs.setDoc(fs.doc(db, 'jugadores', usuario.uid), { ...fichaLocal(), guardado: fs.serverTimestamp() })
+    apuntarEnLista().catch(e => console.warn('Sin lista:', e))
+  }
+
+  // La fila de este jugador en la lista de usuarios que ve el administrador
+  // (Realtime Database, `usuarios/{uid}`; solo la leen los de `admins`). Un
+  // resumen y no la ficha entera: para saber quién juega y cuánto, basta.
+  async function apuntarEnLista () {
+    if (!usuario) return
+    const [{ app }, rtdb, { aliasActual }] = await Promise.all([
+      cargarFirebase(), import('firebase/database'), import('./marcadores.js')
+    ])
+    const f = fichaLocal()
+    let estrellas = 0
+    for (const v of Object.values(f.progreso.rangos ?? {})) estrellas += entero(v)
+    const alta = Date.parse(usuario.metadata?.creationTime ?? '')
+    await rtdb.update(rtdb.ref(rtdb.getDatabase(app), `usuarios/${usuario.uid}`), {
+      alias: aliasActual(usuario),
+      correo: usuario.email ?? '',
+      alta: Number.isFinite(alta) ? alta : rtdb.serverTimestamp(),
+      ultima: rtdb.serverTimestamp(),
+      tramos: entero(f.progreso.superados),
+      estrellas,
+      billetes: entero(f.cartera.billetes)
+    })
   }
 
   async function sincronizar () {
@@ -113,6 +137,7 @@ export function crearCuenta ({ alCambiar }) {
     escribir(CLAVE_CARTERA, junta.cartera)
     escribir(CLAVE_PROGRESO, junta.progreso)
     await fs.setDoc(ref, { ...junta, guardado: fs.serverTimestamp() })
+    apuntarEnLista().catch(e => console.warn('Sin lista:', e))
     // Si la nube traía algo nuevo, los menús ya pintados están desfasados.
     if (cambia) location.reload()
   }

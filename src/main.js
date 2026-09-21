@@ -21,6 +21,7 @@ import { pintarMapa } from './mapa.js'
 import { montarZoomMapa } from './mapaZoom.js'
 import { cargarCartera, sumarBilletes, sumarMonedas, canjear, PRECIOS, MONEDAS_POR_DOLAR, PREMIOS_UNIDAD, ponerSinMejoras } from './systems/cartera.js'
 import { crearDuelo, montarBandeja } from './duelo.js'
+import { montarExpediente, htmlHallazgo } from './expediente.js'
 import { oleadasArena, azarConSemilla } from './systems/duelo.js'
 import { tirarCofre, girarCarrusel } from './cofre.js'
 import { crearTienda } from './tienda.js'
@@ -1090,8 +1091,11 @@ function simulate (dt) {
           c.andado += z.velocidad * dt
           z.suelo = dropship.alturaRampa(z.z)
           z.update(dt, camera, true)
-          // En cuanto pisa suelo firme, fuera ya de la plancha, se pone a cavar.
-          if (z.suelo <= 0.001 && c.andado > 1.2) {
+          // Ya en suelo firme, anda su trecho (distinto cada vez) y se pone a cavar.
+          c.tocable = z.suelo <= 0.001
+          if (c.tocable) c.enSuelo = (c.enSuelo ?? 0) + z.velocidad * dt
+          if (c.tocable && c.enSuelo > c.meta) {
+            c.tocable = false
             c.estado = 'cavando'
             c.t = 0
             z.rastro = grietas.crear()
@@ -1123,7 +1127,7 @@ function simulate (dt) {
           z.rastro.bulto(pos.x, pos.z)
           if (pos.z - c.ultimoZ > 0.55) { z.rastro.tramo(pos.x, pos.z - 0.3); c.ultimoZ = pos.z }
           if (Math.random() < dt * 14) effects.burst(tmpB.set(pos.x, 0.15, pos.z), grietas.colorSuelo(), 2, 0.5)
-          if (z.z >= z.spec.escarba.hasta) {
+          if (z.z >= c.hasta) {
             c.estado = 'saliendo'
             c.t = 0
             z.rastro.quitarBulto()
@@ -1406,7 +1410,8 @@ function frame (now) {
 // entonces llega el informe. Es lo que cuenta de qué va esto: venimos a
 // quitarles las bases, no solo a aguantar.
 let asalto = null
-const ASALTO = { andar: 6, fuego: 3.8, trasExplosion: 1.8 }
+// `andar`: al trote se tarda más que corriendo (unos 30 m a 3,7 m/s y la espera).
+const ASALTO = { andar: 9.5, fuego: 3.8, trasExplosion: 1.8 }
 const tmpObjetivo = new THREE.Vector3()
 const tmpChispa = new THREE.Vector3()
 
@@ -1429,7 +1434,10 @@ function empezarAsalto () {
     s.destZ = FIELD.spawnZ + 10 - (i % 3) * 2.5
     s.andando = true
     s.entrando = true
-    s.modoPaso = 'correr'
+    // Al trote, y cada uno arranca cuando le toca: salir todos a la vez, al
+    // mismo paso, era un desfile de copias.
+    s.modoPaso = 'trote'
+    s.espera = Math.random() * 0.8
     s.enAsalto = true
     s.gesture = null
     s.hasTarget = false
@@ -1589,6 +1597,7 @@ function win () {
       empieza a salir. Pero los túneles siguen bajando en los trece sitios, y
       nadie de los que firmamos aquello sabe hasta dónde.</p>
       <ol class="marcas">${lineasPais}</ol>
+      ${cierraPais ? htmlHallazgo(paisIdx) : ''}
       ${htmlBotin()}
       <button class="big-btn" onclick="volverA('mapa')">AL MAPA</button>`)
     abrirCofre(true, estrellas)
@@ -1601,6 +1610,7 @@ function win () {
     ${sello}
     ${nivel.cierre ? `<p class="cierre">${nivel.cierre}</p>` : ''}
     ${cierraPais ? `<div class="pais-desenlace"><span>${pais.nombre} limpio</span><p>${pais.cierre}</p></div>` : ''}
+    ${cierraPais ? htmlHallazgo(paisIdx) : ''}
     ${htmlBotin()}
     ${cierraPais
       ? `<button class="big-btn" onclick="volverA('mapa')">AL MAPA</button>`
@@ -1747,6 +1757,9 @@ const CAPAS_ATRAS = [
   ['parte-capa', 'parte-volver'],
   ['tienda-capa', 'tienda-volver'],
   ['pais-capa', 'pais-volver'],
+  ['documento-capa', 'documento-volver'],
+  ['expediente-capa', 'expediente-volver'],
+  ['usuarios-capa', 'usuarios-volver'],
   ['duelo-capa', 'duelo-volver'],
   ['ranking-capa', 'ranking-volver'],
   ['retos-capa', 'retos-volver'],
@@ -2810,6 +2823,9 @@ document.getElementById('multi-ranking')?.addEventListener('click', () => {
 })
 document.getElementById('ranking-antes')?.addEventListener('click', () => { tramoRanking = Math.max(0, tramoRanking - 1); pintarRanking() })
 document.getElementById('ranking-despues')?.addEventListener('click', () => { tramoRanking = Math.min(NIVELES.length - 1, tramoRanking + 1); pintarRanking() })
+// --- expediente ------------------------------------------------------------------
+montarExpediente({ cargarProgreso, audio })
+
 // --- 1 contra 1 ------------------------------------------------------------------
 // Las arenas, hechas en Blender (herramientas/blender/arena_*.py). El suelo del
 // campo va con cada una: arena en el Coliseo, ceniza en el cráter, chapa en la base.

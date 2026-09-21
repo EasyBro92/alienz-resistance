@@ -85,7 +85,7 @@ export function tirarCofre ({ gano = false, estrellas = 0 } = {}) {
 
 // Tienen que cuadrar con .cofre-pieza y el hueco de .cofre-tira del CSS: si no,
 // la tira frena con la ganadora al lado de la aguja en vez de debajo.
-const ANCHO = 92
+const ANCHO = 100
 const HUECO = 6
 const PASO = ANCHO + HUECO
 const PIEZAS = 44

@@ -311,6 +311,9 @@ export function crearCuerpo ({ figure, cuerpo, arma, key, clips = [] }) {
     }
     accion.setEffectiveWeight(0)
     mixer.setTime(0)
+    // Cada figura empieza su ciclo en un punto distinto: todas desde el primer
+    // fotograma daban un pelotón que pisaba con el mismo pie a la vez.
+    accion.time = Math.random() * clip.duration
     for (const [o, r] of reposo) {
       o.quaternion.copy(r.q)
       o.position.copy(r.p)
@@ -392,7 +395,7 @@ export function crearCuerpo ({ figure, cuerpo, arma, key, clips = [] }) {
         const amplitud = 1 + carrera * 0.25
         accion.setEffectiveWeight(peso)
         if (peso > 0.01) {
-          accion.timeScale = THREE.MathUtils.clamp(Math.max(e.velocidad, 1.5) / (pasoNatural * amplitud), 0.5, 2.2)
+          accion.timeScale = THREE.MathUtils.clamp(Math.max(e.velocidad, 1.5) / (pasoNatural * amplitud), 0.5, 2.6)
           mixer.update(dt)
           if (amplitud > 1.01) {
             for (const h of [b.musloL, b.musloR]) if (h) amplificar(h, reposo.get(h).q, 1 + (amplitud - 1) * peso)

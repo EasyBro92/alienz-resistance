@@ -1328,7 +1328,9 @@ html, body {
 .mejora-max { font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #c9951e; }
 
 /* ---------- botín y cofre del final de partida ---------- */
-.botin { width: 100%; max-width: 380px; margin: 6px auto 16px; }
+/* Nunca más ancho que la pantalla: con 380 fijos, en un móvil de 375 la
+   página entera se podía arrastrar de lado. */
+.botin { width: 100%; max-width: min(320px, 100%); margin: 6px auto 16px; }
 .botin-billetes {
   display: flex; align-items: center; justify-content: center; gap: 6px;
   margin: 0 0 10px; font-size: 13px; color: var(--tinta-2);
@@ -1343,7 +1345,9 @@ html, body {
    lo único que brilla. Sobre fondo claro no brilla nada. */
 .cofre-ventana {
   position: relative; overflow: hidden;
-  height: 132px; border-radius: 10px;
+  /* La tira mide miles de píxeles: sin esto, su ancho empujaba el del panel. */
+  contain: inline-size;
+  height: 156px; border-radius: 10px;
   border: 1px solid #000; background: linear-gradient(180deg, #14181d 0%, #0b0e11 100%);
   box-shadow: inset 0 2px 14px rgba(0, 0, 0, 0.8);
 }
@@ -1373,7 +1377,7 @@ html, body {
    barra de color abajo del todo, que es lo único legible cuando pasa rápido. */
 .cofre-pieza {
   position: relative; overflow: hidden;
-  flex: 0 0 92px; height: 108px;
+  flex: 0 0 100px; height: 128px;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
   border-radius: 3px;
   background: linear-gradient(180deg, #2c323b 0%, #1b1f25 62%, #15181d 100%);
@@ -1385,12 +1389,12 @@ html, body {
   background: radial-gradient(circle, color-mix(in srgb, var(--rareza) 55%, transparent) 0%, transparent 68%);
   opacity: 0.55;
 }
-.pieza-cara { position: relative; display: grid; place-items: center; height: 54px; }
-.cofre-pieza svg { width: 30px; height: 30px; color: #e8edf2; }
-.cofre-pieza img { max-height: 54px; max-width: 76px; object-fit: contain; }
+.pieza-cara { position: relative; display: grid; place-items: center; height: 68px; }
+.cofre-pieza svg { width: 36px; height: 36px; color: #e8edf2; }
+.cofre-pieza img { max-height: 68px; max-width: 86px; object-fit: contain; }
 .cofre-pieza b {
   position: relative; font-size: 13px; font-weight: 800; color: #e8edf2;
-  max-width: 86px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 94px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .cofre-pieza small { position: relative; font-size: 8.5px; letter-spacing: 1px; text-transform: uppercase; color: #8b95a1; }
 .pieza-barra { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: var(--rareza); }
@@ -2475,3 +2479,89 @@ html, body {
 .en-directo i { width: 6px; height: 6px; border-radius: 50%; background: #fff; animation: directo 1.6s ease-in-out infinite; }
 @keyframes directo { 50% { opacity: .25; } }
 @media (prefers-reduced-motion: reduce) { .en-directo i { animation: none; } }
+
+/* ---------- administración: usuarios ---------- */
+.usuarios-capa { z-index: 20; }
+#ver-usuarios { margin: 6px 0 10px; }
+.denuncias-tit { display: block; margin-top: 6px; }
+.usuarios-lista { list-style: none; margin: 10px 0 12px; padding: 0; width: 100%; text-align: left; }
+.usuarios-lista li { padding: 10px 0; border-top: 1px solid var(--borde-1); }
+.usuario-cabeza { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.usuario-cabeza b { font-size: 15px; }
+.usuario-ultima { font-size: 11px; color: var(--verde-texto); white-space: nowrap; }
+.usuario-correo { margin: 1px 0 6px; font-size: 12px; color: var(--tinta-3); overflow-wrap: anywhere; }
+.usuario-datos { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--tinta-2); }
+.usuario-datos b { color: var(--tinta); }
+.usuarios-lista small { font-size: 11px; color: var(--tinta-4); }
+
+/* ---------- expediente: los papeles de cada país ---------- */
+.boton-expediente { grid-column: 1 / -1; position: relative; }
+.boton-expediente small { font-size: 12px; font-weight: 700; color: var(--tinta-3); letter-spacing: 0; }
+/* Punto rojo si hay algún papel sin leer. */
+.boton-expediente.con-nuevo::after {
+  content: ''; position: absolute; top: 8px; right: 10px; width: 9px; height: 9px;
+  border-radius: 50%; background: #c53a2c; box-shadow: 0 0 0 2px var(--panel);
+}
+.expediente-capa { z-index: 13; }
+.expediente-lista { list-style: none; margin: 0 0 14px; padding: 0; width: 100%; display: grid; gap: 6px; }
+.carpeta {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 12px;
+  border-radius: 10px; border: 1px solid var(--borde-2); text-align: left; cursor: pointer;
+  background: linear-gradient(180deg, #d9c9a0, #c8b486); color: #3a2e1a;
+}
+.carpeta.cerrada { background: var(--velo-1); color: var(--tinta-4); cursor: default; border-style: dashed; }
+.carpeta-n { font: 800 13px/1 'Courier New', monospace; opacity: .7; }
+.carpeta-txt { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.carpeta-txt b { font-size: 13.5px; }
+.carpeta-txt small { font-size: 11px; opacity: .75; }
+.carpeta-nuevo { font-style: normal; font-size: 9.5px; font-weight: 900; letter-spacing: 1px; color: #fff; background: #c53a2c; padding: 2px 6px; border-radius: 999px; }
+
+/* El lector: una hoja de archivo, amarillenta, a máquina, con su sello. Va igual
+   en los dos temas: es un papel, y los papeles no se ponen en modo oscuro. */
+.documento-capa { z-index: 22; background: rgba(8, 10, 12, 0.88); padding-top: calc(env(safe-area-inset-top) + 66px); }
+.panel-documento { width: 100%; max-width: min(460px, 100%); }
+.documento {
+  position: relative; overflow: hidden; margin: 0 0 14px; padding: 22px 20px 30px;
+  text-align: left; color: #2b2418;
+  font: 14px/1.55 'Courier New', Courier, monospace;
+  background:
+    radial-gradient(ellipse at 20% 15%, rgba(120, 90, 40, 0.14), transparent 55%),
+    radial-gradient(ellipse at 85% 80%, rgba(120, 80, 30, 0.18), transparent 50%),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.018) 0 2px, transparent 2px 4px),
+    #eadcb8;
+  border-radius: 3px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55), inset 0 0 40px rgba(110, 80, 30, 0.25);
+  transform: rotate(-0.6deg);
+}
+.documento p { margin: 0 0 10px; }
+.doc-tipo { font-weight: 900; font-size: 15px; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px !important; }
+.doc-cabeza { border-bottom: 1px dashed rgba(43, 36, 24, 0.5); margin-bottom: 12px; padding-bottom: 8px; }
+.doc-cabeza dl { display: grid; grid-template-columns: auto 1fr; gap: 1px 10px; margin: 0; font-size: 12px; }
+.doc-cabeza dt { font-weight: 800; text-transform: uppercase; opacity: .7; }
+.doc-cabeza dd { margin: 0; }
+.doc-sello {
+  position: absolute; top: 18px; right: -6px; transform: rotate(12deg);
+  padding: 3px 10px; border: 3px solid rgba(170, 30, 20, 0.75); border-radius: 4px;
+  color: rgba(170, 30, 20, 0.8); font: 900 14px/1 system-ui, sans-serif; letter-spacing: 2px;
+  mix-blend-mode: multiply;
+}
+.doc-folio { position: absolute; bottom: 8px; right: 12px; font-size: 11px; opacity: .55; }
+/* Tachón: la barra negra ocupa lo que ocupaba el texto; el texto no se ve. */
+.tachon { background: #16120c; color: transparent; border-radius: 1px; padding: 0 2px; user-select: none; }
+.documento-mano { font-family: 'Segoe Print', 'Bradley Hand', 'Comic Sans MS', cursive; font-size: 15px; line-height: 1.6; }
+.documento-mano .doc-cabeza { font-family: 'Courier New', monospace; }
+
+/* En la victoria que limpia un país. */
+.hallazgo {
+  display: flex; align-items: center; gap: 12px; width: 100%; max-width: 360px; margin: 0 auto 14px;
+  padding: 10px 14px; border-radius: 12px; cursor: pointer; text-align: left;
+  border: 1px solid #b89a5a; background: linear-gradient(180deg, #e8d7a8, #cdb680); color: #3a2e1a;
+  animation: pop .4s ease;
+}
+.hallazgo b { display: block; font-size: 14px; letter-spacing: 1.5px; }
+.hallazgo small { font-size: 11.5px; opacity: .8; }
+.hallazgo-carpeta {
+  flex: none; width: 34px; height: 26px; border-radius: 3px; position: relative;
+  background: #b8913f; box-shadow: inset 0 -8px 0 rgba(0, 0, 0, 0.15);
+}
+.hallazgo-carpeta::before { content: ''; position: absolute; left: 3px; top: -5px; width: 13px; height: 6px; border-radius: 2px 2px 0 0; background: #b8913f; }

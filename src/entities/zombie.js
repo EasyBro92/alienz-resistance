@@ -82,7 +82,12 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
     tInjerto: Math.random() * 1.2,
     // Escarbador: en qué punto va ('llegar', 'cavando', 'tunel', 'saliendo'),
     // si está bajo tierra y el suelo roto que va dejando (`rastro`).
-    cavar: spec.escarba ? { estado: 'llegar', t: 0, andado: 0, ultimoZ: 0 } : null,
+    // `meta`: lo que anda tras bajar de la nave antes de cavar (antes cavaba a
+    // un paso de la rampa y parecía que escarbaba en la plancha). `hasta`: dónde
+    // sale, siempre detrás de la primera fila pero no siempre en el mismo sitio.
+    cavar: spec.escarba
+      ? { estado: 'llegar', t: 0, andado: 0, ultimoZ: 0, tocable: false, meta: 3 + Math.random() * 6, hasta: -8.2 + Math.random() * 9.6 }
+      : null,
     bajoTierra: false,
     rastro: null,
     walkPhase: Math.random() * Math.PI * 2,
@@ -102,7 +107,10 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
     // Escarbador moría sin haber salido, que es justo lo contrario de lo suyo.
     // El Escarbador tampoco mientras baja de la rampa y cava: antes ya salía
     // hundido, y dejarle tocable ahí cambiaría lo que aguanta.
-    get intocable () { return this.bajoTierra || !!this.salto || (!!this.cavar && this.cavar.estado !== 'saliendo') },
+    // Andando por el suelo, antes de cavar, sí se le puede disparar; al salir,
+    // no hasta que ha salido del todo: le mataban a medio asomar, sin llegar a
+    // verse qué era.
+    get intocable () { return this.bajoTierra || !!this.salto || (!!this.cavar && !this.cavar.tocable) },
 
     curar (n) {
       if (this.hp >= this.maxHp) return 0

@@ -154,25 +154,28 @@ export const UPGRADES = {
 // La vida subió un 15% en todos el 2026-09-08. A TODOS por igual y a la vez:
 // tocar solo a unos cuantos cambiaría quién es duro respecto a quién, y el
 // jugador ya ha aprendido ese orden. Lo que cambia es cuánto plomo hace falta.
+// El 2026-09-21, a petición: los pequeños (Portador, Corredor, Sembrador,
+// Saltador) un 10% más rápidos y los grandes (Encostrado, Coloso,
+// Revientaesporas, LA MADRE) un 15% más duros. Ese orden sí cambia a propósito.
 export const ZOMBIES = {
   walker: {
-    name: 'Portador', hp: 26, speed: 3.4, damage: 18, attackRate: 1.3,
+    name: 'Portador', hp: 26, speed: 3.75, damage: 18, attackRate: 1.3,
     coins: 14, scale: 1, color: 0x7fa855, accent: 0x4a6b30
   },
   runner: {
-    name: 'Corredor', hp: 17, speed: 7.2, damage: 12, attackRate: 2.0,
+    name: 'Corredor', hp: 17, speed: 7.9, damage: 12, attackRate: 2.0,
     coins: 16, scale: 0.9, color: 0xb8d14a, accent: 0x6d7d24
   },
   armored: {
-    name: 'Encostrado', hp: 61, speed: 2.8, damage: 26, attackRate: 1.0,
+    name: 'Encostrado', hp: 70, speed: 2.8, damage: 26, attackRate: 1.0,
     coins: 28, scale: 1.1, color: 0x6b7a86, accent: 0x39434b, armor: 0.7
   },
   spitter: {
-    name: 'Sembrador', hp: 39, speed: 2.85, damage: 20, attackRate: 0.9,
+    name: 'Sembrador', hp: 39, speed: 3.15, damage: 20, attackRate: 0.9,
     coins: 30, scale: 1, color: 0xa05fb8, accent: 0x5c2f6d, rangedAttack: 11
   },
   tank: {
-    name: 'Coloso', hp: 296, speed: 1.8, damage: 70, attackRate: 0.8,
+    name: 'Coloso', hp: 340, speed: 1.8, damage: 70, attackRate: 0.8,
     coins: 85, scale: 1.9, color: 0xd39a8f, accent: 0x8d5a52, wide: true
   },
   // --- los cuatro con maneras ------------------------------------------------
@@ -182,7 +185,7 @@ export const ZOMBIES = {
 
   // Rompe la barrera: la salta. Contra una pared de sacos, esta pasa por encima.
   leaper: {
-    name: 'Saltador', hp: 32, speed: 4.2, damage: 22, attackRate: 1.2,
+    name: 'Saltador', hp: 32, speed: 4.6, damage: 22, attackRate: 1.2,
     coins: 22, scale: 0.95, color: 0x4fb8c4, accent: 0x1f5f6b,
     salta: { distancia: 6.5, recarga: 5 }
   },
@@ -190,7 +193,7 @@ export const ZOMBIES = {
   // Rompe la aglomeración: al morir revienta y se lleva por delante lo que
   // tenga cerca. Apilar siete soldados en un carril deja de salir gratis.
   bloater: {
-    name: 'Revientaesporas', hp: 80, speed: 2.4, damage: 16, attackRate: 0.9,
+    name: 'Revientaesporas', hp: 92, speed: 2.4, damage: 16, attackRate: 0.9,
     coins: 34, scale: 1.25, color: 0xd8b04a, accent: 0x7a5a18,
     revienta: { daño: 42, radio: 3.4 }
   },
@@ -212,7 +215,7 @@ export const ZOMBIES = {
   },
 
   boss: {
-    name: 'LA MADRE', hp: 1900, speed: 1.4, damage: 120, attackRate: 0.7,
+    name: 'LA MADRE', hp: 2185, speed: 1.4, damage: 120, attackRate: 0.7,
     coins: 500, scale: 3.4, color: 0xe0a397, accent: 0x9a5b52, boss: true, wide: true
   }
 }

@@ -91,7 +91,9 @@ const GESTURE_KEYS = Object.keys(GESTURES)
 const PASO = 3.2
 // Cómo cruza el campo, según lo que decidió Isidro: corriendo si viene de atrás
 // o va lejos, agachado a la casilla de al lado, y el tirador a gatas.
-const VELOCIDAD_PASO = { correr: 1.7, agachado: 0.75, gatear: 0.42 }
+// El trote es el del asalto final: más lento que la carrera, a un paso en el que
+// la animación de las figuras de Meshy llega a pisar y los pies no patinan.
+const VELOCIDAD_PASO = { correr: 1.7, trote: 1.15, agachado: 0.75, gatear: 0.42 }
 
 export async function createSoldier (key, spec, lane, row) {
   const mesh = spec.blocker ? buildSandbagsMesh(spec) : await buildSoldierMesh(key, spec)
@@ -181,7 +183,12 @@ export async function createSoldier (key, spec, lane, row) {
     enAsalto: false,
     destX: laneX(lane),
     destZ: rowZ(row),
-    pasoFase: 0,
+    // Cada uno con su zancada: fase de salida y ritmo propios. Todos al mismo
+    // compás y desde el mismo pie se leían como copias moviéndose a la vez.
+    pasoFase: Math.random() * Math.PI * 2,
+    ritmo: 0.9 + Math.random() * 0.2,
+    // Segundos que tarda en arrancar cuando se le manda andar (el asalto).
+    espera: 0,
 
     // Asentamiento del fusilero: cuánta cadencia extra lleva acumulada y sobre
     // quién. Lo gestiona el bucle de combate, que es el que sabe a quién apunta.
@@ -259,21 +266,27 @@ export async function createSoldier (key, spec, lane, row) {
       // nadie: bajar el arma para cruzar el descampado es parte del precio de
       // mover una pieza en mitad de una oleada.
       let rumbo = null
-      if (this.andando) {
+      if (this.andando && this.espera > 0) {
+        this.espera -= dt
+        this.hasTarget = false
+        this.targetPos = null
+      } else if (this.andando) {
         const dx = this.destX - this.px
         const dz = this.destZ - this.pz
         const falta = Math.hypot(dx, dz)
-        const avance = PASO * (VELOCIDAD_PASO[this.modoPaso] ?? (this.entrando ? 2 : 1)) * dt
+        const vel = PASO * (VELOCIDAD_PASO[this.modoPaso] ?? (this.entrando ? 2 : 1)) * this.ritmo
+        const avance = vel * dt
         if (falta <= avance || falta < 1e-4) {
           this.px = this.destX
           this.pz = this.destZ
           this.andando = false
           this.entrando = false
-          this.pasoFase = 0
         } else {
           this.px += (dx / falta) * avance
           this.pz += (dz / falta) * avance
-          this.pasoFase += dt * (this.entrando ? 14 : 9)
+          // La zancada sale de lo que avanza de verdad (unos 0,4 m por radián de
+          // ciclo): más rápido, pasos más seguidos, y los pies no patinan.
+          this.pasoFase += dt * vel / 0.39
           rumbo = Math.atan2(-dx / falta, -dz / falta)
         }
         this.hasTarget = false
@@ -541,7 +554,7 @@ export async function createSoldier (key, spec, lane, row) {
         this.mesh.updateMatrixWorld(true)
         ud.cuerpo.actualizar(dt, {
           andando: this.andando,
-          velocidad: this.andando ? PASO * (VELOCIDAD_PASO[this.modoPaso] ?? 1) : 0,
+          velocidad: this.andando && this.espera <= 0 ? PASO * (VELOCIDAD_PASO[this.modoPaso] ?? 1) * this.ritmo : 0,
           modo: this.modoPaso,
           forzarPie: this.enAsalto,
           apuntar: this.aim,

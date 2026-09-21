@@ -126,6 +126,7 @@
     <symbol id="i-trofeo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4c0 3 1.4 4.6 3.4 5M17 6h3c0 3-1.4 4.6-3.4 5"/><path d="M12 14v3M9.5 17h5v3h-5z"/></symbol>
     <symbol id="i-duelo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l10 10M4 4h3.5M4 4v3.5"/><path stroke="var(--u-tint)" d="M20 4 10 14M20 4h-3.5M20 4v3.5"/><path d="m12 16 4 4M8 16l-4 4M16 16l2-2M8 16l-2-2"/></symbol>
     <symbol id="i-rayo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path fill="var(--u-tint)" stroke="none" d="M13.5 2 5 13.5h6L9.5 22 19 9.5h-6.2z"/><path d="M13.5 2 5 13.5h6L9.5 22 19 9.5h-6.2z"/></symbol>
+    <symbol id="i-carpeta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path stroke="var(--u-tint)" d="M7 12h10M7 15.5h6"/></symbol>
     <symbol id="i-billete" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.8"/><path d="M6 9.5v5M18 9.5v5"/></symbol>
     <symbol id="i-moneda" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/></symbol>
     <symbol id="i-enemigos" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c-4.4 0-7.5 3.3-7.5 7.6 0 3.6 3 6.4 5 8.6.8.9 1.6 1.8 2.5 1.8s1.7-.9 2.5-1.8c2-2.2 5-5 5-8.6C19.5 6.3 16.4 3 12 3Z"/><path stroke="var(--u-tint)" d="M8.2 11.2c1.2.2 2.1.9 2.5 2M15.8 11.2c-1.2.2-2.1.9-2.5 2"/></symbol>
@@ -432,6 +433,8 @@
         <div class="menu-fila mapa-menu">
           <button id="mapa-tienda" class="menu-boton" type="button"><svg aria-hidden="true"><use href="#i-billete"></use></svg>TIENDA</button>
           <button id="mapa-multi" class="menu-boton boton-directo" type="button"><svg aria-hidden="true"><use href="#i-multi"></use></svg>MULTIJUGADOR<span class="en-directo"><i></i>EN DIRECTO</span></button>
+          <!-- Los papeles que se encuentran al limpiar cada país. -->
+          <button id="mapa-expediente" class="menu-boton boton-expediente" type="button"><svg aria-hidden="true"><use href="#i-carpeta"></use></svg>EXPEDIENTE <small id="expediente-n">0/13</small></button>
         </div>
         <button id="mapa-volver" class="chip chip-ghost">Volver a la portada</button>
       </div>
@@ -485,6 +488,35 @@
           <ol class="marcador-lista" id="duelo-tabla"></ol>
         </div>
         <button id="duelo-volver" class="chip chip-ghost">Volver</button>
+      </div>
+    </div>
+
+    <!-- El expediente: lista de los trece papeles y el lector de cada uno. -->
+    <div id="expediente-capa" class="overlay retos-capa expediente-capa hidden">
+      <div class="panel panel-retos">
+        <p class="eyebrow">Compañía Cuervo · material incautado</p>
+        <h2>Expediente</h2>
+        <p class="retos-intro">Papeles encontrados en los campamentos. Uno por cada país que limpias. Alguien les abrió la puerta, y estos papeles dicen quién.</p>
+        <ul class="expediente-lista" id="expediente-lista"></ul>
+        <button id="expediente-volver" class="chip chip-ghost">Volver al mapa</button>
+      </div>
+    </div>
+    <div id="documento-capa" class="overlay documento-capa hidden">
+      <div class="panel panel-documento">
+        <div id="documento-hoja"></div>
+        <button id="documento-volver" class="chip chip-ghost">Volver</button>
+      </div>
+    </div>
+
+    <!-- Usuarios registrados: solo la abre el administrador (desde Ajustes). -->
+    <div id="usuarios-capa" class="overlay retos-capa usuarios-capa hidden">
+      <div class="panel panel-retos">
+        <p class="eyebrow">Mando del búnker · personal</p>
+        <h2>Usuarios</h2>
+        <p class="retos-intro" id="usuarios-cuenta"></p>
+        <input id="usuarios-buscar" class="alias-campo" type="search" autocomplete="off" spellcheck="false" placeholder="Buscar por nombre o correo" aria-label="Buscar usuario">
+        <ul class="usuarios-lista" id="usuarios-lista"></ul>
+        <button id="usuarios-volver" class="chip chip-ghost">Volver</button>
       </div>
     </div>
 
@@ -670,7 +702,9 @@
         </div>
         <!-- Solo para el administrador: los mensajes denunciados en los duelos. -->
         <div class="ajuste" id="denuncias-bloque" hidden>
-          <span class="ajuste-tit">Denuncias <span id="denuncias-cuenta"></span></span>
+          <span class="ajuste-tit">Administración</span>
+          <button id="ver-usuarios" class="chip" type="button">Ver usuarios <span id="usuarios-n"></span></button>
+          <span class="ajuste-tit denuncias-tit">Denuncias <span id="denuncias-cuenta"></span></span>
           <ul class="denuncias-lista" id="denuncias-lista"></ul>
         </div>
         <button id="ajustes-volver" class="chip chip-ghost" type="button">Volver</button>

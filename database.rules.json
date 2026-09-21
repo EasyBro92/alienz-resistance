@@ -25,9 +25,13 @@
             ".validate": "!newData.exists() || (newData.hasChildren(['alias', 'puntos']) && newData.child('alias').isString() && newData.child('alias').val().length <= 24)"
           }
         },
-        "inicio": { ".write": "auth != null" },
+        "inicio": {
+          ".write": "auth != null"
+        },
         "campo": {
-          "$uid": { ".write": "auth != null && auth.uid === $uid" }
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid"
+          }
         },
         "envios": {
           "$uid": {
@@ -44,7 +48,9 @@
           }
         },
         "fin": {
-          "$uid": { ".write": "auth != null && auth.uid === $uid" }
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid"
+          }
         }
       }
     },
@@ -68,6 +74,13 @@
     "admins": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid"
+      }
+    },
+    "usuarios": {
+      ".read": "auth != null && root.child('admins/' + auth.uid).exists()",
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid && auth.token.firebase.sign_in_provider !== 'anonymous'",
+        ".validate": "newData.hasChildren(['alias', 'ultima']) && newData.child('alias').isString() && newData.child('alias').val().length <= 24"
       }
     }
   }
