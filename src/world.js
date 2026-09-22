@@ -649,6 +649,18 @@ export function createWorld (canvas) {
   piel.asfalto.normalMap.repeat.set(7, roadLength / (fieldWidth + 1.6) * 7)
   road.rotation.x = -Math.PI / 2
   road.position.set(0, 0.01, FIELD.baseZ - roadLength / 2 + 6)
+  // La lámina con los detalles de la región (piedras, charcos, hojas, hielo…),
+  // un pelo por encima del campo. Sin escribir en el buffer de profundidad: lo
+  // que se coloque encima —soldados, cascotes, charcos de icor— la tapa igual.
+  const detalleSuelo = new THREE.Mesh(
+    road.geometry,
+    new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, opacity: 0.85 })
+  )
+  detalleSuelo.rotation.x = -Math.PI / 2
+  detalleSuelo.position.set(0, 0.014, road.position.z)
+  detalleSuelo.renderOrder = 1
+  detalleSuelo.visible = false
+  scene.add(detalleSuelo)
   road.receiveShadow = true
   scene.add(road)
 
@@ -703,6 +715,15 @@ export function createWorld (canvas) {
     texturasSuelo.set(clave, t)
     return t
   }
+  // La textura de los detalles de región: fondo transparente y encima lo que
+  // pida el bioma. Va en su propia lámina sobre el campo (`detalleSuelo`), así
+  // que sirve igual sobre asfalto, adoquín, nieve o arena.
+  const LADO_DETALLE = 7
+  function texturaDetalle (clave, extra) {
+    return lienzo(`detalle:${clave}`, (x, n) => {
+      for (const [tipo, color, cuantas] of extra) EXTRAS[tipo]?.(x, n, color, cuantas)
+    }, (fieldWidth + 1.6) / LADO_DETALLE, roadLength / LADO_DETALLE)
+  }
   const mancha = (x, n, color, cuantas, rMin, rMax) => {
     for (let k = 0; k < cuantas; k++) {
       x.fillStyle = color(Math.random())
@@ -711,6 +732,164 @@ export function createWorld (canvas) {
       x.fill()
     }
   }
+  // --- lo que hace distinto el suelo de cada país ---------------------------
+  //
+  // La baldosa base dice de qué es el suelo (tierra, losas, nieve…); esto dice
+  // DÓNDE está. Se pinta encima de la misma baldosa, así que dos misiones con la
+  // misma tierra no se parecen: la de Egipto tiene arena amontonada y piedras,
+  // la de la India charcos, y la de Vladivostok hielo y pisadas. Cada bioma pide
+  // los suyos en `sueloExtra`.
+  const rgba = (c, a) => `rgba(${(c >> 16) & 255},${(c >> 8) & 255},${c & 255},${a})`
+  const EXTRAS = {
+    // Grietas ramificadas, como las del barro seco o el asfalto viejo.
+    grietas (x, n, color, cuantas) {
+      x.lineCap = 'round'
+      for (let k = 0; k < cuantas; k++) {
+        let px = Math.random() * n
+        let py = Math.random() * n
+        let ang = Math.random() * Math.PI * 2
+        x.strokeStyle = rgba(color, 0.18 + Math.random() * 0.22)
+        x.lineWidth = 0.7 + Math.random()
+        x.beginPath()
+        x.moveTo(px, py)
+        const tramos = 3 + Math.floor(Math.random() * 4)
+        for (let i = 0; i < tramos; i++) {
+          ang += (Math.random() - 0.5) * 1.1
+          px += Math.cos(ang) * (4 + Math.random() * 9)
+          py += Math.sin(ang) * (4 + Math.random() * 9)
+          x.lineTo(px, py)
+        }
+        x.stroke()
+      }
+    },
+    // Charcos: mancha oscura con un reflejo claro arriba.
+    charcos (x, n, color, cuantas) {
+      for (let k = 0; k < cuantas; k++) {
+        const cx = Math.random() * n
+        const cy = Math.random() * n
+        const r = 5 + Math.random() * 13
+        x.fillStyle = rgba(color, 0.3)
+        x.beginPath()
+        x.ellipse(cx, cy, r, r * (0.5 + Math.random() * 0.3), Math.random() * 3, 0, Math.PI * 2)
+        x.fill()
+        x.fillStyle = 'rgba(255,255,255,0.14)'
+        x.beginPath()
+        x.ellipse(cx - r * 0.2, cy - r * 0.25, r * 0.45, r * 0.16, 0.3, 0, Math.PI * 2)
+        x.fill()
+      }
+    },
+    // Hojarasca: hojitas sueltas, cada una girada a su aire.
+    hojas (x, n, color, cuantas) {
+      for (let k = 0; k < cuantas; k++) {
+        x.save()
+        x.translate(Math.random() * n, Math.random() * n)
+        x.rotate(Math.random() * Math.PI)
+        x.fillStyle = rgba(color, 0.3 + Math.random() * 0.4)
+        x.beginPath()
+        x.ellipse(0, 0, 2.5 + Math.random() * 3.5, 1 + Math.random() * 1.4, 0, 0, Math.PI * 2)
+        x.fill()
+        x.restore()
+      }
+    },
+    // Placas de hielo: claras, con el borde marcado.
+    hielo (x, n, color, cuantas) {
+      for (let k = 0; k < cuantas; k++) {
+        const cx = Math.random() * n
+        const cy = Math.random() * n
+        const r = 8 + Math.random() * 18
+        x.beginPath()
+        for (let i = 0; i < 7; i++) {
+          const a = (i / 7) * Math.PI * 2
+          const rr = r * (0.7 + Math.random() * 0.5)
+          x.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr * 0.7)
+        }
+        x.closePath()
+        x.fillStyle = rgba(color, 0.22)
+        x.fill()
+        x.strokeStyle = 'rgba(255,255,255,0.35)'
+        x.lineWidth = 1
+        x.stroke()
+      }
+    },
+    // Ceniza y carbonilla: motas finas y algún manchón apagado.
+    ceniza (x, n, color, cuantas) {
+      mancha(x, n, a => rgba(color, a * 0.16), Math.round(cuantas / 6), 8, 26)
+      for (let k = 0; k < cuantas; k++) {
+        x.fillStyle = rgba(color, 0.25 + Math.random() * 0.45)
+        x.fillRect(Math.random() * n, Math.random() * n, 1, 1 + Math.random())
+      }
+    },
+    // Piedras sueltas, con su sombrita para que se despeguen del suelo.
+    piedras (x, n, color, cuantas) {
+      for (let k = 0; k < cuantas; k++) {
+        const cx = Math.random() * n
+        const cy = Math.random() * n
+        const r = 1.2 + Math.random() * 2.6
+        x.fillStyle = 'rgba(0,0,0,0.16)'
+        x.beginPath()
+        x.ellipse(cx + 0.8, cy + 0.8, r, r * 0.8, 0, 0, Math.PI * 2)
+        x.fill()
+        x.fillStyle = rgba(color, 0.55 + Math.random() * 0.35)
+        x.beginPath()
+        x.ellipse(cx, cy, r, r * 0.8, Math.random() * 3, 0, Math.PI * 2)
+        x.fill()
+      }
+    },
+    // Musgo en las juntas y en los rincones húmedos.
+    musgo (x, n, color, cuantas) {
+      for (let k = 0; k < cuantas; k++) {
+        const cx = Math.random() * n
+        const cy = Math.random() * n
+        x.fillStyle = rgba(color, 0.1 + Math.random() * 0.2)
+        x.beginPath()
+        x.ellipse(cx, cy, 3 + Math.random() * 9, 2 + Math.random() * 5, Math.random() * 3, 0, Math.PI * 2)
+        x.fill()
+      }
+    },
+    // Roderas: las rodadas que dejan los camiones a lo largo del tramo.
+    roderas (x, n, color, cuantas) {
+      for (let k = 0; k < cuantas; k++) {
+        const px = Math.random() * n
+        x.fillStyle = rgba(color, 0.12)
+        x.fillRect(px, 0, 5 + Math.random() * 7, n)
+        x.fillStyle = rgba(color, 0.08)
+        x.fillRect(px - 9, 0, 4, n)
+      }
+    },
+    // Pisadas: rastros de huellas que se pierden.
+    huellas (x, n, color, cuantas) {
+      for (let k = 0; k < cuantas; k++) {
+        let px = Math.random() * n
+        let py = Math.random() * n
+        const ang = Math.random() * Math.PI * 2
+        const pasos = 4 + Math.floor(Math.random() * 5)
+        for (let i = 0; i < pasos; i++) {
+          x.save()
+          x.translate(px + (i % 2 ? 3 : -3) * Math.cos(ang + 1.57), py + (i % 2 ? 3 : -3) * Math.sin(ang + 1.57))
+          x.rotate(ang)
+          x.fillStyle = rgba(color, 0.16)
+          x.beginPath()
+          x.ellipse(0, 0, 1.6, 3.2, 0, 0, Math.PI * 2)
+          x.fill()
+          x.restore()
+          px += Math.cos(ang) * 7
+          py += Math.sin(ang) * 7
+        }
+      }
+    },
+    // Arena que el viento amontona sobre el suelo duro.
+    arenaSuelta (x, n, color, cuantas) {
+      for (let k = 0; k < cuantas; k++) {
+        const cx = Math.random() * n
+        const cy = Math.random() * n
+        x.fillStyle = rgba(color, 0.12 + Math.random() * 0.2)
+        x.beginPath()
+        x.ellipse(cx, cy, 10 + Math.random() * 26, 3 + Math.random() * 7, Math.random() * 0.6 - 0.3, 0, Math.PI * 2)
+        x.fill()
+      }
+    }
+  }
+
   const PINTORES = {
     hierba (x, n) {
       x.fillStyle = '#dfe8d2'
@@ -1366,6 +1545,10 @@ export function createWorld (canvas) {
     for (const m of pintables.mobiliarioVia ?? []) m.visible = !campo
     const conFarolas = !campo || suelo === 'adoquin' || suelo === 'losas'
     for (const m of pintables.farolas ?? []) m.visible = conFarolas
+    // Los detalles de la región, encima de lo que sea el suelo.
+    const extra = b.sueloExtra
+    detalleSuelo.visible = !!extra?.length
+    if (extra?.length) detalleSuelo.material.map = texturaDetalle(clave, extra)
     road.material.map = campo ?? pielCarretera.map
     road.material.normalMap = campo ? null : pielCarretera.normalMap
     if (campo) road.material.color.setHex(tonoSuelo ?? COLOR_CAMPO[suelo] ?? 0xffffff)

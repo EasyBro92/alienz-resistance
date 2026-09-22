@@ -2048,8 +2048,13 @@ export const HITOS = {
 // —donde no hay asfalto, hay pista—, hielo prensado en Siberia y polvo comido
 // en Egipto. La pintura acompaña: una raya blanca impecable sobre una pista de
 // tierra sería el detalle que rompe todo lo demás.
+// `sueloExtra`: lo que se pinta ENCIMA del suelo del campo para que cada región
+// se vea distinta aunque comparta tipo de suelo (ver EXTRAS en world.js): las
+// piedras del secarral, la ceniza del volcán, el hielo del Ártico, los charcos
+// del monzón, la hojarasca de la selva.
 export const BIOMAS = {
   mediterraneo: {
+    sueloExtra: [['piedras', 0x8a7a5c, 40], ['grietas', 0x6b5a44, 26]],
     hora: 'tarde',
     restos: [['camioneta', 0x9a6a4a, 3], ['contenedor', 0x8a6f4a, 2]],
     asfalto: 0x83807a, raya: 0xe8dcc0, bordillo: 0xbdb6a8,
@@ -2061,6 +2066,7 @@ export const BIOMAS = {
   // lo pone el hito `campoDeMarte`. Los cerros del fondo, en verde oscuro, se
   // leen como arboledas lejanas.
   parque: {
+    sueloExtra: [['hojas', 0x6f8a3a, 80], ['musgo', 0x5f7a32, 16]],
     hora: 'dia',
     restos: [],
     asfalto: 0x8fb46a, raya: 0x8fb46a, bordillo: 0xd9c9a0,
@@ -2069,6 +2075,7 @@ export const BIOMAS = {
     flora: []
   },
   costa: {
+    sueloExtra: [['arenaSuelta', 0xe8d6a8, 14], ['piedras', 0x9a9080, 26]],
     hora: 'manana',
     restos: [['contenedor', 0xa8563f, 3], ['camioneta', 0x8a5f4a, 2]],
     asfalto: 0x8e8b83, raya: 0xf0e8d2, bordillo: 0xd2cbb8,
@@ -2079,6 +2086,7 @@ export const BIOMAS = {
   // Las arenas del 1 contra 1. De noche, con focos: el recinto (hecho en
   // Blender) lo pone `arena`, y aquí solo va la luz y el color del suelo.
   arena: {
+    sueloExtra: [['piedras', 0x8a7758, 30], ['roderas', 0x6a5a44, 2]],
     hora: 'noche', arena: 'arena-coliseo',
     restos: [], flora: [],
     asfalto: 0x5e574c, raya: 0xf0c419, bordillo: 0x6f5d48,
@@ -2086,6 +2094,7 @@ export const BIOMAS = {
     cielo: 0x0b1022, niebla: 0x151c30, sol: 0xfff1d6, ambiente: 0x3a4666
   },
   arenaCrater: {
+    sueloExtra: [['ceniza', 0x2a2320, 220], ['piedras', 0x4a4038, 26]],
     hora: 'noche', arena: 'arena-crater',
     restos: [], flora: [],
     asfalto: 0x4a423c, raya: 0xf0c419, bordillo: 0x3d3430,
@@ -2093,6 +2102,7 @@ export const BIOMAS = {
     cielo: 0x1a0f1e, niebla: 0x2a1624, sol: 0xffdcc4, ambiente: 0x4a2e3e
   },
   arenaBase: {
+    sueloExtra: [['charcos', 0x2a6a4a, 10], ['ceniza', 0x1e2a24, 120]],
     hora: 'noche', arena: 'arena-base',
     restos: [], flora: [],
     asfalto: 0x3a424c, raya: 0x3cff8a, bordillo: 0x22272e,
@@ -2100,6 +2110,7 @@ export const BIOMAS = {
     cielo: 0x08140f, niebla: 0x0e1f18, sol: 0xe6fff0, ambiente: 0x2e4a3e
   },
   volcanico: {
+    sueloExtra: [['ceniza', 0x2e2823, 260], ['grietas', 0x3a2f28, 30]],
     hora: 'ocaso',
     restos: [['autobus', 0xc4923a, 2], ['contenedor', 0x9a6a3a, 3]],
     asfalto: 0x4a453f, raya: 0xd8cdae, bordillo: 0x6e675c,
@@ -2109,6 +2120,7 @@ export const BIOMAS = {
     hito: ['volcan', 0x4a3f38, false]
   },
   egeo: {
+    sueloExtra: [['piedras', 0xbfb49a, 34], ['grietas', 0x8a8270, 20]],
     hora: 'alto',
     restos: [['contenedor', 0x3f6f92, 4], ['camioneta', 0x6a7f92, 2]],
     asfalto: 0x939086, raya: 0xf2ead0, bordillo: 0xd8d0b8,
@@ -2118,6 +2130,7 @@ export const BIOMAS = {
     hito: ['columnas', 0xddd6c2]
   },
   desierto: {
+    sueloExtra: [['arenaSuelta', 0xf0d79a, 18], ['huellas', 0x9a8256, 10]],
     hora: 'alto',
     restos: [['autobus', 0xd8b45c, 2], ['camioneta', 0xb49a5c, 3]],
     asfalto: 0x9c927e, raya: 0xefe2be, bordillo: 0xc9bb96,
@@ -2127,6 +2140,7 @@ export const BIOMAS = {
     hito: ['piramides', 0xd9bd88]
   },
   sabana: {
+    sueloExtra: [['hojas', 0xa8903c, 60], ['grietas', 0x8a6f3c, 22]],
     hora: 'tarde',
     restos: [['camioneta', 0xb4703a, 4], ['contenedor', 0x94603a, 2]],
     asfalto: 0x9b7742, raya: 0xc9a86a, bordillo: 0xa8894f,
@@ -2135,6 +2149,7 @@ export const BIOMAS = {
     flora: [['acacia', 0x6d7f42, 18], ['palmera', 0x5c7a3c, 6]]
   },
   monzon: {
+    sueloExtra: [['charcos', 0x46565c, 22], ['musgo', 0x4f6b38, 20]],
     hora: 'dia',
     restos: [['autobus', 0x5a8f6a, 2], ['contenedor', 0x4a6f5a, 3]],
     asfalto: 0x6f7269, raya: 0xdcd8c4, bordillo: 0x8e9084,
@@ -2143,6 +2158,7 @@ export const BIOMAS = {
     flora: [['palmera', 0x3f6b33, 16], ['ceiba', 0x40663a, 8]]
   },
   karstico: {
+    sueloExtra: [['piedras', 0xb0a893, 40], ['musgo', 0x5a7a3a, 14]],
     hora: 'manana',
     restos: [['contenedor', 0x8a5a4a, 4], ['camioneta', 0x7a6a5a, 2]],
     asfalto: 0x787d76, raya: 0xe0dcc8, bordillo: 0x969a90,
@@ -2152,6 +2168,7 @@ export const BIOMAS = {
     hito: ['karst', 0x76836c]
   },
   taiga: {
+    sueloExtra: [['hojas', 0x5a6b3a, 60], ['huellas', 0x6a5a45, 8], ['charcos', 0x46525a, 8]],
     hora: 'dia',
     restos: [['oruga', 0x5c6350, 2], ['contenedor', 0x4c5350, 3]],
     asfalto: 0x8d9298, raya: 0xdde4ea, bordillo: 0xb4bcc4,
@@ -2160,6 +2177,7 @@ export const BIOMAS = {
     flora: [['abeto', 0x2b402f, 22]]
   },
   artico: {
+    sueloExtra: [['hielo', 0xbcd8ea, 16], ['huellas', 0x8aa0b4, 12]],
     hora: 'ocaso',
     restos: [['oruga', 0x6a6f5e, 2], ['camioneta', 0x7a7f6e, 2]],
     asfalto: 0xa6aeb6, raya: 0xe8eef4, bordillo: 0xc8d0d8,
@@ -2168,6 +2186,7 @@ export const BIOMAS = {
     flora: [['abeto', 0x24382b, 18]]
   },
   altiplano: {
+    sueloExtra: [['piedras', 0x9a8c78, 40], ['grietas', 0x7a6a56, 24]],
     hora: 'alto',
     restos: [['autobus', 0xd4a03c, 2]],
     asfalto: 0x8a7f70, raya: 0xe6d8ac, bordillo: 0xb0a288,
@@ -2179,6 +2198,7 @@ export const BIOMAS = {
   // La ciudad: acera clara en vez de campo, árboles de alineación y coches
   // aparcados. Es lo que convierte la carretera en una avenida.
   ciudad: {
+    sueloExtra: [['grietas', 0x33333a, 40], ['ceniza', 0x35353a, 120], ['roderas', 0x2c2c2e, 3]],
     hora: 'ocaso',
     restos: [['camioneta', 0x8a8f96, 3], ['contenedor', 0x6a7f86, 2]],
     asfalto: 0x5e5f62, raya: 0xf2f2ee, bordillo: 0xcfcac0,
@@ -2189,6 +2209,7 @@ export const BIOMAS = {
   // El Caribe: arena blanca, palmeras y cerros verdes al fondo. Sin restos: lo
   // que hay abandonado en la playa lo pone el hito `playa`.
   caribe: {
+    sueloExtra: [['hojas', 0x3f7a3a, 70], ['arenaSuelta', 0xf0e0b8, 10]],
     hora: 'manana',
     restos: [],
     asfalto: 0x8e8b83, raya: 0xf0e8d2, bordillo: 0xd2cbb8,
@@ -2197,6 +2218,7 @@ export const BIOMAS = {
     flora: [['palmera', 0x3f8a3a, 18]]
   },
   selva: {
+    sueloExtra: [['hojas', 0x2f6b30, 110], ['musgo', 0x37662e, 26], ['charcos', 0x3a4a3a, 12]],
     hora: 'dia',
     restos: [['barcaza', 0x7a6a52, 2], ['contenedor', 0x6a7a62, 3]],
     asfalto: 0x6b6f5e, raya: 0xd4d6b8, bordillo: 0x878a74,
