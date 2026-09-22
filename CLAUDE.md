@@ -68,13 +68,32 @@ Ganar y perder recargan la página; `window.volverA('mapa' | 'pais:N' | 'portada
 - Las capturas son caras y a veces salen del fotograma anterior: comprobar con JavaScript siempre que se pueda.
 - Los heredocs de bash con JavaScript grande fallan: escribir con la herramienta de archivos y aplicar con un script.
 
-## Equilibrio medido (no cambiar sin volver a medir)
+## Equilibrio medido (23/09/2026, no cambiar sin volver a medir)
 
-- Tarragona solo con arqueros: 10 ganan con el perímetro al 74 %; 6 pierden.
-- Peaje de estrellas: con 3★ o 2★ de media se llega a las 36 misiones; con 1,5★ te atascas a la entrada de Francia. (Medido con 12 países; ahora son 13 y 39 misiones: falta volver a medir.)
-- Billetes por partida cobrando todas las monedas: de 27 (Tarragona) a 237 (misiones finales).
-- **Todo lo anterior se midió con el botín de cada huésped al 100 %.** Ahora está al 75 % (`ECONOMY.botinHuesped`) y el goteo también cuenta para el billete: falta volver a medir.
-- Monedas: 1 billete cada 30 que entran en partida (`MONEDAS_POR_BILLETE`); las que sobran al acabar van a la cartera y cada 100 guardadas son 1 billete (`MONEDAS_POR_DOLAR`, cambio automático en `cerrarCuentas`).
+Medido con un jugador automático en el navegador (`__zr.start` + `simulate(0.05)`,
+sin dibujar): cobra todas las monedas, llena la línea con fusileros y arqueros
+hasta doce y a partir de ahí compra lo más caro que puede, con un ataque aéreo
+cuando se junta la horda. Sin recolocar, sin barreras y sin reparar.
+
+- **Sin ninguna mejora de la tienda:** gana 34 de los 39 tramos. Pierde los cinco
+  duros del final: Chongqing (23), Nueva York (29), Santo Domingo (34),
+  São Paulo (37) y Manaos (38).
+- **Con las mejoras al máximo (daño y cadencia a 3):** gana esos cinco, todos con
+  el perímetro al 100 %.
+- **Estrellas:** ese recorrido da 91 estrellas al llegar a Brasil y el peaje pide
+  72; en ningún país se queda corto (margen de 19 a 25). Umbrales: 3★ al 100 %,
+  2★ desde el 55 %, 1★ por debajo.
+- **Billetes por partida** (cobrando todo, botín al 75 % y goteo incluido): de 33
+  en Tarragona a 230 en los tramos de diez oleadas; **4.762 en una vuelta entera**
+  a la campaña.
+- **Precios:** abrir las trece piezas de la tienda cuesta 2.875 billetes, así que
+  se puede tener todo abierto en una sola vuelta. Subir las mejoras de los siete
+  soldados al máximo cuesta unos 11.800, que son dos vueltas y media: es el juego
+  largo, y por eso los cinco tramos duros se repiten con más músculo.
+
+Lo de antes (medido con el botín al 100 %, 12 países y los alienz anteriores) ya
+no vale: el botín está al 75 %, hay 13 países y el 21/09 los pequeños ganaron un
+10 % de velocidad y los grandes un 15 % de vida.
 
 ## Encuadre en el móvil vertical (375×812)
 
