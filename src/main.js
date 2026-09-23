@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import './style.css'
-import { FIELD, BASE, NIVELES, SOLDIERS, DEFENSES, STRIKES, ZOMBIES, ECONOMY, carrilAbierto, estrecharCampo } from './config.js'
+import { FIELD, BASE, NIVELES, SOLDIERS, DEFENSES, STRIKES, ZOMBIES, ECONOMY, carrilAbierto, estrecharCampo, entrarPorElFondo } from './config.js'
 import { createWorld, rowZ, laneX } from './world.js'
 import { createSoldier, upgradeCost, muzzleWorld, ejectorWorld } from './entities/soldier.js'
 // El invitado del cooperativo crea copias de los huéspedes que le manda el
@@ -232,7 +232,10 @@ function mejorHueco (item) {
   for (const z of zombies) {
     if (z.dead || z.bajoTierra) continue
     // Lo que ya casi ha llegado pesa mucho más que lo que acaba de salir.
-    const avance = (z.z - FIELD.spawnZ) / (FIELD.baseZ - FIELD.spawnZ)
+    // Topado entre 0 y 1: con la entrada lejana del duelo, uno recien salido
+    // daba avance NEGATIVO y al elevarlo al cuadrado puntuaba como si ya
+    // estuviera encima de la base.
+    const avance = Math.max(0, Math.min(1, (z.z - FIELD.spawnZ) / (FIELD.baseZ - FIELD.spawnZ)))
     const peso = z.maxHp * (0.3 + avance * avance * 2.5)
     amenaza[z.lane] += peso
     // Los anchos también aprietan a los carriles de al lado.
@@ -1787,6 +1790,11 @@ function start (indice = nivelActual) {
   // El paisaje de la región, antes de enseñar nada: si se vistiera después, el
   // primer fotograma del nivel saldría con la tierra del destino anterior.
   const nivelDeHoy = nivelActivo()
+  // En duelo y arena los huéspedes vienen andando desde el horizonte y la nave
+  // se posa allí: no se nota el momento en que aparecen. En la campaña se queda
+  // la nave de siempre, que forma parte de cómo se cuenta cada misión.
+  entrarPorElFondo(!!dueloEnCurso)
+  dropship.recolocar()
   world.vestir(nivelDeHoy.bioma, nivelDeHoy.hitos, nivelDeHoy.suelo, nivelDeHoy.tonoSuelo, nivelDeHoy.escenario)
   // Lo que arrastra el viento en este sitio, y por dónde vuelan las naves de paso.
   ambient.vestir(nivelDeHoy, world.alturaEn)

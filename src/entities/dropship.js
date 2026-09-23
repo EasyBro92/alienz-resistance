@@ -541,7 +541,10 @@ export function createDropship (alFase) {
   // Punta de la rampa medida en el mundo: ahí es donde tienen que aparecer los
   // huéspedes, así que la nave se coloca a partir de ese número y no al revés.
   const alcance = bisagra.position.z + Math.cos(ABIERTA) * LARGO
-  group.position.set(0, 0, FIELD.spawnZ - alcance)
+  // A partir de la punta de la rampa, y recolocable: en duelo y arena la nave
+  // se posa en el horizonte y hay que moverla sin reconstruirla.
+  const recolocar = () => group.position.setZ(FIELD.entradaZ - alcance)
+  recolocar()
 
   // La anchura útil de la plancha, para que el huésped sepa por dónde puede
   // bajar sin salirse. Se mide de la propia pieza en vez de repetir el número.
@@ -596,6 +599,7 @@ export function createDropship (alFase) {
 
   return {
     group,
+    recolocar,
     // A qué altura está la plancha en un punto de la carretera. Cero fuera de
     // ella, así que se puede llamar siempre sin preguntar nada.
     // Media anchura por la que se puede bajar, con un margen para no pisar el

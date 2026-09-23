@@ -26,7 +26,7 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
   // con todos.
   const centro = (FIELD.lanes - 1) / 2
   const xSalida = (lane - centro) * 0.62 + jitter * 0.5
-  mesh.position.set(xSalida, 0, FIELD.spawnZ - Math.random() * 6)
+  mesh.position.set(xSalida, 0, FIELD.entradaZ - Math.random() * 6)
   mesh.rotation.y = Math.PI // mirando hacia la base
 
   // El Escarbador baja de la nave como los demás; al pisar suelo firme cava,

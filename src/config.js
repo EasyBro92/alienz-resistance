@@ -17,7 +17,21 @@ export const FIELD = {
   // una sola vez a partir de `lanes`, y tocarlo obligaría a rehacer toda esa
   // geometría en cada misión.
   primerCarril: 0,
-  ultimoCarril: 4
+  ultimoCarril: 4,
+  // Dónde aparecen los huéspedes. Normalmente en la punta de la rampa de la
+  // nave, a la altura de `spawnZ`. En duelo y arena la nave se posa en el
+  // HORIZONTE y vienen andando desde mucho más atrás: Isidro no quería que se
+  // notara el momento en que aparecen, sino que parezca que llevan rato
+  // caminando y van saliendo de la niebla.
+  entradaZ: -44
+}
+
+// -82 y no más lejos por una razón medida: la niebla cierra del todo a 152 de
+// la cámara (que está en z≈22), así que a -82 ya se ven borrosos y pequeños
+// pero se ven. Más atrás no se distinguirían y la primera oleada tardaría medio
+// minuto en llegar.
+export function entrarPorElFondo (on) {
+  FIELD.entradaZ = on ? -82 : FIELD.spawnZ
 }
 
 export const carrilAbierto = l => l >= FIELD.primerCarril && l <= FIELD.ultimoCarril

@@ -442,6 +442,7 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
 
   function empaquetarCampo () {
     const c = juego.campo()
+    misAlienz = c.zombies.length
     return {
       b: Math.round(c.base),
       z: c.zombies.map(z => [CLAVES_Z.indexOf(z.key), Math.round(z.x * 10), Math.round(z.z * 10)]),
@@ -521,8 +522,13 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
   // Se aparta sola mientras hay avisos de bichos entrando, y vuelve al tamaño
   // que hayas elegido en cuanto pasa el apuro.
   let apartada = false
+  let misAlienz = 0
   function apartarSiEstorba () {
-    const estorba = avisos.length > 0 && vistaPedida === 'grande'
+    // Se aparta en cuanto hay ALGO en tu campo, no solo cuando te manda algo el
+    // rival: la ventana grande se come justo la parte de arriba, que es por
+    // donde bajan los alienz, y con ella puesta no se ve venir nada. Grande
+    // durante la calma, pequeña en cuanto empieza el lío.
+    const estorba = (avisos.length > 0 || misAlienz > 0) && vistaPedida === 'grande'
     if (estorba === apartada) return
     apartada = estorba
     $('duelo-rival').classList.toggle('grande', !estorba)
