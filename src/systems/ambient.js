@@ -161,14 +161,20 @@ export function createAmbient (scene) {
     periodico: { bote: [1.2, 2.2], gravedad: 5, suelo: 0.3, giro: [3, 6], velocidad: [4, 8], sombra: false },
     bolaNieve: { bote: [0, 0.4], gravedad: 16, suelo: 0.4, giro: [3, 6], velocidad: [3, 5], sombra: true }
   }
+  // Cuánto se espera entre una cosa y la siguiente. Estaba en 6-22 s con tres a
+  // la vez, y con eso siempre había algo rodando: dejaba de ser un detalle y
+  // pasaba a ser parte del decorado. Isidro lo pidió «muy de tarde en tarde»,
+  // que es cuando se nota que el sitio está vivo sin que llame la atención.
+  const ESPERA_VIENTO = [26, 78]
   const cacheViento = new Map()
   let tipoViento = 'rodadora'
   const weeds = []
-  for (let i = 0; i < 3; i++) weeds.push({ mesh: null, timer: rand(2, 18), active: false, vx: 0, vy: 0, spin: 0 })
+  for (let i = 0; i < 2; i++) weeds.push({ mesh: null, timer: rand(8, 40), active: false, vz: 0, vy: 0, spin: 0 })
   function mallaViento (tipo, i) {
     const clave = tipo + i
     if (!cacheViento.has(clave)) {
       const m = VIENTO[tipo]()
+      m.name = 'ambiente-viento'
       m.visible = false
       m.traverse(o => { if (o.isMesh) o.castShadow = VUELO[tipo].sombra })
       scene.add(m)
@@ -182,10 +188,16 @@ export function createAmbient (scene) {
     const v = VUELO[tipoViento]
     w.mesh = mallaViento(tipoViento, i)
     const dir = Math.random() < 0.5 ? 1 : -1
-    w.mesh.position.set(dir * -(half + 9), v.suelo + 0.05, rand(FIELD.spawnZ + 4, FIELD.baseZ + 2))
+    // Ya no cruza los carriles. Isidro: «la bola de nieve rueda de un lado para
+    // otro y a veces se hace repetitivo» — y encima cruzando el campo se
+    // confunde con algo del juego. Ahora baja POR LA CUNETA, a lo largo de la
+    // carretera y siempre fuera del pasillo donde se juega.
+    const lado = Math.random() < 0.5 ? -1 : 1
+    w.carril = lado * rand(half + 2.4, half + 9)
+    w.mesh.position.set(w.carril, v.suelo + 0.05, dir > 0 ? FIELD.spawnZ - 14 : FIELD.baseZ + 10)
     w.mesh.visible = true
     w.active = true
-    w.vx = dir * rand(...v.velocidad)
+    w.vz = dir * rand(...v.velocidad)
     w.vy = 0
     w.spin = rand(...v.giro)
     w.mesh.scale.setScalar(rand(0.7, 1.3))
@@ -375,6 +387,132 @@ export function createAmbient (scene) {
 
   let clock = 0
 
+  // --- bichos de tierra --------------------------------------------------------
+  // Arriba ya había pájaros y buitres, pero a ras de suelo no se movía nada
+  // vivo. Uno solo cada vez, por la cuneta y nunca por los carriles: un bicho
+  // cruzando el campo se confunde con un enemigo pequeño, y eso sí estorba.
+  //
+  // Todos van a base de carreras cortas con parones, que es como se mueve un
+  // animal pequeño de verdad; a velocidad constante parecen un juguete tirado
+  // con una cuerda.
+  const BICHOS = {
+    lagartija: () => {
+      const piel = new THREE.MeshStandardMaterial({ color: 0x6f7a44, roughness: 0.85 })
+      const g = new THREE.Group()
+      const cuerpo = new THREE.Mesh(new THREE.CapsuleGeometry(0.05, 0.18, 3, 7), piel)
+      cuerpo.rotation.x = Math.PI / 2
+      g.add(cuerpo)
+      const cola = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.28, 5), piel)
+      cola.rotation.x = -Math.PI / 2
+      cola.position.z = 0.22
+      g.add(cola)
+      g.add(Object.assign(new THREE.Mesh(new THREE.SphereGeometry(0.055, 7, 5), piel), { position: new THREE.Vector3(0, 0.01, -0.15) }))
+      return g
+    },
+    rata: () => {
+      const pelo = new THREE.MeshStandardMaterial({ color: 0x4a4038, roughness: 0.95 })
+      const g = new THREE.Group()
+      const cuerpo = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), pelo)
+      cuerpo.scale.set(0.8, 0.75, 1.5)
+      g.add(cuerpo)
+      const cola = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.02, 0.26, 5), pelo)
+      cola.rotation.x = Math.PI / 2
+      cola.position.set(0, 0.02, 0.2)
+      g.add(cola)
+      return g
+    },
+    cangrejo: () => {
+      const caparazon = new THREE.MeshStandardMaterial({ color: 0xc2593a, roughness: 0.6 })
+      const g = new THREE.Group()
+      const cuerpo = new THREE.Mesh(new THREE.SphereGeometry(0.11, 9, 6), caparazon)
+      cuerpo.scale.set(1.35, 0.6, 1)
+      g.add(cuerpo)
+      for (const lado of [-1, 1]) {
+        const pinza = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 5), caparazon)
+        pinza.position.set(lado * 0.17, 0, -0.07)
+        g.add(pinza)
+      }
+      return g
+    },
+    liebre: () => {
+      const pelo = new THREE.MeshStandardMaterial({ color: 0x8d7a5c, roughness: 0.95 })
+      const g = new THREE.Group()
+      const cuerpo = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), pelo)
+      cuerpo.scale.set(0.8, 0.9, 1.35)
+      g.add(cuerpo)
+      for (const lado of [-1, 1]) {
+        const oreja = new THREE.Mesh(new THREE.CapsuleGeometry(0.02, 0.13, 2, 5), pelo)
+        oreja.position.set(lado * 0.04, 0.16, -0.1)
+        oreja.rotation.x = -0.25
+        g.add(oreja)
+      }
+      return g
+    }
+  }
+  // Cuánto corre, cuánto para y cuánto bota al correr.
+  const TROTE = {
+    lagartija: { veloz: [3.2, 5], carrera: [0.35, 0.8], parada: [0.6, 2.2], bote: 0 },
+    rata: { veloz: [2.4, 3.8], carrera: [0.4, 1], parada: [0.5, 1.8], bote: 0.015 },
+    cangrejo: { veloz: [1.2, 2], carrera: [0.5, 1.4], parada: [0.8, 2.5], bote: 0 },
+    liebre: { veloz: [4, 6.5], carrera: [0.5, 1.2], parada: [1, 3], bote: 0.1 }
+  }
+  let tipoBicho = 'lagartija'
+  const cacheBichos = new Map()
+  const bicho = { mesh: null, timer: rand(14, 50), active: false, vz: 0, fase: 'para', t: 0, base: 0 }
+
+  function soltarBicho () {
+    if (!BICHOS[tipoBicho]) return
+    if (!cacheBichos.has(tipoBicho)) {
+      const m = BICHOS[tipoBicho]()
+      m.name = 'ambiente-bicho'
+      m.visible = false
+      m.traverse(o => { if (o.isMesh) o.castShadow = true })
+      scene.add(m)
+      cacheBichos.set(tipoBicho, m)
+    }
+    bicho.mesh = cacheBichos.get(tipoBicho)
+    const dir = Math.random() < 0.5 ? 1 : -1
+    const lado = Math.random() < 0.5 ? -1 : 1
+    bicho.base = 0.1
+    bicho.mesh.position.set(lado * rand(half + 2, half + 8), bicho.base, dir > 0 ? FIELD.spawnZ - 12 : FIELD.baseZ + 8)
+    bicho.mesh.rotation.y = dir > 0 ? 0 : Math.PI
+    bicho.mesh.visible = true
+    bicho.active = true
+    bicho.dir = dir
+    bicho.fase = 'corre'
+    bicho.t = rand(...TROTE[tipoBicho].carrera)
+    bicho.vz = dir * rand(...TROTE[tipoBicho].veloz)
+  }
+
+  function moverBicho (dt) {
+    if (!bicho.active) {
+      bicho.timer -= dt
+      if (bicho.timer <= 0) { bicho.timer = rand(38, 95); soltarBicho() }
+      return
+    }
+    const t = TROTE[tipoBicho] ?? TROTE.lagartija
+    bicho.t -= dt
+    if (bicho.t <= 0) {
+      if (bicho.fase === 'corre') { bicho.fase = 'para'; bicho.t = rand(...t.parada) } else {
+        bicho.fase = 'corre'
+        bicho.t = rand(...t.carrera)
+        bicho.vz = bicho.dir * rand(...t.veloz)
+      }
+    }
+    if (bicho.fase === 'corre') {
+      bicho.mesh.position.z += bicho.vz * dt
+      // Brinquito al correr, para los que botan.
+      bicho.mesh.position.y = bicho.base + Math.abs(Math.sin(performance.now() * 0.02)) * t.bote
+    } else {
+      bicho.mesh.position.y = bicho.base
+    }
+    if (bicho.mesh.position.z < FIELD.spawnZ - 16 || bicho.mesh.position.z > FIELD.baseZ + 12) {
+      bicho.active = false
+      bicho.mesh.visible = false
+      bicho.timer = rand(38, 95)
+    }
+  }
+
   return {
     // Al empezar cada misión: qué arrastra el viento y por dónde vuelan las naves
     // de paso. `alturaEn(zMin, zMax)` la da el mundo.
@@ -393,8 +531,22 @@ export function createAmbient (scene) {
           if (w.mesh) w.mesh.visible = false
           w.mesh = null
           w.active = false
-          w.timer = rand(2, 12)
+          w.timer = rand(10, 45)
         }
+      }
+
+      // El bicho de tierra de cada sitio. En la zona volcánica no vive nada.
+      let animal = 'liebre'
+      if (suelo === 'playa') animal = 'cangrejo'
+      else if (conAvenida || bioma === 'ciudad' || suelo === 'losas' || suelo === 'adoquin') animal = 'rata'
+      else if (bioma === 'desierto' || bioma === 'altiplano' || suelo === 'arena') animal = 'lagartija'
+      else if (bioma === 'volcanico' || bioma === 'artico') animal = null
+      if (animal !== tipoBicho) {
+        tipoBicho = animal
+        if (bicho.mesh) bicho.mesh.visible = false
+        bicho.mesh = null
+        bicho.active = false
+        bicho.timer = rand(15, 60)
       }
       if (alturaEn) {
         // El carril con el decorado más bajo, y por encima de él. En una ciudad
@@ -540,24 +692,28 @@ export function createAmbient (scene) {
         if (!w.active) {
           w.timer -= dt
           if (w.timer <= 0) {
-            w.timer = rand(6, 22)
+            w.timer = rand(ESPERA_VIENTO[0], ESPERA_VIENTO[1])
             launchWeed(w, i)
           }
           return
         }
         const v = VUELO[tipoViento] ?? VUELO.rodadora
         w.vy -= v.gravedad * dt
-        w.mesh.position.x += w.vx * dt
+        w.mesh.position.z += w.vz * dt
         w.mesh.position.y += w.vy * dt
         if (w.mesh.position.y < v.suelo) { w.mesh.position.y = v.suelo; w.vy = rand(...v.bote) }
-        w.mesh.rotation.z -= Math.sign(w.vx) * w.spin * dt
-        w.mesh.rotation.x += w.spin * 0.4 * dt
-        if (Math.abs(w.mesh.position.x) > half + 11) {
+        // Rueda sobre su avance, que ahora va por Z: girando sobre Z parecía que
+        // patinaba de lado.
+        w.mesh.rotation.x -= Math.sign(w.vz) * w.spin * dt
+        w.mesh.rotation.y += w.spin * 0.25 * dt
+        if (w.mesh.position.z < FIELD.spawnZ - 18 || w.mesh.position.z > FIELD.baseZ + 14) {
           w.active = false
           w.mesh.visible = false
-          w.timer = rand(6, 22)
+          w.timer = rand(ESPERA_VIENTO[0], ESPERA_VIENTO[1])
         }
       })
+
+      moverBicho(dt)
 
       // polvo arrastrado
       const arr = dustGeo.attributes.position.array
