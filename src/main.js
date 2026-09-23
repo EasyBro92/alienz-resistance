@@ -22,6 +22,7 @@ import { montarZoomMapa } from './mapaZoom.js'
 import { cargarCartera, sumarBilletes, sumarMonedas, canjear, PRECIOS, MONEDAS_POR_DOLAR, PREMIOS_UNIDAD, ponerSinMejoras } from './systems/cartera.js'
 import { crearDuelo, montarBandeja } from './duelo.js'
 import { montarExpediente, htmlHallazgo } from './expediente.js'
+import { crearCabina } from './helicoptero.js'
 import { oleadasArena, azarConSemilla } from './systems/duelo.js'
 import { tirarCofre, girarCarrusel } from './cofre.js'
 import { crearTienda } from './tienda.js'
@@ -1346,10 +1347,17 @@ function simulate (dt) {
 // toque lo salta, y mientras dura la partida no avanza.
 let vuelo = null
 const VUELO = 3.4
+// La llegada en helicóptero dura algo más: hay que ver el paisaje pasar por la
+// puerta antes de posarse, y en 3,4 s no daba tiempo a leer que vas dentro.
+const VUELO_HELI = 4.4
+let cabinaHeli = null
 const tmpVueloMira = new THREE.Vector3()
 const suave = k => k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2
 
 function empezarVuelo () {
+  // En los tramos marcados se llega en helicóptero en vez de sobrevolar el
+  // monumento. No en todos: el mismo plano 39 veces cansa.
+  if (nivelActivo().llegada === 'helicoptero') return empezarLlegadaHeli()
   const foco = world.focoMonumento()
   if (!foco || foco.isEmpty()) return
   world.resize()
@@ -1372,9 +1380,67 @@ function empezarVuelo () {
   actualizarVuelo(0)
 }
 
+// --- llegada en helicóptero -------------------------------------------------
+// Vas sentado dentro, con la puerta lateral abierta: el paisaje pasa fuera, el
+// aparato desciende encarando el campo y, al posarse, la cámara sale y se
+// coloca en su sitio de juego. Un solo plano continuo.
+function empezarLlegadaHeli () {
+  world.resize()
+  if (!cabinaHeli) {
+    cabinaHeli = crearCabina()
+    scene.add(cabinaHeli)
+  }
+  cabinaHeli.visible = true
+  const lado = Math.random() < 0.5 ? -1 : 1
+  vuelo = {
+    heli: true,
+    t: 0,
+    lado,
+    fin: { pos: camera.position.clone(), rot: camera.quaternion.clone() },
+    // Entra de lejos y por un lado, alto, y baja describiendo una curva hasta
+    // quedarse justo detrás de la línea de la base.
+    desde: new THREE.Vector3(lado * 34, 27, FIELD.spawnZ - 34),
+    hasta: camera.position.clone().add(new THREE.Vector3(lado * 3, 2.2, 5))
+  }
+  ui.banner(nivelActivo().name.toUpperCase())
+  actualizarVuelo(0)
+}
+
+function actualizarHeli (dt) {
+  const v = vuelo
+  const k = Math.min(1, v.t / VUELO_HELI)
+  const s = suave(k)
+  camera.position.lerpVectors(v.desde, v.hasta, s)
+  // Vibración del aparato: poca, pero sin ella el plano parece una grúa.
+  const tembleque = (1 - k * 0.7) * 0.05
+  camera.position.x += Math.sin(v.t * 31) * tembleque
+  camera.position.y += Math.sin(v.t * 23 + 1.3) * tembleque
+  // Mira hacia el campo, ladeado al principio —vas sentado y el campo queda a
+  // un lado— y encarándolo según se posa.
+  const miraX = v.lado * 14 * (1 - s)
+  camera.lookAt(tmpVueloMira.set(miraX, 1.5, FIELD.spawnZ + 10 + s * 20))
+  // El alabeo del helicóptero al enderezarse.
+  camera.rotateZ(-v.lado * 0.16 * (1 - s) + Math.sin(v.t * 9) * 0.012)
+  // La cabina va pegada a la cámara: su geometría está escrita en coordenadas
+  // de cámara, así que basta con copiarle sitio y giro.
+  cabinaHeli.position.copy(camera.position)
+  cabinaHeli.quaternion.copy(camera.quaternion)
+  cabinaHeli.userData.palas.rotation.y += dt * 42
+  // Al final, la cámara sale del aparato y se funde con la vista de juego; la
+  // cabina se va antes, que si no se ve salir por un lado.
+  const mezcla = k < 0.62 ? 0 : suave((k - 0.62) / 0.38)
+  if (mezcla > 0) {
+    camera.position.lerp(v.fin.pos, mezcla)
+    camera.quaternion.slerp(v.fin.rot, mezcla)
+    cabinaHeli.visible = mezcla < 0.45
+  }
+  if (k >= 1) { cabinaHeli.visible = false; terminarVuelo() }
+}
+
 function actualizarVuelo (dt) {
   const v = vuelo
   v.t += dt
+  if (v.heli) return actualizarHeli(dt)
   const k = Math.min(1, v.t / VUELO)
   // Por encima de la carretera, acercándose al monumento. La carretera es lo
   // único despejado: desde el descampado de al lado, en las ciudades con
