@@ -95,6 +95,96 @@ const PASO = 3.2
 // la animación de las figuras de Meshy llega a pisar y los pies no patinan.
 const VELOCIDAD_PASO = { correr: 1.7, trote: 1.15, agachado: 0.75, gatear: 0.42 }
 
+// --- el paso de las figuras de piezas ---------------------------------------
+// Aquí estaba lo de "las piernas se deforman al caminar", y no era la geometría
+// —las piezas son rígidas— sino aritmética que no cuadraba:
+//
+//   el cuerpo avanzaba 1,22 por paso, y la pierna, con la cadera a 0,88 y un
+//   alcance de 0,95, no llega más que a ±0,35 por delante y por detrás.
+//
+// El pie no podía seguir al cuerpo de ninguna manera, así que arrastraba: medido
+// en marcha, ningún pie se apoyaba nunca, se hundían 9 cm bajo el suelo y
+// flotaban 21 cm por encima. Eso es lo que se ve como piernas rotas.
+//
+// La salida no es alargar la pierna sino dejar de pedirle que toque el suelo
+// todo el rato: una persona que corre pasa parte del ciclo con los dos pies en
+// el aire, y es ese vuelo el que da la zancada larga. `APOYO` es la parte del
+// ciclo que cada pie pasa pisando; por debajo de 0,5 hay vuelo.
+const APOYO = { correr: 0.34, trote: 0.36, agachado: 0.56, gatear: 0.62 }
+// Lo que el pie recorre hacia atrás mientras pisa. Lo manda la pierna, no el
+// gusto: más de esto y el tramo se queda corto y habría que estirarlo.
+const RECORRIDO_PIE = { correr: 0.62, trote: 0.58, agachado: 0.4, gatear: 0.26 }
+// Cuánto levanta la bota al volver hacia delante.
+const ALTURA_PIE = { correr: 0.17, trote: 0.14, agachado: 0.07, gatear: 0.05 }
+
+const _cajaPierna = new THREE.Box3()
+const _inversa = new THREE.Matrix4()
+
+// El largo real de los tramos de una pierna, medido una vez y guardado: muslo
+// (cadera→rodilla), pierna (rodilla→tobillo) y lo que baja la suela por debajo
+// del tobillo con el pie plano.
+function largosDe (mando) {
+  if (mando.userData.largos) return mando.userData.largos
+  const abajo = mando.userData.lower
+  const pie = mando.userData.pie
+  let suela = 0
+  if (pie) {
+    // En el espacio del propio pie, para que no se cuelen ni el giro de la
+    // figura ni el del soldado: una caja del mundo devuelta a local sale
+    // hinchada, y ahí se iba media medida.
+    pie.updateMatrixWorld(true)
+    _inversa.copy(pie.matrixWorld).invert()
+    pie.traverse(o => {
+      if (!o.isMesh) return
+      o.geometry.computeBoundingBox()
+      _cajaPierna.copy(o.geometry.boundingBox).applyMatrix4(_inversa.clone().multiply(o.matrixWorld))
+      suela = Math.max(suela, -_cajaPierna.min.y)
+    })
+  }
+  mando.userData.largos = {
+    muslo: -abajo.position.y,
+    pierna: pie ? -pie.position.y : -abajo.position.y,
+    suela
+  }
+  return mando.userData.largos
+}
+
+// Cinemática inversa de dos tramos: deja la SUELA a `z` por delante de la cadera
+// (negativo es hacia delante, que es donde mira la figura) y `caida` por debajo,
+// y deja el pie plano descontándole todo lo que han girado muslo y rodilla.
+// Los signos están medidos sobre la figura, no deducidos: el giro positivo del
+// muslo lleva el pie hacia -Z, y el negativo de la rodilla manda la pantorrilla
+// hacia atrás, que es el único lado por el que una rodilla dobla.
+function ponerPie (mando, z, caida, nivelar) {
+  const { muslo, pierna, suela } = largosDe(mando)
+  // Se apunta al TOBILLO: el pie va plano, así que la suela cae siempre la
+  // misma distancia por debajo de él.
+  const alTobillo = caida - suela
+  // Nunca del todo estirada: con la pierna recta la fórmula se queda sin
+  // solución y la rodilla pega un tirón al cruzar el punto.
+  const d = Math.min(Math.hypot(z, alTobillo), muslo + pierna - 0.008)
+  const beta = Math.atan2(-z, Math.max(alTobillo, 1e-4))
+  const cadera = Math.acos(Math.min(1, Math.max(-1, (d * d + muslo * muslo - pierna * pierna) / (2 * d * muslo))))
+  const rodilla = Math.acos(Math.min(1, Math.max(-1, (muslo * muslo + pierna * pierna - d * d) / (2 * muslo * pierna))))
+  const giroMuslo = beta + cadera
+  const giroRodilla = -(Math.PI - rodilla)
+  mando.rotation.x = giroMuslo
+  mando.userData.lower.rotation.x = giroRodilla
+  // El pie deshace todo lo que han girado sus padres, así que queda horizontal
+  // pase lo que pase por encima.
+  if (mando.userData.pie) mando.userData.pie.rotation.x = -(giroMuslo + giroRodilla + nivelar)
+}
+
+// Dónde va un pie en un momento del ciclo. Mientras pisa retrocede EXACTAMENTE
+// lo que avanza el cuerpo, así que se queda clavado en el suelo y no arrastra;
+// el resto del ciclo vuelve hacia delante levantando la bota.
+function pisada (fase, apoyo, recorrido, altura) {
+  const w = (fase % 1 + 1) % 1
+  if (w < apoyo) return { z: -recorrido / 2 + (w / apoyo) * recorrido, alto: 0 }
+  const v = (w - apoyo) / (1 - apoyo)
+  return { z: recorrido / 2 - v * recorrido, alto: Math.sin(v * Math.PI) * altura }
+}
+
 export async function createSoldier (key, spec, lane, row) {
   const mesh = spec.blocker ? buildSandbagsMesh(spec) : await buildSoldierMesh(key, spec)
   mesh.position.set(laneX(lane), 0, rowZ(row))
@@ -284,9 +374,13 @@ export async function createSoldier (key, spec, lane, row) {
         } else {
           this.px += (dx / falta) * avance
           this.pz += (dz / falta) * avance
-          // La zancada sale de lo que avanza de verdad (unos 0,4 m por radián de
-          // ciclo): más rápido, pasos más seguidos, y los pies no patinan.
-          this.pasoFase += dt * vel / 0.39
+          // El ciclo sale de la zancada, no al revés. Un ciclo entero avanza
+          // `recorrido / apoyo`: el pie solo cubre su parte pisando y el vuelo
+          // cubre el resto. Así la zancada casa con la velocidad sola, a
+          // cualquier paso, y el pie nunca tiene que arrastrarse para llegar.
+          const apoyo = APOYO[this.modoPaso] ?? 0.4
+          const recorrido = RECORRIDO_PIE[this.modoPaso] ?? 0.58
+          this.pasoFase += dt * vel * 2 * Math.PI * apoyo / recorrido
           rumbo = Math.atan2(-dx / falta, -dz / falta)
         }
         this.hasTarget = false
@@ -370,6 +464,13 @@ export async function createSoldier (key, spec, lane, row) {
         limbs.legR.userData.lower.rotation.x = rest.legBend.legR + Math.max(0, -shift) * knee
         limbs.legL.rotation.x = rest.leg.legL + shift * 0.05
         limbs.legR.rotation.x = rest.leg.legR - shift * 0.05
+        // Quieto también pisa plano: con la pierna en descanso la bota quedaba
+        // ladeada 0,5 y se metía 7 cm en el suelo. El pie deshace lo que han
+        // girado muslo y rodilla, igual que andando.
+        for (const n of ['legL', 'legR']) {
+          const pie = limbs[n].userData.pie
+          if (pie) pie.rotation.x = -(limbs[n].rotation.x + limbs[n].userData.lower.rotation.x)
+        }
 
         if (ud.figure) ud.figure.rotation.y = ud.stance * (0.35 + a * 0.65)
 
@@ -414,24 +515,46 @@ export async function createSoldier (key, spec, lane, row) {
       }
       if (rumbo !== null && limbs && rest) {
         const p = Math.sin(this.pasoFase)
-        const lag = Math.sin(this.pasoFase - 0.7)      // la rodilla va con retraso
-        // Zancada de persona y no de tijera: el muslo no sale de la postura
-        // ladeada de tirador sino de estar recto, y la rodilla se dobla sobre
-        // todo mientras la pierna VUELA hacia delante, que es cuando el pie tiene
-        // que despegarse del suelo. Corriendo, más amplitud y más doblez.
-        const amplitud = this.entrando ? 0.72 : 0.5
-        const doblez = this.entrando ? 1.5 : 1.05
-        limbs.legL.rotation.x = p * amplitud
-        limbs.legR.rotation.x = -p * amplitud
-        limbs.legL.userData.lower.rotation.x = -0.12 - Math.max(0, Math.sin(this.pasoFase + 1.4)) * doblez
-        limbs.legR.userData.lower.rotation.x = -0.12 - Math.max(0, Math.sin(this.pasoFase + 1.4 + Math.PI)) * doblez
-        if (ud.figure && !ud.cuerpo) ud.figure.rotation.x = this.entrando ? 0.2 : 0.08
-        // Las figuras de piezas también van agachadas a la casilla de al lado.
-        if (ud.figure && !ud.cuerpo && this.modoPaso === 'agachado') {
-          ud.figure.position.y = -0.14
-          ud.figure.rotation.x = 0.24
+        if (ud.cuerpo) {
+          // Las de Meshy llevan su propio ciclo con captura de movimiento y lo
+          // reparte `cuerpo.js`: aquí solo se les insinúa la zancada encima.
+          const amplitud = this.entrando ? 0.72 : 0.5
+          const doblez = this.entrando ? 1.5 : 1.05
+          limbs.legL.rotation.x = p * amplitud
+          limbs.legR.rotation.x = -p * amplitud
+          limbs.legL.userData.lower.rotation.x = -0.12 - Math.max(0, Math.sin(this.pasoFase + 1.4)) * doblez
+          limbs.legR.userData.lower.rotation.x = -0.12 - Math.max(0, Math.sin(this.pasoFase + 1.4 + Math.PI)) * doblez
+        } else {
+          // Las figuras de piezas se mueven al revés que antes: ya no se les
+          // dice cuánto doblar, se les dice DÓNDE va el pie y la rodilla sale
+          // de ahí. Es lo que hace que la suela se quede clavada en el suelo
+          // mientras el cuerpo le pasa por encima.
+          const apoyo = APOYO[this.modoPaso] ?? 0.4
+          const recorrido = RECORRIDO_PIE[this.modoPaso] ?? 0.58
+          const altura = ALTURA_PIE[this.modoPaso] ?? 0.14
+          const u = this.pasoFase / (Math.PI * 2)
+          const pieL = pisada(u, apoyo, recorrido, altura)
+          const pieR = pisada(u + 0.5, apoyo, recorrido, altura)
+          // Agachado va más bajo, y el cuerpo se eleva un poco cuando los dos
+          // pies están en el aire: ahí no hay nada que lo sostenga.
+          const agachado = this.modoPaso === 'agachado'
+          const inclina = agachado ? 0.24 : this.entrando ? 0.2 : 0.08
+          ud.figure.position.y = agachado ? -0.14 : 0
+          ud.figure.rotation.x = inclina
+          this.mesh.position.y = Math.min(pieL.alto, pieR.alto) * 0.5
+          // La figura va echada hacia delante, así que el suelo, visto desde
+          // ella, está en cuesta. Sin deshacer esa inclinación la zancada era
+          // correcta y aun así las suelas salían 13 cm arriba y abajo: el pie
+          // se planta en el mundo, no en la figura.
+          const cos = Math.cos(inclina); const sen = Math.sin(inclina)
+          const meshY = this.mesh.position.y; const figY = ud.figure.position.y
+          const plantar = (mando, pie) => {
+            const dy = (pie.alto - meshY) - (figY + mando.position.y * cos)
+            ponerPie(mando, -sen * dy + cos * pie.z, -(cos * dy + sen * pie.z), inclina)
+          }
+          plantar(limbs.legL, pieL)
+          plantar(limbs.legR, pieR)
         }
-        void lag
         // Los brazos van a contrafase de las piernas, con el arma recogida.
         limbs.armL.rotation.x = rest.arm.armL - 0.5 - p * 0.32
         limbs.armR.rotation.x = rest.arm.armR - 0.5 + p * 0.32
@@ -495,11 +618,12 @@ export async function createSoldier (key, spec, lane, row) {
         // Sin aplastar en alto: el mismo motivo que la respiración. El golpe de
         // llegada se nota igual con un encogimiento uniforme y pequeño.
         this.mesh.scale.multiplyScalar(1 - Math.sin(s * Math.PI) * 0.06)
-      } else {
-        // Bamboleo del paso: el cuerpo sube en cada zancada. Sin esto la figura
-        // mueve las piernas pero se desliza como sobre raíles.
-        // Las de Meshy ya suben y bajan con la cadera de su propio ciclo.
-        this.mesh.position.y = this.andando && !ud.cuerpo ? Math.abs(Math.sin(this.pasoFase)) * 0.06 : 0
+      } else if (!(this.andando && !ud.cuerpo)) {
+        // Andando, la altura del cuerpo la fija la zancada: la pone el bloque
+        // del paso a partir de dónde están los pies, y machacarla aquí con un
+        // seno era justo lo que hundía la suela bajo el suelo.
+        // Las de Meshy suben y bajan con la cadera de su propio ciclo.
+        this.mesh.position.y = 0
       }
 
       if (this.recoil > 0) {

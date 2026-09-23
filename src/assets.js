@@ -537,7 +537,7 @@ function contactShadow (radius = 1) {
 // colgaba a mano después (rodilleras, garras, brazales, tiras de sandalia) era
 // una llamada de dibujo suelta por pieza: ocho por huésped, que con la horda en
 // pantalla son más de doscientas que no tenían por qué existir.
-function limb ({ length, thickness, material, joint, end, endMat, bend = 0, endOffset = 0, lowerMat, extraUpper, extraLower }) {
+function limb ({ length, thickness, material, joint, end, endMat, bend = 0, endOffset = 0, lowerMat, extraUpper, extraLower, tobillo = false, extraPie }) {
   const half = length / 2
 
   // Cada tramo se funde en sus propias mallas: solo giran dos pivotes, así que
@@ -551,7 +551,7 @@ function limb ({ length, thickness, material, joint, end, endMat, bend = 0, endO
   piece(lowerParts, ball(thickness * 1.05, 10, 8), joint ?? material)
   piece(lowerParts, cap(thickness * 0.8, half * 0.66, 5, 12), lowerMat ?? material, 0, -half / 2, 0)
   piece(lowerParts, ball(thickness * 0.72, 10, 8), lowerMat ?? material, 0, -half * 0.92, 0)
-  if (end) piece(lowerParts, end, endMat ?? material, 0, -half - thickness * 0.1, endOffset)
+  if (end && !tobillo) piece(lowerParts, end, endMat ?? material, 0, -half - thickness * 0.1, endOffset)
   if (extraLower) extraLower(lowerParts, half, thickness)
 
   const pivot = new THREE.Group()
@@ -561,6 +561,21 @@ function limb ({ length, thickness, material, joint, end, endMat, bend = 0, endO
   lower.rotation.x = bend
   lower.add(bake(lowerParts))
   pivot.add(lower)
+
+  // El pie, con su propio pivote. Sin tobillo la bota va soldada a la
+  // pantorrilla, y al andar se clava de punta o de talón: medido en marcha, se
+  // hundía hasta 12 cm bajo el suelo aunque la pierna estuviera bien puesta.
+  // Con un pivote propio la suela se queda plana, que es lo que hace un pie.
+  if (tobillo) {
+    const pieParts = new THREE.Group()
+    if (end) piece(pieParts, end, endMat ?? material, 0, -thickness * 0.1, endOffset)
+    if (extraPie) extraPie(pieParts, half, thickness)
+    const pie = new THREE.Group()
+    pie.position.y = -half
+    pie.add(bake(pieParts))
+    lower.add(pie)
+    pivot.userData.pie = pie
+  }
 
   pivot.userData.lower = lower
   pivot.userData.restBend = bend
@@ -1235,6 +1250,11 @@ function placeholderSoldier (key, spec) {
         piece(up, box(0.075, 0.03, 0.11, 0.012), webbing, side * 0.075, -0.13, -0.01)
       },
       end: box(0.11, 0.075, 0.26, 0.03), endMat: ancient ? leatherDark : boot, endOffset: -0.06,
+      // La suela va en el pie, que gira en el tobillo; la caña y la rodillera
+      // se quedan en la pantorrilla, que es donde están de verdad.
+      tobillo: true,
+      extraPie: p => piece(p, box(ancient ? 0.115 : 0.115, 0.05, ancient ? 0.27 : 0.28, 0.02),
+        ancient ? mat(0x2a1a0f, 0.9) : boot, 0, -0.028, -0.055),
       extraLower: ancient
         ? lo => {
             // Bota alta hasta la rodilla, con la vuelta caída arriba y dos
@@ -1245,7 +1265,6 @@ function placeholderSoldier (key, spec) {
               piece(lo, tube(0.095, 0.095, 0.02, 10), mat(0x2a1a0f, 0.9), 0, y, 0)
               piece(lo, box(0.025, 0.025, 0.01, 0.005), bronze, 0.09, y, -0.02)
             }
-            piece(lo, box(0.115, 0.05, 0.27, 0.02), mat(0x2a1a0f, 0.9), 0, -0.478, -0.055)   // suela
           }
         : lo => {
             piece(lo, box(0.11, 0.1, 0.06, 0.03), gearDark, 0, -0.02, -0.06)     // rodillera
@@ -1255,7 +1274,6 @@ function placeholderSoldier (key, spec) {
             // La caña es lo único que evita que el tobillo se lea como un
             // ladrillo; el resto del detalle de la bota mide cuatro píxeles.
             piece(lo, cap(0.078, 0.09, 5, 10), boot, 0, -0.34, 0)
-            piece(lo, box(0.115, 0.05, 0.28, 0.02), boot, 0, -0.478, -0.055)     // suela con vuelo
           }
     })
     leg.position.set(side * 0.115, HIP, 0)
