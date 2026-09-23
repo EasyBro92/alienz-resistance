@@ -24,7 +24,9 @@ const CLAVES_Z = Object.keys(ZOMBIES)
 const CLAVES_S = [...Object.keys(SOLDIERS), ...Object.keys(DEFENSES)]
 const LETRAS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 const codigoNuevo = () => Array.from({ length: 4 }, () => LETRAS[Math.floor(Math.random() * LETRAS.length)]).join('')
-const CLAVE_VISTA = 'alienz-duelo-vista-v1'
+// v2: el tamaño por defecto pasa a ser el grande, y con la clave vieja los que
+// ya habían jugado se quedaban con el pequeño guardado de antes.
+const CLAVE_VISTA = 'alienz-duelo-vista-v2'
 const MARCA_AGUANTE = 'alienz-aguante-v1'
 const ESPERA_VUELTA = 20
 const hex = n => '#' + (n ?? 0x888888).toString(16).padStart(6, '0')
@@ -295,19 +297,46 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
   }
 
   // --- cuenta atrás y arranque -------------------------------------------------------
+  // Antes de la cuenta, la presentación: quién tienes enfrente, su rango y —si
+  // es una de las máquinas— cómo juega. Isidro lo pidió «como en los juegos de
+  // pelea», y además resuelve media queja suya: saber a qué te enfrentas.
+  function presentar () {
+    const r = sala.rival
+    if (!r || modoAguantar) return 0
+    const capa = $('duelo-presenta')
+    if (!capa) return 0
+    const rango = rangoDe(r.puntos ?? PUNTOS_INICIALES)
+    const cara = r.siglas
+      ? `<span class="duelo-cara" style="--tinte:${hex(r.color)}">${escapar(r.siglas)}</span>`
+      : insignia(rango.indice, 72)
+    capa.innerHTML = `
+      <div class="duelo-presenta-ficha">
+        ${cara}
+        <b>${escapar(r.alias ?? 'Rival')}</b>
+        ${r.mote ? `<i>«${escapar(r.mote)}»</i>` : `<i>${rango.nombre}</i>`}
+        ${r.como ? `<p>${escapar(r.como)}</p>` : ''}
+        ${r.nivel != null ? `<small>Nivel ${r.nivel + 1} de 6</small>` : ''}
+      </div>`
+    capa.hidden = false
+    setTimeout(() => { capa.hidden = true }, 2400)
+    return 2400
+  }
+
   function cuentaAtras (inicio) {
     sala.semilla = inicio.semilla
     sala.cuenta = true
     $('duelo-capa').classList.add('hidden')
-    let n = 3
-    juego.banner(modoAguantar ? `AGUANTA · ${n}` : `${sala.rival?.alias ?? 'RIVAL'} · ${n}`)
-    audio.coin?.()
-    const tic = setInterval(() => {
-      n--
-      if (n > 0) { juego.banner(String(n)); audio.coin?.(); return }
-      clearInterval(tic)
-      empezar()
-    }, 1000)
+    setTimeout(() => {
+      let n = 3
+      juego.banner(modoAguantar ? `AGUANTA · ${n}` : `${sala.rival?.alias ?? 'RIVAL'} · ${n}`)
+      audio.coin?.()
+      const tic = setInterval(() => {
+        n--
+        if (n > 0) { juego.banner(String(n)); audio.coin?.(); return }
+        clearInterval(tic)
+        empezar()
+      }, 1000)
+    }, presentar())
   }
 
   function empezar () {
@@ -333,7 +362,20 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
     pintarChatBloqueado()
     juego.empezar(sala.semilla)
 
-    sueltas.push(almacen.alCambiar(`${sala.raiz}/campo/${sala.rival?.uid}`, c => { sala.campoRival = c }))
+    sueltas.push(almacen.alCambiar(`${sala.raiz}/campo/${sala.rival?.uid}`, c => {
+      // Rótulos de cómo le va, sacados de su propia instantánea: sin esto no
+      // había forma de saber si ibas ganando la carrera, que era la queja.
+      const antes = sala.campoRival?.b
+      sala.campoRival = c
+      const ahora = c?.b
+      if (antes == null || ahora == null) return
+      for (const u of [75, 50, 25]) {
+        if (antes > u && ahora <= u) {
+          juego.banner(u === 25 ? `${(sala.rival?.alias ?? 'EL RIVAL').toUpperCase()} SE CAE` : `${(sala.rival?.alias ?? 'EL RIVAL').toUpperCase()} AL ${u} %`)
+          audio.coin?.()
+        }
+      }
+    }))
     sueltas.push(almacen.alNuevo(`${sala.raiz}/envios/${yo.uid}`, (e, clave) => {
       almacen.quitar(`${sala.raiz}/envios/${yo.uid}/${clave}`)
       recibirEnvio(e)
@@ -375,6 +417,8 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
         a.el.querySelector('i').style.width = `${a.queda / AVISO * 100}%`
       }
     }
+
+    apartarSiEstorba()
 
     envioCampo -= dt
     if (envioCampo <= 0) {
@@ -459,14 +503,29 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
   }
 
   // --- miniatura del rival ---------------------------------------------------------------
-  const leerVista = () => { try { return localStorage.getItem(CLAVE_VISTA) || 'mini' } catch { return 'mini' } }
+  const leerVista = () => { try { return localStorage.getItem(CLAVE_VISTA) || 'grande' } catch { return 'grande' } }
+  // Isidro quiso el campo del rival «grande pero que se aparta»: grande de
+  // verdad, y encogiendo solo cuando te están entrando enemigos, que es cuando
+  // necesitas la pantalla para lo tuyo.
+  let vistaPedida = 'grande'
   function aplicarVista (v) {
+    vistaPedida = v
     $('duelo-rival').classList.toggle('grande', v === 'grande')
     try { localStorage.setItem(CLAVE_VISTA, v) } catch {}
     // Justo debajo de la barra de arriba, que cambia de alto según el móvil.
     const hud = document.getElementById('hud')?.getBoundingClientRect()
     if (hud) $('duelo-rival').style.top = `${Math.round(hud.bottom + 4)}px`
     pintarMini()
+  }
+
+  // Se aparta sola mientras hay avisos de bichos entrando, y vuelve al tamaño
+  // que hayas elegido en cuanto pasa el apuro.
+  let apartada = false
+  function apartarSiEstorba () {
+    const estorba = avisos.length > 0 && vistaPedida === 'grande'
+    if (estorba === apartada) return
+    apartada = estorba
+    $('duelo-rival').classList.toggle('grande', !estorba)
   }
 
   function pintarMini () {
@@ -603,8 +662,7 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
         puntos = '<p class="ajuste-pie">No se han podido guardar los puntos.</p>'
       }
     } else {
-      puntos = contraLaMaquina
-        ? '<p class="ajuste-pie">Entrenamiento contra la máquina: no suma puntos ni da cofre.</p>'
+      puntos = contraLaMaquina ? await cerrarMaquina(gane)
         : '<p class="ajuste-pie">Juegas sin cuenta: esta partida no suma puntos ni da cofre. Entra con Google en Ajustes para progresar.</p>'
     }
     const reloj = `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`
@@ -633,6 +691,24 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
     const raiz = sala?.raiz
     salirDeSala()
     if (raiz && almacen) setTimeout(() => almacen.quitar(`${raiz}/campo/${yo.uid}`)?.catch?.(() => {}), 3000)
+  }
+
+  // Contra la máquina no hay rango —sería regalárselo— pero sí marcador propio
+  // y unos billetes, que Isidro pidió «poquitos»: 40 por victoria, cuando una
+  // misión da entre 33 y 230. Sirve para algo sin ser el atajo para hacerse rico.
+  const PREMIO_MAQUINA = 40
+  async function cerrarMaquina (gane) {
+    const { apuntarMaquina } = await import('./systems/bot.js')
+    const m = apuntarMaquina(gane)
+    let premio = ''
+    if (gane) {
+      const { sumarBilletes } = await import('./systems/cartera.js')
+      sumarBilletes(PREMIO_MAQUINA)
+      premio = ` Te llevas <b>${PREMIO_MAQUINA} billetes</b>.`
+    }
+    return `<p class="ajuste-pie">Entrenamiento: no suma puntos de rango.${premio}<br>
+      Victorias seguidas: <b>${m.racha}</b> · mejor racha: <b>${m.mejorRacha}</b> · ganadas: ${m.ganadas}.<br>
+      ${gane ? 'La máquina sube de nivel para la próxima.' : 'La máquina baja un punto: te lo pondrá más fácil.'}</p>`
   }
 
   async function guardarFicha (gane) {

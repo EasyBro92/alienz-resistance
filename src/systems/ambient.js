@@ -406,7 +406,12 @@ export function createAmbient (scene) {
       cola.rotation.x = -Math.PI / 2
       cola.position.z = 0.22
       g.add(cola)
-      g.add(Object.assign(new THREE.Mesh(new THREE.SphereGeometry(0.055, 7, 5), piel), { position: new THREE.Vector3(0, 0.01, -0.15) }))
+      // La cabeza. Nada de `Object.assign` con `position`: en three.js esa
+      // propiedad no admite que se le asigne otro vector y reventaba al salir
+      // la primera lagartija, o sea en cualquier tramo de arena.
+      const cabeza = new THREE.Mesh(new THREE.SphereGeometry(0.055, 7, 5), piel)
+      cabeza.position.set(0, 0.01, -0.15)
+      g.add(cabeza)
       return g
     },
     rata: () => {

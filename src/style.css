@@ -2569,3 +2569,27 @@ html, body {
   background: #b8913f; box-shadow: inset 0 -8px 0 rgba(0, 0, 0, 0.15);
 }
 .hallazgo-carpeta::before { content: ''; position: absolute; left: 3px; top: -5px; width: 13px; height: 6px; border-radius: 2px 2px 0 0; background: #b8913f; }
+
+/* La presentación del rival antes de la cuenta atrás. Aparece encima de todo,
+   dos segundos y medio, y se va sola: es un telón, no un menú. */
+.duelo-presenta {
+  position: fixed; inset: 0; z-index: 60; display: grid; place-items: center;
+  background: rgba(8, 11, 14, .82); backdrop-filter: blur(3px);
+  animation: presenta-entra .25s ease-out;
+}
+.duelo-presenta[hidden] { display: none; }
+@keyframes presenta-entra { from { opacity: 0 } to { opacity: 1 } }
+.duelo-presenta-ficha {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 24px 28px; max-width: 300px; text-align: center;
+}
+.duelo-presenta-ficha b { font-size: 1.35rem; letter-spacing: .04em; color: var(--texto); }
+.duelo-presenta-ficha i { font-style: normal; opacity: .72; font-size: .92rem; }
+.duelo-presenta-ficha p { margin: 8px 0 0; font-size: .88rem; opacity: .8; line-height: 1.35; }
+.duelo-presenta-ficha small { opacity: .55; font-size: .78rem; margin-top: 4px; }
+/* La cara de cada máquina: un escudo con sus siglas y su color. */
+.duelo-cara {
+  width: 72px; height: 72px; border-radius: 14px; display: grid; place-items: center;
+  font-size: 1.6rem; font-weight: 700; letter-spacing: .06em; color: #fff;
+  background: var(--tinte); box-shadow: inset 0 -3px 0 rgba(0,0,0,.28);
+}

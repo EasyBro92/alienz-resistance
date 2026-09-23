@@ -50,13 +50,70 @@ const MAQUINA = {
   endureceCada: 45
 }
 
-export function almacenBot ({ alias = 'La Máquina', sinRival = false } = {}) {
+
+// Los rivales. Isidro pidió que la máquina tuviera cara y nombre, y varios: sale
+// uno al azar y cada uno juega distinto de verdad, no solo de nombre.
+//
+//   defensa  — lo bien que para su horda. Por encima de 1 aguanta más.
+//   agresion — cada cuánto te manda algo. Por encima de 1, más seguido.
+//   gordos   — cuánto tira de bichos caros cuando te ataca.
+export const RIVALES = [
+  { id: 'vela', nombre: 'Sargento Vela', mote: 'el que no se mueve', color: 0x4e7ab5, siglas: 'SV',
+    defensa: 1.22, agresion: 0.8, gordos: 0.5,
+    como: 'Se atrinchera. Cuesta tumbarlo, pero te deja respirar.' },
+  { id: 'brea', nombre: 'Cabo Brea', mote: 'el impaciente', color: 0xc9673a, siglas: 'CB',
+    defensa: 0.86, agresion: 1.5, gordos: 0.45,
+    como: 'No para de mandarte bichos. Aguanta poco, pero no te deja montar la línea.' },
+  { id: 'orzua', nombre: 'Teniente Orzúa', mote: 'el de manual', color: 0x5aa06a, siglas: 'TO',
+    defensa: 1, agresion: 1, gordos: 0.6,
+    como: 'Juega de libro: ni se atrinchera ni se lanza. El rival honrado.' },
+  { id: 'carnicera', nombre: 'La Carnicera', mote: 'todo o nada', color: 0xb33f5e, siglas: 'LC',
+    defensa: 0.74, agresion: 1.35, gordos: 0.95,
+    como: 'Se gasta todo en Colosos. O la revientas pronto o te entierra.' },
+  { id: 'topo', nombre: 'El Topo', mote: 'la paciencia', color: 0x8a7a4a, siglas: 'ET',
+    defensa: 1.32, agresion: 0.62, gordos: 0.8,
+    como: 'Ahorra y aguanta. Ataca poco, pero cuando lo hace duele.' }
+]
+
+// El nivel sube solo con las victorias, como pidió: no hay que elegir nada.
+// Va de 0 a 5; cada victoria tuya lo sube y cada derrota lo baja.
+const CLAVE_MAQUINA = 'alienz-maquina-v1'
+export function marcaMaquina () {
+  try {
+    const m = JSON.parse(localStorage.getItem(CLAVE_MAQUINA) ?? '{}')
+    return { nivel: m.nivel ?? 0, ganadas: m.ganadas ?? 0, racha: m.racha ?? 0, mejorRacha: m.mejorRacha ?? 0 }
+  } catch { return { nivel: 0, ganadas: 0, racha: 0, mejorRacha: 0 } }
+}
+export function apuntarMaquina (gane) {
+  const m = marcaMaquina()
+  const racha = gane ? m.racha + 1 : 0
+  const nuevo = {
+    nivel: Math.max(0, Math.min(5, m.nivel + (gane ? 1 : -1))),
+    ganadas: m.ganadas + (gane ? 1 : 0),
+    racha,
+    mejorRacha: Math.max(m.mejorRacha, racha)
+  }
+  try { localStorage.setItem(CLAVE_MAQUINA, JSON.stringify(nuevo)) } catch {}
+  return nuevo
+}
+
+export function almacenBot ({ sinRival = false } = {}) {
   const uid = 'tu-' + Math.random().toString(36).slice(2, 8)
   const botUid = 'maquina-' + Math.random().toString(36).slice(2, 6)
+  // Quién te toca hoy y cómo de dura está. El nivel sube solo con tus
+  // victorias: no hay menú de dificultad, se ajusta a ti.
+  const rival = RIVALES[Math.floor(Math.random() * RIVALES.length)]
+  const nivel = marcaMaquina().nivel
+  // De nivel 0 a 5: defiende entre un 15 % peor y un 30 % mejor, y ataca
+  // entre un 20 % menos y un 40 % más seguido.
+  const fuerza = 0.85 + nivel * 0.09
+  const prisa = 0.8 + nivel * 0.12
+  const alias = rival.nombre
   let arbol = {}
   const oyentes = []
   let raiz = null
   let reloj = null
+  let saludado = false
 
   const obtener = ruta => trozos(ruta).reduce((n, k) => (n == null ? n : n[k]), arbol)
 
@@ -90,11 +147,53 @@ export function almacenBot ({ alias = 'La Máquina', sinRival = false } = {}) {
       raiz = `duelos/${t[1]}`
       setTimeout(() => {
         if (!raiz) return
-        aplicar({ ruta: `${raiz}/jugadores/${botUid}`, valor: { alias, puntos: 1000, cuenta: false } })
+        aplicar({
+          ruta: `${raiz}/jugadores/${botUid}`,
+          valor: { alias, puntos: 1000, cuenta: false, maquina: rival.id, mote: rival.mote, como: rival.como, siglas: rival.siglas, color: rival.color, nivel }
+        })
       }, 900)
     }
     // Y cuando el juego da el pistoletazo, empieza a jugar lo suyo.
     if (t.length === 3 && t[0] === 'duelos' && t[2] === 'inicio' && op.valor) arrancar()
+    // Se presenta en cuanto el jugador manda su primera instantánea, que es la
+    // señal de que la partida ya está EN MARCHA. Saludando antes, el duelo
+    // vaciaba el chat al arrancar y el saludo se perdía.
+    if (t.length === 4 && t[2] === 'campo' && t[3] === uid && !saludado) {
+      saludado = true
+      setTimeout(() => { ultimoDicho = -99; decir(rival.como, 'hola', true) }, 600)
+    }
+  }
+
+
+  // --- lo que dice ------------------------------------------------------------
+  // Isidro: «que diga lo que hace» y «que hable por el chat». Las dos cosas
+  // salen de aquí: escribe en el chat de la sala, que el duelo ya pinta, así que
+  // no hace falta tubería nueva. Con freno, que un rival que no calla cansa.
+  const dichas = new Set()
+  let ultimoDicho = -99
+  function decir (texto, marca, unaVez = false) {
+    if (!raiz) return
+    if (unaVez && dichas.has(marca)) return
+    // Un comentario cada seis segundos como mucho, y el de atacar solo a veces:
+    // si canta cada bicho que manda, es ruido.
+    if (campo.t - ultimoDicho < 6) return
+    if (marca === 'ataca' && Math.random() > 0.45) return
+    dichas.add(marca)
+    ultimoDicho = campo.t
+    const clave = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+    aplicar({ ruta: `${raiz}/chat/${clave}`, // La misma forma que usa el chat de verdad: { de, alias, t }. Con otra, el
+      // duelo descartaba el mensaje sin decir nada.
+      valor: { de: botUid, alias, t: texto, en: Date.now() }, nuevo: true })
+  }
+
+  // Cómo le va, contado por ella misma. Es lo que Isidro echaba en falta: sin
+  // esto la máquina era una caja negra y no sabías si ibas ganando.
+  function comentarComoVa () {
+    const v = campo.base
+    if (v <= 25) decir('Se me cae la base. Aguanto lo que pueda.', 'v25', true)
+    else if (v <= 50) decir('Me están entrando. Esto se complica.', 'v50', true)
+    else if (v <= 75) decir('Primer mordisco. Nada grave.', 'v75', true)
+    if (campo.bichos.length >= 9) decir('Menuda oleada me ha caído.', 'oleada')
   }
 
   // --- su partida ---------------------------------------------------------------
@@ -144,7 +243,7 @@ export function almacenBot ({ alias = 'La Máquina', sinRival = false } = {}) {
 
     // --- compra soldados -------------------------------------------------------
     paraCompra -= dt
-    if (paraCompra <= 0 && campo.soldados.length < MAQUINA.tope) {
+    if (paraCompra <= 0 && campo.soldados.length < Math.round(MAQUINA.tope * rival.defensa)) {
       paraCompra = MAQUINA.compraCada * azar(0.8, 1.2)
       const libres = []
       for (let l = 0; l < FIELD.lanes; l++) {
@@ -162,7 +261,7 @@ export function almacenBot ({ alias = 'La Máquina', sinRival = false } = {}) {
     // --- dispara y avanza ------------------------------------------------------
     // El daño de todos sus soldados se reparte entre los tres bichos más
     // adelantados: repartirlo entre todos deja media horda viva y llegando.
-    const daño = campo.soldados.length * MAQUINA.dañoPorSoldado * dt
+    const daño = campo.soldados.length * MAQUINA.dañoPorSoldado * rival.defensa * fuerza * dt
     const enCabeza = [...campo.bichos].sort((a, b) => b.z - a.z).slice(0, 3)
     for (const b of enCabeza) {
       b.hp -= daño / enCabeza.length
@@ -184,19 +283,32 @@ export function almacenBot ({ alias = 'La Máquina', sinRival = false } = {}) {
     // --- te ataca --------------------------------------------------------------
     paraAtaque -= dt
     if (paraAtaque <= 0 && raiz) {
-      paraAtaque = MAQUINA.atacaCada * azar(0.7, 1.3)
-      // Lo más caro que pueda pagar: un rival que solo manda basura no asusta.
-      const posibles = ['tank', 'bloater', 'armored', 'runner', 'walker']
-        .filter(k => ZOMBIES[k] && campo.biomasa >= (ZOMBIES[k].coins ?? 40))
-      const clave = posibles[0] ?? 'walker'
-      campo.biomasa = Math.max(0, campo.biomasa - (ZOMBIES[clave]?.coins ?? 40))
-      const clav = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
-      aplicar({
-        ruta: `${raiz}/envios/${uid}/${clav}`,
-        valor: { k: clave, l: Math.floor(Math.random() * FIELD.lanes) },
-        nuevo: true
-      })
+      paraAtaque = (MAQUINA.atacaCada / (rival.agresion * prisa)) * azar(0.7, 1.3)
+      // Isidro: «igual de seguido pero más gordo». Ahorra hasta poder pagar algo
+      // que dé miedo en vez de gastar en cuanto tiene para un Portador; cuánto
+      // aguanta sin gastar depende de su estilo (`gordos`).
+      const menu = ['tank', 'bloater', 'armored', 'leaper', 'runner', 'walker']
+      const puede = menu.filter(k => ZOMBIES[k] && campo.biomasa >= (ZOMBIES[k].coins ?? 40))
+      // Si no le llega para nada, espera un par de segundos y vuelve a mirar.
+      // Nada de salirse del latido aquí: detrás va la instantánea de su campo y
+      // la comprobación de si ha caído, y sin ellas se queda congelada.
+      if (!puede.length) paraAtaque = 2
+      else {
+        // El mejor que puede pagar, o uno peor si es de los que no ahorran.
+        const hasta = Math.max(1, Math.round(puede.length * (1 - rival.gordos)))
+        const clave = puede[Math.floor(Math.random() * hasta)]
+        campo.biomasa = Math.max(0, campo.biomasa - (ZOMBIES[clave]?.coins ?? 40))
+        const clav = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+        aplicar({
+          ruta: `${raiz}/envios/${uid}/${clav}`,
+          valor: { k: clave, l: Math.floor(Math.random() * FIELD.lanes) },
+          nuevo: true
+        })
+        decir(`Te va ${ZOMBIES[clave].name}.`, 'ataca')
+      }
     }
+
+    comentarComoVa()
 
     // --- se lo enseña al rival -------------------------------------------------
     if (raiz) {
@@ -211,6 +323,8 @@ export function almacenBot ({ alias = 'La Máquina', sinRival = false } = {}) {
     }
 
     if (campo.base <= 0) {
+      ultimoDicho = -99
+      decir('Se acabó. Me has podido.', 'fin', true)
       parar()
       if (raiz) aplicar({ ruta: `${raiz}/fin/${botUid}`, valor: true })
     }

@@ -30,7 +30,9 @@ export const semillaNueva = () => Math.floor(Math.random() * 2 ** 31)
 // Seis minutos de horda que va a más y, después, muerte súbita: los huéspedes
 // salen el doble de duros cada minuto. Nadie aguanta eso mucho rato, que es la
 // idea: la partida tiene que acabar.
-export const MUERTE_SUBITA = 6 * 60
+// Cuatro minutos, no seis. Isidro lo probó y le pareció demasiado larga: a los
+// seis minutos ya se había decidido todo y el final se arrastraba.
+export const MUERTE_SUBITA = 4 * 60
 
 // Qué va entrando y cuándo. Cada tipo tiene la oleada a partir de la que sale y
 // su peso en el reparto; los caros entran tarde y en pocas unidades.
@@ -90,10 +92,15 @@ export const ENVIOS = {
 export const CLAVES_ENVIO = Object.keys(ENVIOS).filter(k => ZOMBIES[k])
 
 // Biomasa por baja: algo más de la mitad de las monedas del bicho.
-export const biomasaDe = spec => Math.max(2, Math.round((spec.coins ?? 10) * 0.55))
+// Subida del 0,55 al 0,95 por muerte: Isidro se pasaba media partida sin poder
+// mandar nada y el duelo se quedaba en defender cada uno lo suyo, que es
+// justo lo que el modo NO tiene que ser.
+export const biomasaDe = spec => Math.max(4, Math.round((spec.coins ?? 10) * 0.95))
 
 // Lo que tarda en caer lo que te mandan: el aviso sale antes, con el carril.
-export const AVISO = 2.5
+// Bajado de 2,5 a 1,2: con dos segundos y medio te veías venir el bicho con
+// toda la calma y perdía la gracia.
+export const AVISO = 1.2
 
 // --- rangos -------------------------------------------------------------------
 //
