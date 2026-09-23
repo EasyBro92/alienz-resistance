@@ -25,6 +25,7 @@ const CLAVES_S = [...Object.keys(SOLDIERS), ...Object.keys(DEFENSES)]
 const LETRAS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 const codigoNuevo = () => Array.from({ length: 4 }, () => LETRAS[Math.floor(Math.random() * LETRAS.length)]).join('')
 const CLAVE_VISTA = 'alienz-duelo-vista-v1'
+const MARCA_AGUANTE = 'alienz-aguante-v1'
 const ESPERA_VUELTA = 20
 const hex = n => '#' + (n ?? 0x888888).toString(16).padStart(6, '0')
 const $ = id => document.getElementById(id)
@@ -52,6 +53,14 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
   let subita = false
   let terminado = false
   let buscando = null
+  // Contra la maquina: mismo duelo, misma arena y misma horda, pero al otro
+  // lado no hay nadie. Sirve para practicar sin esperar rival, sin conexion y
+  // sin un segundo movil.
+  let contraLaMaquina = false
+  // Aguantar en la arena: el mismo tablero, las mismas oleadas que se van
+  // endureciendo y las mismas cartas, pero sin nadie enfrente. Se gana tiempo,
+  // no se gana la partida.
+  let modoAguantar = false
 
   const lienzo = $('duelo-mini')
   const pincel = lienzo?.getContext('2d')
@@ -59,7 +68,10 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
   // --- conexión -----------------------------------------------------------------
   async function conectar () {
     if (almacen) return almacen
-    if (modoLocal()) {
+    if (contraLaMaquina) {
+      const { almacenBot } = await import('./systems/bot.js')
+      almacen = almacenBot()
+    } else if (modoLocal()) {
       const { almacenLocal } = await import('./systems/almacen.js')
       almacen = almacenLocal('local-' + Math.random().toString(36).slice(2, 8))
     } else {
@@ -69,7 +81,8 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
       almacen = await almacenNube(u)
     }
     const { aliasActual } = await import('./systems/marcadores.js')
-    const conCuenta = !!cuenta.usuario && !modoLocal()
+    // Contra la maquina no se puntua: seria regalarse el rango.
+    const conCuenta = !!cuenta.usuario && !modoLocal() && !contraLaMaquina
     yo = {
       uid: almacen.uid,
       alias: conCuenta ? aliasActual(cuenta.usuario) : 'Invitado ' + almacen.uid.slice(-4).toUpperCase(),
@@ -194,6 +207,37 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
     $('duelo-cancelar').hidden = false
   }
 
+  // Contra la maquina. Se monta una sala como cualquier otra, solo que el
+  // almacen es de mentira y trae rival dentro: se apunta solo y el arranque
+  // sale por el mismo camino de siempre.
+  async function contraMaquina () {
+    contraLaMaquina = true
+    if (almacen?.cerrar) try { almacen.cerrar() } catch {}
+    almacen = null
+    await conectar()
+    pintarMiRango()
+    await entrarEnSala(codigoNuevo(), true)
+    aviso('Preparando a la máquina…')
+  }
+
+  async function aguantar () {
+    contraLaMaquina = false
+    modoAguantar = true
+    if (almacen?.cerrar) try { almacen.cerrar() } catch {}
+    almacen = null
+    const { almacenBot } = await import('./systems/bot.js')
+    almacen = almacenBot({ sinRival: true })
+    const { aliasActual } = await import('./systems/marcadores.js')
+    yo = {
+      uid: almacen.uid,
+      alias: cuenta.usuario ? aliasActual(cuenta.usuario) : 'Tú',
+      conCuenta: false,
+      puntos: PUNTOS_INICIALES
+    }
+    sala = { codigo: codigoNuevo(), anfitrion: true, rival: null, raiz: 'aguantar' }
+    cuentaAtras({ semilla: semillaNueva() })
+  }
+
   async function cancelarBusqueda () {
     $('duelo-cancelar').hidden = true
     if (buscando && almacen) {
@@ -223,7 +267,7 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
   }
 
   function alCambiarGente (gente) {
-    if (!sala) return
+    if (!sala || modoAguantar) return
     const otros = Object.entries(gente).filter(([uid]) => uid !== yo.uid)
     const [uidRival, datos] = otros[0] ?? []
     if (uidRival) sala.rival = { uid: uidRival, ...datos }
@@ -256,7 +300,7 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
     sala.cuenta = true
     $('duelo-capa').classList.add('hidden')
     let n = 3
-    juego.banner(`${sala.rival?.alias ?? 'RIVAL'} · ${n}`)
+    juego.banner(modoAguantar ? `AGUANTA · ${n}` : `${sala.rival?.alias ?? 'RIVAL'} · ${n}`)
     audio.coin?.()
     const tic = setInterval(() => {
       n--
@@ -277,6 +321,10 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
     subita = false
     carrilElegido = -1
     $('duelo-hud').hidden = false
+    // Aguantando no hay a quien mirar ni a quien mandarle nada.
+    $('duelo-rival').hidden = modoAguantar
+    $('duelo-atacar').hidden = modoAguantar
+    $('duelo-chat-boton').hidden = modoAguantar
     $('duelo-rival-nombre').textContent = sala.rival?.alias ?? 'Rival'
     aplicarVista(leerVista())
     pintarBandeja()
@@ -303,11 +351,18 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
     t += dt
     for (const k in recargas) recargas[k] = Math.max(0, recargas[k] - dt)
 
-    if (!subita && t >= MUERTE_SUBITA) { subita = true; juego.banner('MUERTE SÚBITA'); audio.groan?.(true) }
-    const resta = Math.max(0, MUERTE_SUBITA - t)
-    juego.rotulo(subita
-      ? `Muerte súbita · ×${escala().toFixed(1)}`
-      : `Duelo · ${Math.floor(resta / 60)}:${String(Math.floor(resta % 60)).padStart(2, '0')}`)
+    if (modoAguantar) {
+      // Aquí no hay muerte súbita: las oleadas ya se endurecen solas, y sumar
+      // las dos cosas mataba en dos minutos. Lo que se enseña es lo que llevas
+      // aguantado, que es la marca.
+      juego.rotulo(`Aguantando · ${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`)
+    } else {
+      if (!subita && t >= MUERTE_SUBITA) { subita = true; juego.banner('MUERTE SÚBITA'); audio.groan?.(true) }
+      const resta = Math.max(0, MUERTE_SUBITA - t)
+      juego.rotulo(subita
+        ? `Muerte súbita · ×${escala().toFixed(1)}`
+        : `Duelo · ${Math.floor(resta / 60)}:${String(Math.floor(resta % 60)).padStart(2, '0')}`)
+    }
 
     for (let i = avisos.length - 1; i >= 0; i--) {
       const a = avisos[i]
@@ -339,7 +394,7 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
   }
 
   // Muerte súbita: el doble de duros por cada minuto que pase de los seis.
-  const escala = () => (t <= MUERTE_SUBITA ? 1 : 1 + (t - MUERTE_SUBITA) / 60)
+  const escala = () => (modoAguantar || t <= MUERTE_SUBITA ? 1 : 1 + (t - MUERTE_SUBITA) / 60)
 
   function empaquetarCampo () {
     const c = juego.campo()
@@ -548,14 +603,31 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
         puntos = '<p class="ajuste-pie">No se han podido guardar los puntos.</p>'
       }
     } else {
-      puntos = '<p class="ajuste-pie">Juegas sin cuenta: esta partida no suma puntos ni da cofre. Entra con Google en Ajustes para progresar.</p>'
+      puntos = contraLaMaquina
+        ? '<p class="ajuste-pie">Entrenamiento contra la máquina: no suma puntos ni da cofre.</p>'
+        : '<p class="ajuste-pie">Juegas sin cuenta: esta partida no suma puntos ni da cofre. Entra con Google en Ajustes para progresar.</p>'
+    }
+    const reloj = `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`
+    if (modoAguantar) {
+      const mejor = Math.max(t, Number(localStorage.getItem(MARCA_AGUANTE) ?? 0))
+      const esRecord = t >= mejor
+      try { localStorage.setItem(MARCA_AGUANTE, String(Math.round(mejor))) } catch {}
+      const m = `${Math.floor(mejor / 60)}:${String(Math.floor(mejor % 60)).padStart(2, '0')}`
+      juego.final(false, `
+        <h1 class="lost">SE ACABÓ</h1>
+        <p class="tagline">Aguantaste ${reloj} en la arena.${esRecord ? ' Es tu mejor marca.' : ` Tu mejor marca son ${m}.`}</p>
+        <p class="ajuste-pie">Aguantar en la arena no suma puntos ni da cofre: es para practicar.</p>`, false)
+      const raizA = sala?.raiz
+      salirDeSala()
+      void raizA
+      return
     }
     const texto = gane
       ? (motivo === 'abandono' ? `${escapar(rival?.alias ?? 'El rival')} abandonó la partida.` : `Aguantaste más que ${escapar(rival?.alias ?? 'tu rival')}.`)
       : `${escapar(rival?.alias ?? 'Tu rival')} aguantó más que tú.`
     juego.final(gane, `
       <h1 class="${gane ? 'won' : 'lost'}">${gane ? 'VICTORIA' : 'DERROTA'}</h1>
-      <p class="tagline">${texto} Duelo de ${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}.</p>
+      <p class="tagline">${texto} Duelo de ${reloj}.</p>
       ${puntos}`, gane && yo.conCuenta)
     // La sala ya no pinta nada: se deja de escuchar y se borra lo propio.
     const raiz = sala?.raiz
@@ -587,6 +659,8 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
     Promise.resolve(fn(e)).catch(err => { console.warn(err); aviso('Algo ha fallado. Inténtalo otra vez.') })
   })
   pulsar('duelo-rapida', partidaRapida)
+  pulsar('duelo-maquina', contraMaquina)
+  pulsar('duelo-aguantar', aguantar)
   pulsar('duelo-crear', crearSala)
   pulsar('duelo-unirse', () => unirse($('duelo-codigo-campo').value.trim().toUpperCase()))
   pulsar('duelo-cancelar', cancelarBusqueda)
