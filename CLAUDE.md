@@ -51,7 +51,7 @@ Publicado en https://easybro92.github.io/alienz-resistance/ (repo `EasyBro92/ali
 | `src/ui.js` | Marcador y armería |
 | `src/audio.js` | Todo el sonido, sintetizado |
 | `src/systems/` | `calidad.js`, `detalle.js`, `resplandor.js` (halo; `apagarEmision` para modelos de fuera), `texturas.js`, `golpes.js` |
-| `herramientas/` | `meshy.mjs` (generar; `--realista` para monumentos, `--minimo N` no empieza si el saldo no llega), `adelgazar.mjs` (reducir texturas; `--color 1024` en monumentos), `revisar-glb.mjs` (revisar un .glb de cualquier sitio antes de meterlo) |
+| `herramientas/` | `meshy.mjs` (generar; `--realista` para monumentos, `--minimo N` no empieza si el saldo no llega), `adelgazar.mjs` (reducir texturas; `--color 1024` en monumentos), `revisar-glb.mjs` (revisar un .glb de cualquier sitio antes de meterlo) y `arreglar-glb.mjs` (corregirlo: quita el `mixamorig:` de los huesos, da media vuelta al que viene mirando a -Z y aplana la zancada que desplaza la cadera; solo toca lo que hace falta y deja intactos los 39 modelos publicados) |
 
 ## Pantallas (capas de `index.html`)
 
