@@ -78,8 +78,11 @@ export const PAISES = [
         waves: OLEADAS.formas
       },
       {
-        name: 'Madrid', lugar: 'Paseo de la Castellana · Chamartín', mapa: sitio(40.42, -3.70),
-        bioma: 'ciudad', hitos: [['castellana', 1, -8, -92], ['bernabeu']],
+        name: 'Madrid', lugar: 'Santiago Bernabéu · sobre el césped', mapa: sitio(40.42, -3.70),
+        // Se juega DENTRO del estadio, sobre el cesped y con las gradas
+        // cerrando los cuatro lados. Es el campo mas ancho del juego: los cinco
+        // carriles enteros.
+        bioma: 'ciudad', suelo: 'parque', tonoSuelo: 0x3f7a3a, escenario: 'estadio',
         resumen: 'Llegan deprisa. Hay que aguantar hasta que abran el búnker.',
         parte: ['El búnker del gobierno está debajo. Para abrir la trampilla hay que dejar la superficie limpia durante una hora entera.',
           'Todo lo que tienen en la zona viene hacia aquí, y viene deprisa.'],
@@ -518,7 +521,10 @@ export const PAISES = [
         waves: OLEADAS.formas
       },
       {
-        name: 'São Paulo', lugar: 'Marginal Tietê', mapa: sitio(-23.55, -46.63), hitos: [['castellana', -1, 10, -110, false], ['masp']], bioma: 'monzon',
+        // Interlagos: se corre por la pista, con pianos, grava y muro de
+        // neumaticos. El muro de boxes se mete por la derecha, asi que aqui el
+        // campo baja a cuatro carriles y ademas de forma asimetrica.
+        name: 'São Paulo', lugar: 'Interlagos · recta de meta', mapa: sitio(-23.70, -46.70), escenario: 'circuito', bioma: 'monzon',
         resumen: 'Se curan, y son todos.',
         parte: ['La ciudad más grande del sur es su último hospital.',
           'Todo lo que les queda protege el camino hacia el Amazonas.'],

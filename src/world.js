@@ -1515,7 +1515,12 @@ export function createWorld (canvas) {
   function ponerEscenario (nombre) {
     for (const [n, g] of escenariosHechos) g.visible = n === nombre
     if (nombre && !escenariosHechos.has(nombre) && ESCENARIOS[nombre]) {
-      const g = ESCENARIOS[nombre]()
+      const crudo = ESCENARIOS[nombre]()
+      // Fundido: el estadio son casi cuatro mil piezas entre peldanos y butacas,
+      // y como grupo suelto eso es una llamada de dibujo por butaca. Fundido se
+      // queda en una por material. Nada de esto se mueve, asi que no se pierde.
+      const g = bake(crudo, false)
+      g.userData = crudo.userData
       g.traverse(o => { if (o.isMesh) o.receiveShadow = true })
       scene.add(g)
       escenariosHechos.set(nombre, g)
