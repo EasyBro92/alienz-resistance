@@ -2433,7 +2433,9 @@ html, body {
   flex: 1; height: 30px; border-radius: 8px; border: 1px solid var(--borde-2);
   background: var(--velo-2); color: var(--tinta); font-weight: 800; font-size: 12px;
 }
-.duelo-carril.on { background: var(--verde-texto); color: #07110b; border-color: transparent; }
+/* El texto, con el color del panel (como las pestañas de la tienda): con un
+   negro fijo, en tema claro quedaba casi negro sobre verde oscuro. */
+.duelo-carril.on { background: var(--verde-texto); color: var(--panel-fondo); border-color: transparent; }
 .duelo-tropas { display: grid; grid-template-columns: repeat(auto-fill, minmax(66px, 1fr)); gap: 6px; }
 .duelo-envio {
   position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; gap: 1px;
