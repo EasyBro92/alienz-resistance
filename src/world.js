@@ -7,6 +7,7 @@ import { BIOMAS, FLORA, HITOS, RESTOS, baseAlien } from './biomas.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { apagarEmision } from './systems/resplandor.js'
+import { crearRelieve } from './relieve.js'
 
 export const laneX = i => (i - (FIELD.lanes - 1) / 2) * FIELD.laneWidth
 export const rowZ = r => FIELD.frontRowZ - r * FIELD.rowDepth
@@ -611,8 +612,50 @@ export function createWorld (canvas) {
 
   // El arenal llega mucho más lejos que la niebla. Con 220 su borde caía a 172
   // de la cámara y aún se leía como un escalón contra el cielo.
+  // El arenal ya no es un solo cuadro liso: lleva una rejilla con el paso
+  // GRADUADO —fina donde se juega y basta hacia el fondo— para poder moldearle
+  // el relieve. Uniforme no valía: para que se lea un montículo de 10 de radio
+  // hace falta un paso de 3, y a paso 3 en 480 × 480 salen 51.000 triángulos
+  // para dibujar arena que además está detrás de la niebla. Graduada son 11.000
+  // y el detalle se concentra donde se mira.
+  function ejeGraduado (min, max, finoMin, finoMax, paso, factor) {
+    const c = []
+    for (let v = finoMin; v <= finoMax + 1e-6; v += paso) c.push(v)
+    let p = paso; let v = finoMin
+    while (v > min) { p *= factor; v = Math.max(v - p, min); c.unshift(v) }
+    p = paso; v = finoMax
+    while (v < max) { p *= factor; v = Math.min(v + p, max); c.push(v) }
+    return c
+  }
+  const ejeX = ejeGraduado(-240, 240, -60, 60, 3, 1.35)
+  const ejeZ = ejeGraduado(-380, 100, -210, 40, 3, 1.35)
+  const geoArenal = (() => {
+    const g = new THREE.BufferGeometry()
+    const pos = []; const uv = []; const idx = []
+    for (const z of ejeZ) {
+      for (const x of ejeX) {
+        pos.push(x, 0, z)
+        // Las mismas coordenadas de textura que tenía el plano de antes, para
+        // que la repetición de 24 siga cayendo cada 20 unidades.
+        uv.push((x + 240) / 480, (z + 380) / 480)
+      }
+    }
+    const ancho = ejeX.length
+    for (let j = 0; j < ejeZ.length - 1; j++) {
+      for (let i = 0; i < ancho - 1; i++) {
+        const a = j * ancho + i
+        idx.push(a, a + ancho, a + 1, a + 1, a + ancho, a + ancho + 1)
+      }
+    }
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2))
+    g.setIndex(idx)
+    g.computeVertexNormals()
+    return g
+  })()
+
   const sand = new THREE.Mesh(
-    new THREE.PlaneGeometry(480, 480),
+    geoArenal,
     new THREE.MeshStandardMaterial({
       color: 0xf0cd8b, roughness: 0.95,
       map: piel.arena.map,
@@ -625,10 +668,27 @@ export function createWorld (canvas) {
   // sirve de nada un relieve que no se puede ver.
   piel.arena.map.repeat.set(24, 24)
   piel.arena.normalMap.repeat.set(24, 24)
-  sand.rotation.x = -Math.PI / 2
-  sand.position.z = -140
+  // La rejilla ya viene tumbada y en coordenadas del mundo: ni giro ni traslado.
   sand.receiveShadow = true
   scene.add(sand)
+
+  // El relieve del tramo que se esté jugando. Lo monta `poblar`, que es quien
+  // sabe qué lados ocupa el monumento; mientras no haya ninguno, todo plano.
+  let relieve = null
+  const alturaSuelo = (x, z) => (relieve ? relieve.alto(x, z) : 0)
+
+  // Moldear el arenal: subir cada vértice a su altura y rehacer las normales,
+  // que sin eso el terreno sube y baja pero la luz lo sigue tratando como un
+  // plano y no se ve ni una loma.
+  function moldearArenal () {
+    const pos = sand.geometry.attributes.position
+    for (let i = 0; i < pos.count; i++) {
+      pos.setY(i, alturaSuelo(pos.getX(i), pos.getZ(i)))
+    }
+    pos.needsUpdate = true
+    sand.geometry.computeVertexNormals()
+    sand.geometry.computeBoundingSphere()
+  }
 
   // La carretera no debe acabarse a la vista. La niebla cierra del todo a 152
   // de la cámara, que está en z≈22: cualquier borde por delante de z≈-129 se ve
@@ -1253,6 +1313,22 @@ export function createWorld (canvas) {
       for (const l of h.userData.despejar ?? []) despejado[l] = true
       deMision.push(h)
     }
+
+    // El relieve, ya sabiendo qué lados ocupa el monumento: donde hay
+    // monumento no se mete terreno, que ya trae el suyo. La semilla es la clave
+    // del tramo, así que cada sitio tiene SIEMPRE el mismo terreno y las
+    // piedras no bailan al reintentar la misión.
+    //
+    // Se guarda CON su decorado, no en una variable suelta: el decorado se
+    // cachea por bioma y solo se construye una vez, así que un relieve global
+    // se quedaba pegado al del último tramo construido y el arenal no se
+    // correspondía con el sitio que estabas jugando.
+    const relieveTramo = crearRelieve(clave, {
+      borde,
+      desdeZ: FIELD.spawnZ - 40,
+      hastaZ: FIELD.baseZ + 10,
+      ocupado
+    })
     for (const [tipo, tono, cuantos] of b.flora ?? []) {
       const hacer = FLORA[tipo]
       if (!hacer) continue
@@ -1291,6 +1367,15 @@ export function createWorld (canvas) {
         pieza.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true } })
         g.add(pieza)
       }
+    }
+
+    // Árboles y restos, a la altura que les toque. Se colocan a y = 0 y hasta
+    // aquí el suelo era plano, así que valía; ahora hay que subirlos o se
+    // quedan enterrados en una loma o flotando sobre una hondonada.
+    // Va antes del monumento a propósito: el monumento trae su propia
+    // explanada y en su lado no se ha puesto relieve.
+    for (const pieza of g.children) {
+      pieza.position.y += relieveTramo.alto(pieza.position.x, pieza.position.z)
     }
 
     if (b.hito) {
@@ -1359,6 +1444,9 @@ export function createWorld (canvas) {
       }
     }
     fundido.userData.vista = vista
+    // El relieve viaja con el decorado fundido, que es lo que se cachea y lo
+    // que devuelve esta funcion; en el grupo suelto se perdia al fundir.
+    fundido.userData.relieve = relieveTramo
     fundido.userData.obstaculos = obstaculos
     // Si el principal es de Meshy su caja se mide al pedirla: el modelo llega
     // después y no ocupa lo mismo que el respaldo (el Coliseo de verdad es casi
@@ -1600,6 +1688,10 @@ export function createWorld (canvas) {
     const mio = bosques.get(llave) ?? poblar(llave, b, hitosMision, suelo)
     mio.visible = true
     bosqueVisible = mio
+    // El arenal se moldea al relieve del tramo que toca. Aquí y no en `poblar`,
+    // que solo se ejecuta la primera vez que se ve cada bioma.
+    relieve = mio.userData.relieve ?? null
+    moldearArenal()
   }
 
   return {
@@ -1608,6 +1700,9 @@ export function createWorld (canvas) {
     // `road` sale para el Escarbador: sus cascotes usan el material del suelo.
     renderer, scene, camera, sun, resize, slots, setSlotsVisible, resaltarSlot, vestir, road,
     animarArena,
+    // La altura del terreno en un punto. Dentro del pasillo de juego es cero
+    // siempre: la calzada no se toca.
+    alturaSuelo,
     vitorear: (fuerza = 1) => { vitoreo = Math.min(1, vitoreo + fuerza) },
     // La base del fondo de esta misión: el asalto final la hace reventar.
     baseActual: () => baseVisible,
