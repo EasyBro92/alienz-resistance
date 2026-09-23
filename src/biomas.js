@@ -1778,19 +1778,23 @@ export function baseAlien (variante = 0) {
     tope = 9.5
   }
 
-  // La antena.
+  // La antena, en su propio grupo con el pivote en la base: así se le puede
+  // partir de un golpe cuando la revientan, girándola entera desde abajo.
   // Corta a propósito: en el móvil en vertical el marcador tapa todo lo que
   // pase de unos 7 de alto a esta distancia, y una antena alta no se veía nunca.
-  pon(g, geoCil(0.3, 0.9, 7, 8), casco, 0, tope + 3.5, 0)
-  pon(g, new THREE.SphereGeometry(2.6, 18, 6, 0, Math.PI * 2, 0, 0.9), plato, 0, tope + 6.2, 0).rotation.x = Math.PI
+  const antena = new THREE.Group()
+  antena.position.y = tope
+  g.add(antena)
+  pon(antena, geoCil(0.3, 0.9, 7, 8), casco, 0, 3.5, 0)
+  pon(antena, new THREE.SphereGeometry(2.6, 18, 6, 0, Math.PI * 2, 0, 0.9), plato, 0, 6.2, 0).rotation.x = Math.PI
   const anillos = [2.4, 1.7].map((r, i) => {
-    const a = pon(g, new THREE.TorusGeometry(r, 0.12, 6, 32), luz, 0, tope + 6.4 + i * 1.1, 0)
+    const a = pon(antena, new THREE.TorusGeometry(r, 0.12, 6, 32), luz, 0, 6.4 + i * 1.1, 0)
     brillan.push(a)
     return a
   })
-  const orbe = pon(g, geoBola(0.75, 14, 10), luz, 0, tope + 8.4, 0)
+  const orbe = pon(antena, geoBola(0.75, 14, 10), luz, 0, 8.4, 0)
   brillan.push(orbe)
-  pon(g, new THREE.CylinderGeometry(0.4, 1.8, 70, 14, 1, true), haz, 0, tope + 8.4 + 35, 0)
+  const rayo = pon(antena, new THREE.CylinderGeometry(0.4, 1.8, 70, 14, 1, true), haz, 0, 8.4 + 35, 0)
   // Se anima sola al dibujarse: así no hace falta que el bucle del juego sepa
   // que existe.
   orbe.onBeforeRender = () => {
@@ -1801,6 +1805,39 @@ export function baseAlien (variante = 0) {
     haz.opacity = 0.13 + Math.sin(t * 4) * 0.05
   }
   for (const b of brillan) brilla(b)
+
+  // Cómo queda cuando la revientan. Antes simplemente se escondía, y lo que se
+  // veía era que la base desaparecía de golpe: tanto esfuerzo para que no quede
+  // nada. Ahora se queda ahí, apagada y partida, mientras sale la victoria.
+  //
+  // Va aquí y no en el bucle del juego porque es esta función la que sabe de
+  // qué piezas está hecha la base; fuera habría que ir a buscarlas a tientas.
+  g.userData.arruinar = () => {
+    if (g.userData.arruinada) return
+    g.userData.arruinada = true
+    // Se apaga: la luz verde es lo que la hacía parecer viva.
+    // Una función vacía, no `null`: three.js la llama siempre, sin comprobar.
+    orbe.onBeforeRender = () => {}
+    rayo.visible = false
+    luz.emissive.setHex(0x120c08)
+    luz.emissiveIntensity = 0
+    luz.color.setHex(0x2b2521)
+    // Chamuscada. El casco y la carne se van a negro de hollín, pero no del
+    // todo: en negro puro se recorta como un agujero y se pierde la silueta.
+    for (const m of [casco, carne, plato]) {
+      m.color.multiplyScalar(0.34)
+      m.roughness = Math.min(1, m.roughness + 0.3)
+      m.metalness *= 0.4
+    }
+    // La antena se troncha por la base y queda caída de lado.
+    antena.rotation.set(0.15, 0, 1.28)
+    antena.position.y = tope * 0.82
+    // Y el cuerpo se ladea y se hunde en su propio cráter.
+    g.rotation.z = 0.07
+    g.rotation.x = -0.035
+    g.position.y -= 0.55
+  }
+
   // Bien al fondo, más allá de donde acaba la calzada. Ahí la franja libre bajo
   // el marcador da unos 5 de alto: el cuerpo cabe entero y la antena asoma.
   g.scale.setScalar(0.36)

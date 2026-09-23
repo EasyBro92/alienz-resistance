@@ -1411,7 +1411,11 @@ function frame (now) {
 // quitarles las bases, no solo a aguantar.
 let asalto = null
 // `andar`: al trote se tarda más que corriendo (unos 30 m a 3,7 m/s y la espera).
-const ASALTO = { andar: 9.5, fuego: 3.8, trasExplosion: 1.8 }
+// `fuego` es lo que aguanta la base antes de caer. Estaba en 3,8 y se venía
+// abajo casi sin darte tiempo a ver el tiroteo: ahora el doble, que es el final
+// de la partida y hay que poder disfrutarlo. `trasExplosion` da un respiro para
+// ver la ruina antes de que entre la pantalla de victoria.
+const ASALTO = { andar: 9.5, fuego: 7.6, trasExplosion: 2.6 }
 const tmpObjetivo = new THREE.Vector3()
 const tmpChispa = new THREE.Vector3()
 
@@ -1469,8 +1473,11 @@ function reventarBase (objetivo) {
   })
   effects.smoke(centro, 10, 0x2a2a2a)
   if (a.base) {
-    a.base.visible = false
+    // Antes se escondía y la base desaparecía de golpe. Se queda: apagada,
+    // chamuscada y con la antena tronchada, que es lo que uno quiere ver
+    // después de haberse peleado toda la partida por llegar hasta ella.
     a.base.position.copy(a.sitio)
+    a.base.userData.arruinar?.()
   }
   ui.banner('BASE DESTRUIDA')
   vibrar([80, 40, 140])
@@ -1526,6 +1533,12 @@ function actualizarAsalto (dt) {
       a.t = 0
     }
     return
+  }
+
+  // La ruina sigue humeando mientras se ve. Un hierro retorcido y quieto no
+  // acaba de leerse como algo que acaba de arder.
+  if (Math.random() < dt * 7) {
+    effects.smoke(tmpChispa.set(objetivo.x + (Math.random() - 0.5) * 7, 1 + Math.random() * 2.5, objetivo.z + (Math.random() - 0.5) * 3), 2.6, 0x35322e)
   }
 
   if (a.t > ASALTO.trasExplosion) {
