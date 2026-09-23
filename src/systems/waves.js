@@ -1,4 +1,4 @@
-import { ZOMBIES, FIELD } from '../config.js'
+import { ZOMBIES, FIELD, carrilAbierto, carrilesAbiertos } from '../config.js'
 import { createZombie } from '../entities/zombie.js'
 import { LLEGADA } from '../entities/dropship.js'
 
@@ -87,8 +87,11 @@ export function createWaveDirector (level, onSpawn, onWaveStart, onCleared, onLl
         const spec = ZOMBIES[type]
         // `lanes` deja abrir el nivel por el centro: las primeras oleadas no
         // castigan por no poder cubrir los cinco carriles todavía.
-        const pool = lanes ?? Array.from({ length: FIELD.lanes }, (_, i) => i)
-        const lane = spec.boss ? Math.floor(FIELD.lanes / 2) : drawLane(pool)
+        // Y siempre dentro de los carriles abiertos: en el puente el campo se
+        // estrecha y una horda que saliera por la acera no la alcanzaria nadie.
+        const pool = (lanes ?? carrilesAbiertos()).filter(carrilAbierto)
+        const centro = Math.round((FIELD.primerCarril + FIELD.ultimoCarril) / 2)
+        const lane = spec.boss ? centro : drawLane(pool.length ? pool : carrilesAbiertos())
         pending++
         // Cada oleada endurece un poco a la horda: el mismo zombi aguanta más.
         // Cuánto, lo decide el nivel: el primero enseña y apenas sube, el último

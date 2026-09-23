@@ -7,7 +7,31 @@ export const FIELD = {
   rowDepth: 3.2,    // separación entre filas
   baseZ: 4,         // línea de la base (los zombis que llegan aquí hacen daño)
   frontRowZ: 0,     // fila de colocación más cercana a la base
-  spawnZ: -44       // aparecen al fondo, junto al horizonte, no a media pista
+  spawnZ: -44,      // aparecen al fondo, junto al horizonte, no a media pista
+  // Carriles abiertos. Casi siempre los cinco, pero los tramos que se juegan
+  // DENTRO de algo estrechan el campo: en el puente de Vladivostok se pelea en
+  // la calzada y las aceras quedan cerradas tras la barrera.
+  //
+  // Se estrecha cerrando carriles, no cambiando `lanes`: el ancho de la
+  // calzada, los chevrones, las vallas y la rejilla de casillas se construyen
+  // una sola vez a partir de `lanes`, y tocarlo obligaría a rehacer toda esa
+  // geometría en cada misión.
+  primerCarril: 0,
+  ultimoCarril: 4
+}
+
+export const carrilAbierto = l => l >= FIELD.primerCarril && l <= FIELD.ultimoCarril
+export const carrilesAbiertos = () => {
+  const a = []
+  for (let l = FIELD.primerCarril; l <= FIELD.ultimoCarril; l++) a.push(l)
+  return a
+}
+// Deja abiertos `cuantos` carriles centrados. Los que sobran se cierran a
+// partes iguales por los dos lados.
+export function estrecharCampo (cuantos = FIELD.lanes) {
+  const sobran = Math.max(0, FIELD.lanes - cuantos)
+  FIELD.primerCarril = Math.floor(sobran / 2)
+  FIELD.ultimoCarril = FIELD.lanes - 1 - Math.ceil(sobran / 2)
 }
 
 export const BASE = { hp: 100 }

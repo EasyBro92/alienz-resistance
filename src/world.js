@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
-import { FIELD } from './config.js'
+import { FIELD, carrilAbierto, estrecharCampo } from './config.js'
 import { texturasDelSuelo } from './systems/texturas.js'
 import { bake } from './assets.js'
 import { BIOMAS, FLORA, HITOS, RESTOS, baseAlien } from './biomas.js'
@@ -8,6 +8,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { apagarEmision } from './systems/resplandor.js'
 import { crearRelieve } from './relieve.js'
+import { ESCENARIOS } from './escenarios.js'
 
 export const laneX = i => (i - (FIELD.lanes - 1) / 2) * FIELD.laneWidth
 export const rowZ = r => FIELD.frontRowZ - r * FIELD.rowDepth
@@ -15,7 +16,9 @@ export const fieldWidth = FIELD.lanes * FIELD.laneWidth
 
 export function laneFromX (x) {
   const i = Math.round(x / FIELD.laneWidth + (FIELD.lanes - 1) / 2)
-  return Math.min(FIELD.lanes - 1, Math.max(0, i))
+  // Topado a los carriles ABIERTOS: arrastrando hacia la acera de un puente,
+  // el soldado se queda en el ultimo carril bueno en vez de no poder soltarse.
+  return Math.min(FIELD.ultimoCarril, Math.max(FIELD.primerCarril, i))
 }
 
 export function rowFromZ (z) {
@@ -1212,7 +1215,11 @@ export function createWorld (canvas) {
   // rincones entre ellas, y cocerla costaría media carga a cambio de nada.
   const obstaculosFijos = []
   medirAltos(decor, obstaculosFijos)
-  scene.add(bake(decor, false))
+  // Guardado, no solo anadido: dentro de un escenario cerrado hay que poder
+  // esconderlo entero. En el puente, los camiones y los sacos de la cuneta
+  // quedaban flotando sobre el mar.
+  const decoradoFijo = bake(decor, false)
+  scene.add(decoradoFijo)
 
   // --- rejilla de colocación --------------------------------------------------
   const slots = new THREE.Group()
@@ -1232,7 +1239,11 @@ export function createWorld (canvas) {
 
   function setSlotsVisible (on) {
     for (const c of slots.children) {
-      c.material.opacity = on ? 0.16 : 0
+      // En un tramo estrecho los carriles cerrados no ofrecen casilla: si se
+      // enseñan, el jugador apunta ahí y el toque no hace nada.
+      const abierto = carrilAbierto(c.userData.lane)
+      c.visible = abierto
+      c.material.opacity = on && abierto ? 0.16 : 0
       c.material.color.setHex(0xffffff)
     }
   }
@@ -1492,6 +1503,37 @@ export function createWorld (canvas) {
   let arenaPedida = null
   let arenaVista = null
   let vitoreo = 0
+  // --- tramos que se juegan DENTRO de algo -----------------------------------
+  // Un escenario no es un monumento más: se traga todo lo de alrededor —el
+  // arenal, la vegetación, los cerros— y decide cuántos carriles quedan
+  // abiertos. Se construye una vez y se guarda, como las arenas.
+  const escenariosHechos = new Map()
+  let escenarioVisto = null
+  // Si el escenario se come el horizonte. Lo miran el bosque, los cerros y el
+  // mobiliario de la carretera al final de `vestir`.
+  let escenarioTapa = false
+  function ponerEscenario (nombre) {
+    for (const [n, g] of escenariosHechos) g.visible = n === nombre
+    if (nombre && !escenariosHechos.has(nombre) && ESCENARIOS[nombre]) {
+      const g = ESCENARIOS[nombre]()
+      g.traverse(o => { if (o.isMesh) o.receiveShadow = true })
+      scene.add(g)
+      escenariosHechos.set(nombre, g)
+    }
+    escenarioVisto = nombre ? escenariosHechos.get(nombre) ?? null : null
+    // El campo se estrecha a lo que pida el escenario, y vuelve a los cinco
+    // carriles en cuanto se sale de él.
+    estrecharCampo(escenarioVisto?.userData.carriles ?? FIELD.lanes)
+    // Las casillas de los carriles cerrados, fuera desde el primer momento y no
+    // solo cuando se arrastra: si no, el dedo apunta ahi y el toque no hace nada.
+    for (const c of slots.children) c.visible = carrilAbierto(c.userData.lane)
+    // Lo de alrededor sobra: el puente va por encima del mar y un arenal a la
+    // altura de la calzada lo convertiría otra vez en una carretera.
+    escenarioTapa = !!escenarioVisto?.userData.tapaElMundo
+    sand.visible = !escenarioTapa
+    decoradoFijo.visible = !escenarioTapa
+  }
+
   function ponerArena (nombre) {
     arenaPedida = nombre
     for (const [n, a] of arenas) if (a.grupo) a.grupo.visible = n === nombre
@@ -1598,18 +1640,20 @@ export function createWorld (canvas) {
     })
   }
 
-  function vestir (clave, hitosMision = [], suelo = 'carretera', tonoSuelo = null) {
+  function vestir (clave, hitosMision = [], suelo = 'carretera', tonoSuelo = null, escenario = null) {
     const b = BIOMAS[clave]
-    const llave = clave + '|' + (hitosMision ?? []).map(h => h.join(':')).join(',') + '|' + suelo + '|' + tonoSuelo
+    const llave = clave + '|' + (hitosMision ?? []).map(h => h.join(':')).join(',') + '|' + suelo + '|' + tonoSuelo + '|' + escenario
     if (!b || llave === bioma) return
     bioma = llave
+    ponerEscenario(escenario)
     // La nave estrellada tapaba justo el sitio de los monumentos.
     const estrellada = scene.getObjectByName('nave-estrellada')
-    if (estrellada) estrellada.visible = !(hitosMision?.length) && !b.arena
+    // Y tampoco dentro de un escenario: en el puente aparecia flotando sobre el mar.
+    if (estrellada) estrellada.visible = !(hitosMision?.length) && !b.arena && !escenarioTapa
     // En una arena, el recinto cierra el horizonte: fuera cerros y mesetas.
     ponerArena(b.arena ?? null)
-    pintables.cerro.visible = !b.arena
-    pintables.meseta.visible = !b.arena
+    pintables.cerro.visible = !b.arena && !escenarioTapa
+    pintables.meseta.visible = !b.arena && !escenarioTapa
     // Al fondo, la base que venimos a limpiar. El modelo sale del nombre de la
     // misión: cada sitio tiene la suya y no cambia al repetir.
     let semilla = 7
@@ -1630,7 +1674,7 @@ export function createWorld (canvas) {
     // Los carriles siguen estando, pero ya no se ven.
     const campo = texturaCampo(suelo)
     for (const m of soloCarretera) m.visible = !campo
-    for (const m of pintables.mobiliarioVia ?? []) m.visible = !campo
+    for (const m of pintables.mobiliarioVia ?? []) m.visible = !campo && !escenarioTapa
     const conFarolas = !campo || suelo === 'adoquin' || suelo === 'losas'
     for (const m of pintables.farolas ?? []) m.visible = conFarolas
     // Los detalles de la región, encima de lo que sea el suelo.
@@ -1669,7 +1713,7 @@ export function createWorld (canvas) {
     cielos.horizonte.value.setHex(b.niebla)
     // El perfil de la ciudad, en el tono de los cerros de la región y un punto
     // más frío: lejos, todo tira a azul.
-    perfil.visible = CON_CIUDAD.has(clave)
+    perfil.visible = CON_CIUDAD.has(clave) && !escenarioTapa
     matPerfil.color.setHex(b.cerro).lerp(new THREE.Color(b.niebla), 0.35).multiplyScalar(0.8)
     sun.color.setHex(b.sol)
     cielo.color.setHex(b.cielo)
@@ -1686,7 +1730,8 @@ export function createWorld (canvas) {
 
     for (const [k, g] of bosques) g.visible = k === llave
     const mio = bosques.get(llave) ?? poblar(llave, b, hitosMision, suelo)
-    mio.visible = true
+    // En un escenario cerrado, el decorado de carretera no pinta nada.
+    mio.visible = !escenarioTapa
     bosqueVisible = mio
     // El arenal se moldea al relieve del tramo que toca. Aquí y no en `poblar`,
     // que solo se ejecuta la primera vez que se ve cada bioma.

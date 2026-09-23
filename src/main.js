@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import './style.css'
-import { FIELD, BASE, NIVELES, SOLDIERS, DEFENSES, STRIKES, ZOMBIES, ECONOMY } from './config.js'
+import { FIELD, BASE, NIVELES, SOLDIERS, DEFENSES, STRIKES, ZOMBIES, ECONOMY, carrilAbierto, estrecharCampo } from './config.js'
 import { createWorld, rowZ, laneX } from './world.js'
 import { createSoldier, upgradeCost, muzzleWorld, ejectorWorld } from './entities/soldier.js'
 // El invitado del cooperativo crea copias de los huéspedes que le manda el
@@ -257,9 +257,9 @@ function mejorHueco (item) {
 
   const maxA = Math.max(1, ...amenaza)
   const maxP = Math.max(1, ...presion)
-  const centro = (FIELD.lanes - 1) / 2
+  const centro = (FIELD.primerCarril + FIELD.ultimoCarril) / 2
   const orden = []
-  for (let l = 0; l < FIELD.lanes; l++) {
+  for (let l = FIELD.primerCarril; l <= FIELD.ultimoCarril; l++) {
     // Lo ya puesto se descuenta por PIEZAS, no dividiendo por el máximo.
     //
     // Antes era `defensa[l] / maxD`, y dividir por el máximo hace que el carril
@@ -311,6 +311,8 @@ async function place (item, lane, row) {
     coop.mandarOrden({ tipo: 'colocar', clave: item.key, clase: item.type, lane, row })
     return
   }
+  // En los tramos estrechos (el puente) los carriles de fuera están cerrados.
+  if (!carrilAbierto(lane)) return audio.denied()
   const key = slotKey(lane, row)
   if (occupied.has(key)) return audio.denied()
   if (!economy.spend(item.cost)) return audio.denied()
@@ -1692,7 +1694,7 @@ function start (indice = nivelActual) {
   // El paisaje de la región, antes de enseñar nada: si se vistiera después, el
   // primer fotograma del nivel saldría con la tierra del destino anterior.
   const nivelDeHoy = nivelActivo()
-  world.vestir(nivelDeHoy.bioma, nivelDeHoy.hitos, nivelDeHoy.suelo, nivelDeHoy.tonoSuelo)
+  world.vestir(nivelDeHoy.bioma, nivelDeHoy.hitos, nivelDeHoy.suelo, nivelDeHoy.tonoSuelo, nivelDeHoy.escenario)
   // Lo que arrastra el viento en este sitio, y por dónde vuelan las naves de paso.
   ambient.vestir(nivelDeHoy, world.alturaEn)
   billetesPartida = 0
@@ -3071,7 +3073,7 @@ function empezarComoInvitado () {
   // El mismo tramo que el anfitrión: paisaje, suelo y cielo.
   nivelActual = Math.max(0, Math.min(NIVELES.length - 1, tramoDelAnfitrion))
   const suyo = NIVELES[nivelActual]
-  world.vestir(suyo.bioma, suyo.hitos, suyo.suelo, suyo.tonoSuelo)
+  world.vestir(suyo.bioma, suyo.hitos, suyo.suelo, suyo.tonoSuelo, suyo.escenario)
   ambient.vestir(suyo, world.alturaEn)
   baseHp = BASE.hp
   running = true

@@ -359,7 +359,11 @@ export const PAISES = [
     cierre: 'En Moscú encontramos sus señales. No iban hacia arriba: iban hacia el otro lado del estrecho. Hacia América.',
     misiones: [
       {
-        name: 'Vladivostok', lugar: 'Puente de Zolotói · vano este', mapa: sitio(43.12, 131.89), suelo: 'nieve', hitos: [['puenteZolotoi']],
+        name: 'Vladivostok', lugar: 'Puente de Zolotói · vano este', mapa: sitio(43.12, 131.89), suelo: 'nieve',
+        // Aquí no se juega AL LADO del puente: se juega encima. El escenario se
+        // come el paisaje y cierra las dos aceras, así que el campo queda en
+        // tres carriles en vez de cinco.
+        escenario: 'puente',
         resumen: 'Deprisa, y a cuarenta bajo cero.',
         parte: ['Llegan deprisa por el puente. Con la mitad de tu cuerpo dormido de frío.',
           'Lo que dispara lento no llega a tiempo.'],
