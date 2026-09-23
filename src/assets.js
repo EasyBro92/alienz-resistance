@@ -675,6 +675,21 @@ function buildWeapon (key) {
     piece(w, box(0.055, 0.11, 0.2, 0.02), steel, 0, -0.06, 0.04)
     grip(0.1, 0.4)
     piece(w, box(0.05, 0.09, 0.12, 0.02), polymer, 0, -0.04, 0.26)
+  } else if (key === 'misil') {
+    // Lanzamisiles de hombro: un tubo largo con la ojiva asomando por la boca,
+    // la empuñadura delantera, el visor de codo y la tobera trasera. Lo que lo
+    // hace legible de lejos es la ojiva, que va en el color de la unidad.
+    piece(w, tube(0.085, 0.085, 0.92, 12), steel, 0, 0.02, -0.18, Math.PI / 2)        // tubo
+    piece(w, tube(0.1, 0.1, 0.07, 12), black, 0, 0.02, -0.62, Math.PI / 2)            // boca
+    // Tobera trasera, acampanada: por ahí sale el fogonazo.
+    piece(w, tube(0.075, 0.115, 0.16, 12), black, 0, 0.02, 0.34, Math.PI / 2)
+    piece(w, cap(0.062, 0.2, 6, 10), mat(0xd94a6a, 0.45, 0.25), 0, 0.02, -0.72, -Math.PI / 2)  // ojiva
+    piece(w, box(0.045, 0.14, 0.06, 0.015), black, 0, -0.1, -0.02)                    // empuñadura delantera
+    piece(w, box(0.05, 0.12, 0.07, 0.015), black, 0, -0.09, 0.2)                      // empuñadura y gatillo
+    piece(w, box(0.03, 0.1, 0.12, 0.012), steel, 0.075, 0.1, 0.02)                    // visor de codo
+    piece(w, ball(0.022, 8, 6), glass, 0.075, 0.13, -0.03)
+    piece(w, box(0.12, 0.03, 0.2, 0.01), mat(0x4a4f44, 0.9), 0, 0.09, 0.16)           // almohadilla del hombro
+    for (const z of [-0.36, 0.08]) piece(w, tube(0.09, 0.09, 0.02, 12), black, 0, 0.02, z, Math.PI / 2)  // abrazaderas
   } else if (key === 'mortar') {
     // Mortero de trípode: tubo inclinado al cielo y bombas en el suelo.
     piece(w, tube(0.075, 0.09, 0.78, 12), steel, 0, 0.14, -0.06, -0.95)
@@ -805,8 +820,12 @@ function placeholderSoldier (key, spec) {
   // El arquero no es un soldado moderno pintado de verde: es de otra época y
   // tiene que vestir de otra época. Todo su equipo se construye aparte.
   const ancient = key === 'archer'
+  // La Misilera va de faena informal: chaleco militar encima de una camiseta,
+  // pantalón corto y los brazos y las piernas al aire. Es lo que la distingue
+  // de un vistazo en el tablero, que es para lo que sirve la silueta.
+  const informal = key === 'misil'
   const heavy = key === 'shotgun' || key === 'gunner' || key === 'flamer'
-  const lean = key === 'sniper' || ancient
+  const lean = key === 'sniper' || ancient || informal
   const HIP = 0.88
   const SHOULDER = 1.49
   const shoulderX = heavy ? 0.27 : lean ? 0.225 : 0.245
@@ -906,12 +925,14 @@ function placeholderSoldier (key, spec) {
     // Brazaletes de cuero: el arquero se protege el antebrazo de la cuerda.
     for (const side of [-1, 1]) piece(statics, tube(0.062, 0.068, 0.13, 10), leatherDark, side * 0.235, 1.13, -0.02)
   } else {
-    // chaleco portaplacas con placa frontal y trasera
-    piece(statics, box(0.38, 0.42, 0.24, 0.05), clothDark, 0, 1.24, 0)
+    // chaleco portaplacas con placa frontal y trasera. El de la Misilera es
+    // mas corto: por debajo asoma la camiseta y por eso se lee como informal.
+    piece(statics, box(0.38, informal ? 0.3 : 0.42, 0.24, 0.05), informal ? mat(0x4b5340, 0.9) : clothDark, 0, informal ? 1.3 : 1.24, 0)
     piece(statics, box(0.31, 0.3, 0.03, 0.01), gearDark, 0, 1.26, -0.13)
     piece(statics, box(0.33, 0.32, 0.03, 0.01), gearDark, 0, 1.26, 0.12)
     for (const side of [-1, 1]) {
-      piece(statics, box(0.075, 0.26, 0.20, 0.03), webbing, side * (SH - 0.03), 1.30, 0, 0, 0, side * 0.1)  // hombreras
+      // La Misilera no lleva hombreras: van los hombros al aire.
+      if (!informal) piece(statics, box(0.075, 0.26, 0.20, 0.03), webbing, side * (SH - 0.03), 1.30, 0, 0, 0, side * 0.1)
       piece(statics, box(0.09, 0.11, 0.07, 0.02), gear, side * 0.11, 1.14, -0.14)                  // cargadores
     }
 
@@ -919,10 +940,10 @@ function placeholderSoldier (key, spec) {
     // del fundido, o sea dos llamadas de dibujo sueltas por soldado. Aquí van
     // dentro, y de paso ensanchan la parte alta: desde 25° de picado el trapecio
     // se ve casi de plano y es lo que más define la silueta.
-    piece(statics, box(SH * 2 + 0.06, 0.15, 0.27, 0.07), clothDark, 0, 1.455, 0.01)
+    piece(statics, box(SH * 2 + 0.06, 0.15, 0.27, 0.07), informal ? skin : clothDark, 0, 1.455, 0.01)
     for (const side of [-1, 1]) {
-      piece(statics, cap(0.088, 0.10, 5, 10), cloth, side * SH, 1.45, 0, 0, 0, Math.PI / 2)
-      piece(statics, box(0.15, 0.10, 0.26, 0.05), webbing, side * (SH - 0.01), 1.50, 0.01, 0, 0, side * 0.24)
+      piece(statics, cap(0.088, 0.10, 5, 10), informal ? skin : cloth, side * SH, 1.45, 0, 0, 0, Math.PI / 2)
+      if (!informal) piece(statics, box(0.15, 0.10, 0.26, 0.05), webbing, side * (SH - 0.01), 1.50, 0.01, 0, 0, side * 0.24)
     }
     piece(statics, box(0.1, 0.1, 0.06, 0.02), gear, 0, 1.14, -0.14)
     // Cuello alto: entre el casco y el chaleco asomaba la piel desnuda, y desde
@@ -1101,6 +1122,19 @@ function placeholderSoldier (key, spec) {
       piece(headParts, box(0.045, 0.012, 0.012, 0.004), mat(0x2e2a24, 0.85), side * 0.055, 0.035, -0.178)
       piece(headParts, ball(0.015, 6, 5), mat(0x2a1d14, 0.4), side * 0.052, 0.005, -0.176)
     }
+  } else if (informal) {
+    // Sin casco: gorra ladeada y coleta alta. La coleta es lo que la distingue
+    // desde atras, que es como mas se ve a un soldado en este juego.
+    const gorra = mat(0x5d6340, 0.9)
+    const crin = mat(0x3a2418, 0.85)
+    piece(headParts, new THREE.SphereGeometry(0.195, 14, 10, 0, Math.PI * 2, 0, 1.2), gorra, 0, 0.045, 0.01)
+      .scale.set(1.05, 0.8, 1.05)
+    piece(headParts, box(0.2, 0.03, 0.14, 0.012), gorra, 0, -0.01, -0.15)   // visera
+    // La coleta: arranca de la nuca y cae por la espalda.
+    piece(headParts, ball(0.075, 10, 8), crin, 0, 0.02, 0.17)
+    const cola = piece(headParts, cap(0.055, 0.26, 6, 10), crin, 0, -0.1, 0.22)
+    cola.rotation.x = -0.45
+    piece(headParts, tube(0.062, 0.062, 0.03, 8), mat(0x22242a, 0.8), 0, 0.01, 0.19)
   } else if (ancient) {
     // Sin casco: la melena castaña con raya al medio, los mechones que caen a
     // los lados de la cara y la trenza fina, las cejas oscuras y los labios.
@@ -1207,8 +1241,8 @@ function placeholderSoldier (key, spec) {
 
   // La arquera va con los brazos al aire y los brazaletes largos de cuero; las
   // piernas, con calzas de cuero y botas altas con la vuelta caída.
-  const armMat = ancient ? skin : faena
-  const legMat = ancient ? calzas : trousers
+  const armMat = ancient || informal ? skin : faena
+  const legMat = ancient ? calzas : informal ? mat(0x6f7348, 0.9) : trousers
 
   for (const [name, side] of [['armL', -1], ['armR', 1]]) {
     const arm = limb({
@@ -1216,7 +1250,7 @@ function placeholderSoldier (key, spec) {
       bend: armBend[name],   // sin material propio de articulación: una malla menos por tramo
       end: box(0.07, 0.085, 0.095, 0.03), endMat: ancient ? leatherDark : glove, endOffset: -0.03,
       // Todo esto se funde dentro del tramo en vez de colgarse suelto después.
-      extraUpper: ancient
+      extraUpper: ancient || informal
         ? null
         : up => {
             // Brazalete estrecho, no una hombrera: el deltoides que cuelga del
@@ -1241,7 +1275,9 @@ function placeholderSoldier (key, spec) {
   for (const [name, side] of [['legL', -1], ['legR', 1]]) {
     const boot = mat(0x201c17, 0.85)
     const leg = limb({
-      length: 0.9, thickness: 0.085, material: legMat, lowerMat: legMat,
+      // Con el pantalón corto, la pantorrilla va al aire: el muslo lleva el
+      // color de la prenda y de la rodilla abajo es piel.
+      length: 0.9, thickness: 0.085, material: legMat, lowerMat: informal ? skin : legMat,
       bend: legBend[name],
       extraUpper: ancient ? null : up => {
         // Bolsillo de muslo: el pantalón de faena tiene uno enorme y es lo que

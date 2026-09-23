@@ -104,6 +104,20 @@ export const SOLDIERS = {
     suprime: { factor: 0.45, dura: 0.7 },
     blurb: 'Un chorro de balas que clava en el sitio lo que tenga delante. Se atasca con los blindados.'
   },
+  // La octava. Va entre el Ametrallador y el Mortero de precio, pero no es un
+  // punto intermedio: hace algo que no hace nadie. El Escopetero salpica a los
+  // lados, el Mortero cae en corro, y este abre un PASILLO —revienta al que
+  // toca y sigue reventando por detrás, a lo largo del carril—. Contra una fila
+  // que baja en columna no hay nada mejor; contra uno suelto es un desperdicio.
+  misil: {
+    name: 'Misilera', cost: 290, hp: 95, color: 0xe0559b, accent: 0x7a2352,
+    damage: 74, fireRate: 0.5, range: 30, armorPierce: 0.9, splash: 2.6, misilShot: true,
+    magazine: 1, reloadTime: 1.8,
+    // Rasgo: la estela. Lo que quede detrás del impacto, en el mismo carril y
+    // hasta nueve de fondo, también se lo come (menos cuanto más lejos).
+    estela: 9,
+    blurb: 'Misil directo que revienta al primero y sigue abriendo pasillo por detrás. Lenta y cara.'
+  },
   mortar: {
     name: 'Mortero', cost: 320, hp: 90, color: 0xd9c23a, accent: 0x5f5218,
     damage: 90, fireRate: 0.4, range: 40, armorPierce: 0.8, splash: 4.2, mortarShot: true,

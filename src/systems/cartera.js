@@ -52,6 +52,7 @@ export const PRECIOS = {
   sniper: 220,
   flamer: 320,
   gunner: 450,
+  misil: 520,
   mortar: 600,
   sandbags: 30,
   spikes: 90,

@@ -88,10 +88,11 @@ cuando se junta la horda. Sin recolocar, sin barreras y sin reparar.
 - **Billetes por partida** (cobrando todo, botín al 75 % y goteo incluido): de 33
   en Tarragona a 230 en los tramos de diez oleadas; **4.762 en una vuelta entera**
   a la campaña.
-- **Precios:** abrir las trece piezas de la tienda cuesta 2.875 billetes, así que
-  se puede tener todo abierto en una sola vuelta. Subir las mejoras de los siete
-  soldados al máximo cuesta unos 11.800, que son dos vueltas y media: es el juego
-  largo, y por eso los cinco tramos duros se repiten con más músculo.
+- **Precios:** abrir las catorce piezas de la tienda cuesta 3.395 billetes (las
+  trece de antes más la Misilera, 520), así que se puede tener todo abierto en
+  una sola vuelta. Subir las mejoras de los ocho soldados al máximo cuesta unos
+  13.500, que son casi tres vueltas: es el juego largo, y por eso los cinco
+  tramos duros se repiten con más músculo.
 
 Lo de antes (medido con el botín al 100 %, 12 países y los alienz anteriores) ya
 no vale: el botín está al 75 %, hay 13 países y el 21/09 los pequeños ganaron un

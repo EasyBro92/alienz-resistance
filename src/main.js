@@ -681,6 +681,22 @@ function splashDamage (center, radius, amount, pierce) {
   }
 }
 
+// El pasillo del misil. Revienta el corro del impacto y sigue por DETRÁS, en
+// el mismo carril, con el daño cayendo con la distancia. Es lo que no hace
+// nadie más: el Escopetero salpica a los lados y el Mortero en corro.
+function danoEnEstela (centro, radio, largo, amount, pierce) {
+  for (const z of zombies) {
+    if (z.dead || z.intocable) continue
+    const p = z.mesh.position
+    const cerca = p.distanceTo(centro) <= radio
+    // Detrás es hacia -Z: los huéspedes bajan de -Z hacia la base.
+    const dz = p.z - centro.z
+    const detras = Math.abs(p.x - centro.x) <= radio * 0.85 && dz < 0 && dz > -largo
+    if (!cerca && !detras) continue
+    z.hurt(amount * (cerca ? 1 : Math.max(0.35, 1 + dz / largo)), pierce)
+  }
+}
+
 function soldierFire (soldier, target) {
   const spec = soldier.spec
   const from = muzzleWorld(soldier, tmpA)
@@ -694,6 +710,17 @@ function soldierFire (soldier, target) {
     effects.arrow(from, to)
   } else if (spec.flame) {
     effects.flame(from, -1, spec.range)
+  } else if (spec.misilShot) {
+    const impacto = to.clone()
+    effects.smoke(from, 3, 0x9a9a9a)
+    effects.misil(from, impacto, p => {
+      audio.boom()
+      effects.burst(p, 0xffd08a, 16, 2.2)
+      effects.burst(p, 0x3a3a3a, 10, 1.4)
+      marcas.poner(p.x, p.z, 'quemado', spec.splash * 1.2)
+      danoEnEstela(p, spec.splash, spec.estela ?? 0, soldier.damage, pierce)
+    })
+    return   // el daño lo hace la explosión, no el disparo
   } else if (spec.mortarShot) {
     const impact = to.clone()
     effects.smoke(from, 4, 0x8f8f8f)

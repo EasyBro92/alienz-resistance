@@ -144,6 +144,28 @@ export function createEffects (scene, camera) {
     })
   }
 
+  // El misil de la Misilera. Va recto y rápido, no en arco como el mortero, y
+  // deja estela de humo: es lo que hace que se lea como un misil y no como una
+  // piedra. Rasante, a la altura del pecho del alien.
+  function misil (from, to, onImpact) {
+    const m = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.055, 0.085, 0.42, 6),
+      new THREE.MeshStandardMaterial({ color: 0xd8d2cc, roughness: 0.5, metalness: 0.3 })
+    )
+    m.position.copy(from)
+    // Tumbado a lo largo de su camino.
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), to.clone().sub(from).normalize())
+    m.castShadow = true
+    scene.add(m)
+    const vuelo = Math.max(0.16, from.distanceTo(to) / 46)
+    debris.push({
+      mesh: m, life: vuelo,
+      arc: { from: from.clone(), to: to.clone(), t: 0, total: vuelo, height: 0.35 },
+      humea: 0,
+      onDone: onImpact
+    })
+  }
+
   function update (dt) {
     for (let i = debris.length - 1; i >= 0; i--) {
       const d = debris[i]
@@ -153,6 +175,12 @@ export function createEffects (scene, camera) {
         const k = Math.min(1, d.arc.t / d.arc.total)
         d.mesh.position.lerpVectors(d.arc.from, d.arc.to, k)
         d.mesh.position.y += Math.sin(k * Math.PI) * d.arc.height
+        // Va soltando humo por detrás: sin estela, un misil rápido es un
+        // destello que no se ve.
+        if (d.humea != null) {
+          d.humea -= dt
+          if (d.humea <= 0) { d.humea = 0.03; smoke(d.mesh.position, 1, 0xbfbfbf) }
+        }
       } else if (d.fly) {
         d.mesh.position.addScaledVector(d.fly, dt)
       } else if (d.v) {
@@ -192,7 +220,7 @@ export function createEffects (scene, camera) {
   }
 
   return {
-    tracer, burst, floatText, shell, smoke, arrow, flame, mortar, update,
+    tracer, burst, floatText, shell, smoke, arrow, flame, mortar, misil, update,
     setDensidad (v) { densidad = v }
   }
 }

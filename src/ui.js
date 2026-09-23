@@ -6,7 +6,7 @@ import { cartasAbiertas } from './systems/progreso.js'
 // inventario de un puesto de contención y no como una lista de la compra.
 const SERIAL = {
   archer: 'A-01', rifle: 'R-02', shotgun: 'S-03', sniper: 'T-04',
-  flamer: 'F-05', gunner: 'M-06', mortar: 'X-07',
+  flamer: 'F-05', gunner: 'M-06', misil: 'K-07', mortar: 'X-08',
   sandbags: 'B-01', spikes: 'B-02',
   grenade: 'G-01', airstrike: 'G-02', collector: 'C-00'
 }
@@ -14,7 +14,7 @@ const SERIAL = {
 // La chapa manda un nombre corto porque el largo no entra en 76 px y se cortaba
 // con puntos suspensivos: AMETRALLAD… y SACOS TERR… hay que descifrarlos. El
 // nombre completo sigue vivo en la franja de estado y en la etiqueta hablada.
-const CORTO = { flamer: 'Fuego', gunner: 'Metralla', sandbags: 'Sacos', airstrike: 'Aéreo' }
+const CORTO = { flamer: 'Fuego', gunner: 'Metralla', misil: 'Misiles', sandbags: 'Sacos', airstrike: 'Aéreo' }
 
 // Los apoyos no tienen figura en el tablero, así que toman el color de su propio
 // efecto: el naranja de la explosión, el azul del cristal de la óptica y el oro
