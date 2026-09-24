@@ -166,6 +166,31 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
   // --- vestíbulo -----------------------------------------------------------------
   const aviso = texto => { $('duelo-aviso').textContent = texto }
 
+  // El radar de la búsqueda. «Buscando rival…» en texto plano parecía que el
+  // juego se había quedado colgado; un radar barriendo dice lo mismo pero se ve
+  // que algo está pasando, y el reloj dice cuánto llevas esperando. A los 15 s
+  // se ofrece la máquina: es mejor jugar que mirar una pantalla.
+  let radarDesde = 0
+  let radarTic = null
+  function radar (on) {
+    const caja = $('duelo-radar')
+    if (!caja) return
+    caja.hidden = !on
+    clearInterval(radarTic)
+    radarTic = null
+    if (!on) return
+    radarDesde = performance.now()
+    const pintar = () => {
+      const seg = Math.floor((performance.now() - radarDesde) / 1000)
+      $('duelo-radar-reloj').textContent = `${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, '0')}`
+      $('duelo-radar-pie').textContent = seg < 15
+        ? 'Tarda lo que tarde en entrar alguien más.'
+        : 'Se está haciendo largo. Mientras tanto puedes jugar contra la máquina.'
+    }
+    pintar()
+    radarTic = setInterval(pintar, 1000)
+  }
+
   async function abrir () {
     $('duelo-capa').classList.remove('hidden')
     // Se empiezan a hacer ya: entre elegir modo, emparejar y la cuenta atras
@@ -259,6 +284,7 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
     })
     if (cogida) {
       await entrarEnSala(cogida.codigo, false)
+      radar(false)
       aviso('¡Rival encontrado! Preparando la arena…')
       return
     }
@@ -270,7 +296,8 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
       if (buscando !== mia) return clearInterval(renovar)
       almacen.transaccion('cola', actual => (actual?.codigo === mia ? { ...actual, en: Date.now() } : actual)).catch(() => {})
     }, 25000)
-    aviso('Buscando rival… (tarda lo que tarde en entrar alguien más)')
+    aviso('')
+    radar(true)
     $('duelo-cancelar').hidden = false
   }
 
@@ -305,6 +332,7 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
 
   async function cancelarBusqueda () {
     $('duelo-cancelar').hidden = true
+    radar(false)
     if (buscando && almacen) {
       const mia = buscando
       await almacen.transaccion('cola', actual => (actual?.codigo === mia ? null : actual)).catch(() => {})
@@ -417,6 +445,7 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
   }
 
   function empezar () {
+    radar(false)
     enCurso = true
     terminado = false
     t = 0

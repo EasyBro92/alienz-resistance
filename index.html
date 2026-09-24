@@ -449,12 +449,30 @@
       <div class="panel panel-retos">
         <p class="eyebrow">Mando del búnker · radio abierta</p>
         <h2>Multijugador</h2>
+        <div class="multi-yo" id="multi-yo"></div>
+        <p class="multi-vivos" id="multi-vivos" hidden></p>
         <p class="retos-intro" id="multi-intro">Juega contra otros o junto a ellos.</p>
         <div class="multi-menu">
-          <button id="multi-duelo" class="chip multi-boton" type="button"><svg aria-hidden="true"><use href="#i-rayo"></use></svg><span><b>1 contra 1</b><small>En directo: la misma horda, y le mandas alienz al otro</small></span></button>
-          <button id="multi-retos" class="chip multi-boton" type="button"><svg aria-hidden="true"><use href="#i-duelo"></use></svg><span><b>Retos</b><small>Monta una oleada y pásale el código a otro</small></span></button>
-          <button id="multi-ranking" class="chip multi-boton" type="button"><svg aria-hidden="true"><use href="#i-trofeo"></use></svg><span><b>Ranking</b><small>Los mejores de cada tramo del mapa</small></span></button>
-          <button id="multi-coop" class="chip multi-boton" type="button"><svg aria-hidden="true"><use href="#i-multi"></use></svg><span><b>Defender entre dos</b><small>El mismo tramo, a la vez, con otro jugador</small></span></button>
+          <button id="multi-duelo" class="multi-boton" type="button" style="--tinte:#e8523f">
+            <i class="multi-vineta" data-arte="duelo" aria-hidden="true"></i>
+            <span><b>1 contra 1</b><small>En directo: la misma horda, y le mandas alienz al otro</small></span>
+            <svg class="multi-flecha" aria-hidden="true"><use href="#i-rayo"></use></svg>
+          </button>
+          <button id="multi-retos" class="multi-boton" type="button" style="--tinte:#e0a83c">
+            <i class="multi-vineta" data-arte="retos" aria-hidden="true"></i>
+            <span><b>Retos</b><small>Monta una oleada y pásale el código a otro</small></span>
+            <svg class="multi-flecha" aria-hidden="true"><use href="#i-duelo"></use></svg>
+          </button>
+          <button id="multi-ranking" class="multi-boton" type="button" style="--tinte:#f0c419">
+            <i class="multi-vineta" data-arte="ranking" aria-hidden="true"></i>
+            <span><b>Ranking</b><small>Los mejores de cada tramo del mapa</small></span>
+            <svg class="multi-flecha" aria-hidden="true"><use href="#i-trofeo"></use></svg>
+          </button>
+          <button id="multi-coop" class="multi-boton" type="button" style="--tinte:#4e9ad6">
+            <i class="multi-vineta" data-arte="coop" aria-hidden="true"></i>
+            <span><b>Defender entre dos</b><small>El mismo tramo, a la vez, con otro jugador</small></span>
+            <svg class="multi-flecha" aria-hidden="true"><use href="#i-multi"></use></svg>
+          </button>
         </div>
         <button id="multi-volver" class="chip chip-ghost">Volver al mapa</button>
       </div>
@@ -473,6 +491,18 @@
         <button id="duelo-rapida" class="big-btn">PARTIDA RÁPIDA</button>
         <button id="duelo-maquina" class="big-btn">CONTRA LA MÁQUINA</button>
         <button id="duelo-aguantar" class="big-btn">AGUANTAR EN LA ARENA</button>
+        <div class="radar-caja" id="duelo-radar" hidden>
+          <div class="radar" aria-hidden="true">
+            <span class="radar-anillo"></span><span class="radar-anillo"></span><span class="radar-anillo"></span>
+            <span class="radar-cruz"></span>
+            <span class="radar-barrido"></span>
+            <b class="radar-eco" style="--x:62%;--y:30%;--t:0s"></b>
+            <b class="radar-eco" style="--x:28%;--y:64%;--t:1.4s"></b>
+            <b class="radar-eco" style="--x:72%;--y:70%;--t:2.6s"></b>
+          </div>
+          <p class="radar-texto">Barriendo la red… <b id="duelo-radar-reloj">0:00</b></p>
+          <p class="radar-pie" id="duelo-radar-pie">Tarda lo que tarde en entrar alguien más.</p>
+        </div>
         <button id="duelo-cancelar" class="chip chip-ghost" type="button" hidden>Dejar de buscar</button>
         <p class="ajuste-pie">La rápida te busca rival de verdad. Las otras dos se juegan solo y sin conexión: dan billetes, pero no puntos de rango.</p>
 

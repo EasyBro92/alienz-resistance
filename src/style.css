@@ -2299,6 +2299,172 @@ html, body {
 
 /* ---------- retos entre jugadores ---------- */
 .retos-capa { z-index: 13; }
+
+/* ---------- multijugador: sala de mando ----------
+ *
+ * Las pantallas del multijugador eran un formulario claro con cuatro fichas
+ * grises: parecían de otra aplicación. Y no es cuestión de gusto, es que el
+ * juego entero —portada, marcador, armería, duelo— es oscuro sobre la escena,
+ * y aquí se salía de eso.
+ *
+ * Se quedan con la paleta oscura pase lo que pase (igual que el marcador, ver
+ * más arriba), con el mundo detrás asomando por un velo. SIN desenfoque de
+ * fondo a propósito: un `backdrop-filter` a pantalla completa es de lo más caro
+ * que se le puede pedir a un móvil, y aquí no hace falta para leer. La textura
+ * de rejilla y las esquinas oscurecidas son dos degradados, que no cuestan
+ * nada.
+ */
+.retos-capa, .coop-capa {
+  --panel: rgba(12, 17, 23, 0.9);
+  --panel-fondo: rgba(10, 15, 20, 0.92);
+  --stroke: rgba(255,255,255,0.14);
+  --velo-1: rgba(255,255,255,0.03);
+  --velo-2: rgba(255,255,255,0.06);
+  --velo-3: rgba(255,255,255,0.09);
+  --velo-4: rgba(255,255,255,0.16);
+  --borde-1: rgba(255,255,255,0.09);
+  --borde-2: rgba(255,255,255,0.13);
+  --borde-3: rgba(255,255,255,0.24);
+  --tinta: #ffffff;
+  --tinta-2: #cfd8d2;
+  --tinta-3: rgba(255,255,255,0.62);
+  --tinta-4: rgba(255,255,255,0.34);
+  --tinta-fria: #9fb0a6;
+  --green: #5fd97a;
+  --verde-texto: #6fe39a;
+  color: var(--tinta);
+  background:
+    repeating-linear-gradient(0deg, rgba(110,220,150,0.045) 0 1px, transparent 1px 3px),
+    radial-gradient(120% 80% at 50% 0%, rgba(20,40,32,0.72), rgba(6,10,14,0.94) 62%, rgba(4,7,10,0.97)),
+    #05080b;
+}
+.retos-capa .panel, .coop-capa .panel {
+  background: linear-gradient(180deg, rgba(22,30,38,0.92), rgba(12,17,23,0.94));
+  border: 1px solid var(--borde-2);
+  border-radius: 18px;
+  padding: 16px 14px 18px;
+  box-shadow: 0 18px 40px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.07);
+}
+.retos-capa h2, .coop-capa h2 {
+  background: linear-gradient(180deg, #eafff1, var(--green));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.retos-capa .eyebrow::before, .coop-capa .eyebrow::before {
+  content: ''; display: inline-block; width: 6px; height: 6px; margin-right: 6px;
+  border-radius: 50%; background: var(--green); vertical-align: middle;
+  box-shadow: 0 0 6px var(--green);
+  animation: radio-late 2.2s ease-in-out infinite;
+}
+@keyframes radio-late { 0%, 100% { opacity: 1 } 50% { opacity: .25 } }
+
+/* ---------- tu ficha, arriba del todo ---------- */
+/* Entras al multijugador y lo primero que ves es dónde estás: insignia, rango,
+   puntos y la racha contra la máquina. Antes se entraba a un menú de cuatro
+   botones sin saber siquiera con qué nombre juegas. */
+.multi-yo {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  margin: 0 0 10px; padding: 10px 12px; border-radius: 14px;
+  background: linear-gradient(135deg, rgba(95,217,122,0.14), rgba(255,255,255,0.03));
+  border: 1px solid rgba(95,217,122,0.28);
+}
+.multi-yo-datos { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; text-align: left; }
+.multi-yo-alias { font-size: 15px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.multi-yo-rango { font-size: 11.5px; color: var(--verde-texto); font-weight: 700; letter-spacing: .4px; }
+.multi-yo-cifras { display: flex; gap: 10px; font-size: 11px; color: var(--tinta-3); }
+.multi-yo-cifras b { color: var(--tinta); }
+.multi-vivos {
+  margin: 0 0 10px; font-size: 11.5px; color: var(--tinta-3);
+  display: flex; align-items: center; gap: 6px;
+}
+.multi-vivos i {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+  box-shadow: 0 0 8px var(--green); animation: radio-late 2s ease-in-out infinite;
+}
+
+/* ---------- las cuatro tarjetas ---------- */
+/* Cada modo con su color y su viñeta. La viñeta NO es una imagen traída de
+   fuera: son los retratos que el juego ya se hace de sus propias figuras al
+   arrancar (ver portraits.js), recortados sobre un degradado. Así no pesa nada
+   y, si mañana cambia un soldado, cambia la portada del modo con él. */
+.multi-menu { display: flex; flex-direction: column; gap: 10px; width: 100%; margin: 0 0 14px; }
+.multi-boton {
+  position: relative; overflow: hidden;
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 0 14px 0 0; text-align: left; border-radius: 16px;
+  min-height: 74px; cursor: pointer;
+  color: var(--tinta);
+  background: linear-gradient(100deg, color-mix(in srgb, var(--tinte) 26%, transparent), rgba(255,255,255,0.04) 62%);
+  border: 1px solid color-mix(in srgb, var(--tinte) 38%, transparent);
+  box-shadow: 0 6px 16px rgba(0,0,0,.35);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.multi-boton:active { transform: translateY(2px); box-shadow: 0 2px 8px rgba(0,0,0,.35); }
+.multi-vineta {
+  flex: none; width: 86px; align-self: stretch; position: relative; overflow: hidden;
+  border-right: 1px solid color-mix(in srgb, var(--tinte) 34%, transparent);
+  background:
+    radial-gradient(70% 90% at 50% 100%, color-mix(in srgb, var(--tinte) 45%, transparent), transparent 70%),
+    linear-gradient(180deg, rgba(0,0,0,.28), rgba(0,0,0,.5));
+}
+.multi-vineta img {
+  position: absolute; bottom: -12%; height: 118%; width: auto;
+  filter: drop-shadow(0 3px 5px rgba(0,0,0,.6));
+}
+.multi-vineta img.izq { left: 2%; transform: scaleX(-1); }
+.multi-vineta img.der { right: 2%; }
+.multi-vineta img.centro { left: 50%; transform: translateX(-50%); height: 126%; }
+.multi-vineta svg { position: absolute; inset: 22% 0 auto 0; margin: auto; width: 38px; height: 38px; color: var(--tinte); }
+.multi-vineta .podio { position: absolute; bottom: 10%; left: 50%; transform: translateX(-50%); display: flex; flex-direction: row; align-items: flex-end; gap: 3px; }
+.multi-vineta .podio i { display: block; width: 9px; border-radius: 2px 2px 0 0; background: var(--tinte); opacity: .9; }
+.multi-boton > span { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; padding: 10px 0; }
+.multi-boton > span b { font-size: 15px; letter-spacing: .3px; }
+.multi-boton > span small { font-size: 11.5px; font-weight: 500; color: var(--tinta-3); white-space: normal; line-height: 1.35; }
+.multi-flecha { flex: none; width: 20px; height: 20px; color: var(--tinte); opacity: .85; }
+
+/* ---------- el radar de buscar rival ---------- */
+/* «Buscando rival…» en texto plano parecía que el juego se había colgado. Un
+   radar que barre dice lo mismo pero se lee como que ALGO está pasando, y el
+   reloj dice cuánto llevas. Todo con CSS: ni un lienzo ni un fotograma. */
+.radar-caja { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 6px 0 4px; }
+.radar {
+  position: relative; width: 132px; height: 132px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(95,217,122,0.12), rgba(6,12,9,0.55) 70%);
+  border: 1px solid rgba(95,217,122,0.4);
+  overflow: hidden;
+}
+.radar-anillo {
+  position: absolute; inset: 0; margin: auto; border-radius: 50%;
+  border: 1px solid rgba(95,217,122,0.22);
+}
+.radar-anillo:nth-of-type(1) { width: 34%; height: 34%; }
+.radar-anillo:nth-of-type(2) { width: 64%; height: 64%; }
+.radar-anillo:nth-of-type(3) { width: 92%; height: 92%; }
+.radar-cruz {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(90deg, transparent calc(50% - 1px), rgba(95,217,122,0.22) 50%, transparent calc(50% + 1px)),
+    linear-gradient(0deg, transparent calc(50% - 1px), rgba(95,217,122,0.22) 50%, transparent calc(50% + 1px));
+}
+.radar-barrido {
+  position: absolute; inset: 0;
+  background: conic-gradient(from 0deg, rgba(95,217,122,0.55), rgba(95,217,122,0.12) 38deg, transparent 90deg);
+  animation: radar-gira 2.6s linear infinite;
+}
+@keyframes radar-gira { to { transform: rotate(360deg) } }
+.radar-eco {
+  position: absolute; left: var(--x); top: var(--y); width: 7px; height: 7px; margin: -3px 0 0 -3px;
+  border-radius: 50%; background: #9dffc0; box-shadow: 0 0 8px #5fd97a;
+  opacity: 0; animation: radar-eco 2.6s linear infinite; animation-delay: var(--t);
+}
+@keyframes radar-eco { 0% { opacity: .95 } 55% { opacity: 0 } 100% { opacity: 0 } }
+.radar-texto { margin: 0; font-size: 13px; font-weight: 700; color: var(--tinta-2); }
+.radar-texto b { font-family: ui-monospace, Menlo, Consolas, monospace; color: var(--verde-texto); }
+.radar-pie { margin: 0; font-size: 11px; color: var(--tinta-4); text-align: center; }
+/* Quien prefiera la pantalla quieta, que la tenga quieta. */
+@media (prefers-reduced-motion: reduce) {
+  .radar-barrido, .radar-eco, .eyebrow::before, .multi-vivos i { animation: none }
+}
+
 .panel-retos { width: 100%; max-width: min(520px, 100%); }
 /* Los tres modos del 1c1. Isidro los quiso «los tres igual de grandes», y con
    el botón grande de siempre salían de 48 px pegados unos a otros, ocupando
@@ -2354,16 +2520,8 @@ html, body {
   text-transform: uppercase; color: #f0c419;
 }
 
-/* ---------- menú multijugador y ranking ---------- */
-.multi-menu { display: flex; flex-direction: column; gap: 10px; width: 100%; margin: 0 0 14px; }
-.multi-boton {
-  display: flex; align-items: center; gap: 12px; width: 100%;
-  padding: 12px 14px; text-align: left; border-radius: 14px;
-}
-.multi-boton svg { flex: none; width: 26px; height: 26px; color: var(--verde-texto); }
-.multi-boton span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.multi-boton b { font-size: 14px; }
-.multi-boton small { font-size: 11.5px; font-weight: 500; color: var(--tinta-3); white-space: normal; }
+/* ---------- ranking ---------- */
+/* (el menu multijugador vive ahora arriba, con la sala de mando) */
 .ranking-tramo { display: flex; align-items: center; gap: 10px; width: 100%; margin: 0 0 10px; }
 .ranking-tramo .reto-mas { flex: none; width: 38px; height: 38px; display: grid; place-items: center; }
 .ranking-tramo .reto-mas svg { width: 18px; height: 18px; }

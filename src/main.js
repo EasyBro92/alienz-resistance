@@ -24,6 +24,7 @@ import { crearDuelo, montarBandeja } from './duelo.js'
 import { montarExpediente, htmlHallazgo } from './expediente.js'
 import { crearCabina } from './helicoptero.js'
 import { BIOMAS } from './biomas.js'
+import { pintarVinetas, pintarMiFicha } from './multimenu.js'
 import { oleadasArena, azarConSemilla } from './systems/duelo.js'
 import { tirarCofre, girarCarrusel } from './cofre.js'
 import { crearTienda } from './tienda.js'
@@ -2747,7 +2748,13 @@ renderPortraits(renderer, (hechas, total) => {
   // Del 12% al 100%: lo de antes ya está hecho y no se puede volver a contar.
   pintarCarga(0.12 + (hechas / total) * 0.88)
 })
-  .then(({ retratos, amenazas }) => { retratosGuardados = retratos; retratosAlien = amenazas; ui.setPortraits(retratos); pintarAmenazas(amenazas) })
+  .then(({ retratos, amenazas }) => {
+    retratosGuardados = retratos
+    retratosAlien = amenazas
+    ui.setPortraits(retratos)
+    pintarAmenazas(amenazas)
+    pintarVinetas({ retratos, amenazas })
+  })
   .catch(err => console.warn('Sin retratos:', err))
   // Pase lo que pase con los retratos, la pantalla se quita: si fallaran, el
   // juego sigue con el icono del arma en las fichas, y quedarse tapado detrás de
@@ -2904,7 +2911,7 @@ async function finReto (ganado) {
 document.getElementById('multi-retos')?.addEventListener('click', () => { audio.unlock(); abrirRetos() })
 document.getElementById('retos-volver')?.addEventListener('click', () => {
   elRetosCapa.classList.add('hidden')
-  elMultiCapa.classList.remove('hidden')
+  volverAlMulti()
 })
 
 // --- menú multijugador y ranking ---------------------------------------------
@@ -2919,9 +2926,21 @@ document.getElementById('mapa-multi')?.addEventListener('click', () => {
   document.getElementById('multi-intro').textContent = cuenta.usuario
     ? 'Juega contra otros o junto a ellos.'
     : 'Juega contra otros o junto a ellos. Para los retos y el ranking hace falta entrar con tu cuenta en Ajustes.'
-  elMapaCapa.classList.add('hidden')
-  elMultiCapa.classList.remove('hidden')
+  abrirMulti()
 })
+
+// Cada vez que se entra al menu: la ficha puede haber cambiado (una partida
+// contra la maquina, un duelo ganado) y los retratos pueden haber terminado
+// despues de la primera vez.
+function volverAlMulti () {
+  elMultiCapa.classList.remove('hidden')
+  pintarVinetas({ retratos: retratosGuardados, amenazas: retratosAlien })
+  pintarMiFicha({ cuenta, escapar: escaparTexto }).catch(e => console.warn('Sin ficha:', e))
+}
+function abrirMulti () {
+  elMapaCapa.classList.add('hidden')
+  volverAlMulti()
+}
 document.getElementById('multi-volver')?.addEventListener('click', () => {
   elMultiCapa.classList.add('hidden')
   elMapaCapa.classList.remove('hidden')
@@ -3035,12 +3054,12 @@ document.getElementById('multi-duelo')?.addEventListener('click', () => {
 })
 document.getElementById('duelo-volver')?.addEventListener('click', () => {
   duelo.cerrar()
-  elMultiCapa.classList.remove('hidden')
+  volverAlMulti()
 })
 
 document.getElementById('ranking-volver')?.addEventListener('click', () => {
   elRankingCapa.classList.add('hidden')
-  elMultiCapa.classList.remove('hidden')
+  volverAlMulti()
 })
 
 // --- cooperativo: la pantalla del invitado -----------------------------------
@@ -3257,5 +3276,5 @@ document.getElementById('coop-volver')?.addEventListener('click', () => {
   coop = null
   limpiarEspejo()
   elCoopCapa.classList.add('hidden')
-  elMultiCapa.classList.remove('hidden')
+  volverAlMulti()
 })
