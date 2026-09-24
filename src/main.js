@@ -23,6 +23,7 @@ import { cargarCartera, sumarBilletes, sumarMonedas, canjear, PRECIOS, MONEDAS_P
 import { crearDuelo, montarBandeja } from './duelo.js'
 import { montarExpediente, htmlHallazgo } from './expediente.js'
 import { crearCabina } from './helicoptero.js'
+import { BIOMAS } from './biomas.js'
 import { oleadasArena, azarConSemilla } from './systems/duelo.js'
 import { tirarCofre, girarCarrusel } from './cofre.js'
 import { crearTienda } from './tienda.js'
@@ -2950,6 +2951,9 @@ montarExpediente({ cargarProgreso, audio })
 // --- 1 contra 1 ------------------------------------------------------------------
 // Las arenas, hechas en Blender (herramientas/blender/arena_*.py). El suelo del
 // campo va con cada una: arena en el Coliseo, ceniza en el cráter, chapa en la base.
+// Las fotos de las figuras para la camara del duelo: una sola vez por sesion,
+// y solo si se entra a jugar en linea.
+let fotosCampoPedidas = null
 const ARENAS = [
   { nombre: 'El Coliseo', bioma: 'arena', suelo: 'tierra', tono: 0x9a8462 },
   { nombre: 'El Cráter', bioma: 'arenaCrater', suelo: 'tierra', tono: 0x6e5e52 },
@@ -3003,6 +3007,16 @@ const duelo = crearDuelo({
     banner: t => ui.banner(t),
     rotulo: t => ui.setWave(t),
     retratoAlien: k => retratosAlien.get?.(k) ?? null,
+    // Para la camara del campo del rival: con que calidad dibujarla, de que
+    // color es el suelo de esta arena, y las fotos de las figuras.
+    calidad: () => calidad.nivel,
+    paleta: () => BIOMAS[nivelActivo()?.bioma] ?? null,
+    fotosCampo: () => (fotosCampoPedidas ??= import('./systems/fotosCampo.js').then(async m => {
+      const t0 = performance.now()
+      const f = await m.fotografiarCampo(renderer)
+      if (import.meta.env.DEV) window.__fotos = { cuantas: f.size, ms: Math.round(performance.now() - t0), mapa: f }
+      return f
+    })),
     final (gane, html, conCofre) {
       setTimeout(() => {
         ui.showOverlay(`${html}

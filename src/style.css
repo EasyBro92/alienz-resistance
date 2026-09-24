@@ -2384,18 +2384,38 @@ html, body {
 .duelo-hud[hidden] { display: none; }
 .duelo-hud { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
 .duelo-hud > * { pointer-events: auto; }
+/* La pantalla del rival es un MONITOR: carcasa oscura, marco fino y la imagen
+   metida dentro con su sombra. Antes era una caja translucida con un dibujo
+   encima, y eso es lo que la hacia parecer un plano y no una camara. */
 .duelo-rival {
   position: absolute; top: calc(env(safe-area-inset-top) + 66px); right: 10px;
-  width: 92px; height: 138px; padding: 16px 4px 4px; border-radius: 12px;
-  background: rgba(10, 14, 18, 0.72); border: 1px solid rgba(255,255,255,.18);
+  width: 92px; height: 138px; padding: 4px; border-radius: 10px;
+  background: #0a0c0f; border: 1px solid rgba(255,255,255,.22);
+  box-shadow: 0 6px 18px rgba(0,0,0,.45);
   display: flex; flex-direction: column; cursor: pointer;
   transition: width .2s ease, height .2s ease, left .2s ease;
 }
 .duelo-rival.grande { left: 10px; width: auto; height: 38vh; }
-.duelo-rival canvas { flex: 1; width: 100%; min-height: 0; border-radius: 8px; background: #3a302c; }
+.duelo-rival canvas {
+  flex: 1; width: 100%; min-height: 0; border-radius: 6px; background: #05070a;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.07);
+}
+/* El nombre ya va pintado DENTRO de la imagen, con tipografia de camara. Se
+   queda en el documento para quien lea la pantalla en voz alta. */
 .duelo-rival-nombre {
-  position: absolute; top: 2px; left: 6px; right: 6px; font-size: 10px; font-weight: 800;
-  color: #f2e6d8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center;
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap;
+}
+/* El ultimo plano, en la pantalla de resultado. */
+.duelo-plano { margin: 10px auto; max-width: 260px; }
+.duelo-plano img {
+  display: block; width: 100%; max-height: 30vh; object-fit: cover;
+  border-radius: 8px; border: 1px solid rgba(255,255,255,.18);
+  box-shadow: 0 6px 18px rgba(0,0,0,.45);
+}
+.duelo-plano figcaption {
+  margin-top: 4px; font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--tinta-4); font-family: ui-monospace, Menlo, Consolas, monospace;
 }
 /* Los avisos de bicho entrante. Bajados y estrechados: ahora que la máquina
    ataca de verdad se juntan tres a la vez, y arriba a la izquierda tapaban el

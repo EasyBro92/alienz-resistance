@@ -19,6 +19,7 @@ import {
   PUNTOS_INICIALES, rangoDe, insignia, cambioDePuntos,
   FRASES, MAX_MENSAJE, ESPERA_MENSAJE, filtrar
 } from './systems/duelo.js'
+import { crearCamaraRival } from './camaraRival.js'
 
 const CLAVES_Z = Object.keys(ZOMBIES)
 const CLAVES_S = [...Object.keys(SOLDIERS), ...Object.keys(DEFENSES)]
@@ -70,32 +71,88 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
   let ultimaOla = 0
 
   const lienzo = $('duelo-mini')
-  const pincel = lienzo?.getContext('2d')
+  // La pantalla del rival ya no es un plano con circulos: es una camara
+  // apuntando a su campo, con sus alienz de verdad. Ver `camaraRival.js`.
+  const camara = lienzo ? crearCamaraRival(lienzo, {
+    calidad: () => juego.calidad?.() ?? 'alta',
+    paleta: () => juego.paleta?.() ?? null
+  }) : null
+  // Las fotos de las figuras se hacen al ENTRAR en el duelo, no al arrancar el
+  // juego: en campana esto no se usa y serian treinta renders para nada.
+  let fotosPedidas = false
+  function pedirFotos () {
+    if (fotosPedidas || !camara || !juego.fotosCampo) return
+    fotosPedidas = true
+    juego.fotosCampo().then(m => camara?.ponerFotos(m)).catch(e => console.warn('Sin fotos de campo:', e))
+  }
+
+  // Para probar el duelo desde la consola sin dos moviles delante.
+  if (import.meta.env.DEV) {
+    window.__duelo = {
+      get sala () { return sala },
+      get camara () { return camara },
+      get enCurso () { return enCurso }
+    }
+  }
 
   // --- conexión -----------------------------------------------------------------
-  async function conectar () {
-    if (almacen) return almacen
+  //
+  // Una sola conexión a la vez, y la que se queda a medias se tira.
+  //
+  // Antes cada llamada abría la suya: al entrar en la pantalla del duelo se
+  // abría la de la nube, y si mientras tanto elegías «contra la máquina» se
+  // abría la de mentira encima. La primera llegaba tarde, pisaba el almacén de
+  // la máquina y la partida se quedaba en «Preparando a la máquina…» para
+  // siempre, porque el rival que encontraba en la sala era uno mismo. Costaba
+  // verlo porque hacía falta que la nube tardara: con el móvil fino no pasaba
+  // casi nunca.
+  let conexion = null
+  let generacion = 0
+
+  function soltarConexion () {
+    generacion++
+    if (almacen?.cerrar) try { almacen.cerrar() } catch {}
+    almacen = null
+    conexion = null
+  }
+
+  function conectar () {
+    if (almacen) return Promise.resolve(almacen)
+    if (!conexion) {
+      conexion = abrirConexion(generacion)
+      conexion.catch(() => {}).then(() => { conexion = null })
+    }
+    return conexion
+  }
+
+  async function abrirConexion (gen) {
+    let tienda
     if (contraLaMaquina) {
       const { almacenBot } = await import('./systems/bot.js')
-      almacen = almacenBot()
+      tienda = almacenBot()
     } else if (modoLocal()) {
       const { almacenLocal } = await import('./systems/almacen.js')
-      almacen = almacenLocal('local-' + Math.random().toString(36).slice(2, 8))
+      tienda = almacenLocal('local-' + Math.random().toString(36).slice(2, 8))
     } else {
       const { asegurarSesion } = await import('./systems/cuenta.js')
       const u = cuenta.usuario ?? await asegurarSesion()
       const { almacenNube } = await import('./systems/almacen.js')
-      almacen = await almacenNube(u)
+      tienda = await almacenNube(u)
     }
+    // Mientras se abría, alguien ha cambiado de modo: esta ya no vale.
+    if (gen !== generacion) { try { tienda.cerrar?.() } catch {} ; return null }
     const { aliasActual } = await import('./systems/marcadores.js')
     // Contra la maquina no se puntua: seria regalarse el rango.
     const conCuenta = !!cuenta.usuario && !modoLocal() && !contraLaMaquina
-    yo = {
-      uid: almacen.uid,
-      alias: conCuenta ? aliasActual(cuenta.usuario) : 'Invitado ' + almacen.uid.slice(-4).toUpperCase(),
+    const ficha = {
+      uid: tienda.uid,
+      alias: conCuenta ? aliasActual(cuenta.usuario) : 'Invitado ' + tienda.uid.slice(-4).toUpperCase(),
       conCuenta,
       puntos: conCuenta ? (await leerFicha())?.puntos ?? PUNTOS_INICIALES : PUNTOS_INICIALES
     }
+    if (gen !== generacion) { try { tienda.cerrar?.() } catch {} ; return null }
+    almacen = tienda
+    yo = ficha
     bloqueado = !!(await almacen.leer(`bloqueados/${yo.uid}`).catch(() => null))
     return almacen
   }
@@ -111,6 +168,9 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
 
   async function abrir () {
     $('duelo-capa').classList.remove('hidden')
+    // Se empiezan a hacer ya: entre elegir modo, emparejar y la cuenta atras
+    // hay de sobra para que esten listas antes del primer fotograma.
+    pedirFotos()
     $('duelo-sala').hidden = true
     aviso('')
     $('duelo-sin-cuenta').hidden = !!cuenta.usuario
@@ -219,8 +279,7 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
   // sale por el mismo camino de siempre.
   async function contraMaquina () {
     contraLaMaquina = true
-    if (almacen?.cerrar) try { almacen.cerrar() } catch {}
-    almacen = null
+    soltarConexion()
     await conectar()
     pintarMiRango()
     await entrarEnSala(codigoNuevo(), true)
@@ -230,8 +289,7 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
   async function aguantar () {
     contraLaMaquina = false
     modoAguantar = true
-    if (almacen?.cerrar) try { almacen.cerrar() } catch {}
-    almacen = null
+    soltarConexion()
     const { almacenBot } = await import('./systems/bot.js')
     almacen = almacenBot({ sinRival: true })
     const { aliasActual } = await import('./systems/marcadores.js')
@@ -374,6 +432,9 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
     $('duelo-atacar').hidden = modoAguantar
     $('duelo-chat-boton').hidden = modoAguantar
     $('duelo-rival-nombre').textContent = sala.rival?.alias ?? 'Rival'
+    camara?.reiniciar()
+    camara?.ponerNombre(sala.rival?.alias ?? 'Rival')
+    pedirFotos()
     aplicarVista(leerVista())
     try { bandejaFija = !!localStorage.getItem(CLAVE_FIJA) } catch {}
     $('duelo-fijar')?.setAttribute('aria-pressed', String(bandejaFija))
@@ -389,6 +450,7 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
       // había forma de saber si ibas ganando la carrera, que era la queja.
       const antes = sala.campoRival?.b
       sala.campoRival = c
+      camara?.datos(c)
       const ahora = c?.b
       if (antes == null || ahora == null) return
       for (const u of [75, 50, 25]) {
@@ -433,6 +495,9 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
       juego.rotulo(subita
         ? `Muerte súbita · ×${escala().toFixed(1)}`
         : `Duelo · ${Math.floor(resta / 60)}:${String(Math.floor(resta % 60)).padStart(2, '0')}`)
+      camara?.ponerReloj(subita
+        ? 'SÚBITA'
+        : `${Math.floor(resta / 60)}:${String(Math.floor(resta % 60)).padStart(2, '0')}`)
     }
 
     for (let i = avisos.length - 1; i >= 0; i--) {
@@ -448,12 +513,14 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
     }
 
     apartarSiEstorba()
+    // La camara va a su ritmo (entre 11 y 20 veces por segundo segun el movil),
+    // pero necesita el latido para rellenar el hueco entre instantaneas.
+    if (!modoAguantar) camara?.tic(dt)
 
     envioCampo -= dt
     if (envioCampo <= 0) {
       envioCampo = 0.25
       almacen.poner(`${sala.raiz}/campo/${yo.uid}`, empaquetarCampo())
-      pintarMini()
       refrescarBandeja()
     }
 
@@ -565,7 +632,7 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
     // Justo debajo de la barra de arriba, que cambia de alto según el móvil.
     const hud = document.getElementById('hud')?.getBoundingClientRect()
     if (hud) $('duelo-rival').style.top = `${Math.round(hud.bottom + 4)}px`
-    pintarMini()
+    camara?.pintar()
   }
 
   // Se aparta sola mientras hay avisos de bichos entrando, y vuelve al tamaño
@@ -581,52 +648,6 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
     if (estorba === apartada) return
     apartada = estorba
     $('duelo-rival').classList.toggle('grande', !estorba)
-  }
-
-  function pintarMini () {
-    if (!pincel) return
-    // El lienzo se dibuja a la resolución que ocupa de verdad; al cambiar de
-    // tamaño hay una transición, así que se comprueba en cada pintada.
-    const caja = lienzo.getBoundingClientRect()
-    const k = Math.min(2, devicePixelRatio || 1)
-    const w = Math.max(1, Math.round(caja.width * k))
-    const h = Math.max(1, Math.round(caja.height * k))
-    if (lienzo.width !== w || lienzo.height !== h) { lienzo.width = w; lienzo.height = h }
-    const W = lienzo.width
-    const H = lienzo.height
-    const c = sala?.campoRival
-    pincel.clearRect(0, 0, W, H)
-    const ancho = FIELD.lanes * FIELD.laneWidth
-    const z0 = FIELD.spawnZ
-    const z1 = FIELD.baseZ + 1
-    const X = x => (x / ancho + 0.5) * W
-    const Y = z => (z - z0) / (z1 - z0) * H
-    // Carriles.
-    for (let i = 0; i < FIELD.lanes; i++) {
-      pincel.fillStyle = i % 2 ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.09)'
-      pincel.fillRect(i * W / FIELD.lanes, 0, W / FIELD.lanes, H)
-    }
-    // La base, abajo, con su vida.
-    const vida = (c?.b ?? 100) / 100
-    pincel.fillStyle = 'rgba(0,0,0,0.35)'
-    pincel.fillRect(0, Y(FIELD.baseZ), W, H - Y(FIELD.baseZ))
-    pincel.fillStyle = vida > 0.5 ? '#4ad07a' : vida > 0.25 ? '#e0a83c' : '#e8523f'
-    pincel.fillRect(0, H - Math.max(3, H * 0.03), W * vida, Math.max(3, H * 0.03))
-    if (!c) return
-    const r = Math.max(2, Math.min(W / 40, H / 60))
-    for (const [k, lane, row] of c.s ?? []) {
-      const spec = SOLDIERS[CLAVES_S[k]] ?? DEFENSES[CLAVES_S[k]]
-      pincel.fillStyle = hex(spec?.color ?? 0x9fb4c8)
-      const x = (lane + 0.5) * W / FIELD.lanes
-      const y = Y(FIELD.frontRowZ - row * FIELD.rowDepth)
-      pincel.fillRect(x - r * 1.3, y - r * 1.3, r * 2.6, r * 2.6)
-    }
-    for (const [k, x, z] of c.z ?? []) {
-      pincel.fillStyle = hex(ZOMBIES[CLAVES_Z[k]]?.color)
-      pincel.beginPath()
-      pincel.arc(X(x / 10), Y(z / 10), CLAVES_Z[k] === 'tank' ? r * 1.8 : r, 0, Math.PI * 2)
-      pincel.fill()
-    }
   }
 
   // --- chat -----------------------------------------------------------------------------
@@ -764,12 +785,16 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
       void raizA
       return
     }
+    // Un ultimo plano de su campo, congelado: el remate de la camara.
+    const plano = camara?.foto()
+    const foto = plano ? `<figure class="duelo-plano"><img src="${plano}" alt=""><figcaption>Último plano · ${escapar(rival?.alias ?? 'rival')}</figcaption></figure>` : ''
     const texto = gane
       ? (motivo === 'abandono' ? `${escapar(rival?.alias ?? 'El rival')} abandonó la partida.` : `Aguantaste más que ${escapar(rival?.alias ?? 'tu rival')}.`)
       : `${escapar(rival?.alias ?? 'Tu rival')} aguantó más que tú.`
     juego.final(gane, `
       <h1 class="${gane ? 'won' : 'lost'}">${gane ? 'VICTORIA' : 'DERROTA'}</h1>
       <p class="tagline">${texto} Duelo de ${reloj}.</p>
+      ${foto}
       ${puntos}`, gane && yo.conCuenta)
     // La sala ya no pinta nada: se deja de escuchar y se borra lo propio.
     const raiz = sala?.raiz
