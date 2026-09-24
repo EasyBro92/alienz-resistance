@@ -1539,6 +1539,76 @@ export function createWorld (canvas) {
     decoradoFijo.visible = !escenarioTapa
   }
 
+  // --- la escalera de la grada -----------------------------------------------
+  //
+  // Isidro: «en la arena no quiero que vengan naves, que los enemigos vengan
+  // del fondo y ya, he visto que hay una escalera, quiero que vayan bajando por
+  // la escalera».
+  //
+  // La escalera es el graderío (en el Cráter, la ladera). No se copian aquí los
+  // números de los scripts de Blender —serían tres juegos de números que se
+  // desincronizan en cuanto se retoque una arena—: se MIDE la malla ya cargada
+  // tirando rayos hacia abajo, una sola vez, y queda una tablita de alturas.
+  // Medido: 3.744 triángulos y unos 0,12 ms por rayo, así que la tabla entera
+  // sale por menos de una décima de segundo al cargar la arena.
+  const GRADA = {
+    x0: -9, x1: 9, pasoX: 1.5,      // solo el ancho por donde se baja al campo
+    z0: -88, z1: -56, pasoZ: 0.8
+  }
+  const rayo = new THREE.Raycaster()
+  const abajo = new THREE.Vector3(0, -1, 0)
+  const desde = new THREE.Vector3()
+
+  function medirGrada (g) {
+    const suelos = []
+    g.traverse(o => { if (o.isMesh && /graderio|ladera/.test(o.name)) suelos.push(o) })
+    if (!suelos.length) return null
+    const nx = Math.round((GRADA.x1 - GRADA.x0) / GRADA.pasoX) + 1
+    const nz = Math.round((GRADA.z1 - GRADA.z0) / GRADA.pasoZ) + 1
+    const datos = new Float32Array(nx * nz)
+    let cima = null
+    let alto = null
+    for (let j = 0; j < nz; j++) {
+      const z = GRADA.z0 + j * GRADA.pasoZ
+      for (let i = 0; i < nx; i++) {
+        const x = GRADA.x0 + i * GRADA.pasoX
+        // Desde bien arriba: el graderío del Coliseo sube a 11,6.
+        rayo.set(desde.set(x, 60, z), abajo)
+        const tocado = rayo.intersectObjects(suelos, true)
+        const y = tocado.length ? tocado[0].point.y : 0
+        datos[j * nx + i] = y
+        // La cima es el punto MÁS ALTO del centro, no el primero que aparece:
+        // el Coliseo es una escalera que sube hasta el último escalón, pero el
+        // Cráter es un borde que sube y vuelve a bajar por fuera, y naciendo en
+        // lo primero que se toca saldrían en la falda de fuera, de espaldas al
+        // campo. Con empate (el escalón de arriba es plano) se queda el de más
+        // atrás, que deja sitio para nacer.
+        if (Math.abs(x) < 1.6 && y > (alto ?? 0) + 0.2) { alto = y; cima = z }
+      }
+    }
+    return { nx, nz, datos, cima }
+  }
+
+  // Altura del graderío bajo un punto, con interpolación: los escalones se
+  // siguen notando (miden 1,9 de huella y la tabla va a 0,8) pero la figura no
+  // pega botes de un fotograma.
+  function alturaGrada (x, z) {
+    const p = arenaVista?.userData?.grada
+    if (!p) return 0
+    const fx = (x - GRADA.x0) / GRADA.pasoX
+    const fz = (z - GRADA.z0) / GRADA.pasoZ
+    if (fx < 0 || fz < 0 || fx > p.nx - 1 || fz > p.nz - 1) return 0
+    const i = Math.floor(fx); const j = Math.floor(fz)
+    const i2 = Math.min(i + 1, p.nx - 1); const j2 = Math.min(j + 1, p.nz - 1)
+    const tx = fx - i; const tz = fz - j
+    const a = p.datos[j * p.nx + i] * (1 - tx) + p.datos[j * p.nx + i2] * tx
+    const b = p.datos[j2 * p.nx + i] * (1 - tx) + p.datos[j2 * p.nx + i2] * tx
+    return a * (1 - tz) + b * tz
+  }
+
+  // El escalón de arriba de la arena que se esté jugando, o nada si no hay.
+  const cimaGrada = () => arenaVista?.userData?.grada?.cima ?? null
+
   function ponerArena (nombre) {
     arenaPedida = nombre
     for (const [n, a] of arenas) if (a.grupo) a.grupo.visible = n === nombre
@@ -1563,6 +1633,7 @@ export function createWorld (canvas) {
       g.add(destellos(g.userData.publico))
       g.userData.platillos = [0, 1].map(i => g.getObjectByName(`platillo_${i}`)).filter(Boolean)
         .map(o => ({ o, r: Math.hypot(o.position.x, o.position.z + 60), y: o.position.y, a: Math.atan2(o.position.z + 60, o.position.x) }))
+      g.userData.grada = medirGrada(g)
       scene.add(g)
       a.grupo = g
       g.visible = arenaPedida === nombre
@@ -1753,6 +1824,10 @@ export function createWorld (canvas) {
     // La altura del terreno en un punto. Dentro del pasillo de juego es cero
     // siempre: la calzada no se toca.
     alturaSuelo,
+    // La escalera de la arena: a qué altura está el graderío bajo un punto y
+    // en qué z queda su escalón más alto (donde nacen los alienz del duelo).
+    alturaGrada,
+    cimaGrada,
     vitorear: (fuerza = 1) => { vitoreo = Math.min(1, vitoreo + fuerza) },
     // La base del fondo de esta misión: el asalto final la hace reventar.
     baseActual: () => baseVisible,

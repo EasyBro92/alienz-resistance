@@ -23,7 +23,12 @@ export const FIELD = {
   // HORIZONTE y vienen andando desde mucho más atrás: Isidro no quería que se
   // notara el momento en que aparecen, sino que parezca que llevan rato
   // caminando y van saliendo de la niebla.
-  entradaZ: -44
+  entradaZ: -44,
+  // En la arena bajan por la grada, que es una escalera de verdad: aparecen en
+  // el escalón de arriba y se reparten a lo ancho de ella. En campaña salen por
+  // la rampa de la nave, que mide 7,2, y ahí el abanico tiene que ser estrecho.
+  porElFondo: false,
+  entradaAncho: 6
 }
 
 // -82 y no más lejos por una razón medida: la niebla cierra del todo a 152 de
@@ -31,7 +36,12 @@ export const FIELD = {
 // pero se ven. Más atrás no se distinguirían y la primera oleada tardaría medio
 // minuto en llegar.
 export function entrarPorElFondo (on) {
+  FIELD.porElFondo = on
+  // -82 es solo el valor de partida: en cuanto la arena está cargada, el mundo
+  // mide dónde queda el escalón más alto de la grada y lo corrige (ver
+  // `cimaGrada` en world.js). Cada arena tiene la suya.
   FIELD.entradaZ = on ? -82 : FIELD.spawnZ
+  FIELD.entradaAncho = on ? 1.4 : 6
 }
 
 export const carrilAbierto = l => l >= FIELD.primerCarril && l <= FIELD.ultimoCarril

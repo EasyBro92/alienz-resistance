@@ -2566,6 +2566,11 @@ html, body {
   transition: width .2s ease, height .2s ease, left .2s ease;
 }
 .duelo-rival.grande { left: 10px; width: auto; height: 38vh; }
+/* Aguantando en la arena no hay rival que mirar y la camara se pide oculta.
+   El `hidden` del HTML no bastaba: el `display: flex` de aqui arriba le gana a
+   la regla del navegador, asi que la camara se quedaba puesta poniendo SIN
+   SENAL toda la partida. */
+.duelo-rival[hidden] { display: none; }
 .duelo-rival canvas {
   flex: 1; width: 100%; min-height: 0; border-radius: 6px; background: #05070a;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.07);

@@ -1023,6 +1023,13 @@ function damageBase (amount) {
 // ---------------------------------------------------------------------------
 let last = performance.now()
 
+// Lo que pisa un huésped: la plancha de la nave en campaña, los escalones del
+// graderío en la arena. Las dos devuelven cero donde no hay nada, así que se
+// puede preguntar siempre sin comprobar en qué modo estamos.
+function alturaBajoElPie (z) {
+  return Math.max(dropship.alturaRampa(z.z), world.alturaGrada(z.mesh.position.x, z.mesh.position.z))
+}
+
 function simulate (dt) {
   // En pausa no avanza NADA: ni la horda, ni los efectos, ni la nave. Congelar
   // solo la partida y dejar el humo subiendo se lee como que el juego se ha
@@ -1031,6 +1038,16 @@ function simulate (dt) {
   if (vuelo) { actualizarVuelo(dt); return }
   // De invitado no se simula: se pinta lo que manda el anfitrión.
   if (running && modoInvitado()) { pintarPartidaRemota(dt); return }
+  // La arena se carga sola y tarda un momento; en cuanto está, se sabe dónde
+  // queda su escalón más alto y ahí es donde tienen que nacer. Se comprueba en
+  // el bucle porque el modelo puede llegar después de empezar la partida.
+  if (dueloEnCurso) {
+    // Nacen justo DELANTE de la cima, nunca detrás: al otro lado del borde ya
+    // no hay por dónde bajar.
+    const cima = world.cimaGrada()
+    if (cima != null && FIELD.entradaZ !== cima + FIELD.entradaAncho) FIELD.entradaZ = cima + FIELD.entradaAncho
+  }
+
   if (running) {
     if (economy.update(dt)) audio.coin()
     director.update(dt, zombies.length)
@@ -1124,7 +1141,7 @@ function simulate (dt) {
         if (c.estado === 'llegar') {
           pos.z += z.velocidad * dt
           c.andado += z.velocidad * dt
-          z.suelo = dropship.alturaRampa(z.z)
+          z.suelo = alturaBajoElPie(z)
           z.update(dt, camera, true)
           // Ya en suelo firme, anda su trecho (distinto cada vez) y se pone a cavar.
           c.tocable = z.suelo <= 0.001
@@ -1261,7 +1278,7 @@ function simulate (dt) {
         }
       }
 
-      z.suelo = dropship.alturaRampa(z.z)
+      z.suelo = alturaBajoElPie(z)
       z.update(dt, camera, !attacking)
 
       // La salpicadura del golpe, venga de donde venga: de un disparo, del
@@ -1785,6 +1802,10 @@ function limpiarPartida () {
 }
 
 function alAparecer (z) {
+  // Con los pies puestos desde el primer fotograma: si no, el que nace en lo
+  // alto del graderío aparece un instante hundido en la piedra.
+  z.suelo = alturaBajoElPie(z)
+  z.mesh.position.y = z.suelo
   marcarBrillo(z.mesh)
   scene.add(z.mesh)
   zombies.push(z)
@@ -1802,6 +1823,7 @@ function start (indice = nivelActual) {
   // la nave de siempre, que forma parte de cómo se cuenta cada misión.
   entrarPorElFondo(!!dueloEnCurso)
   dropship.recolocar()
+  if (dueloEnCurso) dropship.ocultar()
   world.vestir(nivelDeHoy.bioma, nivelDeHoy.hitos, nivelDeHoy.suelo, nivelDeHoy.tonoSuelo, nivelDeHoy.escenario)
   // Lo que arrastra el viento en este sitio, y por dónde vuelan las naves de paso.
   ambient.vestir(nivelDeHoy, world.alturaEn)
@@ -1832,8 +1854,11 @@ function start (indice = nivelActual) {
     },
     // En el duelo la horda no se acaba (y si alguien la vaciara, sigue ahí).
     () => { if (!dueloEnCurso) setTimeout(empezarAsalto, 1200) },
-    (n, jefe) => { dropship.llegar(n, jefe); audio.nave(jefe) },
-    () => dropship.partir()
+    // En la arena no baja ninguna nave: los alienz salen por arriba del
+    // graderío y bajan la escalera. La nave es de la campaña, que es donde
+    // cuenta algo.
+    (n, jefe) => { if (dueloEnCurso) return; dropship.llegar(n, jefe); audio.nave(jefe) },
+    () => { if (!dueloEnCurso) dropship.partir() }
   )
   running = true
   last = performance.now()

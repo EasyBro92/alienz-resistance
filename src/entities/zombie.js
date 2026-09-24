@@ -24,9 +24,13 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
   // y que cada uno empiece a tirar hacia su lado desde el primer paso, así que
   // el reparto de después ya viene encarrilado en vez de ser un cruce de todos
   // con todos.
+  // Bajando por la grada no hay rampa que respetar: el escalón es ancho, así
+  // que cada uno aparece ya en la vertical de su carril y baja en fila. Se ve
+  // bajar a la horda repartida por la escalera en vez de en un hilo por el
+  // centro.
   const centro = (FIELD.lanes - 1) / 2
-  const xSalida = (lane - centro) * 0.62 + jitter * 0.5
-  mesh.position.set(xSalida, 0, FIELD.entradaZ - Math.random() * 6)
+  const xSalida = FIELD.porElFondo ? xCarril : (lane - centro) * 0.62 + jitter * 0.5
+  mesh.position.set(xSalida, 0, FIELD.entradaZ - Math.random() * (FIELD.entradaAncho ?? 6))
   mesh.rotation.y = Math.PI // mirando hacia la base
 
   // El Escarbador baja de la nave como los demás; al pisar suelo firme cava,
