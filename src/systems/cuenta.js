@@ -47,7 +47,52 @@ export function cargarFirebase () {
 export async function asegurarSesion () {
   const { auth, sesion } = await cargarFirebase()
   if (sesion.currentUser) return sesion.currentUser
-  return (await auth.signInAnonymously(sesion)).user
+  const u = (await auth.signInAnonymously(sesion)).user
+  apuntarInvitado(u).catch(() => {})
+  return u
+}
+
+// De los invitados no se guarda NADA que los identifique: ni nombre, ni correo,
+// ni progreso. Solo una casilla con la fecha, para poder contar cuánta gente
+// juega sin registrarse. Sin esto, la lista del administrador enseña cuatro
+// cuentas y parece que no juega nadie.
+async function apuntarInvitado (u) {
+  if (!u?.isAnonymous) return
+  const [{ app }, rtdb] = await Promise.all([cargarFirebase(), import('firebase/database')])
+  await rtdb.update(rtdb.ref(rtdb.getDatabase(app), `invitados/${u.uid}`), {
+    alta: rtdb.serverTimestamp(),
+    ultima: rtdb.serverTimestamp()
+  })
+}
+
+// El correo del Mando: el aviso y el regalo que el administrador manda desde la
+// lista de usuarios. Se recoge al entrar, se aplica y se borra del servidor, que
+// no es un buzón: es una nota que se entrega una vez.
+//
+// Devuelve el texto que hay que enseñar, o nada.
+export async function recogerCorreo (usuario) {
+  if (!usuario) return null
+  const [{ app }, rtdb] = await Promise.all([cargarFirebase(), import('firebase/database')])
+  const db = rtdb.getDatabase(app)
+  const trozos = []
+  try {
+    const aviso = (await rtdb.get(rtdb.ref(db, `avisos/${usuario.uid}`))).val()
+    if (aviso?.t) {
+      trozos.push(String(aviso.t).slice(0, 140))
+      await rtdb.remove(rtdb.ref(db, `avisos/${usuario.uid}`))
+    }
+  } catch (e) { console.warn('Sin avisos:', e) }
+  try {
+    const regalo = (await rtdb.get(rtdb.ref(db, `regalos/${usuario.uid}`))).val()
+    const billetes = Math.max(0, Math.min(5000, Math.round(Number(regalo?.billetes) || 0)))
+    if (billetes) {
+      const { sumarBilletes } = await import('./cartera.js')
+      sumarBilletes(billetes)
+      trozos.push(`El Mando te ha enviado ${billetes} billetes.`)
+      await rtdb.remove(rtdb.ref(db, `regalos/${usuario.uid}`))
+    }
+  } catch (e) { console.warn('Sin regalos:', e) }
+  return trozos.length ? trozos.join(' ') : null
 }
 
 const leer = clave => {

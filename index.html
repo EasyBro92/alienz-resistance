@@ -417,6 +417,10 @@
       <div class="panel panel-mapa">
         <p class="eyebrow">Mando del búnker · estado del mundo</p>
         <h2>El mundo</h2>
+        <div class="correo-mando" id="correo-mando" hidden>
+          <p id="correo-texto"></p>
+          <button class="chip" id="correo-visto" type="button">Entendido</button>
+        </div>
         <p class="mapa-relato" id="mapa-relato"></p>
         <p class="estrellas-total" id="mapa-estrellas"></p>
         <div class="mapa-marco">
@@ -551,9 +555,39 @@
         <h2>Usuarios</h2>
         <p class="retos-intro" id="usuarios-cuenta"></p>
         <input id="usuarios-buscar" class="alias-campo" type="search" autocomplete="off" spellcheck="false" placeholder="Buscar por nombre o correo" aria-label="Buscar usuario">
+        <div class="usuarios-filtros">
+          <p class="retos-tit">Actividad</p>
+          <div class="filtro-fila" data-filtro="actividad">
+            <button class="chip filtro on" type="button" data-v="todos">Todos</button>
+            <button class="chip filtro" type="button" data-v="hoy">Hoy</button>
+            <button class="chip filtro" type="button" data-v="7">7 días</button>
+            <button class="chip filtro" type="button" data-v="30">30 días</button>
+            <button class="chip filtro" type="button" data-v="dormidos">Dormidos</button>
+          </div>
+          <p class="retos-tit">Hasta dónde han llegado</p>
+          <div class="filtro-fila" data-filtro="avance">
+            <button class="chip filtro on" type="button" data-v="todos">Todos</button>
+            <button class="chip filtro" type="button" data-v="nuevos">Empezando</button>
+            <button class="chip filtro" type="button" data-v="medias">A medias</button>
+            <button class="chip filtro" type="button" data-v="fin">Campaña acabada</button>
+            <button class="chip filtro" type="button" data-v="rango">Con rango 1c1</button>
+          </div>
+          <div class="usuarios-orden">
+            <select id="usuarios-orden" class="alias-campo" aria-label="Ordenar la lista">
+              <option value="ultima">Últimos en jugar</option>
+              <option value="alta">Los más nuevos</option>
+              <option value="estrellas">Más estrellas</option>
+              <option value="tramos">Más tramos</option>
+              <option value="puntos">Rango 1 contra 1</option>
+              <option value="alias">Por orden alfabético</option>
+            </select>
+            <button id="usuarios-csv" class="chip chip-ghost" type="button">Descargar</button>
+          </div>
+        </div>
         <ul class="usuarios-lista" id="usuarios-lista"></ul>
         <button id="usuarios-volver" class="chip chip-ghost">Volver</button>
       </div>
+      <div class="usuario-ficha" id="usuario-ficha" hidden></div>
     </div>
 
     <!-- Ranking: la misma tabla que sale en el parte, pero aquí se elige el

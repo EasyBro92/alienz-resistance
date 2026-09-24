@@ -2226,7 +2226,27 @@ const cuenta = crearCuenta({
       : 'Guarda tu progreso en la nube y recupéralo en cualquier móvil.'
     pintarAlias(u)
     montarBandeja({ cuenta, escapar: escaparTexto }).catch(e => console.warn('Sin bandeja:', e))
+    if (u) recogerCorreoDelMando(u)
   }
+})
+
+// El correo del Mando: el aviso o el regalo que el administrador manda desde la
+// lista de usuarios. Se recoge una vez, se aplica y se borra del servidor; aquí
+// solo queda enseñarlo encima del mapa.
+async function recogerCorreoDelMando (u) {
+  try {
+    const { recogerCorreo } = await import('./systems/cuenta.js')
+    const texto = await recogerCorreo(u)
+    if (!texto) return
+    const caja = document.getElementById('correo-mando')
+    if (!caja) return
+    document.getElementById('correo-texto').textContent = texto
+    caja.hidden = false
+    pintarBilletes()
+  } catch (e) { console.warn('Sin correo:', e) }
+}
+document.getElementById('correo-visto')?.addEventListener('click', () => {
+  document.getElementById('correo-mando').hidden = true
 })
 
 // --- el nombre con el que sales en las tablas ---

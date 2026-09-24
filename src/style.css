@@ -2699,6 +2699,51 @@ html, body {
 .usuario-datos { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--tinta-2); }
 .usuario-datos b { color: var(--tinta); }
 .usuarios-lista small { font-size: 11px; color: var(--tinta-4); }
+.usuarios-lista li[data-uid] { cursor: pointer; }
+.usuarios-lista li[data-uid]:active { background: var(--velo-2); }
+.usuario-mudo { font-style: normal; color: #ffb4a8; font-size: 11px; }
+
+/* Los filtros de la lista. Isidro los pidió por nombre, por actividad, por lo
+   lejos que han llegado y por rango: cuatro preguntas distintas, así que van en
+   filas separadas en vez de en un menú donde solo cabe una a la vez. */
+.usuarios-filtros { width: 100%; margin: 6px 0 4px; }
+.filtro-fila { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+.chip.filtro { font-size: 11.5px; padding: 5px 10px; }
+.chip.filtro.on {
+  background: color-mix(in srgb, var(--green) 30%, transparent);
+  border-color: var(--green); color: var(--tinta);
+}
+.usuarios-orden { display: flex; gap: 8px; align-items: center; margin: 0 0 6px; }
+.usuarios-orden select { flex: 1; min-width: 0; }
+
+/* La ficha de un jugador: va encima de la lista, dentro de la misma capa. */
+.usuario-ficha {
+  position: absolute; inset: 0; z-index: 2; overflow-y: auto;
+  display: flex; align-items: start; justify-content: center;
+  padding: 6vh 12px; background: rgba(5,8,11,0.82);
+}
+.usuario-ficha[hidden] { display: none; }
+.ficha-datos { margin: 6px 0 2px; }
+.ficha-fila { display: flex; gap: 8px; align-items: center; margin: 0 0 4px; }
+.ficha-fila input { flex: 1; min-width: 0; }
+.ficha-regalos { flex-wrap: wrap; }
+.ficha-resultado { margin: 8px 0 4px; font-size: 12px; color: var(--verde-texto); min-height: 1em; }
+.ficha-resultado.malo { color: #ffb4a8; }
+
+/* El correo del Mando, encima del mapa. */
+.correo-mando {
+  width: 100%; margin: 0 0 12px; box-sizing: border-box;
+  padding: 12px 14px; border-radius: 14px; text-align: left;
+  background: linear-gradient(135deg, rgba(95,217,122,0.2), rgba(14,19,26,0.94));
+  border: 1px solid rgba(95,217,122,0.5); box-shadow: 0 10px 26px rgba(0,0,0,.45);
+  color: #fff;
+}
+.correo-mando[hidden] { display: none; }
+.correo-mando p { margin: 0 0 8px; font-size: 13px; line-height: 1.45; }
+.correo-mando::before {
+  content: 'MANDO DEL BÚNKER'; display: block; margin-bottom: 4px;
+  font-size: 9.5px; font-weight: 800; letter-spacing: 2px; color: var(--verde-texto);
+}
 
 /* ---------- expediente: los papeles de cada país ---------- */
 .boton-expediente { grid-column: 1 / -1; position: relative; }

@@ -76,6 +76,27 @@
         ".read": "auth != null && auth.uid === $uid"
       }
     },
+    "invitados": {
+      ".read": "auth != null && root.child('admins/' + auth.uid).exists()",
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.hasChildren(['ultima'])"
+      }
+    },
+    "avisos": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && (auth.uid === $uid || root.child('admins/' + auth.uid).exists())",
+        ".validate": "!newData.exists() || (newData.child('t').isString() && newData.child('t').val().length <= 140)"
+      }
+    },
+    "regalos": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && ((auth.uid === $uid && !newData.exists()) || root.child('admins/' + auth.uid).exists())",
+        ".validate": "!newData.exists() || (newData.child('billetes').isNumber() && newData.child('billetes').val() <= 5000)"
+      }
+    },
     "usuarios": {
       ".read": "auth != null && root.child('admins/' + auth.uid).exists()",
       "$uid": {
