@@ -2397,15 +2397,19 @@ html, body {
   position: absolute; top: 2px; left: 6px; right: 6px; font-size: 10px; font-weight: 800;
   color: #f2e6d8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center;
 }
+/* Los avisos de bicho entrante. Bajados y estrechados: ahora que la máquina
+   ataca de verdad se juntan tres a la vez, y arriba a la izquierda tapaban el
+   reloj del duelo y el contador de monedas, que es justo lo que hay que poder
+   leer mientras te entran. */
 .duelo-avisos {
-  position: absolute; top: calc(env(safe-area-inset-top) + 66px); left: 10px;
-  display: flex; flex-direction: column; gap: 6px; pointer-events: none; max-width: 56vw;
+  position: absolute; top: calc(env(safe-area-inset-top) + 132px); left: 10px;
+  display: flex; flex-direction: column; gap: 5px; pointer-events: none; max-width: 48vw;
 }
-.duelo-rival.grande ~ .duelo-avisos { top: calc(env(safe-area-inset-top) + 120px + 38vh); }
+.duelo-rival.grande ~ .duelo-avisos { top: calc(env(safe-area-inset-top) + 130px + 38vh); }
 .duelo-aviso {
   position: relative; overflow: hidden; padding: 6px 10px 8px; border-radius: 10px;
   background: rgba(40, 8, 8, 0.82); border: 1px solid var(--tinte); color: #fbe9e4;
-  font-size: 12px; animation: pop .25s ease;
+  font-size: 11.5px; animation: pop .25s ease;
 }
 .duelo-aviso b { color: var(--tinte); }
 .duelo-aviso i { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: var(--tinte); }
@@ -2436,18 +2440,21 @@ html, body {
 /* El texto, con el color del panel (como las pestañas de la tienda): con un
    negro fijo, en tema claro quedaba casi negro sobre verde oscuro. */
 .duelo-carril.on { background: var(--verde-texto); color: var(--panel-fondo); border-color: transparent; }
-.duelo-tropas { display: grid; grid-template-columns: repeat(auto-fill, minmax(66px, 1fr)); gap: 6px; }
+/* Los nueve alienz, todos a la vez y en tres filas de tres, que es lo que
+   Isidro pidió: botones más pequeños antes que quitar ninguno. A 66 px se iban
+   a cuatro filas y había que bajar la vista para ver los caros. */
+.duelo-tropas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
 .duelo-envio {
   position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; gap: 1px;
   padding: 4px 2px 5px; border-radius: 10px; border: 1px solid var(--tinte);
   background: color-mix(in srgb, var(--tinte) 14%, var(--velo-1)); color: var(--tinta);
 }
 .duelo-envio:disabled { opacity: .45; }
-.duelo-envio-cara { width: 40px; height: 40px; display: grid; place-items: center; }
+.duelo-envio-cara { width: 30px; height: 30px; display: grid; place-items: center; }
 .duelo-envio-cara img { max-width: 100%; max-height: 100%; }
-.duelo-envio-cara svg { width: 26px; height: 26px; color: var(--tinte); --u-tint: var(--tinte); }
-.duelo-envio b { font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-.duelo-envio small { font-size: 11px; font-weight: 800; color: #9fcf52; }
+.duelo-envio-cara svg { width: 20px; height: 20px; color: var(--tinte); --u-tint: var(--tinte); }
+.duelo-envio b { font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.duelo-envio small { font-size: 10px; font-weight: 800; color: #9fcf52; }
 .duelo-recarga { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: rgba(0,0,0,.45); pointer-events: none; }
 .duelo-mensajes { list-style: none; margin: 0 0 8px; padding: 0; max-height: 22vh; overflow: auto; font-size: 12.5px; }
 .duelo-mensajes li { padding: 3px 0; overflow-wrap: anywhere; }
@@ -2593,3 +2600,14 @@ html, body {
   font-size: 1.6rem; font-weight: 700; letter-spacing: .06em; color: #fff;
   background: var(--tinte); box-shadow: inset 0 -3px 0 rgba(0,0,0,.28);
 }
+
+/* La chincheta de la bandeja: con ella puesta, la bandeja no se cierra al
+   mandar ni al tocar fuera. Isidro quería las dos cosas —poder abrirla y
+   cerrarla, y poder dejarla fija— así que es una opción, no una imposición. */
+.duelo-panel-tit { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.duelo-fijar {
+  border: 1px solid rgba(255,255,255,.22); background: transparent; color: inherit;
+  font: inherit; font-size: 9px; letter-spacing: .08em; padding: 2px 7px;
+  border-radius: 999px; cursor: pointer; opacity: .7;
+}
+.duelo-fijar[aria-pressed=true] { background: var(--verde-texto); color: var(--panel-fondo); opacity: 1; border-color: transparent; }

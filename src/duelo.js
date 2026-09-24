@@ -28,6 +28,7 @@ const codigoNuevo = () => Array.from({ length: 4 }, () => LETRAS[Math.floor(Math
 // ya habían jugado se quedaban con el pequeño guardado de antes.
 const CLAVE_VISTA = 'alienz-duelo-vista-v2'
 const MARCA_AGUANTE = 'alienz-aguante-v1'
+const CLAVE_FIJA = 'alienz-duelo-bandeja-v1'
 const ESPERA_VUELTA = 20
 const hex = n => '#' + (n ?? 0x888888).toString(16).padStart(6, '0')
 const $ = id => document.getElementById(id)
@@ -63,6 +64,10 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
   // endureciendo y las mismas cartas, pero sin nadie enfrente. Se gana tiempo,
   // no se gana la partida.
   let modoAguantar = false
+  // La bandeja de atacar, clavada abierta. Isidro quería poder elegir: abrirla
+  // y cerrarla como hasta ahora, o dejarla fija y mandar de un toque.
+  let bandejaFija = false
+  let ultimaOla = 0
 
   const lienzo = $('duelo-mini')
   const pincel = lienzo?.getContext('2d')
@@ -301,10 +306,24 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
   // es una de las máquinas— cómo juega. Isidro lo pidió «como en los juegos de
   // pelea», y además resuelve media queja suya: saber a qué te enfrentas.
   function presentar () {
-    const r = sala.rival
-    if (!r || modoAguantar) return 0
     const capa = $('duelo-presenta')
     if (!capa) return 0
+    // Aguantando no hay rival que presentar, pero sí hay que explicar a qué se
+    // juega: Isidro lo probó y «no entendí gran cosa». No se gana; se aguanta.
+    if (modoAguantar) {
+      capa.innerHTML = `
+        <div class="duelo-presenta-ficha">
+          <b>AGUANTAR EN LA ARENA</b>
+          <i>no se gana: se aguanta</i>
+          <p>Oleadas sin fin, y cada una más dura que la anterior. No hay rival ni final feliz: lo único que cuenta es hasta qué oleada llegas.</p>
+          <small>Tu marca: ${marcaAguante()}</small>
+        </div>`
+      capa.hidden = false
+      setTimeout(() => { capa.hidden = true }, 3600)
+      return 3600
+    }
+    const r = sala.rival
+    if (!r) return 0
     const rango = rangoDe(r.puntos ?? PUNTOS_INICIALES)
     const cara = r.siglas
       ? `<span class="duelo-cara" style="--tinte:${hex(r.color)}">${escapar(r.siglas)}</span>`
@@ -356,6 +375,9 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
     $('duelo-chat-boton').hidden = modoAguantar
     $('duelo-rival-nombre').textContent = sala.rival?.alias ?? 'Rival'
     aplicarVista(leerVista())
+    try { bandejaFija = !!localStorage.getItem(CLAVE_FIJA) } catch {}
+    $('duelo-fijar')?.setAttribute('aria-pressed', String(bandejaFija))
+    $('duelo-bandeja').hidden = !bandejaFija
     pintarBandeja()
     pintarBiomasa()
     $('duelo-mensajes').innerHTML = ''
@@ -397,7 +419,14 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
       // Aquí no hay muerte súbita: las oleadas ya se endurecen solas, y sumar
       // las dos cosas mataba en dos minutos. Lo que se enseña es lo que llevas
       // aguantado, que es la marca.
-      juego.rotulo(`Aguantando · ${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`)
+      // La OLEADA manda sobre el reloj: es lo que se compara y lo que se
+      // entiende. El tiempo va detrás, en pequeño.
+      const ola = juego.oleada?.() ?? 0
+      if (ola !== ultimaOla) {
+        ultimaOla = ola
+        if (ola > 1) { juego.banner(`OLEADA ${ola}`); audio.groan?.(false) }
+      }
+      juego.rotulo(`OLEADA ${ola} · ${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`)
     } else {
       if (!subita && t >= MUERTE_SUBITA) { subita = true; juego.banner('MUERTE SÚBITA'); audio.groan?.(true) }
       const resta = Math.max(0, MUERTE_SUBITA - t)
@@ -440,6 +469,14 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
   // Muerte súbita: el doble de duros por cada minuto que pase de los seis.
   const escala = () => (modoAguantar || t <= MUERTE_SUBITA ? 1 : 1 + (t - MUERTE_SUBITA) / 60)
 
+  // Cuánto aprieta el reloj, de 0 a 1. Aguantando sube con las oleadas, porque
+  // ahí no hay muerte súbita a la que temer.
+  const tension = () => {
+    if (!enCurso) return 0
+    if (modoAguantar) return Math.min(1, (juego.oleada?.() ?? 0) / 14)
+    return Math.min(1, t / MUERTE_SUBITA)
+  }
+
   function empaquetarCampo () {
     const c = juego.campo()
     misAlienz = c.zombies.length
@@ -468,6 +505,9 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
     audio.place?.()
     pintarBiomasa()
     refrescarBandeja()
+    // Con la chincheta puesta, la bandeja se queda: mandar uno detrás de otro
+    // sin tener que volver a abrirla en cada uno.
+    if (!bandejaFija) $('duelo-bandeja').hidden = true
   }
 
   function recibirEnvio ({ k, l }) {
@@ -504,6 +544,15 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
   }
 
   // --- miniatura del rival ---------------------------------------------------------------
+  const marcaAguante = () => {
+    try {
+      const m = JSON.parse(localStorage.getItem(MARCA_AGUANTE) ?? 'null')
+      if (!m) return 'ninguna todavía'
+      if (typeof m === 'number') return `${Math.floor(m / 60)}:${String(Math.floor(m % 60)).padStart(2, '0')}`
+      return `oleada ${m.oleada} · ${Math.floor(m.seg / 60)}:${String(Math.floor(m.seg % 60)).padStart(2, '0')}`
+    } catch { return 'ninguna todavía' }
+  }
+
   const leerVista = () => { try { return localStorage.getItem(CLAVE_VISTA) || 'grande' } catch { return 'grande' } }
   // Isidro quiso el campo del rival «grande pero que se aparta»: grande de
   // verdad, y encogiendo solo cuando te están entrando enemigos, que es cuando
@@ -673,14 +722,43 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
     }
     const reloj = `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`
     if (modoAguantar) {
-      const mejor = Math.max(t, Number(localStorage.getItem(MARCA_AGUANTE) ?? 0))
-      const esRecord = t >= mejor
-      try { localStorage.setItem(MARCA_AGUANTE, String(Math.round(mejor))) } catch {}
-      const m = `${Math.floor(mejor / 60)}:${String(Math.floor(mejor % 60)).padStart(2, '0')}`
+      // La marca es la OLEADA, no los minutos: se entiende mejor y no premia
+      // esconderse. El tiempo se guarda de acompañamiento.
+      const ola = juego.oleada?.() ?? 0
+      let previa = null
+      try { const g = JSON.parse(localStorage.getItem(MARCA_AGUANTE) ?? 'null'); previa = typeof g === 'number' ? { oleada: 0, seg: g } : g } catch {}
+      const esRecord = !previa || ola > previa.oleada || (ola === previa.oleada && t > previa.seg)
+      if (esRecord) { try { localStorage.setItem(MARCA_AGUANTE, JSON.stringify({ oleada: ola, seg: Math.round(t) })) } catch {} }
+      const m = marcaAguante()
+      // La tabla en línea del aguante, que es lo que pidió. Reutiliza la de
+      // los tramos con la clave 'aguante': la OLEADA va en el sitio del
+      // porcentaje —llegan hasta 80 y el tope es 100— así que no hace falta
+      // tocar ni una regla del servidor.
+      let tabla = ''
+      if (cuenta.usuario) {
+        try {
+          const { publicarPuntuacion, leerMarcador } = await import('./systems/marcadores.js')
+          await publicarPuntuacion(cuenta.usuario, 'aguante', ola, 0)
+          const { filas, mio } = await leerMarcador('aguante', cuenta.usuario, 5)
+          if (filas.length) {
+            tabla = `<ol class="marcador-lista duelo-aguante-tabla">` +
+              filas.map(f => `<li class="${f.uid === cuenta.usuario.uid ? 'marcador-yo' : ''}">
+                <span class="marcador-puesto">${f.puesto}</span>
+                <span class="marcador-alias">${escapar(f.alias ?? '')}</span>
+                <span class="marcador-marca">oleada ${f.porcentaje}</span></li>`).join('') +
+              (mio && !filas.some(f => f.uid === mio.uid)
+                ? `<li class="marcador-yo"><span class="marcador-puesto">${mio.puesto}</span>
+                   <span class="marcador-alias">${escapar(mio.alias ?? '')}</span>
+                   <span class="marcador-marca">oleada ${mio.porcentaje}</span></li>`
+                : '') + '</ol>'
+          }
+        } catch (e) { console.warn('Sin tabla de aguante:', e) }
+      }
       juego.final(false, `
         <h1 class="lost">SE ACABÓ</h1>
-        <p class="tagline">Aguantaste ${reloj} en la arena.${esRecord ? ' Es tu mejor marca.' : ` Tu mejor marca son ${m}.`}</p>
-        <p class="ajuste-pie">Aguantar en la arena no suma puntos ni da cofre: es para practicar.</p>`, false)
+        <p class="tagline">Llegaste a la <b>oleada ${ola}</b> y aguantaste ${reloj}.${esRecord ? ' Es tu mejor marca.' : ` Tu mejor marca: ${m}.`}</p>
+        ${tabla}
+        <p class="ajuste-pie">Aguantar en la arena no suma puntos de rango: es para practicar.${cuenta.usuario ? '' : ' Entra con tu cuenta para salir en la tabla.'}</p>`, false)
       const raizA = sala?.raiz
       salirDeSala()
       void raizA
@@ -753,6 +831,12 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
     $('duelo-chat').hidden = true
     if (abrir) refrescarBandeja()
   })
+  pulsar('duelo-fijar', e => {
+    e.stopPropagation()
+    bandejaFija = !bandejaFija
+    $('duelo-fijar').setAttribute('aria-pressed', String(bandejaFija))
+    try { localStorage.setItem(CLAVE_FIJA, bandejaFija ? '1' : '') } catch {}
+  })
   pulsar('duelo-chat-boton', () => {
     $('duelo-chat').hidden = !$('duelo-chat').hidden
     $('duelo-bandeja').hidden = true
@@ -791,6 +875,7 @@ export function crearDuelo ({ cuenta, audio, escapar, juego }) {
     perdi,
     abandonar,
     escala,
+    tension,
     get enCurso () { return enCurso }
   }
 }

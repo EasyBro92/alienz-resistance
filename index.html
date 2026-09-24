@@ -358,7 +358,9 @@
         <button id="duelo-atacar" class="chip duelo-accion duelo-atacar" type="button"><svg aria-hidden="true"><use href="#i-enemigos"></use></svg><b id="duelo-biomasa">0</b></button>
       </div>
       <div class="duelo-panel" id="duelo-bandeja" hidden>
-        <p class="duelo-panel-tit">Mandar al rival · carril</p>
+        <p class="duelo-panel-tit">Mandar al rival · carril
+          <button id="duelo-fijar" class="duelo-fijar" type="button" aria-pressed="false" title="Dejar la bandeja siempre abierta">Fijar</button>
+        </p>
         <div class="duelo-carriles" id="duelo-carriles"></div>
         <div class="duelo-tropas" id="duelo-tropas"></div>
       </div>
@@ -469,12 +471,10 @@
         <p class="duelo-sin-cuenta" id="duelo-sin-cuenta" hidden>Juegas sin cuenta: puedes jugar, pero no sumas puntos ni ganas cofres. Entra con Google en Ajustes para progresar.</p>
 
         <button id="duelo-rapida" class="big-btn">PARTIDA RÁPIDA</button>
+        <button id="duelo-maquina" class="big-btn">CONTRA LA MÁQUINA</button>
+        <button id="duelo-aguantar" class="big-btn">AGUANTAR EN LA ARENA</button>
         <button id="duelo-cancelar" class="chip chip-ghost" type="button" hidden>Dejar de buscar</button>
-
-        <p class="retos-tit">Solo, para practicar</p>
-        <button id="duelo-maquina" class="chip" type="button">Contra la máquina</button>
-        <button id="duelo-aguantar" class="chip" type="button">Aguantar en la arena</button>
-        <p class="ajuste-pie">Sin esperar rival y sin conexión. No suman puntos ni dan cofre.</p>
+        <p class="ajuste-pie">La rápida te busca rival de verdad. Las otras dos se juegan solo y sin conexión: dan billetes, pero no puntos de rango.</p>
 
         <p class="retos-tit">Con un amigo</p>
         <button id="duelo-crear" class="chip" type="button">Abrir una sala</button>

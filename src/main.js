@@ -1319,7 +1319,12 @@ function simulate (dt) {
 
     separarHuespedes()
 
-    audio.setIntensity(Math.min(1, zombies.length / 14 + (1 - baseHp / BASE.hp) * 0.6))
+    // En duelo, además, aprieta con el reloj: Isidro echaba en falta que la
+    // música se pusiera seria en los últimos minutos.  va de 0
+    // a 1 según lo que queda para la muerte súbita.
+    audio.setIntensity(Math.min(1,
+      zombies.length / 14 + (1 - baseHp / BASE.hp) * 0.6 +
+      (dueloEnCurso ? duelo.tension() * 0.55 : 0)))
 
     // De anfitrión, la foto del campo para el invitado. Va al final del turno,
     // con todo ya movido: mandarla a medias enseñaría medio fotograma viejo.
@@ -2991,6 +2996,9 @@ const duelo = crearDuelo({
       zombies: zombies.map(z => ({ key: z.key, x: z.mesh.position.x, z: z.mesh.position.z })),
       soldiers: soldiers.map(s => ({ key: s.key, lane: s.lane, row: s.row }))
     }),
+    // La oleada por la que va la partida: aguantando es LA marca, así que el
+    // duelo necesita poder preguntarla.
+    oleada: () => director.wave,
     parar () { running = false; audio.stopMusic() },
     banner: t => ui.banner(t),
     rotulo: t => ui.setWave(t),
