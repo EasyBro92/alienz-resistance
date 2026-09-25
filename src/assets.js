@@ -24,14 +24,34 @@ import { seg as lados, CON_OCLUSION, CON_ADORNOS } from './systems/detalle.js'
 //
 // La clave que no esté aquí sigue con su figura procedural, y el Mortero se
 // queda así a propósito.
+// El cuerpo de cada soldado.
+//
+// Isidro: «los personajes como el arquero que faltan por hacer bien». Y se
+// notaba: al lado del Fusilero —casco, chaleco, mochila, botas— el Arquero era
+// un muñeco de cajas con la cabeza de cilindro.
+//
+// No hacía falta ni Blender ni gastar créditos: son NUEVE unidades y un solo
+// ejército. Los cuatro cuerpos que ya existen valen para todos, que es como se
+// hace en cualquier juego con pelotón —el mismo soldado con otro equipo— y
+// además no pesa ni un byte más: esos .glb ya se los baja el jugador para las
+// otras cartas. Lo que distingue a cada uno es su arma, que sí es suya y está
+// hecha pieza a pieza (`buildWeapon`), y su complexión.
+//
+// Cada uno hereda el cuerpo que le pega:
+//   · el Arquero y el Mortero, el del Tirador: ligeros, de tropa suelta;
+//   · el Ametrallador y la Misilera, el del Lanzallamas: cargan peso a la
+//     espalda y ese cuerpo ya viene con su mochila;
+//   · el Capitán, el del Fusilero, que es el soldado de línea.
 export const MODELS = {
   rifle: ['models/soldado-fusil-f.glb', 'models/soldado-fusil-m.glb'],
   shotgun: ['models/soldado-escopeta-f.glb', 'models/soldado-escopeta-m.glb'],
   sniper: ['models/soldado-tirador-f.glb', 'models/soldado-tirador-m.glb'],
-  flamer: ['models/soldado-lanzallamas-f.glb', 'models/soldado-lanzallamas-m.glb']
-  // Arquero, Ametrallador y Mortero se quedan con su figura de piezas: el
-  // presupuesto de generacion daba para cinco unidades en las dos versiones y
-  // se han gastado en las que mas salen al tablero.
+  flamer: ['models/soldado-lanzallamas-f.glb', 'models/soldado-lanzallamas-m.glb'],
+  archer: ['models/soldado-tirador-f.glb', 'models/soldado-tirador-m.glb'],
+  mortar: ['models/soldado-tirador-m.glb', 'models/soldado-escopeta-m.glb'],
+  gunner: ['models/soldado-lanzallamas-f.glb', 'models/soldado-lanzallamas-m.glb'],
+  misil: ['models/soldado-lanzallamas-m.glb', 'models/soldado-escopeta-m.glb'],
+  capitan: ['models/soldado-fusil-f.glb', 'models/soldado-fusil-m.glb']
 }
 
 const loader = new GLTFLoader()

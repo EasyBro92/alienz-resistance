@@ -36,7 +36,22 @@ const AGARRES = {
   rifle: { mano: [0, -0.11, 0.15], apoyo: [0, -0.12, -0.09], culata: 0.45, escala: 0.65 },
   shotgun: { mano: [0, -0.11, 0.13], apoyo: [0, -0.07, -0.05], culata: 0.47, escala: 0.65 },
   sniper: { mano: [0, -0.11, 0.18], apoyo: [0, -0.08, 0.05], culata: 0.62, escala: 0.6 },
-  flamer: { mano: [0, -0.11, 0.12], apoyo: [0, -0.05, -0.1], culata: 0.3, escala: 0.7 }
+  flamer: { mano: [0, -0.11, 0.12], apoyo: [0, -0.05, -0.1], culata: 0.3, escala: 0.7 },
+  // El arco va justo al revés que un fusil, y aquí `mano` es la DERECHA y
+  // `apoyo` la IZQUIERDA. En el arco la derecha tira de la cuerda hasta la
+  // mejilla (el culatín, en z = +0,26 del arma) y la izquierda es la que
+  // sujeta, con el brazo estirado, la empuñadura (z = -0,13). Puestos al revés
+  // el arquero abrazaba el arco contra el pecho. Los dos números salen de la
+  // geometría del arco en `buildWeapon`.
+  archer: { mano: [0, 0.03, 0.26], apoyo: [0, 0, -0.13], culata: 0.3, escala: 0.78 },
+  // La ametralladora es larga y pesada: se lleva más baja y con la mano de
+  // apoyo bien adelante, en el bípode.
+  gunner: { mano: [0, -0.11, 0.16], apoyo: [0, -0.1, -0.16], culata: 0.5, escala: 0.62 },
+  // El mortero se sujeta por el tubo con las dos manos, cerca del cuerpo.
+  mortar: { mano: [0, -0.1, 0.12], apoyo: [0, -0.02, -0.14], culata: 0.36, escala: 0.6 },
+  // El lanzamisiles va al hombro: la mano de apoyo delante, en el asa.
+  misil: { mano: [0, -0.1, 0.14], apoyo: [0, -0.06, -0.18], culata: 0.42, escala: 0.62 },
+  capitan: { mano: [0, -0.11, 0.15], apoyo: [0, -0.12, -0.09], culata: 0.45, escala: 0.65 }
 }
 // Cómo dispara cada uno: dónde va la culata respecto al hombro, cuánto se echa
 // hacia delante el tronco y cuánto abre las piernas.
@@ -44,7 +59,14 @@ const ESTILOS = {
   rifle: { culata: [-0.09, 0.11, -0.05], inclina: 0.06, abre: 0 },
   sniper: { culata: [-0.09, 0.11, -0.05], inclina: 0.06, abre: 0 },
   shotgun: { culata: [-0.1, -0.3, -0.06], inclina: 0.12, abre: 0.1 },
-  flamer: { culata: [-0.12, -0.34, -0.05], inclina: 0.24, abre: 0.2 }
+  flamer: { culata: [-0.12, -0.34, -0.05], inclina: 0.24, abre: 0.2 },
+  // El arquero tira con el culatín en la mejilla: más alto que un fusil y con
+  // los pies un poco abiertos, como se tira de verdad.
+  archer: { culata: [-0.07, 0.2, 0], inclina: 0.03, abre: 0.08 },
+  gunner: { culata: [-0.11, -0.16, -0.06], inclina: 0.18, abre: 0.16 },
+  mortar: { culata: [-0.1, -0.2, -0.04], inclina: 0.14, abre: 0.12 },
+  misil: { culata: [-0.13, 0.14, -0.05], inclina: 0.1, abre: 0.12 },
+  capitan: { culata: [-0.09, 0.11, -0.05], inclina: 0.06, abre: 0 }
 }
 const CARGADOR = new THREE.Vector3(0, -0.28, -0.09)
 const ARRIBA = new THREE.Vector3(0, 1, 0)
