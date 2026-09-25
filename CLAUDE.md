@@ -10,6 +10,7 @@ Publicado en https://easybro92.github.io/alienz-resistance/ (repo `EasyBro92/ali
 - **Commit y push directamente** cuando algo esté hecho y comprobado. Mensaje en español que acaba con `Co-Authored-By`.
 - **Meshy**: no gastar créditos sin permiso; dejar siempre unos 200. (El 15/09/2026 Isidro autorizó bajar de ahí para el jefe alien de la portada: 30 créditos, saldo 170. Ese mismo día pidió los 10 huéspedes con Meshy gastando lo mínimo: `--modelo meshy-5 --refinar`, 15 créditos cada uno, saldo 20. Después fue consiguiendo créditos y pidió rehacer los que falten asegurando antes que admiten esqueleto sin deformarse: se sigue la receta de huéspedes animados, enseñándole cada malla antes de pagar textura y esqueleto.)
 - Compilar con `npx vite build`. La precarga del PWA ronda 830 KB; los `.glb` van en caché de ejecución, no en la precarga.
+- **Botón de actualizar** (`ir-actualizar`, arriba en la portada, a la izquierda de la cuenta): da de baja el service worker, borra TODAS las cachés y recarga con `?v=<marca de tiempo>`. Hace falta porque cerrar y abrir la PWA no trae la versión nueva, y porque los `.glb` van con nombre fijo en caché `CacheFirst`: sin borrarla no se cambian nunca. Cuesta volver a bajar los modelos.
 
 ## Mapa del código
 

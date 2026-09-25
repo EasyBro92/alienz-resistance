@@ -131,6 +131,7 @@
     <symbol id="i-moneda" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/></symbol>
     <symbol id="i-enemigos" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c-4.4 0-7.5 3.3-7.5 7.6 0 3.6 3 6.4 5 8.6.8.9 1.6 1.8 2.5 1.8s1.7-.9 2.5-1.8c2-2.2 5-5 5-8.6C19.5 6.3 16.4 3 12 3Z"/><path stroke="var(--u-tint)" d="M8.2 11.2c1.2.2 2.1.9 2.5 2M15.8 11.2c-1.2.2-2.1.9-2.5 2"/></symbol>
     <symbol id="i-atras" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5 8 12l7 7"/></symbol>
+    <symbol id="i-recargar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.4 12a8.4 8.4 0 1 1-2.5-6"/><path d="M20.6 3.6v5.1h-5.1"/></symbol>
     <symbol id="i-iman" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 20V11a6 6 0 0 1 12 0v9"/><path stroke="var(--u-tint)" d="M6 17.4v2.6M18 17.4v2.6"/></symbol>
     <symbol id="i-sandbags" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="14" width="8" height="4.5" rx="2.2"/><rect x="13" y="14" width="8" height="4.5" rx="2.2"/><rect stroke="var(--u-tint)" x="7.5" y="8.5" width="8" height="4.5" rx="2.2"/></symbol>
     <symbol id="i-spikes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20"/><path stroke="var(--u-tint)" d="M6 9.5v5M4 10.5l4 3M8 10.5l-4 3M12 9.5v5M10 10.5l4 3M14 10.5l-4 3M18 9.5v5M16 10.5l4 3M20 10.5l-4 3"/></symbol>
@@ -297,6 +298,12 @@
     <!-- Atrás: siempre arriba a la izquierda, en todas las pantallas. -->
     <button class="icon-btn atras hidden" id="atras" aria-label="Atrás" type="button">
       <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-atras"/></svg>
+    </button>
+
+    <!-- Actualizar: arriba a la derecha, solo en la portada. Borra lo guardado
+         en el aparato y vuelve a bajar el juego (ver `ir-actualizar` en main.js). -->
+    <button class="icon-btn recargar hidden" id="ir-actualizar" aria-label="Actualizar el juego" title="Actualizar el juego" type="button">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-recargar"/></svg>
     </button>
 
     <!-- Ajustes: el engranaje arriba a la derecha, solo en la portada. -->

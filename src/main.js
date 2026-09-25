@@ -2059,6 +2059,7 @@ function pintarAtras () {
     !!document.getElementById('ir-mapa') &&
     !CAPAS_ATRAS.some(([capa]) => !document.getElementById(capa)?.classList.contains('hidden'))
   elEngranaje.classList.toggle('hidden', !enPortada)
+  document.getElementById('ir-actualizar').classList.toggle('hidden', !enPortada)
   document.getElementById('ir-cuenta').classList.toggle('hidden', !enPortada)
   if (!enPortada) document.getElementById('cuenta-menu').classList.add('hidden')
 }
@@ -2334,6 +2335,50 @@ document.getElementById('ir-ajustes').addEventListener('click', () => {
   elAjustesCapa.classList.remove('hidden')
 })
 document.getElementById('ajustes-volver').addEventListener('click', () => elAjustesCapa.classList.add('hidden'))
+
+// --- actualizar el juego ------------------------------------------------------
+// Isidro: «necesito un botón en la portada arriba para actualizar la página y
+// ver los cambios, porque no basta con cerrar y volver a abrir».
+//
+// Y no basta, no es manía suya: esto es una PWA. El aparato sirve lo que tiene
+// guardado y solo se entera de que hay versión nueva cuando el service worker
+// se decide a mirar; aunque se entere, la página ya está pintada con lo viejo y
+// hace falta otra recarga más. Cerrar y abrir puede darte lo mismo tres veces
+// seguidas.
+//
+// Este botón no pide por favor: da de baja el service worker, borra TODAS las
+// cachés y recarga con una marca de tiempo nueva en la dirección, para saltarse
+// también la caché del navegador. Se lleva por delante los modelos guardados
+// (los .glb son lo más gordo del juego y van con nombre fijo, así que si no se
+// borran NUNCA se cambian por los nuevos), así que la primera partida después
+// de actualizar vuelve a bajarlos.
+const elActualizar = document.getElementById('ir-actualizar')
+let actualizando = false
+elActualizar.addEventListener('click', async () => {
+  if (actualizando) return
+  actualizando = true
+  elActualizar.classList.add('girando')
+  // El aviso va en el propio botón: el rótulo grande de `ui.banner` vive por
+  // debajo de la portada y ahí no se vería.
+  elActualizar.disabled = true
+  elActualizar.setAttribute('aria-label', 'Actualizando…')
+  try {
+    if ('serviceWorker' in navigator) {
+      const registros = await navigator.serviceWorker.getRegistrations()
+      await Promise.all(registros.map(r => r.unregister()))
+    }
+    if (window.caches) {
+      const nombres = await caches.keys()
+      await Promise.all(nombres.map(n => caches.delete(n)))
+    }
+  } catch (e) {
+    // Si el aparato no deja limpiar, se recarga igual: peor es no hacer nada.
+    console.warn('no se pudo limpiar lo guardado', e)
+  }
+  const donde = new URL(location.href)
+  donde.searchParams.set('v', Date.now().toString(36))
+  location.replace(donde.toString())
+})
 
 // --- cuenta de Google ---
 // En Ajustes: entrar guarda el progreso en la nube y lo trae a cualquier móvil.
