@@ -1412,56 +1412,63 @@ function empezarVuelo () {
 
 // --- llegada al estadio ------------------------------------------------------
 //
-// Isidro: «en el de madrid quiero que la cámara muestre el estadio primero
-// desde fuera y luego entra hasta donde están los personajes».
+// Isidro: «quiero que se vea la ciudad con edificios y que entre la cámara por
+// el hueco que hay en el estadio, que la cámara venga volando y entre hasta la
+// pantalla de juego».
 //
-// Y después: «que se vea desde fuera el de Madrid y la cámara entre por el
-// hueco del estadio para colocarse en la pantalla de juego».
+// Un plano solo, de lejos a dentro, en cuatro tiempos: la ciudad entera con el
+// estadio en medio, la caída por encima de las manzanas, el roce sobre el techo
+// y la entrada por el hueco hasta la posición de juego.
 //
-// El hueco del estadio es el del techo: el cuenco está cerrado por los cuatro
-// lados y la visera deja destapado el óvalo de encima del campo, así que se
-// entra por ahí, como entra un dron de verdad. El plano es uno solo y va en
-// cuatro tiempos: el estadio entero desde fuera y de lejos, el acercamiento por
-// delante de la tribuna, el roce por encima del borde del techo, y la bajada ya
-// por dentro hasta la posición de juego.
+// Los números salen de la geometría (`escenarios.js`), no de mirar a ojo:
 //
-// Todos los números salen de la geometría del estadio (`escenarios.js`), no de
-// mirar a ojo: el césped va de z = -118 a z = 16, el cuenco de delante empieza
-// en z = 31 y el graderío se abre hacia fuera hasta z = 60, el tercer
-// anfiteatro remata en y = 23,25, la visera está a y = 27,25 y ocupa de z = 55
-// a z = 69, las torres de las esquinas llegan a y = 35,25 en x = ±40 y los
-// focos están en x = ±44. Por eso el tramo de entrada pasa a y ≈ 32 cuando
-// cruza z = 69: cuatro metros por encima de la visera, sin tocarla.
-const ESTADIO_VUELO = 6.4
-// El primer punto no está puesto a ojo: el estadio es largo y estrecho (219 de
-// largo por 88 de ancho con los focos) y la pantalla del móvil es alta y
-// estrecha, así que la única forma de que quepa entero es mirarlo desde delante
-// y por lo largo. Con estos números el cuenco ocupa el 82 % del ancho de la
-// pantalla y queda centrado; probado midiendo las ocho esquinas de su caja.
+//   · la carcasa plateada es un rectángulo redondeado de 144 x 192 y llega a
+//     y = 36, con el techo encima hasta y = 37,3;
+//   · el hueco del techo va de x = -24 a x = 24 y de z = 10 a z = -62;
+//   · el graderío de dentro remata en y = 33.
+//
+// Por eso el tramo de entrada cruza z = 10 a y ≈ 44: seis metros por encima del
+// techo y justo por la vertical del hueco. Comprobado lanzando un rayo por cada
+// tramo del recorrido: cero cruces con la geometría del nivel.
+const ESTADIO_VUELO = 5
+// Al repetir el nivel no hace falta la película entera. La segunda vez se
+// empieza directamente en el tercer tiempo —encima del techo— y dura dos
+// segundos: Isidro eligió «entero la primera vez, corto después».
+const ESTADIO_CORTO = { desde: 0.56, dura: 2 }
+const ESTADIO_VISTO = 'alienz-vuelo-madrid-v1'
 const ESTADIO_PLANOS = [
-  { k: 0, pos: [-30, 170, 290], mira: [6, 4, -55] },    // el estadio entero, desde fuera
-  { k: 0.30, pos: [-20, 92, 170], mira: [0, 14, -40] }, // cayendo hacia la tribuna de delante
-  { k: 0.56, pos: [0, 34, 78], mira: [0, 6, -30] },     // a la altura del borde del techo
-  { k: 0.80, pos: [0, 28, 40], mira: [0, 2, -20] }      // dentro ya, cayendo al campo
+  // El primero no está puesto a ojo: probando las ocho esquinas de la caja del
+  // estadio contra la pantalla del móvil, desde aquí ocupa el 86 % del ancho y
+  // queda centrado, con sitio de sobra arriba y abajo para que se vea la ciudad.
+  { k: 0, pos: [-120, 250, 470], mira: [10, 6, -26] },  // la ciudad, con el estadio en medio
+  { k: 0.34, pos: [-70, 130, 210], mira: [0, 16, -28] },// cayendo por encima de las manzanas
+  // Mirando ALTO y lejos al cruzar el techo: con la mirada puesta en el césped,
+  // el techo se comía la pantalla entera y el hueco se iba al borde de arriba.
+  // Con estos números el hueco queda centrado (medido proyectando sus esquinas).
+  { k: 0.62, pos: [-6, 62, 72], mira: [0, 24, -40] },   // rozando el techo
+  { k: 0.82, pos: [0, 44, 6], mira: [0, 4, -24] }       // entrando por el hueco
 ]
-// Desde tan lejos hace falta ver el estadio entero, y la niebla del nivel cierra
-// a 152: el fondo del cuenco queda a 472 de la cámara. Se abre del todo para el
-// plano y se cierra otra vez sola en el último tercio, para que al acabar no dé
-// un salto.
-const ESTADIO_NIEBLA = { cerca: 520, lejos: 2000 }
 
 function empezarLlegadaEstadio () {
   world.resize()
+  let visto = false
+  try { visto = localStorage.getItem(ESTADIO_VISTO) === '1' } catch { /* modo privado */ }
   vuelo = {
     estadio: true,
     t: 0,
+    corto: visto,
+    dura: visto ? ESTADIO_CORTO.dura : ESTADIO_VUELO,
+    arranca: visto ? ESTADIO_CORTO.desde : 0,
     fin: { pos: camera.position.clone(), rot: camera.quaternion.clone() },
     niebla: scene.fog ? { cerca: scene.fog.near, lejos: scene.fog.far } : null,
     lente: { cerca: camera.near, lejos: camera.far }
   }
+  try { localStorage.setItem(ESTADIO_VISTO, '1') } catch { /* modo privado */ }
+  // La ciudad de alrededor solo existe durante el plano.
+  world.verCiudad(true)
   if (scene.fog) { scene.fog.near = ESTADIO_NIEBLA.cerca; scene.fog.far = ESTADIO_NIEBLA.lejos }
-  // La cámara del juego corta a 200 y el estadio, desde el primer plano, está a
-  // 472: sin abrirle el corte no se ve NADA, sale la pantalla vacía. Se abre
+  // La cámara del juego corta a 200 y la ciudad, desde el primer plano, llega a
+  // 600: sin abrirle el corte no se ve NADA, sale la pantalla vacía. Se abre
   // para el plano y se le devuelve lo suyo al acabar.
   camera.near = 1
   camera.far = 1500
@@ -1476,7 +1483,9 @@ function actualizarEstadio (dt) {
   // Con tope por abajo: el primer fotograma de un nivel llega a veces con el
   // reloj descolocado, y con k negativa la cámara salía ESTIRADA hacia atrás,
   // más lejos todavía que el primer plano.
-  const k = Math.min(1, Math.max(0, v.t / ESTADIO_VUELO))
+  const avance = Math.min(1, Math.max(0, v.t / v.dura))
+  // En el corto se entra ya empezado, pero por los mismos puntos.
+  const k = v.arranca + (1 - v.arranca) * avance
   // Entre qué dos planos estamos.
   const P = ESTADIO_PLANOS
   let i = 0
@@ -1511,8 +1520,10 @@ function actualizarEstadio (dt) {
     scene.fog.near = ESTADIO_NIEBLA.cerca + (v.niebla.cerca - ESTADIO_NIEBLA.cerca) * mezcla
     scene.fog.far = ESTADIO_NIEBLA.lejos + (v.niebla.lejos - ESTADIO_NIEBLA.lejos) * mezcla
   }
-  if (k >= 1) terminarVuelo()
+  if (avance >= 1) terminarVuelo()
 }
+
+const ESTADIO_NIEBLA = { cerca: 700, lejos: 2400 }
 
 // --- llegada en helicóptero -------------------------------------------------
 // Vas sentado dentro, con la puerta lateral abierta: el paisaje pasa fuera, el
@@ -1616,6 +1627,9 @@ function terminarVuelo () {
     camera.far = vuelo.lente.lejos
     camera.updateProjectionMatrix()
   }
+  // La ciudad se apaga en cuanto se entra en el estadio: jugando no se ve ni una
+  // ventana y tenerla encendida es gastar batería para nada.
+  if (vuelo?.estadio) world.verCiudad(false)
   vuelo = null
   world.resize()
 }

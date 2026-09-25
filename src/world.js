@@ -1521,11 +1521,30 @@ export function createWorld (canvas) {
       // queda en una por material. Nada de esto se mueve, asi que no se pierde.
       const g = bake(crudo, false)
       g.userData = crudo.userData
-      g.traverse(o => { if (o.isMesh) o.receiveShadow = true })
+      // Lo de `extra` se funde APARTE y cuelga en su propio grupo: es la ciudad
+      // de alrededor del estadio, que solo se enciende durante el vuelo de
+      // llegada. Fundida junto con el estadio no habría forma de apagarla —
+      // `bake` junta por material y mezclaría ladrillo con hormigón.
+      if (crudo.userData.extra) {
+        const ciudad = bake(crudo.userData.extra, false)
+        ciudad.name = 'ciudad'
+        ciudad.visible = false
+        g.add(ciudad)
+        g.userData.ciudad = ciudad
+      }
+      // El estadio pide no proyectar sombra (`sinSombra`): es un cajón cerrado de
+      // 36 de alto y el sol del juego va bajo, así que su techo dejaba TODO el
+      // graderío a oscuras. Lo que tiene que proyectar sombra son los soldados y
+      // los bichos, no el decorado.
+      const sombra = !crudo.userData.sinSombra
+      g.traverse(o => { if (o.isMesh) { o.receiveShadow = true; o.castShadow = sombra } })
       scene.add(g)
       escenariosHechos.set(nombre, g)
     }
     escenarioVisto = nombre ? escenariosHechos.get(nombre) ?? null : null
+    // Al cambiar de escenario la ciudad se apaga siempre: solo la enciende el
+    // vuelo de llegada, y solo en la historia.
+    for (const [, e] of escenariosHechos) if (e.userData.ciudad) e.userData.ciudad.visible = false
     // El campo se estrecha a lo que pida el escenario, y vuelve a los cinco
     // carriles en cuanto se sale de él.
     estrecharCampo(escenarioVisto?.userData.carriles ?? FIELD.lanes)
@@ -1742,6 +1761,10 @@ export function createWorld (canvas) {
     }
     for (const [v, base] of bases) base.visible = v === variante
     baseVisible = bases.get(variante)
+    // Dónde se planta. Normalmente al fondo del todo, en la niebla; un escenario
+    // puede pedir otro sitio, y el estadio lo hace: con el césped recortado, la
+    // de siempre se quedaba por detrás del graderío.
+    baseVisible.position.z = escenarioVisto?.userData.baseZ ?? -108
 
     sand.material.color.setHex(b.tierra)
     road.material.color.setHex(b.asfalto)
@@ -1828,6 +1851,15 @@ export function createWorld (canvas) {
     // en qué z queda su escalón más alto (donde nacen los alienz del duelo).
     alturaGrada,
     cimaGrada,
+    // La ciudad de alrededor del estadio: encendida durante el plano de llegada
+    // y apagada el resto del tiempo (jugando estás dentro y no se ve ni una
+    // ventana). Devuelve si había ciudad que encender.
+    verCiudad (encendida) {
+      const ciudad = escenarioVisto?.userData.ciudad
+      if (!ciudad) return false
+      ciudad.visible = encendida
+      return true
+    },
     vitorear: (fuerza = 1) => { vitoreo = Math.min(1, vitoreo + fuerza) },
     // La base del fondo de esta misión: el asalto final la hace reventar.
     baseActual: () => baseVisible,
