@@ -69,7 +69,7 @@ export const PAISES = [
         waves: OLEADAS.avanzadilla
       },
       {
-        name: 'Valencia', llegada: 'helicoptero', lugar: 'Avenida del Saler · Ciudad de las Artes', mapa: sitio(39.47, -0.38), suelo: 'losas',
+        name: 'Valencia', lugar: 'Avenida del Saler · Ciudad de las Artes', mapa: sitio(39.47, -0.38), suelo: 'losas',
         bioma: 'costa', hitos: [['artesYCiencias']],
         resumen: 'Ya no vienen todos iguales.',
         parte: ['El puerto era una de sus zonas de descarga. Aquí llegaban los camiones con la gente que desaparecía.',
@@ -78,7 +78,7 @@ export const PAISES = [
         waves: OLEADAS.formas
       },
       {
-        name: 'Madrid', llegada: 'helicoptero', lugar: 'Santiago Bernabéu · sobre el césped', mapa: sitio(40.42, -3.70),
+        name: 'Madrid', llegada: 'estadio', lugar: 'Santiago Bernabéu · sobre el césped', mapa: sitio(40.42, -3.70),
         // Se juega DENTRO del estadio, sobre el cesped y con las gradas
         // cerrando los cuatro lados. Es el campo mas ancho del juego: los cinco
         // carriles enteros.
@@ -103,7 +103,7 @@ export const PAISES = [
     cierre: 'París responde por fin con otra frase. Es la primera vez en dieciocho meses que dice algo distinto.',
     misiones: [
       {
-        name: 'Marsella', llegada: 'helicoptero', lugar: 'Puerto viejo · dique norte', mapa: sitio(43.30, 5.37), suelo: 'losas', hitos: [['notreDameGarde']],
+        name: 'Marsella', lugar: 'Puerto viejo · dique norte', mapa: sitio(43.30, 5.37), suelo: 'losas', hitos: [['notreDameGarde']],
         resumen: 'Escupen a distancia, saltan las barreras y revientan al caer.',
         parte: ['El campamento del puerto lleva más tiempo montado, y se nota: los huéspedes ya no vienen todos iguales.',
           'No están improvisando. Están probando qué funciona contra nosotros.'],
@@ -178,7 +178,7 @@ export const PAISES = [
     cierre: 'Los registros acaban en una fecha: la del último barco. Iba a Alejandría.',
     misiones: [
       {
-        name: 'Atenas', llegada: 'helicoptero', lugar: 'Pireo · terminal de contenedores', mapa: sitio(37.94, 23.65), suelo: 'losas', tonoSuelo: 0xf2ede2, hitos: [['partenon']],
+        name: 'Atenas', lugar: 'Pireo · terminal de contenedores', mapa: sitio(37.94, 23.65), suelo: 'losas', tonoSuelo: 0xf2ede2, hitos: [['partenon']],
         resumen: 'Se curan entre ellos y el caparazón devuelve las balas.',
         parte: ['La terminal está llena. No de cuerpos: de estructura.',
           'Han dejado de fabricar soldados y han empezado a fabricar oficio.'],
@@ -215,7 +215,7 @@ export const PAISES = [
     cierre: 'Bajo la meseta hay una sala más grande que las pirámides. Y en las paredes hay un mapa del mundo con puntos encendidos.',
     misiones: [
       {
-        name: 'Alejandría', llegada: 'helicoptero', lugar: 'Corniche · puerto este', mapa: sitio(31.20, 29.92), suelo: 'losas', hitos: [['bibliotecaAlejandria']], bioma: 'costa',
+        name: 'Alejandría', lugar: 'Corniche · puerto este', mapa: sitio(31.20, 29.92), suelo: 'losas', hitos: [['bibliotecaAlejandria']], bioma: 'costa',
         resumen: 'Subimos al barco. De frente y en masa.',
         parte: ['El barco de Creta lleva a bordo lo mismo que los contenedores de Valencia: gente dormida en literas.',
           'Los del puerto bajan todos a la vez para que no lleguemos.'],
@@ -252,7 +252,7 @@ export const PAISES = [
     cierre: 'Por el paso elevado salieron cuatro mil personas mientras la compañía contaba oleadas. El punto de Lagos se apaga en el mapa.',
     misiones: [
       {
-        name: 'Lagos', llegada: 'helicoptero', lugar: 'Apapa · paso elevado', mapa: sitio(6.45, 3.39), hitos: [['castellana', 1, 10, -110, false], ['danfos'], ['teatroNacional']],
+        name: 'Lagos', lugar: 'Apapa · paso elevado', mapa: sitio(6.45, 3.39), hitos: [['castellana', 1, 10, -110, false], ['danfos'], ['teatroNacional']],
         resumen: 'Llegan deprisa. Hay que aguantar el puente.',
         parte: ['Si cae el paso elevado, aquí no vuelve a entrar nadie.',
           'El búnker dice que aguantemos hasta que evacúen. No dice cuánto.'],
@@ -289,7 +289,7 @@ export const PAISES = [
     cierre: 'Los tres puntos de la India se apagan. Queda uno en China más brillante que todos los que hemos visto.',
     misiones: [
       {
-        name: 'Bombay', llegada: 'helicoptero', lugar: 'Bandra · enlace del mar', mapa: sitio(19.08, 72.88), hitos: [['puenteAtirantado', 'Y', 1], ['playa', -1]], suelo: 'playa',
+        name: 'Bombay', lugar: 'Bandra · enlace del mar', mapa: sitio(19.08, 72.88), hitos: [['puenteAtirantado', 'Y', 1], ['playa', -1]], suelo: 'playa',
         resumen: 'Otra vez de frente, pero nada de esto es como en Tarragona.',
         parte: ['Catorce millones de personas y un campamento en medio.',
           'Vuelven a venir de frente, en masa. La diferencia es cuántos son y lo que aguanta cada uno.'],
@@ -326,7 +326,7 @@ export const PAISES = [
     cierre: 'Chongqing se apaga. Las naves siguen llegando igual. No las estábamos frenando: las estábamos entreteniendo.',
     misiones: [
       {
-        name: 'Shanghái', llegada: 'helicoptero', lugar: 'Puente de Nanpu', mapa: sitio(31.23, 121.47), suelo: 'losas', hitos: [['castellana', 1, 10, -110, false], ['perlaOriental']], bioma: 'monzon',
+        name: 'Shanghái', lugar: 'Puente de Nanpu', mapa: sitio(31.23, 121.47), suelo: 'losas', hitos: [['castellana', 1, 10, -110, false], ['perlaOriental']], bioma: 'monzon',
         resumen: 'Formas nuevas en la costa.',
         parte: ['El puerto de Shanghái recibía lo que salía de Chongqing río abajo.',
           'Aquí llegan las formas terminadas. Espera cosas que no has visto.'],
@@ -418,7 +418,7 @@ export const PAISES = [
         waves: OLEADAS.formas
       },
       {
-        name: 'Nueva York', llegada: 'helicoptero', lugar: 'Puente de Brooklyn · frente a la bahía', mapa: sitio(40.71, -74.01), hitos: [['castellana', -1, -36, -72, false], ['libertad3d']], bioma: 'costa',
+        name: 'Nueva York', lugar: 'Puente de Brooklyn · frente a la bahía', mapa: sitio(40.71, -74.01), hitos: [['castellana', -1, -36, -72, false], ['libertad3d']], bioma: 'costa',
         resumen: 'Todas las formas y dos MADRES.',
         parte: ['La isla es su centro de mando en el norte. Cruzar el puente es la única forma de entrar.',
           'Bajarán todas las formas a la vez, y al final vienen dos.'],
@@ -476,7 +476,7 @@ export const PAISES = [
     cierre: 'La isla queda limpia. Lo que salió del muelle antes de que llegáramos iba hacia el sur, hacia el Amazonas.',
     misiones: [
       {
-        name: 'Punta Cana', llegada: 'helicoptero', lugar: 'Playa Bávaro', mapa: sitio(18.58, -68.40), suelo: 'playa', hitos: [['bavaro'], ['playa', 1]],
+        name: 'Punta Cana', lugar: 'Playa Bávaro', mapa: sitio(18.58, -68.40), suelo: 'playa', hitos: [['bavaro'], ['playa', 1]],
         resumen: 'Salen del mar y cruzan la arena.',
         parte: ['La playa de Bávaro era su muelle: las naves se posan junto al agua y la siembra sale andando por la arena.',
           'Aquí no hay carretera. Solo arena, palmeras y ellos.'],
@@ -513,7 +513,7 @@ export const PAISES = [
     cierre: 'Se acabó.',
     misiones: [
       {
-        name: 'Río de Janeiro', llegada: 'helicoptero', lugar: 'Botafogo · bajo el Corcovado', mapa: sitio(-22.91, -43.17), hitos: [['cristo'], ['playa', -1]], suelo: 'playa', bioma: 'costa',
+        name: 'Río de Janeiro', lugar: 'Botafogo · bajo el Corcovado', mapa: sitio(-22.91, -43.17), hitos: [['cristo'], ['playa', -1]], suelo: 'playa', bioma: 'costa',
         resumen: 'La costa, y formas que no hemos visto.',
         parte: ['Entramos por la costa. Lo que guarda la entrada al continente no se parece a nada anterior.',
           'Es lo último que han diseñado.'],
@@ -524,7 +524,7 @@ export const PAISES = [
         // Interlagos: se corre por la pista, con pianos, grava y muro de
         // neumaticos. El muro de boxes se mete por la derecha, asi que aqui el
         // campo baja a cuatro carriles y ademas de forma asimetrica.
-        name: 'São Paulo', llegada: 'helicoptero', lugar: 'Interlagos · recta de meta', mapa: sitio(-23.70, -46.70), escenario: 'circuito', bioma: 'monzon',
+        name: 'São Paulo', lugar: 'Interlagos · recta de meta', mapa: sitio(-23.70, -46.70), escenario: 'circuito', bioma: 'monzon',
         resumen: 'Se curan, y son todos.',
         parte: ['La ciudad más grande del sur es su último hospital.',
           'Todo lo que les queda protege el camino hacia el Amazonas.'],

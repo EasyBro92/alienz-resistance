@@ -207,52 +207,136 @@ function estadio () {
   const circulo = pon(g, new THREE.RingGeometry(7.2, 7.5, 40), cespedRaya, 0, 0.015, (FRENTE + FONDO) / 2)
   circulo.rotation.x = -Math.PI / 2
 
-  // --- las gradas ------------------------------------------------------------
-  // Cuatro tribunas en anillo. Cada una son peldaños que suben hacia fuera: a
-  // esta distancia un plano inclinado con asientos pintados no se lee, y los
-  // escalones de verdad sí dan la sensación de estar dentro de un cuenco.
-  const PELDANOS = 16
-  const construyeGrada = (largo, x, z, giro) => {
-    const t = new THREE.Group()
-    t.position.set(x, 0, z)
-    t.rotation.y = giro
-    for (let k = 0; k < PELDANOS; k++) {
-      const y = 1.1 + k * 1.05
-      const fuera = 3 + k * 1.35
-      pon(t, new THREE.BoxGeometry(largo, 1.05, 1.5), k % 4 === 3 ? hormigonHondo : hormigon, 0, y - 0.5, fuera)
-      // Fila de asientos, uno de cada cuatro en azul: rompe la mancha gris.
-      const butacas = Math.floor(largo / 2.4)
-      for (let i = 0; i < butacas; i++) {
-        pon(t, new THREE.BoxGeometry(1.5, 0.5, 0.55), (i % 7 === 2) ? asientoAzul : asiento,
-          -largo / 2 + 1.2 + i * 2.4, y + 0.25, fuera - 0.35)
-      }
-    }
-    // Voladizo: la visera de la cubierta, que es lo que cierra el cuenco.
-    const visera = pon(t, new THREE.BoxGeometry(largo, 0.5, 14), hormigonHondo, 0, 1.1 + PELDANOS * 1.05 + 4, 12)
-    visera.rotation.x = -0.08
-    for (let i = -1; i <= 1; i += 2) {
-      pon(t, new THREE.BoxGeometry(0.7, 12, 0.7), acero, i * (largo / 2 - 2), 1.1 + PELDANOS * 1.05 - 2, 18)
-    }
-    g.add(t)
+  // --- el graderío ------------------------------------------------------------
+  //
+  // Isidro: «las gradas del estadio del Madrid son redondeadas por las esquinas,
+  // hazlo así de realista por dentro».
+  //
+  // Y tiene razón: el Bernabéu no son cuatro tribunas sueltas, es un CUENCO
+  // cerrado que da la vuelta entera, con los fondos curvados y sin un solo corte
+  // en las esquinas. Antes eran cuatro rectas y desde el campo se veía el hueco
+  // de cada esquina, que es lo que no hace ningún estadio de verdad.
+  //
+  // Se monta barriendo un contorno en forma de píldora —los dos laterales
+  // rectos, los dos fondos en semicírculo— y repitiendo en cada punto el mismo
+  // peldaño: se sale 1,35 y sube 1,05, dieciséis veces. Encima, la visera, que
+  // también da la vuelta. Todo esto se FUNDE al montar el escenario (ver
+  // `ponerEscenario` en world.js), así que por fotograma no cuesta nada.
+  // 13,2 y no más: el borde de pantalla del móvil pasa por x ~13 a z = -40, y
+  // con el cuenco más abierto las gradas se quedaban FUERA del encuadre y no se
+  // veía que estuvieras dentro de un estadio (es la misma medida que tenía la
+  // versión de cuatro tribunas).
+  const RADIO = 13.2
+  const PASO = 2.4                // cada cuántos metros se repite la pieza
+  // Ojo: los centros de los arcos van en la línea de cada portería, no metidos
+  // dentro del campo. Con el centro dentro, el semicírculo se cerraba por
+  // delante del césped y las esquinas del campo se quedaban FUERA del cuenco.
+  const Z_DELANTE = FRENTE + 2
+  const Z_FONDO = FONDO - 2
+
+  // El contorno interior: cada punto con su dirección hacia fuera y el giro que
+  // hay que darle a la pieza para que siga la curva. Con `rotation.y = giro`, el
+  // +Z de la pieza apunta hacia fuera y su largo queda a lo largo del anillo.
+  const contorno = []
+  const meter = (x, z, nx, nz, curva = false) => contorno.push({ x, z, nx, nz, curva, giro: Math.atan2(nx, nz) })
+  const nRecta = Math.max(2, Math.round((Z_DELANTE - Z_FONDO) / PASO))
+  const nArco = Math.max(8, Math.round((Math.PI * RADIO) / PASO))
+  // Lateral derecho, del fondo hacia delante.
+  for (let i = 0; i < nRecta; i++) meter(RADIO, Z_FONDO + (Z_DELANTE - Z_FONDO) * i / nRecta, 1, 0)
+  // Fondo de delante: de +x a -x pasando por delante.
+  for (let i = 0; i <= nArco; i++) {
+    const t = Math.PI * i / nArco
+    meter(Math.cos(t) * RADIO, Z_DELANTE + Math.sin(t) * RADIO, Math.cos(t), Math.sin(t), true)
   }
-  // Muro de cierre del terreno de juego: entre el borde del césped y el primer
-  // peldaño hay hueco, y sin muro el campo parecía acabarse en el aire.
-  for (const lado of [-1, 1]) {
-    pon(g, new THREE.BoxGeometry(0.6, 2.2, FRENTE - FONDO + 6), hormigonHondo, lado * (MEDIO + 0.6), 1.1, (FRENTE + FONDO) / 2)
-  }
-  for (const z of [FONDO - 0.6, FRENTE + 0.6]) {
-    pon(g, new THREE.BoxGeometry(MEDIO * 2 + 2, 2.2, 0.6), hormigonHondo, 0, 1.1, z)
+  // Lateral izquierdo, de delante al fondo.
+  for (let i = 1; i < nRecta; i++) meter(-RADIO, Z_DELANTE - (Z_DELANTE - Z_FONDO) * i / nRecta, -1, 0)
+  // Fondo de atrás: de -x a +x pasando por detrás. Sin repetir los extremos, que
+  // ya los han puesto los laterales.
+  for (let i = 1; i < nArco; i++) {
+    const t = Math.PI + Math.PI * i / nArco
+    meter(Math.cos(t) * RADIO, Z_FONDO + Math.sin(t) * RADIO, Math.cos(t), Math.sin(t), true)
   }
 
-  const LARGO_LATERAL = FRENTE - FONDO + 10
-  // Ojo con el giro: los peldaños crecen hacia el +z LOCAL de cada tribuna, así
-  // que la de la izquierda tiene que mirar a -x y la de la derecha a +x. Con los
-  // giros al revés las gradas crecían HACIA DENTRO y llenaban el campo de
-  // bloques gigantes.
-  construyeGrada(LARGO_LATERAL, -MEDIO - 1, (FRENTE + FONDO) / 2, -Math.PI / 2)
-  construyeGrada(LARGO_LATERAL, MEDIO + 1, (FRENTE + FONDO) / 2, Math.PI / 2)
-  construyeGrada(MEDIO * 2 + 10, 0, FONDO - 1, Math.PI)
-  construyeGrada(MEDIO * 2 + 10, 0, FRENTE + 1, 0)
+  // Una pieza puesta en un punto del contorno, a tanta distancia hacia fuera.
+  // En los fondos curvos, cuanto más arriba está el peldaño más abierto es su
+  // arco: con todas las piezas del mismo largo quedaban huecos entre ellas y el
+  // graderío parecía un montón de bloques sueltos en vez de una grada seguida.
+  // Se estira cada pieza lo que se abre el anillo a su altura.
+  const enElAro = (geo, material, punto, fuera, y) => {
+    const m = pon(g, geo, material, punto.x + punto.nx * fuera, y, punto.z + punto.nz * fuera)
+    m.rotation.y = punto.giro
+    if (punto.curva) m.scale.x = (RADIO + Math.max(0, fuera)) / RADIO
+    return m
+  }
+
+  // Tres anfiteatros, no una rampa sola. El Bernabéu tiene la grada baja
+  // tendida, la alta más empinada y el tercer anfiteatro casi en vertical, con
+  // un paseo y un pretil entre uno y otro. Esa es la forma que se reconoce desde
+  // dentro, y es lo que separa un estadio de un montón de escalones.
+  const TRAMOS = [
+    { peldanos: 6, huella: 1.45, tabica: 0.8 },    // grada baja
+    { peldanos: 6, huella: 1.2, tabica: 1.15 },    // grada alta
+    { peldanos: 5, huella: 1.05, tabica: 1.45 }    // tercer anfiteatro
+  ]
+  const largoPieza = PASO * 1.08   // un pelo más largas: en la curva, si no, se ve la junta
+  const geoButaca = new THREE.BoxGeometry(1.5, 0.5, 0.55)
+  let fuera = 3
+  let y = 1.1
+  for (let t = 0; t < TRAMOS.length; t++) {
+    const tramo = TRAMOS[t]
+    const geoPeldano = new THREE.BoxGeometry(largoPieza, tramo.tabica, 1.5)
+    for (let k = 0; k < tramo.peldanos; k++) {
+      const piedra = k % 4 === 3 ? hormigonHondo : hormigon
+      for (let i = 0; i < contorno.length; i++) {
+        const punto = contorno[i]
+        enElAro(geoPeldano, piedra, punto, fuera, y - tramo.tabica / 2)
+        // Una butaca por peldaño y punto, una de cada siete azul: rompe la
+        // mancha gris y de lejos se lee como un graderío lleno.
+        enElAro(geoButaca, (i % 7 === 2) ? asientoAzul : asiento, punto, fuera - 0.35, y + 0.25)
+      }
+      fuera += tramo.huella
+      y += tramo.tabica
+    }
+    // Entre anfiteatros, el paseo con su pretil (y arriba del todo no, que ahí
+    // va la visera).
+    if (t < TRAMOS.length - 1) {
+      const geoPaseo = new THREE.BoxGeometry(largoPieza, 0.5, 2.4)
+      const geoPretil = new THREE.BoxGeometry(largoPieza, 1.5, 0.35)
+      for (const punto of contorno) {
+        enElAro(geoPaseo, hormigonHondo, punto, fuera + 0.8, y - 0.25)
+        enElAro(geoPretil, hormigon, punto, fuera - 0.3, y + 0.75)
+      }
+      fuera += 2.2
+      y += 1.6
+    }
+  }
+
+  // La visera: el mismo anillo, arriba del todo, con sus pilares de acero.
+  const yVisera = y + 4
+  const fueraVisera = fuera
+  const geoVisera = new THREE.BoxGeometry(largoPieza, 0.5, 14)
+  const geoPilar = new THREE.BoxGeometry(0.7, 12, 0.7)
+  for (let i = 0; i < contorno.length; i++) {
+    const v = enElAro(geoVisera, hormigonHondo, contorno[i], fueraVisera + 2, yVisera)
+    v.rotation.x = -0.08
+    if (i % 12 === 0) enElAro(geoPilar, acero, contorno[i], fueraVisera + 7, yVisera - 6)
+  }
+  // El muro que cierra el terreno de juego, siguiendo el mismo anillo: entre el
+  // borde del césped y el primer peldaño hay foso, y sin muro el campo parecía
+  // acabarse en el aire.
+  const geoMuro = new THREE.BoxGeometry(largoPieza, 2.2, 0.6)
+  for (const punto of contorno) enElAro(geoMuro, hormigonHondo, punto, 0, 1.1)
+
+
+  // Las cuatro torres de las esquinas, que son de lo que más se reconoce del
+  // Bernabéu desde fuera: van donde los laterales se encuentran con los fondos
+  // curvos, por fuera del graderío.
+  const geoTorre = new THREE.BoxGeometry(7, yVisera + 8, 7)
+  for (const lado of [-1, 1]) {
+    for (const z of [Z_DELANTE, Z_FONDO]) {
+      pon(g, geoTorre, hormigon, lado * (RADIO + fueraVisera - 2), (yVisera + 8) / 2, z)
+    }
+  }
 
   // --- porterías -------------------------------------------------------------
   for (const [z, giro] of [[FONDO + 4, 0], [FRENTE - 4, Math.PI]]) {
@@ -267,8 +351,10 @@ function estadio () {
   // --- focos y marcador ------------------------------------------------------
   for (const lado of [-1, 1]) {
     for (const z of [FONDO + 14, FRENTE - 14]) {
-      pon(g, new THREE.CylinderGeometry(0.5, 0.8, 34, 8), acero, lado * (MEDIO + 26), 17, z)
-      const panel = pon(g, new THREE.BoxGeometry(7, 3.4, 0.7), mat(0xf7f3dc, 0.35), lado * (MEDIO + 23), 33, z)
+      // Por fuera del graderío, que ahora llega a 39 de ancho: antes salían
+      // atravesando los peldaños.
+      pon(g, new THREE.CylinderGeometry(0.5, 0.8, 34, 8), acero, lado * (MEDIO + 32), 17, z)
+      const panel = pon(g, new THREE.BoxGeometry(7, 3.4, 0.7), mat(0xf7f3dc, 0.35), lado * (MEDIO + 29), 33, z)
       panel.rotation.y = lado * 0.4
     }
   }

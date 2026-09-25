@@ -1382,9 +1382,12 @@ const tmpVueloMira = new THREE.Vector3()
 const suave = k => k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2
 
 function empezarVuelo () {
-  // En los tramos marcados se llega en helicóptero en vez de sobrevolar el
-  // monumento. No en todos: el mismo plano 39 veces cansa.
-  if (nivelActivo().llegada === 'helicoptero') return empezarLlegadaHeli()
+  // Dos tramos llegan de forma distinta, y solo dos: el helicóptero estaba
+  // puesto en trece y a Isidro le sobraba en todos menos en el puente de
+  // Vladivostok. El resto vuelven al sobrevuelo del monumento de siempre.
+  const llegada = nivelActivo().llegada
+  if (llegada === 'helicoptero') return empezarLlegadaHeli()
+  if (llegada === 'estadio') return empezarLlegadaEstadio()
   const foco = world.focoMonumento()
   if (!foco || foco.isEmpty()) return
   world.resize()
@@ -1405,6 +1408,110 @@ function empezarVuelo () {
   }
   ui.banner(nivelActivo().name.toUpperCase())
   actualizarVuelo(0)
+}
+
+// --- llegada al estadio ------------------------------------------------------
+//
+// Isidro: «en el de madrid quiero que la cámara muestre el estadio primero
+// desde fuera y luego entra hasta donde están los personajes».
+//
+// Y después: «que se vea desde fuera el de Madrid y la cámara entre por el
+// hueco del estadio para colocarse en la pantalla de juego».
+//
+// El hueco del estadio es el del techo: el cuenco está cerrado por los cuatro
+// lados y la visera deja destapado el óvalo de encima del campo, así que se
+// entra por ahí, como entra un dron de verdad. El plano es uno solo y va en
+// cuatro tiempos: el estadio entero desde fuera y de lejos, el acercamiento por
+// delante de la tribuna, el roce por encima del borde del techo, y la bajada ya
+// por dentro hasta la posición de juego.
+//
+// Todos los números salen de la geometría del estadio (`escenarios.js`), no de
+// mirar a ojo: el césped va de z = -118 a z = 16, el cuenco de delante empieza
+// en z = 31 y el graderío se abre hacia fuera hasta z = 60, el tercer
+// anfiteatro remata en y = 23,25, la visera está a y = 27,25 y ocupa de z = 55
+// a z = 69, las torres de las esquinas llegan a y = 35,25 en x = ±40 y los
+// focos están en x = ±44. Por eso el tramo de entrada pasa a y ≈ 32 cuando
+// cruza z = 69: cuatro metros por encima de la visera, sin tocarla.
+const ESTADIO_VUELO = 6.4
+// El primer punto no está puesto a ojo: el estadio es largo y estrecho (219 de
+// largo por 88 de ancho con los focos) y la pantalla del móvil es alta y
+// estrecha, así que la única forma de que quepa entero es mirarlo desde delante
+// y por lo largo. Con estos números el cuenco ocupa el 82 % del ancho de la
+// pantalla y queda centrado; probado midiendo las ocho esquinas de su caja.
+const ESTADIO_PLANOS = [
+  { k: 0, pos: [-30, 170, 290], mira: [6, 4, -55] },    // el estadio entero, desde fuera
+  { k: 0.30, pos: [-20, 92, 170], mira: [0, 14, -40] }, // cayendo hacia la tribuna de delante
+  { k: 0.56, pos: [0, 34, 78], mira: [0, 6, -30] },     // a la altura del borde del techo
+  { k: 0.80, pos: [0, 28, 40], mira: [0, 2, -20] }      // dentro ya, cayendo al campo
+]
+// Desde tan lejos hace falta ver el estadio entero, y la niebla del nivel cierra
+// a 152: el fondo del cuenco queda a 472 de la cámara. Se abre del todo para el
+// plano y se cierra otra vez sola en el último tercio, para que al acabar no dé
+// un salto.
+const ESTADIO_NIEBLA = { cerca: 520, lejos: 2000 }
+
+function empezarLlegadaEstadio () {
+  world.resize()
+  vuelo = {
+    estadio: true,
+    t: 0,
+    fin: { pos: camera.position.clone(), rot: camera.quaternion.clone() },
+    niebla: scene.fog ? { cerca: scene.fog.near, lejos: scene.fog.far } : null,
+    lente: { cerca: camera.near, lejos: camera.far }
+  }
+  if (scene.fog) { scene.fog.near = ESTADIO_NIEBLA.cerca; scene.fog.far = ESTADIO_NIEBLA.lejos }
+  // La cámara del juego corta a 200 y el estadio, desde el primer plano, está a
+  // 472: sin abrirle el corte no se ve NADA, sale la pantalla vacía. Se abre
+  // para el plano y se le devuelve lo suyo al acabar.
+  camera.near = 1
+  camera.far = 1500
+  camera.updateProjectionMatrix()
+  ui.banner(nivelActivo().name.toUpperCase())
+  actualizarVuelo(0)
+}
+
+function actualizarEstadio (dt) {
+  void dt
+  const v = vuelo
+  // Con tope por abajo: el primer fotograma de un nivel llega a veces con el
+  // reloj descolocado, y con k negativa la cámara salía ESTIRADA hacia atrás,
+  // más lejos todavía que el primer plano.
+  const k = Math.min(1, Math.max(0, v.t / ESTADIO_VUELO))
+  // Entre qué dos planos estamos.
+  const P = ESTADIO_PLANOS
+  let i = 0
+  while (i < P.length - 1 && k > P[i + 1].k) i++
+  const a = P[i]
+  const b = P[i + 1] ?? null
+  if (b) {
+    const f = suave((k - a.k) / (b.k - a.k))
+    camera.position.set(
+      a.pos[0] + (b.pos[0] - a.pos[0]) * f,
+      a.pos[1] + (b.pos[1] - a.pos[1]) * f,
+      a.pos[2] + (b.pos[2] - a.pos[2]) * f
+    )
+    camera.lookAt(tmpVueloMira.set(
+      a.mira[0] + (b.mira[0] - a.mira[0]) * f,
+      a.mira[1] + (b.mira[1] - a.mira[1]) * f,
+      a.mira[2] + (b.mira[2] - a.mira[2]) * f
+    ))
+  } else {
+    camera.position.set(a.pos[0], a.pos[1], a.pos[2])
+    camera.lookAt(tmpVueloMira.set(a.mira[0], a.mira[1], a.mira[2]))
+  }
+  // El último tramo se funde con la posición de juego, como el sobrevuelo.
+  const ultimo = P[P.length - 1].k
+  const mezcla = k < ultimo ? 0 : suave((k - ultimo) / (1 - ultimo))
+  if (mezcla > 0) {
+    camera.position.lerp(v.fin.pos, mezcla)
+    camera.quaternion.slerp(v.fin.rot, mezcla)
+  }
+  // Y la niebla vuelve a la suya en ese mismo tramo, para que no dé el salto.
+  if (v.niebla && scene.fog) {
+    scene.fog.near = ESTADIO_NIEBLA.cerca + (v.niebla.cerca - ESTADIO_NIEBLA.cerca) * mezcla
+    scene.fog.far = ESTADIO_NIEBLA.lejos + (v.niebla.lejos - ESTADIO_NIEBLA.lejos) * mezcla
+  }
+  if (k >= 1) terminarVuelo()
 }
 
 // --- llegada en helicóptero -------------------------------------------------
@@ -1468,6 +1575,7 @@ function actualizarVuelo (dt) {
   const v = vuelo
   v.t += dt
   if (v.heli) return actualizarHeli(dt)
+  if (v.estadio) return actualizarEstadio(dt)
   const k = Math.min(1, v.t / VUELO)
   // Por encima de la carretera, acercándose al monumento. La carretera es lo
   // único despejado: desde el descampado de al lado, en las ciudades con
@@ -1498,6 +1606,16 @@ function actualizarVuelo (dt) {
 }
 
 function terminarVuelo () {
+  // La niebla que se abrió para enseñar el estadio desde fuera vuelve a lo suyo.
+  if (vuelo?.niebla && scene.fog) {
+    scene.fog.near = vuelo.niebla.cerca
+    scene.fog.far = vuelo.niebla.lejos
+  }
+  if (vuelo?.lente) {
+    camera.near = vuelo.lente.cerca
+    camera.far = vuelo.lente.lejos
+    camera.updateProjectionMatrix()
+  }
   vuelo = null
   world.resize()
 }
@@ -1831,7 +1949,12 @@ function start (indice = nivelActual) {
   pintarBilletes()
   cuentas = null
   asalto = null
-  vuelo = null
+  // Ojo: cerrarlo, no tirarlo. Si se empieza un nivel con el plano anterior a
+  // medias (reintentar, o salir al mapa y entrar en otro sitio), poniendo
+  // `vuelo = null` se quedaba sin deshacer lo que ese plano había tocado: el de
+  // Madrid le abre a la cámara el corte de lejos y la niebla, y se quedaban
+  // abiertos en TODO lo que viniera detrás.
+  if (vuelo) terminarVuelo()
   // El asalto de la partida anterior dejó la base reventada.
   const baseFondo = world.baseActual()
   if (baseFondo) baseFondo.visible = true
