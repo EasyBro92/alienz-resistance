@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import { FIELD, carrilAbierto, estrecharCampo } from './config.js'
 import { texturasDelSuelo } from './systems/texturas.js'
@@ -540,23 +541,31 @@ export function createWorld (canvas) {
   const perfil = new THREE.Group()
   const matPerfil = new THREE.MeshLambertMaterial({ color: 0x7d8a92 })
   const geoBloque = new THREE.BoxGeometry(1, 1, 1)
+  // Las cuarenta y seis torres van en UNA malla. Eran cuarenta y seis llamadas
+  // de dibujado para quinientos triángulos: lo que ahoga a un móvil no son los
+  // triángulos, son las llamadas, y esto es un perfil quieto en el horizonte
+  // que no se toca nunca.
+  const trozos = []
+  const meterBloque = (sx, sy, sz, x, y, z) => {
+    const g = geoBloque.clone()
+    g.scale(sx, sy, sz)
+    g.translate(x, y, z)
+    trozos.push(g)
+  }
   for (let i = 0; i < 46; i++) {
     const ancho = 3 + Math.random() * 6
     // Más altos hacia el centro, como el centro de una ciudad de verdad.
     const x = (Math.random() - 0.5) * 150
     const alto = (6 + Math.random() * 12) * (1.25 - Math.min(1, Math.abs(x) / 75) * 0.6)
-    const b = new THREE.Mesh(geoBloque, matPerfil)
-    b.scale.set(ancho, alto, 4 + Math.random() * 4)
-    b.position.set(x, alto / 2 - 1, -104 - Math.random() * 12)
-    perfil.add(b)
+    const z = -104 - Math.random() * 12
+    meterBloque(ancho, alto, 4 + Math.random() * 4, x, alto / 2 - 1, z)
     // Alguna antena en lo alto de los más altos: rompe la fila de cajas.
     if (alto > 16 && Math.random() < 0.5) {
-      const antena = new THREE.Mesh(geoBloque, matPerfil)
-      antena.scale.set(0.3, 4 + Math.random() * 3, 0.3)
-      antena.position.set(x, alto - 1 + antena.scale.y / 2, b.position.z)
-      perfil.add(antena)
+      const altoAntena = 4 + Math.random() * 3
+      meterBloque(0.3, altoAntena, 0.3, x, alto - 1 + altoAntena / 2, z)
     }
   }
+  perfil.add(new THREE.Mesh(mergeGeometries(trozos, false), matPerfil))
   perfil.visible = false
   scene.add(perfil)
   const CON_CIUDAD = new Set(['ciudad', 'costa', 'mediterraneo', 'egeo', 'parque', 'caribe', 'monzon'])
@@ -1166,20 +1175,27 @@ export function createWorld (canvas) {
   const N = 22
   const hazardA = new THREE.MeshBasicMaterial({ color: 0xff5a4d })
   const hazardB = new THREE.MeshBasicMaterial({ color: 0x2b2119 })
+  // Los veintidós chevrones se juntan en dos mallas, una por color, y los dos
+  // raíles en una: son veinticuatro llamadas de dibujado para cuarenta y ocho
+  // triángulos, y están pintados en el suelo, quietos, delante de la cámara.
   const chevronGeo = new THREE.PlaneGeometry(W / N * 0.95, 0.5)
+  const chevrones = [[], []]
   for (let i = 0; i < N; i++) {
-    const s = new THREE.Mesh(chevronGeo, i % 2 ? hazardA : hazardB)
-    s.rotation.x = -Math.PI / 2
-    s.rotation.z = 0.5                       // inclinado: chevrón, no damero
-    s.position.set(-W / 2 + (i + 0.5) * W / N, 0.03, FIELD.baseZ)
-    scene.add(s)
+    const g = chevronGeo.clone()
+    g.rotateZ(0.5)                           // inclinado: chevrón, no damero
+    g.rotateX(-Math.PI / 2)
+    g.translate(-W / 2 + (i + 0.5) * W / N, 0.03, FIELD.baseZ)
+    chevrones[i % 2].push(g)
   }
+  scene.add(new THREE.Mesh(mergeGeometries(chevrones[0], false), hazardB))
+  scene.add(new THREE.Mesh(mergeGeometries(chevrones[1], false), hazardA))
   const railMat = new THREE.MeshStandardMaterial({ color: 0x8d8f92, roughness: 0.5, metalness: 0.4 })
-  for (const dz of [-0.3, 0.3]) {
-    const rail = new THREE.Mesh(new THREE.BoxGeometry(W, 0.06, 0.08), railMat)
-    rail.position.set(0, 0.03, FIELD.baseZ + dz)
-    scene.add(rail)
-  }
+  const railes = [-0.3, 0.3].map(dz => {
+    const g = new THREE.BoxGeometry(W, 0.06, 0.08)
+    g.translate(0, 0.03, FIELD.baseZ + dz)
+    return g
+  })
+  scene.add(new THREE.Mesh(mergeGeometries(railes, false), railMat))
 
   // Vallas laterales.
   const postGeo = new THREE.BoxGeometry(0.16, 0.9, 0.16)

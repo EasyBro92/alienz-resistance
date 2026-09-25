@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { FIELD } from '../config.js'
 import { fieldWidth } from '../world.js'
 
@@ -19,12 +20,17 @@ export function createAmbient (scene) {
   for (let i = 0; i < 7; i++) {
     const cloud = new THREE.Group()
     const n = 3 + (Math.random() * 3 | 0)
+    // Los bollos de una nube no se mueven entre sí —la que se desplaza es la
+    // nube entera— así que van en una sola malla. Eran veintinueve llamadas de
+    // dibujado repartidas en siete nubes.
+    const bollos = []
     for (let k = 0; k < n; k++) {
-      const puff = new THREE.Mesh(puffGeo, cloudMat)
-      puff.position.set(rand(-6, 6), rand(-1, 1), rand(-3, 3))
-      puff.scale.set(rand(4.5, 8.5), rand(1.8, 3), rand(3, 5))
-      cloud.add(puff)
+      const g = puffGeo.clone()
+      g.scale(rand(4.5, 8.5), rand(1.8, 3), rand(3, 5))
+      g.translate(rand(-6, 6), rand(-1, 1), rand(-3, 3))
+      bollos.push(g)
     }
+    cloud.add(new THREE.Mesh(mergeGeometries(bollos, false), cloudMat))
     // La cámara está muy picada: por encima de y≈24 a esta distancia ya no entra
     // en el encuadre. Todo el ambiente aéreo vuela bajo para que se vea.
     // Dentro del alcance de la niebla (152): más lejos se las traga entera.
