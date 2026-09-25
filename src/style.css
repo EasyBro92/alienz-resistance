@@ -116,6 +116,20 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+/* `hidden` manda, siempre.
+ *
+ * El atributo `hidden` del HTML vale lo mismo que un `display: block` de la
+ * hoja de estilos, así que CUALQUIER regla que le ponga `display: flex` a una
+ * clase le gana y el elemento se ve aunque el código lo haya escondido. No es
+ * un caso raro: por esto se veía el rótulo SIN SEÑAL de la cámara del rival, y
+ * por esto el bloque de Administración de Ajustes —«Ver usuarios» y las
+ * denuncias— se le enseñaba a cualquiera sin haber entrado con ninguna cuenta,
+ * igual que el bloque del nombre en las tablas.
+ *
+ * Con esto, esconder algo desde el código funciona a la primera y no hay que
+ * acordarse de escribirle su regla a cada uno. */
+[hidden] { display: none !important; }
+
 html, body {
   margin: 0;
   height: 100%;

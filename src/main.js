@@ -2933,9 +2933,31 @@ if (import.meta.env.DEV) {
       else if (pantalla?.startsWith('pais:')) { abrirMapa(); abrirPais(Number(pantalla.slice(5))) }
     },
     cartera: () => cargarCartera(),
+    // Jugar en seco: adelanta la partida sin esperar a los fotogramas.
+    //
+    // OJO con ceder el turno. Antes hacía `await null`, que solo vacía las
+    // microtareas, y con eso los huéspedes y los soldados NO NACEN NUNCA: se
+    // crean con promesas que pasan por el cargador de modelos, y ese cargador
+    // espera a una tarea de verdad. Medido: 400 pasos de bucle con `await null`
+    // = cero bichos; cediendo 50 ms aparecen nueve de golpe. Es decir, que toda
+    // medición hecha con esto —el equilibrio de la campaña, por ejemplo— estaba
+    // contando una partida en la que no salía nadie.
+    //
+    // Ahora se cede una tarea de verdad cada veinte pasos (un segundo de
+    // partida). Cuesta unos milisegundos por segundo simulado y a cambio lo que
+    // se mide es la partida y no un campo vacío.
     run: async (seconds, dt = 1 / 60) => {
-      for (let t = 0; t < seconds; t += dt) { simulate(dt); await null }
-    }
+      let n = 0
+      for (let t = 0; t < seconds; t += dt) {
+        simulate(dt)
+        if (++n % 20 === 0) await new Promise(r => setTimeout(r))
+        else await null
+      }
+    },
+    // Quitar la pausa desde la consola: al medir, un toque perdido en el botón
+    // deja `simulate` sin hacer nada y todo sale a cero sin decir por qué.
+    despausar: () => pausar(false),
+    pausado: () => pausado
   }
 }
 addEventListener('resize', () => world.resize())

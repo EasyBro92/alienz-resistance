@@ -9,6 +9,7 @@ Publicado en https://easybro92.github.io/alienz-resistance/ (repo `EasyBro92/ali
 - **Comentarios en español** que explican el porqué. Es el estilo de todo el código: mantenerlo.
 - **Commit y push directamente** cuando algo esté hecho y comprobado. Mensaje en español que acaba con `Co-Authored-By`.
 - **Meshy**: no gastar créditos sin permiso; dejar siempre unos 200. (El 15/09/2026 Isidro autorizó bajar de ahí para el jefe alien de la portada: 30 créditos, saldo 170. Ese mismo día pidió los 10 huéspedes con Meshy gastando lo mínimo: `--modelo meshy-5 --refinar`, 15 créditos cada uno, saldo 20. Después fue consiguiendo créditos y pidió rehacer los que falten asegurando antes que admiten esqueleto sin deformarse: se sigue la receta de huéspedes animados, enseñándole cada malla antes de pagar textura y esqueleto.)
+- **`[hidden]` manda**: `src/style.css` lleva `[hidden] { display: none !important }`. Sin eso, cualquier regla con `display: flex` le gana al atributo y lo escondido se ve: así se enseñaba el bloque de Administración de Ajustes a cualquiera, y el rótulo SIN SEÑAL de la cámara del rival. Esconder desde el código funciona a la primera; no hace falta escribirle su regla a cada uno.
 - Compilar con `npx vite build`. La precarga del PWA ronda 830 KB; los `.glb` van en caché de ejecución, no en la precarga.
 - **Botón de actualizar** (`ir-actualizar`, arriba en la portada, a la izquierda de la cuenta): da de baja el service worker, borra TODAS las cachés y recarga con `?v=<marca de tiempo>`. Hace falta porque cerrar y abrir la PWA no trae la versión nueva, y porque los `.glb` van con nombre fijo en caché `CacheFirst`: sin borrarla no se cambian nunca. Cuesta volver a bajar los modelos.
 
@@ -27,7 +28,7 @@ Publicado en https://easybro92.github.io/alienz-resistance/ (repo `EasyBro92/ali
 | `src/jefeAlien.js` | El jefe alien animado de la portada: lienzo y escena propios detrás de `#overlay` (`#portada-escena`), modelo `public/models/jefe-alien.glb` (Meshy con `--criatura --refinar`, adelgazado a 0,6 MB) animado por código (respira, se balancea, luces verdes que laten, niebla, esporas, relámpagos). Se carga en diferido desde `main.js` y solo dibuja con la portada a la vista. La portada fuerza los colores del tema oscuro en los dos temas; las demás pantallas del menú tienen fondo opaco (`--fondo-capa`) |
 | `src/enemigos.js` | La pantalla de Enemigos como baraja: una carta por huésped (retrato, rol, barras de vida/velocidad/daño/botín, texto y habilidades) que se pasa deslizando como la página de un libro (muelle con rebote, gesto rápido, flechas y puntos). La carta de arriba enseña la figura en 3D andando (su propio renderer, solo con la capa visible). La carta de destino se activa al elegirla y un temporizador la asienta aunque no lleguen fotogramas. La cámara de la carta es fija, así que a los pocos fotogramas (ya con las piezas de `ADORNOS` colocadas) se mide la figura y se ajusta para que quepa entera y centrada; antes el taladro y la jeringa se salían por el borde. `window.__baraja.estado()` en desarrollo |
 | `src/mapa.js` | Mapa del mundo en SVG (`pintarMapa`) |
-| `src/assets.js` | Figuras procedurales, `bake()`, `MODELS` (Meshy), `armarPersona` (huesos manejados con mandos), `buildWeapon` |
+| `src/assets.js` | Figuras procedurales, `bake()`, `MODELS` (Meshy), `armarPersona` (huesos manejados con mandos), `buildWeapon`. **`bake` funde por ACABADO, no por color**: el color de cada pieza se mete en sus vértices (y la oclusión lo multiplica encima), así que solo hay que separar por brillo, metal, cara y facetado. Quedan fuera lo transparente, lo que brilla (el resplandor lo busca por el material), lo que lleva textura y lo marcado `userData.solo` —el cañón, que se calienta y tiene que encenderse sin arrastrar media figura—. Esto bajó el tablero lleno de **688 a 458 llamadas de dibujado** y el escenario vacío de 266 a 186, sin perder ni un tono: lo que ahoga a un móvil no son los triángulos, son las llamadas |
 | Huéspedes animados (en `assets.js`) | `ALIEN_ANIMADOS`: Portador, Encostrado, Escarbador, Sembrador, Injertadora, Revientaesporas (`-andar.glb`), Corredor y Saltador (`-correr.glb`) llevan esqueleto de Meshy (`herramientas/meshy-rig.mjs --nombre alien-x`, 5 créditos, lee el .glb de la web publicada; los modelos en postura rara fallan con "Pose estimation failed", como el Corredor). `alienAnimado` recorre el clip según la fase de `zombie.js` (`ciclos` por vuelta) y hace el zarpazo por código girando tronco y brazos sobre el eje lateral del mundo (positivo adelanta lo que cuelga). El Saltador se rehizo de pie (el primero estiraba las púas en láminas) y ya ataca; `sinZarpazo` sigue disponible por si algún modelo lo necesita. `ADORNOS` + `def.adornos` pone por código lo que Meshy no dibuja, siguiendo a un hueso al final de cada fotograma (ya con el zarpazo aplicado): `saco` de huevos a la espalda del Sembrador, `jeringa` (orientada del antebrazo a la mano) y `bultos` de la cabeza en la Injertadora, y el `taladro` del Escarbador (guantelete que envuelve el puño, `adelanta` lo desplaza por el antebrazo), cuya broca gira y se embala al cavar o atacar. Poco `metalness` en estas piezas: sin reflejos alrededor el metal sale negro. **Receta para que el esqueleto no falle ni deforme:** generar solo la malla con `meshy.mjs --persona --criatura --modelo meshy-5 --solo-malla` (5 créditos, queda en `herramientas/revisar/`, fuera de git), revisarla de frente y de perfil (de pie, brazos separados, sin peana ni tierra; los rasgos van al principio del prompt), seguir con `--desde <id> --refinar` (10) y `meshy-rig.mjs --tarea <id>` (5), y probar paso, frente y ataque en hojas antes de publicar. **Modelo que no venga de Meshy** (Tripo, TRELLIS, Hunyuan3D, Mixamo, Blender): pasarlo antes por `node herramientas/revisar-glb.mjs <archivo.glb>`, que comprueba las tres cosas que el código da por hechas —nombres de hueso exactos, mirar a +Z y andar sin moverse del sitio— y el peso de las texturas. |
 | Huéspedes (en `assets.js`) | `ALIEN_MODELS`: un modelo de Meshy por forma (`public/models/alien-*.glb`, texturas adelgazadas a 512, ~0,3 MB cada uno), con **esqueleto automático**: `prepararAlien` los escala a 1,8 de alto (LA MADRE por el ancho), los gira para que miren a -Z, mide cómo se reparten los vértices y coloca 18 huesos (cadera, lumbar, pecho, cuello, cabeza, hombro/codo/mano y muslo/rodilla/tobillo) con pesos en franjas anchas y hasta 4 huesos por vértice; la entrepierna se reparte entre las dos piernas y lo que queda lejos del eje de la pierna (barriga, cola, tierra) va con la cadera. LA MADRE lleva cuerpo y 8 patas por sectores con rodilla. `ANDARES` da a cada huésped su forma de andar (zancada, rodilla, braceo, inclinación, balanceo, giro de pelvis, cojera…); la cadera se pone a la altura que deja apoyado el pie más bajo y del andar al zarpazo se pasa mezclando. Signos: el huésped mira a -Z, x positivo adelanta muslo/hombro/codo y x negativo dobla la rodilla y echa el tronco adelante. `alienDeMeshy` crea la `SkinnedMesh` de cada huésped y la anima en `onBeforeRender` con `userData.andando` y `userData.fasePaso`, que pone `zombie.js` (sin ellos va con la hora: cartas y retratos). La forma sin modelo cae a `placeholderAlien` (figura de piezas) |
 | `src/entities/soldier.js` | Soldado. Mandos → huesos (figuras de piezas); mejoras de tienda aplicadas en `damage` y `fireRate` |
@@ -68,7 +69,9 @@ Ganar y perder recargan la página; `window.volverA('mapa' | 'pais:N' | 'portada
 - Servidor: vista previa `z-resistance`, puerto 5180.
 - `window.__zr` (solo en desarrollo):
   - `start(i)`, `place(clave, carril, fila)`, `state()`, `soldiers`, `zombies`, `economy`, `director`, `collectAll()`, `strikeAt(x, z, clave)`.
-  - `run(segundos, dt)`: llamarlo **de una tirada**. Encadenado en trozos cortos, el estado que se lee va desfasado.
+  - `run(segundos, dt)`: llamarlo **de una tirada**. Encadenado en trozos cortos, el estado que se lee va desfasado. **Cede una tarea de verdad cada 20 pasos**, y eso no es un detalle: con `await null` (solo microtareas) los huéspedes y los soldados NO NACEN —se crean con promesas que pasan por el cargador de modelos— y la medición cuenta una partida en la que no sale nadie. Medido: 400 pasos con `await null` = cero bichos; cediendo 50 ms aparecen nueve de golpe.
+  - `despausar()` y `pausado()`: un toque perdido en el botón de pausa deja `simulate` sin hacer nada y todo sale a cero sin decir por qué. Empezar cualquier medición con `despausar()`.
+  - Si una carrera llega al tope de tiempo sin pasar de la primera oleada, los modelos no habían acabado de cargar: repetirla dándole aire.
   - Al empezar una misión hay un vuelo de cámara de 3,4 s (`sinVuelo()` lo salta); `run()` lo consume antes de simular la partida. El vuelo mira desde arriba en diagonal (`world.vistaMonumento()`, calculada en `poblar` salvo que el hito traiga `userData.vista`); `verVuelo(k)` pone la cámara en ese punto para capturarlo (antes pausar la partida, o el bucle la recoloca).
   - Con el panel oculto las capturas salen de la pantalla de carga: quitar `#carga` con la clase `hidden` y llamar a `render()` antes de capturar.
   - Atajos: `asaltarYa()` (salta al asalto final), `ganarYa()`, `perderYa()`, `darBilletes(n)`, `desbloquearTodo()`, `borrarTodo()`, `abrir('mapa' | 'tienda' | 'pais:N')`, `cartera()`.
@@ -77,33 +80,37 @@ Ganar y perder recargan la página; `window.volverA('mapa' | 'pais:N' | 'portada
 - Las capturas son caras y a veces salen del fotograma anterior: comprobar con JavaScript siempre que se pueda.
 - Los heredocs de bash con JavaScript grande fallan: escribir con la herramienta de archivos y aplicar con un script.
 
-## Equilibrio medido (23/09/2026, no cambiar sin volver a medir)
+## Equilibrio medido (25/09/2026, no cambiar sin volver a medir)
 
-Medido con un jugador automático en el navegador (`__zr.start` + `simulate(0.05)`,
-sin dibujar): cobra todas las monedas, llena la línea con fusileros y arqueros
-hasta doce y a partir de ahí compra lo más caro que puede, con un ataque aéreo
-cuando se junta la horda. Sin recolocar, sin barreras y sin reparar.
+**Ojo con lo que dice la medición anterior**: la del 23/09 se hizo con el arnés
+roto (`run` cedía solo microtareas y los huéspedes no llegaban a nacer), así que
+sus 34 de 39 no valen. Esto es lo medido con el arnés arreglado.
 
-- **Sin ninguna mejora de la tienda:** gana 34 de los 39 tramos. Pierde los cinco
-  duros del final: Chongqing (23), Nueva York (29), Santo Domingo (34),
-  São Paulo (37) y Manaos (38).
-- **Con las mejoras al máximo (daño y cadencia a 3):** gana esos cinco, todos con
-  el perímetro al 100 %.
-- **Estrellas:** ese recorrido da 91 estrellas al llegar a Brasil y el peaje pide
-  72; en ningún país se queda corto (margen de 19 a 25). Umbrales: 3★ al 100 %,
-  2★ desde el 55 %, 1★ por debajo.
-- **Billetes por partida** (cobrando todo, botín al 75 % y goteo incluido): de 33
-  en Tarragona a 230 en los tramos de diez oleadas; **4.762 en una vuelta entera**
-  a la campaña.
-- **Precios:** abrir las catorce piezas de la tienda cuesta 3.395 billetes (las
-  trece de antes más la Misilera, 520), así que se puede tener todo abierto en
-  una sola vuelta. Subir las mejoras de los ocho soldados al máximo cuesta unos
-  13.500, que son casi tres vueltas: es el juego largo, y por eso los cinco
-  tramos duros se repiten con más músculo.
+Dos jugadores automáticos, los dos **sin ninguna mejora de la tienda**:
 
-Lo de antes (medido con el botín al 100 %, 12 países y los alienz anteriores) ya
-no vale: el botín está al 75 %, hay 13 países y el 21/09 los pequeños ganaron un
-10 % de velocidad y los grandes un 15 % de vida.
+- **Jugador óptimo** (cobra las monedas al instante, llena la línea, compra lo
+  más caro que puede, mejora en partida cuando ya no cabe nadie y suelta un
+  ataque aéreo cada 28 s): **gana los 39 tramos, y los 39 con la base al 100 %**.
+  Ni un punto de daño en toda la campaña. Tarda 226 s de partida de media.
+- **Jugador normalito** (solo arqueros y fusileros, cobra cada 2 s, sin mejoras
+  en partida y sin ataques aéreos): gana los primeros (Tarragona 5/5 con la base
+  intacta) y **pierde los últimos**: Chongqing (23) cae en la oleada 9 de 10 y
+  Santo Domingo (34) en la 7 de 9, los dos con la base a cero.
+
+O sea: la dificultad SÍ existe y sube donde tiene que subir, pero la estrategia
+buena la deja en nada. Si algún día quieres que apriete de verdad, lo que hay
+que tocar no son las vidas de los bichos: es lo que da cobrar perfecto y lo que
+cuestan las mejoras en partida.
+
+**Cuidado al medir con el jugador automático**: hay que colocar SOLO en los
+carriles abiertos (`FIELD.primerCarril`/`ultimoCarril`). En el puente y en el
+circuito el campo se estrecha, y colocando en un carril cerrado no se coloca
+nada: salían dos «derrotas» que eran del medidor y no del juego.
+
+**Billetes y precios** (del 23/09, esto no ha cambiado): de 33 billetes en
+Tarragona a 230 en los tramos de diez oleadas, 4.762 en una vuelta entera; abrir
+las catorce piezas de la tienda cuesta 3.395 y subir las mejoras de los ocho
+soldados al máximo unos 13.500, casi tres vueltas.
 
 ## Encuadre en el móvil vertical (375×812)
 

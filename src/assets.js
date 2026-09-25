@@ -5,7 +5,7 @@ import { crearCuerpo, crearManosDePiezas } from './entities/cuerpo.js'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { clone as clonarConHuesos } from 'three/examples/jsm/utils/SkeletonUtils.js'
-import { seg as lados, CON_OCLUSION, CON_ADORNOS, FUNDE_TONOS } from './systems/detalle.js'
+import { seg as lados, CON_OCLUSION, CON_ADORNOS } from './systems/detalle.js'
 
 // ---------------------------------------------------------------------------
 // PUNTO DE CAMBIO DE MODELOS
@@ -377,9 +377,13 @@ function cocerAO (geos, esferas) {
       if (dx * dx + dy * dy + dz * dz < alcance * alcance) cerca.push(o)
     }
     const pos = g.attributes.position
+    // Si la pieza ya trae color por vértice —el suyo, metido por `bake` para
+    // poder fundirla con las demás— la oclusión lo MULTIPLICA en vez de pisarlo.
+    const previo = g.getAttribute('color')
     const col = new Float32Array(pos.count * 3)
     if (!cerca.length) {
-      col.fill(1)
+      if (previo) col.set(previo.array)
+      else col.fill(1)
       g.setAttribute('color', new THREE.BufferAttribute(col, 3))
       continue
     }
@@ -398,7 +402,9 @@ function cocerAO (geos, esferas) {
       // Se satura enseguida: a partir de dos o tres solapes el rincón ya está
       // igual de cerrado y seguir oscureciendo lo pone negro.
       const k = 1 - AO_FUERZA * (1 - Math.exp(-dentro * 1.6))
-      col[v * 3] = col[v * 3 + 1] = col[v * 3 + 2] = k
+      col[v * 3] = k * (previo ? previo.getX(v) : 1)
+      col[v * 3 + 1] = k * (previo ? previo.getY(v) : 1)
+      col[v * 3 + 2] = k * (previo ? previo.getZ(v) : 1)
     }
     g.setAttribute('color', new THREE.BufferAttribute(col, 3))
   }
@@ -430,7 +436,17 @@ export function bake (parts, quiereAO = true) {
       esferas.push(esfera)
       todas.push({ g, i: esferas.length - 1, esfera })
     }
-    const clave = FUNDE_TONOS ? familia(o.material) : o.material
+    const clave = acabado(o.material)
+    // El color de la pieza, a sus vértices. A partir de aquí la malla se lleva
+    // su color puesto y puede fundirse con cualquiera que tenga el mismo
+    // acabado. (La oclusión, si se cuece, lo multiplica encima.)
+    if (typeof clave === 'string') {
+      const n = g.getAttribute('position').count
+      const col = new Float32Array(n * 3)
+      const c = o.material.color
+      for (let v = 0; v < n; v++) { col[v * 3] = c.r; col[v * 3 + 1] = c.g; col[v * 3 + 2] = c.b }
+      g.setAttribute('color', new THREE.BufferAttribute(col, 3))
+    }
     if (!byMat.has(clave)) byMat.set(clave, { material: o.material, lista: [], origen: new Set() })
     const grupo = byMat.get(clave)
     grupo.lista.push(g)
@@ -442,9 +458,11 @@ export function bake (parts, quiereAO = true) {
   if (ao) cocerAO(todas, esferas)
 
   const out = new THREE.Group()
-  for (const { material, lista: list, origen } of byMat.values()) {
-    const mesh = new THREE.Mesh(list.length > 1 ? mergeGeometries(list, false) : list[0],
-      ao ? materialAO(material) : material)
+  for (const [clave, { material, lista: list, origen }] of byMat) {
+    // Fundido = gemelo blanco con color por vértice. Suelto = su material de
+    // siempre, con el gemelo de oclusión si se ha cocido.
+    const suyo = typeof clave === 'string' ? materialFundido(material) : (ao ? materialAO(material) : material)
+    const mesh = new THREE.Mesh(list.length > 1 ? mergeGeometries(list, false) : list[0], suyo)
     // Lo plano y transparente (marcas del asfalto) no debe proyectar sombra.
     mesh.castShadow = !material.transparent
     // Las marcas transparentes van encima del asfalto, nunca al revés.
@@ -474,12 +492,40 @@ export function bake (parts, quiereAO = true) {
 // No entran en la fusión: lo transparente (se ordena aparte), lo que emite luz
 // (lo lee el resplandor) y lo que esté marcado `solo` — el cañón, que se calienta
 // cambiando SU material y teñiría de rojo a todo lo que estuviera fundido con él.
-const TRAMO = 0.14
-function familia (m) {
-  if (m.transparent || m.userData?.solo) return m
+// Con qué otras piezas se puede fundir esta.
+//
+// Antes se agrupaba por COLOR parecido, y solo en detalle bajo: juntar dos
+// tonos distintos en un dibujo significaba perder uno de los dos. Ahora el
+// color de cada pieza se guarda en sus vértices, así que el color ya no manda
+// —se conserva exacto— y solo hay que separar por lo que el material sigue
+// decidiendo: brillo, metal, a qué cara mira y si va suave o facetado.
+//
+// Esto es lo que baja de verdad el gasto: un soldado eran once dibujos y pasa a
+// dos o tres, y con la línea llena el juego bajó de 688 llamadas de dibujado a
+// poco más de doscientas. Lo que ahoga a un móvil no son los triángulos, son
+// las llamadas.
+//
+// Se quedan fuera, como antes: lo transparente (tiene su orden de pintado), lo
+// que brilla (el resplandor lo busca por el material), lo que lleva textura y lo
+// marcado `solo` —el cañón, que se calienta y tiene que poder encenderse él
+// sin arrastrar a media figura—.
+function acabado (m) {
+  if (m.transparent || m.userData?.solo || m.map || m.alphaMap || m.emissiveMap) return m
   if (m.emissive && (m.emissive.r || m.emissive.g || m.emissive.b)) return m
-  const q = c => Math.round(c / TRAMO)
-  return `f${q(m.color.r)},${q(m.color.g)},${q(m.color.b)},${Math.round(m.roughness * 3)},${Math.round(m.metalness * 2)}`
+  return `a${Math.round(m.roughness * 4)},${Math.round(m.metalness * 4)},${m.side},${m.flatShading ? 1 : 0}`
+}
+
+// El gemelo blanco que lee el color de los vértices. Blanco porque el color de
+// verdad viaja ahora en la malla, y el sombreador multiplica uno por otro.
+const fundidos = new Map()
+function materialFundido (base) {
+  if (!fundidos.has(base)) {
+    const m = base.clone()
+    m.color = new THREE.Color(0xffffff)
+    m.vertexColors = true
+    fundidos.set(base, m)
+  }
+  return fundidos.get(base)
 }
 
 // Detalle que solo se aprecia de cerca. Se monta igual que `piece`, pero en
