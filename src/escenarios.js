@@ -112,14 +112,23 @@ function puente () {
   for (const zp of pilonos) {
     for (const lado of [-1, 1]) {
       // La pata sale del borde del tablero y se inclina hacia dentro.
+      //
+      // Isidro: «en Vladivostok los aliens atraviesan los pilares del puente». Y
+      // era verdad: la pata estaba en x = 5,2 con 2,2 de ancho, o sea que su
+      // cara de dentro caía en 4,1, y un huésped grande andando por el carril de
+      // fuera llega a 4,7 (medido en partida). Se lleva al BORDE del tablero,
+      // que además es donde va en el Zolotói de verdad: la pata en 6,5 con 1,8
+      // de ancho arranca en 5,6 y no la alcanza ni el más ancho.
       const alto = 40
-      const pata = pon(g, new THREE.BoxGeometry(2.2, alto, 2.6), hormigon, lado * 5.2, alto / 2 - 2, zp)
+      const pata = pon(g, new THREE.BoxGeometry(1.8, alto, 2.6), hormigon, lado * 6.5, alto / 2 - 2, zp)
       pata.rotation.z = -lado * 0.1
       pata.castShadow = true
     }
     // El travesaño donde se juntan, arriba.
-    pon(g, new THREE.BoxGeometry(11, 2, 2.8), hormigon, 0, 36, zp)
-    pon(g, new THREE.BoxGeometry(13, 1.4, 2.2), hormigon, 0, 12, zp)
+    // Los travesaños, alargados con las patas: antes medían 11 y 13 para unas
+    // patas en 5,2, y con ellas en 6,5 se quedaban cortos, colgando en el aire.
+    pon(g, new THREE.BoxGeometry(13.6, 2, 2.8), hormigon, 0, 36, zp)
+    pon(g, new THREE.BoxGeometry(15.4, 1.4, 2.2), hormigon, 0, 12, zp)
 
     // Los abanicos de tirantes: del alto del pilono al tablero, hacia los dos
     // lados. Cada uno es un cilindro estirado y girado a su sitio.

@@ -1956,7 +1956,7 @@ function start (indice = nivelActual) {
   entrarPorElFondo(!!dueloEnCurso)
   dropship.recolocar()
   if (dueloEnCurso) dropship.ocultar()
-  world.vestir(nivelDeHoy.bioma, nivelDeHoy.hitos, nivelDeHoy.suelo, nivelDeHoy.tonoSuelo, nivelDeHoy.escenario)
+  world.vestir(nivelDeHoy.bioma, nivelDeHoy.hitos, nivelDeHoy.suelo, nivelDeHoy.tonoSuelo, nivelDeHoy.escenario, nivelDeHoy.fondo)
   // Lo que arrastra el viento en este sitio, y por dónde vuelan las naves de paso.
   ambient.vestir(nivelDeHoy, world.alturaEn)
   billetesPartida = 0

@@ -627,6 +627,15 @@ export function createDropship (alFase) {
       despedida = false
       group.visible = true
       group.position.y = ALTURA
+      // De frente y derecha desde el primer fotograma.
+      //
+      // Isidro: «las naves a veces cuando bajan se colocan de frente de golpe».
+      // Y pasaba: al despegar, la nave se va GIRANDO (`rotation.y += dt * 0.35`),
+      // y si la siguiente oleada la llamaba mientras aún subía —que es lo que
+      // hace el director cuando las oleadas se pisan— volvía a bajar con el giro
+      // a medias, sin que nadie lo deshiciera. Al posarse, el `rotation.set(0,0,0)`
+      // del final de la bajada la enderezaba DE GOLPE, en un fotograma.
+      group.rotation.set(0, 0, 0)
       bisagra.rotation.x = CERRADA
       desplegarPatas(0)
     },

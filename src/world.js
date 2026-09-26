@@ -1234,6 +1234,13 @@ export function createWorld (canvas) {
   // Guardado, no solo anadido: dentro de un escenario cerrado hay que poder
   // esconderlo entero. En el puente, los camiones y los sacos de la cuneta
   // quedaban flotando sobre el mar.
+  // Los materiales que se usan como INTERRUPTOR (apagar el material apaga su
+  // parte del decorado) tienen que quedarse cada uno en su malla: si la fusión
+  // los mete en un grupo con otro representante, apagarlos no apaga nada. Esto
+  // es lo que dejaba los cerros puestos en la playa de Punta Cana.
+  for (const m of [...soloCarretera, ...(pintables.mobiliarioVia ?? []), ...(pintables.farolas ?? []), pintables.cerro, pintables.meseta, pintables.matojo]) {
+    if (m) m.userData.solo = true
+  }
   const decoradoFijo = bake(decor, false)
   scene.add(decoradoFijo)
 
@@ -1751,9 +1758,21 @@ export function createWorld (canvas) {
     })
   }
 
-  function vestir (clave, hitosMision = [], suelo = 'carretera', tonoSuelo = null, escenario = null) {
+  // `fondo` lo trae la misión (campo `fondo` en `campana.js`) y manda sobre lo
+  // que decide la región:
+  //   · `ciudad: false` quita el perfil de rascacielos del horizonte,
+  //   · `cerros: false` quita los montículos y las mesetas,
+  //   · `terreno: 'arena'` cambia lo que hay a los lados de la calzada.
+  //
+  // Isidro: «hay edificios o montañas en algunas zonas de playa, o edificios al
+  // fondo sin sentido». Y los había, porque todo eso se decidía por REGIÓN: el
+  // mismo interruptor valía para Punta Cana y para Nueva York por ser las dos
+  // «costa». Ahora la región pone el valor por defecto y cada sitio corrige el
+  // suyo.
+  function vestir (clave, hitosMision = [], suelo = 'carretera', tonoSuelo = null, escenario = null, fondo = null) {
     const b = BIOMAS[clave]
-    const llave = clave + '|' + (hitosMision ?? []).map(h => h.join(':')).join(',') + '|' + suelo + '|' + tonoSuelo + '|' + escenario
+    const llave = clave + '|' + (hitosMision ?? []).map(h => h.join(':')).join(',') + '|' + suelo + '|' + tonoSuelo + '|' + escenario +
+      '|' + (fondo ? JSON.stringify(fondo) : '')
     if (!b || llave === bioma) return
     bioma = llave
     ponerEscenario(escenario)
@@ -1763,8 +1782,15 @@ export function createWorld (canvas) {
     if (estrellada) estrellada.visible = !(hitosMision?.length) && !b.arena && !escenarioTapa
     // En una arena, el recinto cierra el horizonte: fuera cerros y mesetas.
     ponerArena(b.arena ?? null)
-    pintables.cerro.visible = !b.arena && !escenarioTapa
-    pintables.meseta.visible = !b.arena && !escenarioTapa
+    // Los cerros y las mesetas, salvo donde el sitio es llano de verdad.
+    //
+    // OJO: esto se escribía en `pintables.cerro`, que es un MATERIAL, y a un
+    // material no se le puede decir `visible`: la línea no hacía nada y los
+    // cerros salían hasta en la playa de Punta Cana. Se apaga el grupo que los
+    // contiene, que es `ridge`.
+    const conCerros = (fondo?.cerros ?? true) && !b.arena && !escenarioTapa
+    pintables.cerro.visible = conCerros
+    pintables.meseta.visible = conCerros
     // Al fondo, la base que venimos a limpiar. El modelo sale del nombre de la
     // misión: cada sitio tiene la suya y no cambia al repetir.
     let semilla = 7
@@ -1800,7 +1826,7 @@ export function createWorld (canvas) {
     road.material.normalMap = campo ? null : pielCarretera.normalMap
     if (campo) road.material.color.setHex(tonoSuelo ?? COLOR_CAMPO[suelo] ?? 0xffffff)
     // El terreno de alrededor es de la región: arena solo en desierto y playa.
-    const terreno = b.terreno ?? 'arena'
+    const terreno = fondo?.terreno ?? b.terreno ?? 'arena'
     const tierraTex = terreno === 'arena' ? null : texturaTerreno(terreno)
     sand.material.map = tierraTex ?? pielArena.map
     sand.material.normalMap = tierraTex ? null : pielArena.normalMap
@@ -1828,7 +1854,7 @@ export function createWorld (canvas) {
     cielos.horizonte.value.setHex(b.niebla)
     // El perfil de la ciudad, en el tono de los cerros de la región y un punto
     // más frío: lejos, todo tira a azul.
-    perfil.visible = CON_CIUDAD.has(clave) && !escenarioTapa
+    perfil.visible = (fondo?.ciudad ?? CON_CIUDAD.has(clave)) && !escenarioTapa
     matPerfil.color.setHex(b.cerro).lerp(new THREE.Color(b.niebla), 0.35).multiplyScalar(0.8)
     sun.color.setHex(b.sol)
     cielo.color.setHex(b.cielo)
