@@ -350,6 +350,9 @@ export function plaza (v) {
   g.userData.carriles = v.carriles ?? 5
   g.userData.tapaElMundo = true
   g.userData.sinSombra = true
+  // Por encima de lo más alto que haya a los lados: es la altura a la que el
+  // plano de llegada puede recorrer la calle sin meterse dentro de un edificio.
+  g.userData.altoVuelo = Math.max(32, (v.alturas?.[1] ?? 16) + 20)
   return g
 }
 
@@ -394,6 +397,9 @@ export function paseo (v) {
   g.userData.carriles = v.carriles ?? 5
   g.userData.tapaElMundo = true
   g.userData.sinSombra = true
+  // Por encima de lo más alto que haya a los lados: es la altura a la que el
+  // plano de llegada puede recorrer la calle sin meterse dentro de un edificio.
+  g.userData.altoVuelo = Math.max(32, (v.alturas?.[1] ?? 16) + 20)
   return g
 }
 
@@ -474,6 +480,9 @@ export function puenteDe (v) {
   g.userData.carriles = v.carriles ?? 3
   g.userData.tapaElMundo = true
   g.userData.sinSombra = true
+  // Por encima de lo más alto que haya a los lados: es la altura a la que el
+  // plano de llegada puede recorrer la calle sin meterse dentro de un edificio.
+  g.userData.altoVuelo = Math.max(32, (v.alturas?.[1] ?? 16) + 20)
   g.userData.baseZ = -96
   return g
 }
@@ -506,6 +515,9 @@ export function avenida (v) {
   g.userData.carriles = v.carriles ?? 5
   g.userData.tapaElMundo = true
   g.userData.sinSombra = true
+  // Por encima de lo más alto que haya a los lados: es la altura a la que el
+  // plano de llegada puede recorrer la calle sin meterse dentro de un edificio.
+  g.userData.altoVuelo = Math.max(32, (v.alturas?.[1] ?? 16) + 20)
   return g
 }
 
@@ -534,6 +546,9 @@ export function muelle (v) {
   g.userData.carriles = v.carriles ?? 5
   g.userData.tapaElMundo = true
   g.userData.sinSombra = true
+  // Por encima de lo más alto que haya a los lados: es la altura a la que el
+  // plano de llegada puede recorrer la calle sin meterse dentro de un edificio.
+  g.userData.altoVuelo = Math.max(32, (v.alturas?.[1] ?? 16) + 20)
   return g
 }
 
@@ -617,6 +632,9 @@ export function explanada (v) {
   g.userData.carriles = v.carriles ?? 5
   g.userData.tapaElMundo = true
   g.userData.sinSombra = true
+  // Por encima de lo más alto que haya a los lados: es la altura a la que el
+  // plano de llegada puede recorrer la calle sin meterse dentro de un edificio.
+  g.userData.altoVuelo = Math.max(32, (v.alturas?.[1] ?? 16) + 20)
   return g
 }
 
@@ -644,6 +662,9 @@ export function isla (v) {
   g.userData.carriles = v.carriles ?? 4
   g.userData.tapaElMundo = true
   g.userData.sinSombra = true
+  // Por encima de lo más alto que haya a los lados: es la altura a la que el
+  // plano de llegada puede recorrer la calle sin meterse dentro de un edificio.
+  g.userData.altoVuelo = Math.max(32, (v.alturas?.[1] ?? 16) + 20)
   return g
 }
 
@@ -679,6 +700,9 @@ export function mirador (v) {
   g.userData.carriles = v.carriles ?? 5
   g.userData.tapaElMundo = true
   g.userData.sinSombra = true
+  // Por encima de lo más alto que haya a los lados: es la altura a la que el
+  // plano de llegada puede recorrer la calle sin meterse dentro de un edificio.
+  g.userData.altoVuelo = Math.max(32, (v.alturas?.[1] ?? 16) + 20)
   return g
 }
 
@@ -714,6 +738,9 @@ export function campo (v) {
   g.userData.carriles = v.carriles ?? 5
   g.userData.tapaElMundo = true
   g.userData.sinSombra = true
+  // Por encima de lo más alto que haya a los lados: es la altura a la que el
+  // plano de llegada puede recorrer la calle sin meterse dentro de un edificio.
+  g.userData.altoVuelo = Math.max(32, (v.alturas?.[1] ?? 16) + 20)
   return g
 }
 

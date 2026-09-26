@@ -1331,7 +1331,7 @@ export function createWorld (canvas) {
   let bosqueVisible = null
   let bioma = null
 
-  function poblar (clave, b, hitosMision = [], suelo = 'carretera', dentroDeLugar = false) {
+  function poblar (clave, b, hitosMision = [], suelo = 'carretera', dentroDeLugar = null) {
     const g = new THREE.Group()
     const borde = fieldWidth / 2 + 3.4
     // Los hitos de la misión se construyen ANTES que la vegetación, para saber
@@ -1525,6 +1525,41 @@ export function createWorld (canvas) {
     // de dron. Los de Meshy siguen con el vuelo de siempre: su caja cambia cuando
     // llega el modelo.
     let vista = principal?.userData.vista ?? null
+
+    // EL PLANO DE LLEGADA DENTRO DE UN LUGAR.
+    //
+    // Isidro: «ya no hay movimientos de cámara». Y tenía razón en lo que veía,
+    // aunque el plano seguía ahí: el de siempre pone la cámara AL LADO del
+    // monumento, y eso valía cuando a los lados de la carretera no había nada.
+    // Ahora hay una ciudad, así que la cámara arrancaba metida entre los
+    // tejados y lo que se veía era la pared de atrás de un edificio. Un plano
+    // que empieza contra una pared no parece un plano.
+    //
+    // Dentro de un lugar se vuela por EL EJE DE LA CALLE, que es lo único
+    // despejado: desde arriba y por detrás de la base, mirando al fondo, y
+    // bajando hasta el sitio de juego. Se ve la calle entera, los edificios de
+    // los dos lados pasando y el monumento al fondo.
+    if (dentroDeLugar && !vista) {
+      // Un poco de lado, distinto en cada sitio, para que cuarenta y un tramos
+      // no abran con el mismo plano clavado.
+      let h = 0
+      for (let i = 0; i < clave.length; i++) h = (h * 31 + clave.charCodeAt(i)) | 0
+      // El desvío se queda corto a propósito: con ±14 la cámara arrancaba
+      // dentro de la fila de fachadas, que empieza en x = 12,5.
+      const desvio = ((h % 13) - 6) * 0.9
+      const zMira = foco ? foco.getCenter(new THREE.Vector3()).z : -80
+      vista = { desde: [desvio, dentroDeLugar.altoVuelo ?? 46, 40], mira: [desvio * 0.3, 9, zMira] }
+      // Sin monumento no hay `foco`, y sin `foco` el vuelo ni empieza. Los
+      // tramos que no llevan monumento —Valencia, el enlace de Bombay, la
+      // Quinta Avenida, Times Square— se quedaban sin plano por eso. El sitio
+      // ya es el monumento: se le da una caja al final de la calle.
+      if (!foco || foco.isEmpty()) {
+        foco = new THREE.Box3(new THREE.Vector3(-20, 0, -96), new THREE.Vector3(20, 22, -60))
+        // Y hay que volver a colgarla: `userData.foco` se asignó unas líneas más
+        // arriba, cuando todavía era nula.
+        fundido.userData.foco = foco
+      }
+    }
     if (!vista && foco && !principal.userData.aparte) {
       const c = foco.getCenter(new THREE.Vector3())
       const t = foco.getSize(new THREE.Vector3())
@@ -1944,10 +1979,10 @@ export function createWorld (canvas) {
     // `conHitos` lo traen los lugares de `ciudades.js`: se tragan el decorado
     // de carretera igual que el puente, pero dejan el monumento de la ciudad,
     // que es lo que cierra el eje de la calle.
-    const dentroDeLugar = !!escenarioVisto?.userData.conHitos
+    const dentroDeLugar = escenarioVisto?.userData.conHitos ? escenarioVisto.userData : null
     const mio = bosques.get(llave) ?? poblar(llave, b, hitosMision, suelo, dentroDeLugar)
     // En un escenario cerrado, el decorado de carretera no pinta nada.
-    mio.visible = !escenarioTapa || dentroDeLugar
+    mio.visible = !escenarioTapa || !!dentroDeLugar
     bosqueVisible = mio
     // El arenal se moldea al relieve del tramo que toca. Aquí y no en `poblar`,
     // que solo se ejecuta la primera vez que se ve cada bioma.
