@@ -1,5 +1,43 @@
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import fs from 'node:fs'
+import path from 'node:path'
+
+// Guardar capturas del juego en disco, SOLO en desarrollo.
+//
+// Hace falta para revisar los mapas: hay cuarenta y un sitios y la única forma
+// honesta de decir que uno «se parece» es mirarlo. Sin esto, una captura del
+// lienzo se queda dentro del navegador. La página manda el JPEG a /__foto y
+// aquí se escribe en `vistas/`, que está fuera de git.
+//
+// No entra en la versión publicada: `apply: 'serve'` solo lo monta el servidor
+// de desarrollo, así que en GitHub Pages esta ruta no existe.
+const guardarFotos = () => ({
+  name: 'guardar-fotos',
+  apply: 'serve',
+  configureServer (server) {
+    server.middlewares.use('/__foto', (req, res) => {
+      if (req.method !== 'POST') { res.statusCode = 405; return res.end('solo POST') }
+      let cuerpo = ''
+      req.on('data', t => { cuerpo += t })
+      req.on('end', () => {
+        try {
+          const { nombre, datos } = JSON.parse(cuerpo)
+          // El nombre lo pone quien pide la captura, así que se limpia: nada de
+          // subir por el árbol de carpetas desde una página web.
+          const limpio = path.basename(String(nombre)).replace(/[^\w.-]/g, '_')
+          const dir = path.resolve('vistas')
+          fs.mkdirSync(dir, { recursive: true })
+          fs.writeFileSync(path.join(dir, limpio), Buffer.from(String(datos).split(',')[1], 'base64'))
+          res.end('ok ' + limpio)
+        } catch (e) {
+          res.statusCode = 400
+          res.end('mal: ' + e.message)
+        }
+      })
+    })
+  }
+})
 
 export default defineConfig({
   base: './',
@@ -10,6 +48,7 @@ export default defineConfig({
     }
   },
   plugins: [
+    guardarFotos(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg'],

@@ -14,6 +14,7 @@
 
 import * as THREE from 'three'
 import { NIVEL_DETALLE, seg } from './systems/detalle.js'
+import { LUGARES } from './ciudades.js'
 
 const mat = (color, roughness = 0.8, metalness = 0) =>
   new THREE.MeshStandardMaterial({ color, roughness, metalness })
@@ -78,10 +79,15 @@ function puente () {
     for (let z = DESDE_Z; z > HASTA_Z; z -= 4) {
       const zoca = pon(g, new THREE.BoxGeometry(0.62, 0.42, 3.8), hormigon, lado * BARRERA_X, 0.21, z)
       zoca.castShadow = true
-      pon(g, new THREE.BoxGeometry(0.34, 0.38, 3.8), hormigon, lado * BARRERA_X, 0.6, z)
+      const alta = pon(g, new THREE.BoxGeometry(0.34, 0.38, 3.8), hormigon, lado * BARRERA_X, 0.6, z)
+      // `muro`: esto CIERRA el carril, o sea que estar en el borde del pasillo
+      // es su trabajo. `herramientas/pasillo-libre.mjs` lo salta.
+      zoca.userData.muro = true
+      alta.userData.muro = true
     }
     // El pasamanos, de una pieza: es fino y así no se ven las juntas.
-    pon(g, new THREE.BoxGeometry(0.42, 0.1, LARGO), acero, lado * BARRERA_X, 0.84, -120)
+    const pasamanos = pon(g, new THREE.BoxGeometry(0.42, 0.1, LARGO), acero, lado * BARRERA_X, 0.84, -120)
+    pasamanos.userData.muro = true
   }
 
   // --- acera y pretil exterior ----------------------------------------------
@@ -119,16 +125,23 @@ function puente () {
       // fuera llega a 4,7 (medido en partida). Se lleva al BORDE del tablero,
       // que además es donde va en el Zolotói de verdad: la pata en 6,5 con 1,8
       // de ancho arranca en 5,6 y no la alcanza ni el más ancho.
+      // Y OJO CON LA INCLINACIÓN, que la primera vez se me pasó: mover el centro
+      // de la pata a 6,5 no bastaba, porque la pata va inclinada y el PIE se iba
+      // dos metros hacia dentro. Con la inclinación de antes el pie arrancaba en
+      // x = 3,6 y los bichos del carril de fuera (4,7 medido) seguían
+      // atravesándolo por abajo. Ahora se inclina al revés —abierta abajo y
+      // recogida arriba, que es como se ve la uve del Zolotói desde el coche— y
+      // la cuenta sale: pie en 7,0 menos 0,9 de medio ancho = 6,1, contra 4,7.
+      // Comprobado con `herramientas/pasillo-libre.mjs`.
       const alto = 40
-      const pata = pon(g, new THREE.BoxGeometry(1.8, alto, 2.6), hormigon, lado * 6.5, alto / 2 - 2, zp)
-      pata.rotation.z = -lado * 0.1
+      const pata = pon(g, new THREE.BoxGeometry(1.8, alto, 2.6), hormigon, lado * 6, alto / 2 - 2, zp)
+      pata.rotation.z = lado * 0.05
       pata.castShadow = true
     }
-    // El travesaño donde se juntan, arriba.
-    // Los travesaños, alargados con las patas: antes medían 11 y 13 para unas
-    // patas en 5,2, y con ellas en 6,5 se quedaban cortos, colgando en el aire.
-    pon(g, new THREE.BoxGeometry(13.6, 2, 2.8), hormigon, 0, 36, zp)
-    pon(g, new THREE.BoxGeometry(15.4, 1.4, 2.2), hormigon, 0, 12, zp)
+    // Los travesaños donde se juntan. Su ancho sale de dónde están las patas a
+    // esa altura: a 36 las patas se han recogido a 5,1 y a 12 están en 6,3.
+    pon(g, new THREE.BoxGeometry(11.2, 2, 2.8), hormigon, 0, 36, zp)
+    pon(g, new THREE.BoxGeometry(13.4, 1.4, 2.2), hormigon, 0, 12, zp)
 
     // Los abanicos de tirantes: del alto del pilono al tablero, hacia los dos
     // lados. Cada uno es un cilindro estirado y girado a su sitio.
@@ -706,8 +719,12 @@ function circuito () {
   // muro de tiempos por encima.
   const X_MURO = 4.9
   for (let z = DESDE; z > HASTA; z -= 4) {
-    pon(g, new THREE.BoxGeometry(0.5, 1.05, 3.9), hormigon, X_MURO, 0.52, z)
-    pon(g, new THREE.BoxGeometry(0.56, 0.5, 3.9), (z | 0) % 8 === 0 ? piano : mat(0xe8e6e0, 0.7), X_MURO, 1.3, z)
+    const bajo = pon(g, new THREE.BoxGeometry(0.5, 1.05, 3.9), hormigon, X_MURO, 0.52, z)
+    const alto = pon(g, new THREE.BoxGeometry(0.56, 0.5, 3.9), (z | 0) % 8 === 0 ? piano : mat(0xe8e6e0, 0.7), X_MURO, 1.3, z)
+    // El muro de boxes es lo que cierra el carril de la derecha (ver `muro` en
+    // el puente).
+    bajo.userData.muro = true
+    alto.userData.muro = true
   }
   // Los garajes al otro lado del muro.
   for (let z = DESDE - 6; z > -150; z -= 12) {
@@ -729,13 +746,16 @@ function circuito () {
   }
 
   // --- tribuna al otro lado --------------------------------------------------
+  // OJO CON LA Z: la tribuna mide 150 de ancho y cruza la pista de lado a lado,
+  // así que tiene que quedar DETRÁS de donde aparecen los bichos (z = -44) o la
+  // atraviesan entera cada oleada. Estaba en -36,9 y lo hacían.
   for (let k = 0; k < 11; k++) {
     pon(g, new THREE.BoxGeometry(150, 0.9, 1.5), k % 4 === 3 ? mat(0x7d7a74, 0.92) : hormigon,
-      0, 1 + k * 0.9, -(BORDE + 30 + k * 1.5))
+      0, 1 + k * 0.9, -(BORDE + 56 + k * 1.5))
   }
   for (let i = 0; i < 90; i++) {
     pon(g, new THREE.BoxGeometry(1, 0.5, 0.55), i % 6 === 1 ? mat(0xd63a2f, 0.85) : mat(0xdcdcd8, 0.85),
-      -72 + (i % 45) * 3.2, 1.6 + Math.floor(i / 45) * 2.7, -(BORDE + 31.5 + Math.floor(i / 45) * 4.5))
+      -72 + (i % 45) * 3.2, 1.6 + Math.floor(i / 45) * 2.7, -(BORDE + 57.5 + Math.floor(i / 45) * 4.5))
   }
 
   g.userData.carriles = 4
@@ -743,4 +763,8 @@ function circuito () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito }
+// Los treinta y ocho lugares de `ciudades.js` entran por aqui: para
+// `world.ponerEscenario` son escenarios como el puente o el estadio, y no hay
+// que tocar nada mas. Cada uno se construye la primera vez que se entra en su
+// mision y se queda en cache.
+export const ESCENARIOS = { puente, estadio, circuito, ...LUGARES }

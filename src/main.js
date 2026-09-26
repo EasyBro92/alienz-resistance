@@ -2130,6 +2130,7 @@ const elAjustesValor = document.getElementById('ajustes-valor')
 
 const OPCIONES = [
   ['auto', 'Auto', 'El juego mide cómo va y sube o baja la calidad solo. Es lo recomendable: acierta más que cualquiera de nosotros dos, porque lo mide en TU móvil.'],
+  ['ultra', CALIDADES.ultra.nombre, CALIDADES.ultra.detalle],
   ['alta', CALIDADES.alta.nombre, CALIDADES.alta.detalle],
   ['media', CALIDADES.media.nombre, CALIDADES.media.detalle],
   ['baja', CALIDADES.baja.nombre, CALIDADES.baja.detalle]

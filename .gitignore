@@ -13,3 +13,6 @@ _*.html
 # Mallas de Meshy pendientes de revisar
 herramientas/revisar/
 herramientas/blender/vistas/
+
+# Capturas de revisión (el plugin `guardar-fotos` de vite.config.js)
+vistas/

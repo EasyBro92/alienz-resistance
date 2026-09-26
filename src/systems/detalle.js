@@ -18,7 +18,7 @@ const CLAVE = 'alienz-calidad-v1'
 // Factor sobre los segmentos de cada primitiva. Un cilindro de diez lados con
 // factor 0,6 pasa a seis: en una figura de setenta píxeles de alto no se
 // distingue, y una esfera baja de 14x10 a 8x6, que es la mitad de vértices.
-export const FACTORES = { alta: 1, media: 0.8, baja: 0.55 }
+export const FACTORES = { ultra: 1, alta: 1, media: 0.8, baja: 0.55 }
 
 function adivinarPorElAparato () {
   // Con la calidad en automático la mejor pista es lo que pasó la última vez:
@@ -44,7 +44,7 @@ function adivinarPorElAparato () {
 function elegir () {
   let pref = 'auto'
   try { pref = localStorage.getItem(CLAVE) ?? 'auto' } catch { /* modo privado */ }
-  if (pref === 'alta' || pref === 'media' || pref === 'baja') return pref
+  if (pref === 'ultra' || pref === 'alta' || pref === 'media' || pref === 'baja') return pref
   return adivinarPorElAparato()
 }
 
@@ -70,3 +70,10 @@ export const FUNDE_TONOS = DETALLE <= 0.7
 // Cuántos lados le tocan a una primitiva con este detalle. Nunca menos de tres,
 // que es el mínimo para que un cilindro siga siendo un cuerpo.
 export const seg = (n, minimo = 3) => Math.max(minimo, Math.round(n * DETALLE))
+
+// El decorado de mas de cada ciudad: los puestos del mercado de Kano, los
+// mastiles del puerto de Marsella, las sillas de las terrazas, los bolardos.
+// Nada de esto hace falta para entender donde estas —el sitio se reconoce sin
+// ello—, asi que solo se construye en ultra. En alta el juego cuesta lo mismo
+// que antes de vestir las ciudades.
+export const CON_EXTRAS = nivel === 'ultra'

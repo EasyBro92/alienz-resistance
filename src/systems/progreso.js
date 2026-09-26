@@ -13,12 +13,52 @@ import { cargarCartera } from './cartera.js'
 // destinos y ahora son treinta y seis misiones—, así que el progreso de la v1
 // se acreditaría a ciudades equivocadas: las estrellas de Marsella caerían en
 // Valencia. Se empieza limpio en vez de mentir.
-const CLAVE = 'alienz-progreso-v2'
+const CLAVE = 'alienz-progreso-v3'
+const CLAVE_V2 = 'alienz-progreso-v2'
+
+// v3 desde que Nueva York tiene tres tramos. Se metieron DOS misiones nuevas
+// (Times Square y la Isla de la Libertad) detrás de la Quinta Avenida, que era
+// el tramo 29, así que todo lo que venía después —México, Dominicana y Brasil—
+// se movió dos sitios. El progreso se guarda por NÚMERO de misión, así que sin
+// migrar, las tres estrellas de Monterrey se habrían acreditado a Times Square.
+//
+// No se empieza de cero como en la v2: Isidro tiene la campaña jugada y perder
+// sus estrellas por un cambio de decorado no vale la pena. Se corren los
+// índices y, a quien ya hubiera pasado de Nueva York, se le dan los dos tramos
+// nuevos por superados —o se quedaría con México bloqueado sin haber perdido
+// nada—. Estrellas de los dos nuevos: ninguna, están ahí para jugarlas.
+const CORTE_NY = 30   // el primero de los dos nuevos
+const METIDOS = 2
+
+function migrarDeV2 () {
+  let viejo = null
+  try {
+    const txt = localStorage.getItem(CLAVE_V2)
+    if (!txt) return null
+    viejo = JSON.parse(txt)
+  } catch { return null }
+  if (!viejo || typeof viejo !== 'object') return null
+  const rangos = {}
+  for (const k in viejo.rangos ?? {}) {
+    const i = Number(k)
+    if (!Number.isFinite(i)) continue
+    rangos[i < CORTE_NY ? i : i + METIDOS] = viejo.rangos[k]
+  }
+  const n = Number(viejo.superados)
+  const superados = Number.isFinite(n) ? (n <= CORTE_NY ? n : n + METIDOS) : 0
+  const nuevo = { superados, rangos }
+  try {
+    localStorage.setItem(CLAVE, JSON.stringify(nuevo))
+    // La clave vieja se deja: si algo sale mal en la versión nueva, el progreso
+    // de verdad sigue estando donde estaba.
+  } catch { /* modo privado */ }
+  return nuevo
+}
 
 function leerCrudo () {
   try {
     const txt = localStorage.getItem(CLAVE)
-    if (!txt) return null
+    if (!txt) return migrarDeV2()
     return JSON.parse(txt)
   } catch {
     // Almacén bloqueado (modo privado), lleno, o texto que no es JSON.

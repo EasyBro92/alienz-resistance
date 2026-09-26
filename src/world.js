@@ -1331,7 +1331,7 @@ export function createWorld (canvas) {
   let bosqueVisible = null
   let bioma = null
 
-  function poblar (clave, b, hitosMision = [], suelo = 'carretera') {
+  function poblar (clave, b, hitosMision = [], suelo = 'carretera', dentroDeLugar = false) {
     const g = new THREE.Group()
     const borde = fieldWidth / 2 + 3.4
     // Los hitos de la misión se construyen ANTES que la vegetación, para saber
@@ -1363,7 +1363,10 @@ export function createWorld (canvas) {
       hastaZ: FIELD.baseZ + 10,
       ocupado
     })
-    for (const [tipo, tono, cuantos] of b.flora ?? []) {
+    // Dentro de un lugar no se suelta nada por el campo: los arboles, las
+    // farolas y lo tirado por el suelo los pone el lugar, colocados donde tienen
+    // sentido. Sueltos salian palmeras creciendo dentro de una fachada.
+    for (const [tipo, tono, cuantos] of dentroDeLugar ? [] : (b.flora ?? [])) {
       const hacer = FLORA[tipo]
       if (!hacer) continue
       for (let i = 0; i < cuantos; i++) {
@@ -1388,7 +1391,7 @@ export function createWorld (canvas) {
     // Los restos van más pegados a la calzada que los árboles: lo que se quedó
     // tirado se quedó tirado EN la carretera o al borde, no en mitad del campo.
     // Coches y contenedores abandonados en la arena o en el césped no pintan nada.
-    const sinRestos = suelo === 'playa' || suelo === 'parque'
+    const sinRestos = dentroDeLugar || suelo === 'playa' || suelo === 'parque'
     for (const [tipo, tono, cuantos] of sinRestos ? [] : (b.restos ?? [])) {
       const hacer = RESTOS[tipo]
       if (!hacer) continue
@@ -1412,7 +1415,9 @@ export function createWorld (canvas) {
       pieza.position.y += relieveTramo.alto(pieza.position.x, pieza.position.z)
     }
 
-    if (b.hito) {
+    // El hito de REGION (el que comparten las tres misiones de un pais) no
+    // entra en un lugar: cada sitio trae el suyo propio.
+    if (b.hito && !dentroDeLugar) {
       const [tipo, ...args] = b.hito
       if (HITOS[tipo]) g.add(HITOS[tipo](...args))
     }
@@ -1422,8 +1427,66 @@ export function createWorld (canvas) {
     // para el monumento; agrandarlo lo metería dentro de las fachadas.
     const conAvenida = deMision.some(h => (h.userData.lados?.length ?? 0) === 2)
     for (const h of deMision) {
-      if (conAvenida || h.userData.acompaña || h.userData.aparte || (h.userData.lados?.length ?? 0) !== 1) continue
+      if (dentroDeLugar || conAvenida || h.userData.acompaña || h.userData.aparte || (h.userData.lados?.length ?? 0) !== 1) continue
       agrandar(h)
+    }
+    // Dentro de un lugar el monumento se pone a CERRAR EL EJE, que es como se ve
+    // en cualquier foto del sitio: el Coliseo al final de la Via dei Fori, la
+    // Puerta de la India al fondo del Rajpath, el Empire State cerrando la
+    // Quinta Avenida. Centrado y detras de donde aparecen los bichos (z = -52),
+    // asi que no estorba el pasillo. El segundo y el tercero, a los lados y mas
+    // atras, que son acompañamiento.
+    if (dentroDeLugar) {
+      let n = 0
+      for (const h of deMision) {
+        let caja = cajaMonumento(h)
+        if (caja.isEmpty()) continue
+        let t = caja.getSize(new THREE.Vector3())
+        // DOS cajas, y hacen falta las dos. `cajaMonumento` deja fuera lo
+        // marcado `sinFoco` —el agua, las pirámides, las montañas, los
+        // rascacielos de relleno—, que es lo que hay que mirar para saber cómo
+        // de grande se ve LA COSA que da nombre al sitio. Pero para COLOCARLO
+        // hay que contar con todo: en Gizeh la caja del foco es la Esfinge, y
+        // centrando por ella las pirámides se iban a x = 70 y z = -209, o sea
+        // detrás de la niebla y fuera de la pantalla. Se veía una explanada de
+        // arena vacía.
+        const todo = new THREE.Box3().setFromObject(h)
+        let tt = todo.getSize(new THREE.Vector3())
+        // El principal se agranda hasta llenar el final de la calle. Estaban
+        // hechos para mirarlos de lado a once metros, y puestos al fondo del eje
+        // se quedaban en un juguete. Los topes salen del encuadre del móvil
+        // vertical: más de 46 de ancho no cabe, y por encima de unos 40 de alto
+        // a esa distancia ya lo tapa el marcador.
+        //
+        // Los de Meshy no se tocan: su caja de verdad llega con el modelo, y
+        // agrandar el respaldo de código dejaría una Estatua de la Libertad de
+        // cien metros en cuanto cargara la buena.
+        if (n === 0 && !h.userData.aparte) {
+          // Se agranda hasta llenar el final de la calle, pero sin que el
+          // conjunto entero se salga: más de 100 de ancho no cabe en la cuña
+          // que se ve en un móvil vertical y más de 84 de fondo se lo come la
+          // niebla, que cierra del todo a z ≈ -130.
+          const f = Math.min(2.4,
+            46 / Math.max(t.x, 1), 40 / Math.max(t.y, 1),
+            100 / Math.max(tt.x, 1), 84 / Math.max(tt.z, 1))
+          if (f < 0.98 || f > 1.05) {
+            h.scale.multiplyScalar(f)
+            caja = cajaMonumento(h)
+            t = caja.getSize(new THREE.Vector3())
+            todo.setFromObject(h)
+            tt = todo.getSize(new THREE.Vector3())
+          }
+        }
+        const c = todo.getCenter(new THREE.Vector3())
+        // Su cara de delante justo detrás de donde aparecen los bichos (-52):
+        // así se ve grande sin estorbar el pasillo.
+        const destino = n === 0
+          ? new THREE.Vector3(0, 0, -56 - tt.z / 2)
+          : new THREE.Vector3((n % 2 ? 1 : -1) * (30 + Math.min(40, tt.x) / 2), 0, -100)
+        h.position.x += destino.x - c.x
+        h.position.z += destino.z - c.z
+        n++
+      }
     }
     const aparte = deMision.filter(h => h.userData.aparte)
     for (const h of deMision) if (!h.userData.aparte) g.add(h)
@@ -1544,6 +1607,9 @@ export function createWorld (canvas) {
       // queda en una por material. Nada de esto se mueve, asi que no se pierde.
       const g = bake(crudo, false)
       g.userData = crudo.userData
+      // El nombre también: `bake` devuelve un grupo nuevo, y sin esto no hay forma
+      // de saber desde fuera qué sitio se está viendo.
+      g.name = crudo.name
       // Lo de `extra` se funde APARTE y cuelga en su propio grupo: es la ciudad
       // de alrededor del estadio, que solo se enciende durante el vuelo de
       // llegada. Fundida junto con el estadio no habría forma de apagarla —
@@ -1816,7 +1882,10 @@ export function createWorld (canvas) {
     const campo = texturaCampo(suelo)
     for (const m of soloCarretera) m.visible = !campo
     for (const m of pintables.mobiliarioVia ?? []) m.visible = !campo && !escenarioTapa
-    const conFarolas = !campo || suelo === 'adoquin' || suelo === 'losas'
+    // Dentro de un lugar las farolas las pone el lugar, con la forma que le
+    // toque (fernandina en Marsella, recta en Salonica). Las del mundo se
+    // apagan o saldrian dos juegos de farolas en la misma acera.
+    const conFarolas = (!campo || suelo === 'adoquin' || suelo === 'losas') && !escenarioTapa
     for (const m of pintables.farolas ?? []) m.visible = conFarolas
     // Los detalles de la región, encima de lo que sea el suelo.
     const extra = b.sueloExtra
@@ -1846,8 +1915,8 @@ export function createWorld (canvas) {
     pintables.matojo.color.setHex(b.cerro)
     pintables.piedra.color.setHex(b.meseta)
 
-    scene.background.setHex(b.cielo)
-    scene.fog.color.setHex(b.niebla)
+    scene.background.setHex(fondo?.cielo ?? b.cielo)
+    scene.fog.color.setHex(fondo?.niebla ?? b.niebla)
     // Arriba, el cielo de la región un punto más hondo; abajo, su niebla, para
     // que el horizonte no tenga costura.
     cielos.cenit.value.setHex(b.cielo).multiplyScalar(0.78)
@@ -1857,10 +1926,10 @@ export function createWorld (canvas) {
     perfil.visible = (fondo?.ciudad ?? CON_CIUDAD.has(clave)) && !escenarioTapa
     matPerfil.color.setHex(b.cerro).lerp(new THREE.Color(b.niebla), 0.35).multiplyScalar(0.8)
     sun.color.setHex(b.sol)
-    cielo.color.setHex(b.cielo)
-    cielo.groundColor.setHex(b.ambiente)
+    cielo.color.setHex(fondo?.cielo ?? b.cielo)
+    cielo.groundColor.setHex(fondo?.ambiente ?? b.ambiente)
 
-    const hora = HORAS[b.hora] ?? HORAS.dia
+    const hora = HORAS[fondo?.hora ?? b.hora] ?? HORAS.dia
     sun.position.set(...hora.pos)
     sun.intensity = hora.sol
     rim.intensity = hora.rim
@@ -1870,9 +1939,13 @@ export function createWorld (canvas) {
     sun.shadow.camera.updateProjectionMatrix()
 
     for (const [k, g] of bosques) g.visible = k === llave
-    const mio = bosques.get(llave) ?? poblar(llave, b, hitosMision, suelo)
+    // `conHitos` lo traen los lugares de `ciudades.js`: se tragan el decorado
+    // de carretera igual que el puente, pero dejan el monumento de la ciudad,
+    // que es lo que cierra el eje de la calle.
+    const dentroDeLugar = !!escenarioVisto?.userData.conHitos
+    const mio = bosques.get(llave) ?? poblar(llave, b, hitosMision, suelo, dentroDeLugar)
     // En un escenario cerrado, el decorado de carretera no pinta nada.
-    mio.visible = !escenarioTapa
+    mio.visible = !escenarioTapa || dentroDeLugar
     bosqueVisible = mio
     // El arenal se moldea al relieve del tramo que toca. Aquí y no en `poblar`,
     // que solo se ejecuta la primera vez que se ve cada bioma.

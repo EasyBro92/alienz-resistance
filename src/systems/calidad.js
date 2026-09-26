@@ -22,6 +22,16 @@ import * as THREE from 'three'
 const CLAVE = 'alienz-calidad-v1'
 
 export const NIVELES = {
+  // Ultra NO la pone nunca el automatico: solo se llega a mano desde los
+  // ajustes. Isidro: «que salga una opcion para calidad ultra y que tenga ese
+  // 30% mas de calidad, en alta que no pase del de ahora». Asi el juego cuesta
+  // lo mismo que siempre para todo el mundo, y quien tenga movil de sobra puede
+  // pedir el decorado completo de cada ciudad (ver CON_EXTRAS en detalle.js).
+  ultra: {
+    nombre: 'Ultra',
+    detalle: 'El decorado completo de cada ciudad y sombras al doble. Solo si tu movil va sobrado.',
+    pixeles: 2, sombras: 4096, suaves: true, resplandor: true, particulas: 1.3
+  },
   alta: {
     nombre: 'Alta',
     detalle: 'Todo al máximo. Resolución doble, sombras suaves y resplandor.',
@@ -39,6 +49,9 @@ export const NIVELES = {
   }
 }
 
+// El automatico se mueve por esta escalera, y ultra no esta en ella a
+// proposito: subir solo a un escalon que puede dar tirones seria hacerle al
+// jugador justo lo que el ajuste automatico existe para evitar.
 const ORDEN = ['baja', 'media', 'alta']
 
 // --- lo que el automático vigila ---------------------------------------------
@@ -53,7 +66,7 @@ const ESPERA = 4            // segundos mínimos entre cambios
 export function leerPreferencia () {
   try {
     const v = localStorage.getItem(CLAVE)
-    return v === 'alta' || v === 'media' || v === 'baja' || v === 'auto' ? v : 'auto'
+    return v === 'ultra' || v === 'alta' || v === 'media' || v === 'baja' || v === 'auto' ? v : 'auto'
   } catch { return 'auto' }
 }
 
