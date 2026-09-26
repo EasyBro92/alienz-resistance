@@ -1917,6 +1917,8 @@ export function createWorld (canvas) {
 
     scene.background.setHex(fondo?.cielo ?? b.cielo)
     scene.fog.color.setHex(fondo?.niebla ?? b.niebla)
+    scene.fog.near = fondo?.nieblaCerca ?? 62
+    scene.fog.far = fondo?.nieblaLejos ?? 152
     // Arriba, el cielo de la región un punto más hondo; abajo, su niebla, para
     // que el horizonte no tenga costura.
     cielos.cenit.value.setHex(b.cielo).multiplyScalar(0.78)

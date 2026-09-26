@@ -150,7 +150,9 @@ export const PAISES = [
     misiones: [
       {
         name: 'Nápoles', lugar: 'Bajo el Vesubio · anillo sur', mapa: sitio(40.85, 14.26),
-        // Bloques napolitanos con persianas y el volcán cerrando la bahía.
+        // Bloques napolitanos con persianas y el volcán cerrando la bahía, con
+        // la vista abierta para que el Vesubio se vea de verdad.
+        fondo: { nieblaCerca: 85, nieblaLejos: 250 },
         escenario: 'napoles', suelo: 'carretera', hitos: [['maschioAngioino']],
         resumen: 'Todo llega deprisa. Lo que dispara lento no llega a tiempo.',
         parte: ['La ciudad se vació en cuatro días. En el anillo todo llega deprisa.',
@@ -258,7 +260,8 @@ export const PAISES = [
         name: 'El Cairo', lugar: 'Gizeh · explanada de las pirámides', mapa: sitio(29.98, 31.13),
         // La meseta de arena al atardecer, que es cuando las pirámides tienen
         // ese color y la sombra se va medio kilómetro.
-        fondo: { hora: 'ocaso', cielo: 0xe9a367, niebla: 0xe4bb93 },
+        // Con la vista abierta: las pirámides están lejos y son el sitio.
+        fondo: { hora: 'ocaso', cielo: 0xe9a367, niebla: 0xe4bb93, nieblaCerca: 90, nieblaLejos: 260 },
         escenario: 'elCairo', suelo: 'arena', tonoSuelo: 0xd8bf92, hitos: [['esfinge']],
         resumen: 'El campamento de la meseta, y lo que lo dirige.',
         parte: ['De aquí salió todo. Las naves se posan en la meseta a la vista de las pirámides.',
@@ -539,7 +542,7 @@ export const PAISES = [
       {
         name: 'Guadalajara', lugar: 'Plaza de Armas · frente a la catedral', mapa: sitio(20.66, -103.35),
         // Los portales con arcadas y la catedral de teja amarilla. Antes era «periférico, salida sur».
-        escenario: 'guadalajara', suelo: 'adoquin', tonoSuelo: 0x9e948a, hitos: [['catedralGdl']],
+        escenario: 'guadalajara', suelo: 'adoquin', tonoSuelo: 0xbdb2a2, hitos: [['catedralGdl']],
         resumen: 'Se curan y se blindan.',
         parte: ['La ciudad es su segundo hospital: aquí reparan lo que les rompemos.',
           'Los que la guardan se cosen entre ellos.'],

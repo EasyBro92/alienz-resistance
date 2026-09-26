@@ -38,7 +38,7 @@ export const CIUDADES = {
   // Vieux Port: el agua entra hasta el centro, los barcos amarrados de proa al
   // muelle, las fachadas ocres con persianas y Notre-Dame de la Garde arriba.
   marsella: ['muelle', {
-    semilla: 103, tono: 0xc9c2b2, ladoAgua: -1, tonoAgua: 0x2f7a86, barcas: true,
+    semilla: 103, tono: 0xc9c2b2, ladoAgua: -1, tonoAgua: 0x3f9fb4, barcas: true,
     estilo: 'europeo', paleta: [0xdcc9a4, 0xcbb389, 0xc2a57c], alturas: [12, 20], tejado: 0x9b5b3c,
     farolas: 'fernandina', cierre: 'monte', tonoMonte: 0x8a8164
   }],
@@ -63,7 +63,13 @@ export const CIUDADES = {
   // Anillo sur bajo el Vesubio: bloques napolitanos apiñados, persianas,
   // buganvillas, y el volcán cerrando el fondo.
   napoles: ['avenida', {
-    semilla: 106, tono: 0x6f6b66, tonoAcera: 0x9c968c, volcan: true, tonoVolcan: 0x39412f, cierre: 'nada',
+    semilla: 106, tono: 0x6f6b66, tonoAcera: 0x9c968c, volcan: true, tonoVolcan: 0x333a28, cierre: 'nada',
+    // Casas BAJAS en el lado del mar. El anillo sur va por la ladera con la
+    // bahía abierta a un lado, y si se ponen las dos filas de bloques altos el
+    // Vesubio no se ve desde ninguna parte: en un móvil vertical lo único que
+    // queda de cielo es la rendija del eje de la calle, y ahí están la base
+    // alien y el marcador. Con la fila baja, el volcán asoma por encima.
+    lados: [{}, { alturas: [4, 8], paleta: [0xd8b98e, 0xc9a273, 0xcdb290], tejado: 0x8d5c3f }],
     estilo: 'europeo', paleta: [0xd8b98e, 0xc9a273, 0xcdb290, 0xbf9a6e], alturas: [14, 24], tejado: 0x8d5c3f,
     // El que cierra la bahía es el Vesubio, no unos cerros cualquiera.
     arboles: 'copa', coches: true, paletaCoches: [0x8d2a2a, 0x24405e, 0xd9d4cc, 0x3d5c3a]
@@ -142,8 +148,8 @@ export const CIUDADES = {
   // La explanada de Aso Rock: el monolito de gneis de cuatrocientos metros, la
   // tierra roja y la mezquita nacional con la cúpula dorada.
   abuja: ['explanada', {
-    semilla: 116, tono: 0xc08a5e, bordes: 'setos', arboles: 'copa',
-    farolas: 'recta', cierre: 'monte', tonoMonte: 0x8a8076
+    semilla: 116, tono: 0xc9a074, bordes: 'setos', arboles: 'copa',
+    farolas: 'recta', cierre: 'monte', tonoMonte: 0x55604a
   }],
   // Mercado de Kurmi: la muralla de adobe de la ciudad vieja, los puestos con
   // toldos de colores y el polvo del Sahel.
@@ -272,8 +278,8 @@ export const CIUDADES = {
   // Plaza de Armas: el kiosco de hierro, los portales con arcadas y la catedral
   // de las dos torres con teja amarilla.
   guadalajara: ['plaza', {
-    semilla: 132, tono: 0x9e948a, farolas: 'fernandina', arboles: 'copa',
-    estilo: 'colonial', paleta: [0xd8c4a0, 0xcbb389, 0xd2bc98], alturas: [11, 15], remate: 0xc2a882,
+    semilla: 132, tono: 0xbdb2a2, farolas: 'fernandina', arboles: 'copa',
+    estilo: 'colonial', paleta: [0xe4d2ac, 0xd8c096, 0xe0cda8, 0xd2bc98], alturas: [11, 15], remate: 0xd0bc96,
     cierre: 'fachada'
   }],
   // Paseo de la Reforma: la glorieta del Ángel, los jacarandás en flor y las

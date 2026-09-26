@@ -544,9 +544,9 @@ function barcas (g, lado, v) {
   const casco = mat(0xe4e1d8, 0.7)
   const linea = mat(0x24405e, 0.6)
   const palo = mat(0xd8d4c8, 0.5)
-  for (let i = 0; i < 9; i++) {
-    const z = 4 - i * 12 - az() * 4
-    const x = lado * (11 + az() * 5)
+  for (let i = 0; i < 14; i++) {
+    const z = 6 - i * 8.5 - az() * 3
+    const x = lado * (9.6 + az() * 4)
     const b = new THREE.Group()
     b.position.set(x, -1.3, z)
     b.rotation.y = lado * (1.4 + (az() - 0.5) * 0.4)
@@ -775,17 +775,22 @@ function vestirExtras (g, v) {
     // color arena contra un cielo color arena desaparecen —estaban construidas y
     // no se veía ni una—. Van bastante más oscuras de lo que son de verdad para
     // que la niebla las deje en silueta, que es como se ven desde El Cairo.
-    const caliza = mat(0xa8823f, 0.95)
-    const punta = mat(0xd6b978, 0.9)
+    const caliza = mat(0xbb9349, 0.95)
+    const sombra = mat(0x8a6a31, 0.95)
+    const punta = mat(0xdfc58a, 0.9)
     // Keops, Kefrén y Micerinos, en su diagonal y a los tres tamaños. Con cuatro
     // lados y giradas 45° para que se vea una arista de frente, como en las
     // fotos, y no una cara plana.
     // Y OJO CON EL TAMAÑO: a 106 de la cámara, una pirámide de 46 de base tapa
     // media pantalla y deja de leerse como pirámide para ser una mancha. Estas
     // son las tres a escala de PAISAJE: se reconocen enteras, con su silueta.
-    for (const [x, z, alto, base] of [[-21, -99, 34, 27], [15, -117, 28, 22], [37, -105, 20, 16]]) {
+    for (const [x, z, alto, base] of [[-20, -92, 41, 32], [16, -110, 33, 26], [38, -98, 23, 18]]) {
       const p = pon(g, new THREE.ConeGeometry(base, alto, 4), caliza, x, alto / 2 - 1, z)
       p.rotation.y = Math.PI / 4
+      // La cara de sombra, un pelo por detrás y más oscura. Sin esto la pirámide
+      // es un triángulo de un solo color y no se lee el volumen.
+      const s = pon(g, new THREE.ConeGeometry(base * 0.99, alto * 0.99, 4), sombra, x + base * 0.06, alto / 2 - 1, z - base * 0.05)
+      s.rotation.y = Math.PI / 4
       // El casquete de caliza pulida que a Kefrén le queda en la punta.
       if (alto > 30) {
         const c = pon(g, new THREE.ConeGeometry(base * 0.22, alto * 0.2, 4), punta, x, alto * 0.91 - 1, z)
@@ -799,11 +804,26 @@ function vestirExtras (g, v) {
     // Nápoles— y el cono de ceniza oscuro arriba.
     // Oscuro por lo mismo que las pirámides: a esa distancia la niebla se come
     // cualquier tono medio.
-    const ladera = mat(v.tonoVolcan ?? 0x39412f, 0.95)
+    const ladera = mat(v.tonoVolcan ?? 0x333a28, 0.95)
     const ceniza = mat(0x241f1c, 0.95)
-    pon(g, new THREE.ConeGeometry(40, 36, seg(16)), ladera, 14, 15, -120)
-    pon(g, new THREE.ConeGeometry(13, 10, seg(14)), ceniza, 14, 36, -120)
-    const somma = pon(g, new THREE.ConeGeometry(24, 22, seg(14)), ladera, -34, 7, -124)
+    // Ni al fondo del eje ni a media altura: al LADO y alto. En el eje lo tapan
+    // la base alien (que se planta en z = -108) y el marcador; a media altura lo
+    // tapan las fachadas. Desde Nápoles el Vesubio se ve así, subiendo por
+    // encima de los tejados a un lado de la calle.
+    // A UN LADO y en diagonal, no de frente. La cámara del juego va picada y
+    // solo deja unos 84 píxeles de cielo por encima del horizonte: una montaña
+    // entera NO CABE —de frente se sale por arriba y lo que queda es una pared
+    // marrón—. Entrando por el costado se ve la ladera subir y salirse del
+    // cuadro, que es como se lee una montaña grande estando debajo.
+    // ANCHO Y BAJO, y no hay más remedio. Medido con la cámara del juego: a 140
+    // de distancia, cada unidad de altura son 9 píxeles de pantalla y por encima
+    // del horizonte solo hay 84 — o sea que todo lo que pase de unos 8 de alto
+    // se sale por arriba y deja de leerse como una montaña para ser una pared.
+    // Así que el Vesubio va como se ve estando a sus pies: una mole ancha y
+    // oscura que cierra la bahía, no un cono de postal.
+    pon(g, new THREE.ConeGeometry(62, 15, seg(18)), ladera, -8, 5, -118)
+    pon(g, new THREE.ConeGeometry(20, 5, seg(14)), ceniza, -8, 16, -118)
+    const somma = pon(g, new THREE.ConeGeometry(34, 10, seg(14)), ladera, -74, 3, -124)
     somma.scale.y = 0.9
   }
   if (v.gruas) {
