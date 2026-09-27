@@ -1,0 +1,71 @@
+/* La Guerra civil tiene su hoja propia: la del juego trae reglas de todas sus
+   pantallas y cualquiera de ellas podría colarse aquí. */
+:root {
+  --fondo: #0d1117;
+  --panel: rgba(14, 19, 26, 0.88);
+  --borde: rgba(255, 255, 255, 0.14);
+  --oro: #ffc93c;
+  --azul: #2f7de0;
+  --rojo: #d8403a;
+  --tinta: #fff;
+  --tenue: rgba(255, 255, 255, 0.62);
+}
+[hidden] { display: none !important; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--fondo); color: var(--tinta);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; user-select: none; }
+#gc-lienzo { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+.gc-capa { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px;
+  background: radial-gradient(circle at 50% 30%, rgba(40, 20, 20, 0.7), rgba(8, 10, 14, 0.94)); z-index: 5; }
+.gc-caja { width: min(420px, 100%); display: flex; flex-direction: column; gap: 10px; text-align: center; }
+.gc-caja h1 { margin: 0 0 4px; font-size: 38px; letter-spacing: 0.06em; font-weight: 900;
+  background: linear-gradient(90deg, var(--azul), #fff 50%, var(--rojo)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.gc-antetitulo { margin: 0; color: var(--tenue); text-transform: uppercase; letter-spacing: 0.2em; font-size: 12px; }
+.gc-texto { margin: 0 0 8px; color: var(--tenue); line-height: 1.45; font-size: 15px; }
+.gc-boton { display: block; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--borde);
+  background: rgba(255, 255, 255, 0.07); color: var(--tinta); font: 800 15px/1.2 inherit; letter-spacing: 0.04em;
+  text-decoration: none; cursor: pointer; }
+.gc-boton small { display: block; font-weight: 500; font-size: 12px; color: var(--tenue); letter-spacing: 0; margin-top: 2px; }
+.gc-boton:disabled { opacity: 0.42; cursor: default; }
+.gc-principal { background: linear-gradient(180deg, #e0463c, #9e2620); border-color: #ff8a7a; }
+.gc-principal small { color: rgba(255, 255, 255, 0.8); }
+.gc-volver { background: transparent; }
+
+/* --- marcador --- */
+#gc-hud { position: fixed; inset: 0; pointer-events: none; z-index: 3; }
+#gc-hud button { pointer-events: auto; }
+.gc-arriba { position: absolute; top: calc(8px + env(safe-area-inset-top)); left: 10px; right: 10px;
+  display: flex; align-items: center; gap: 10px; }
+.gc-mini { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--borde); background: var(--panel); color: var(--tinta); font-size: 16px; }
+.gc-reloj { background: var(--panel); border: 1px solid var(--borde); border-radius: 10px; padding: 7px 10px; font-variant-numeric: tabular-nums; }
+.gc-vida { flex: 1; background: var(--panel); border: 1px solid var(--borde); border-radius: 10px; padding: 5px 9px; }
+.gc-vida span { display: block; font-size: 11px; color: var(--tenue); text-transform: uppercase; letter-spacing: 0.1em; }
+.gc-barra { height: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.12); overflow: hidden; margin-top: 3px; }
+.gc-barra i { display: block; height: 100%; width: 100%; transition: width 0.25s; }
+.gc-rojo .gc-barra i { background: var(--rojo); }
+.gc-azul .gc-barra i { background: var(--azul); }
+
+.gc-abajo { position: absolute; left: 0; right: 0; bottom: 0; padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, transparent, rgba(8, 10, 14, 0.9) 22%); display: flex; flex-direction: column; gap: 6px; pointer-events: auto; }
+.gc-fila { display: flex; gap: 8px; align-items: center; }
+.gc-monedas { background: var(--panel); border: 1px solid rgba(255, 201, 60, 0.5); color: var(--oro); border-radius: 10px; padding: 8px 12px; font-variant-numeric: tabular-nums; min-width: 72px; text-align: center; }
+.gc-monedas::before { content: '● '; }
+.gc-modo { display: flex; background: var(--panel); border: 1px solid var(--borde); border-radius: 10px; overflow: hidden; }
+.gc-modo button, .gc-pestanas button { border: 0; background: transparent; color: var(--tenue); padding: 8px 12px; font: 700 13px inherit; }
+.gc-modo button.activo, .gc-pestanas button.activo { background: rgba(255, 255, 255, 0.14); color: var(--tinta); }
+.gc-avanzar { flex: 1; border-radius: 10px; border: 1px solid #ff8a7a; background: linear-gradient(180deg, #e0463c, #9e2620); color: #fff; font: 900 14px inherit; padding: 9px; letter-spacing: 0.04em; }
+.gc-avanzar:disabled { opacity: 0.4; }
+.gc-pestanas { display: flex; gap: 4px; }
+.gc-pestanas button { border-radius: 8px; }
+.gc-cartas { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.gc-cartas::-webkit-scrollbar { display: none; }
+.gc-carta { flex: 0 0 auto; width: 76px; padding: 7px 5px; border-radius: 10px; border: 1px solid var(--borde);
+  background: var(--panel); color: var(--tinta); font: 700 12px/1.15 inherit; text-align: center; position: relative; }
+.gc-carta b { display: block; color: var(--oro); font-size: 13px; margin-top: 4px; }
+.gc-carta small { display: block; color: var(--tenue); font-weight: 500; font-size: 10px; margin-top: 2px; }
+.gc-carta.elegida { border-color: var(--oro); box-shadow: 0 0 0 2px rgba(255, 201, 60, 0.45) inset; }
+.gc-carta.caro { opacity: 0.5; }
+.gc-carta.bloqueada { border-style: dashed; }
+.gc-carta .gc-nivel { position: absolute; top: 3px; right: 5px; font-size: 10px; color: var(--oro); }
+.gc-pista { margin: 0; font-size: 12px; color: var(--tenue); text-align: center; min-height: 15px; }

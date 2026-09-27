@@ -1790,6 +1790,8 @@ html, body {
 
 /* ---------- portada: botones del menú ---------- */
 /* VER EL MAPA grande y, debajo, TIENDA y ENEMIGOS del mismo tamaño. */
+.guerra-boton { margin-top: 10px; text-decoration: none; border-color: rgba(216, 64, 58, 0.7);
+  background: linear-gradient(90deg, rgba(47, 125, 224, 0.35), rgba(14, 19, 26, 0.86) 45%, rgba(14, 19, 26, 0.86) 55%, rgba(216, 64, 58, 0.35)); }
 .menu-fila { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
 .menu-boton {
   display: flex; align-items: center; justify-content: center; gap: 8px;

@@ -445,7 +445,9 @@ export async function createSoldier (key, spec, lane, row) {
           const dz = this.targetPos.z - this.pz
           this.wantYaw = Math.atan2(-dx, -dz)
         } else {
-          this.wantYaw = 0
+          // En reposo mira al frente. La Guerra civil pone `yawReposo` a media
+          // vuelta en el bando de arriba, que tiene el frente hacia +Z.
+          this.wantYaw = this.yawReposo ?? 0
         }
         // Giro por el camino corto: sin normalizar la diferencia, pasar de +179°
         // a -179° daría una vuelta entera al soldado.

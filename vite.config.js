@@ -44,6 +44,9 @@ export default defineConfig({
   // Firebase en su propio trozo con nombre, para poder dejarlo fuera de la precarga.
   build: {
     rollupOptions: {
+      // La Guerra civil es otra página (27/09): así no comparte ni un estado con
+      // la campaña y no puede estropearla.
+      input: { main: 'index.html', guerra: 'guerra.html' },
       output: { manualChunks: id => (id.includes('node_modules/firebase') || id.includes('node_modules/@firebase') ? 'firebase' : undefined) }
     }
   },
