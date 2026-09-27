@@ -173,7 +173,8 @@ export const PAISES = [
       {
         name: 'Milán', lugar: 'Piazza del Duomo', mapa: sitio(45.46, 9.19), bioma: 'mediterraneo',
         // La plaza hecha en Blender (herramientas/blender/lugar_milan.py): el arco de
-        // la Galleria al fondo, el Duomo a la derecha y los pórticos a la izquierda.
+        // la Galleria al fondo, el Duomo a la derecha a lo largo del campo y los
+        // pórticos en la línea de la Galleria.
         // Sin monumento aparte: el Duomo viene en el modelo.
         escenario: 'milanDuomo', suelo: 'losas', tonoSuelo: 0x8e8983, hitos: [],
         // Salen de la galería, por debajo del arco: nacen al fondo de ella, entre
@@ -192,7 +193,10 @@ export const PAISES = [
         parte: ['Milán era su laboratorio de diseño. Lo que funcionaba aquí lo copiaban en el resto de Europa.',
           'Espera formas que no has visto nunca.'],
         cierre: 'Quemamos los planos. Tardarán en rehacerlos, pero los rehacerán.',
-        waves: OLEADAS.formas
+        // Isidro, después de jugarla: «el nivel es muy fácil, haz las hordas más
+        // largas, pero solo en este mapa». La misma tabla con cada horda de 1,75
+        // veces más bichos y saliendo algo más seguidos.
+        waves: alargar(OLEADAS.formas, 1.75, 0.85)
       }
     ]
   },
@@ -692,5 +696,15 @@ PAISES.forEach((pais, ip) => {
   })
   pais.ultima = DESTINOS.length - 1
 })
+
+// Una tabla de oleadas con más bichos en cada horda: `veces` multiplica cuántos
+// salen de cada tipo y `seguido` acorta lo que tardan en salir uno detrás de
+// otro. Copia la tabla: las seis de oleadas.js las comparten muchos destinos.
+function alargar (tabla, veces, seguido = 1) {
+  return tabla.map(o => ({
+    ...o,
+    spawns: o.spawns.map(s => ({ ...s, count: Math.ceil(s.count * veces), every: +(s.every * seguido).toFixed(2) }))
+  }))
+}
 
 export const paisDe = indice => PAISES[DESTINOS[indice]?.paisIndice ?? 0]

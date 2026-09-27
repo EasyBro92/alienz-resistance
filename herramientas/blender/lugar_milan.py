@@ -17,10 +17,15 @@
 #     Por ahí salen los bichos: nacen dentro de la galería, entre los
 #     escaparates, y salen andando por debajo del arco. El hueco mide 16 de
 #     ancho, y los cinco carriles con el bicho más ancho ocupan ±7.
-#   · a la derecha, el Duomo, girado para dar la cara a la plaza. Es lo que
-#     enseña el vuelo de llegada; jugando queda fuera del cuadro, como cuando
-#     uno está en la plaza mirando al arco.
-#   · a la izquierda, los palazzi de los pórticos.
+#   · a la derecha, el Duomo, a lo largo del campo y con la fachada mirando a
+#     los carriles: así lo dibujó Isidro, con la foto del Duomo tumbada al lado
+#     de una captura de la partida. Es como está de verdad: mirando al arco de
+#     la Galleria (al norte), el Duomo queda a la derecha (al este) con la
+#     fachada mirando al oeste. Es lo que enseña el vuelo de llegada; jugando
+#     queda fuera del cuadro, como cuando uno está en la plaza mirando al arco.
+#   · a los lados del arco, los palazzi de los pórticos, en la misma línea que
+#     la Galleria; a la izquierda la plaza se abre, que es por donde se
+#     extiende la de verdad y desde donde la llegada mira al Duomo de frente.
 #   · el suelo, la lastra gris con las líneas blancas.
 #
 # Coordenadas: las del JUEGO (x a la derecha, y arriba, z hacia la cámara; la
@@ -170,7 +175,10 @@ def suelo (bm):
     # Mucho más grande que la plaza que se juega: la llegada mira al Duomo desde
     # lejos y con la niebla abierta, y con la lastra cortada en x = 50 y z = 30 se
     # veía el borde del mundo por delante y por detrás del Duomo.
-    quad(bm, P(-90, 0, 130), P(150, 0, 130), P(150, 0, -250), P(-90, 0, -250), i['lastra'])
+    # Hacia la izquierda llega más: la llegada mira al Duomo desde x = -102, y
+    # hacia la derecha hasta pasada la niebla abierta del vuelo, o se veía el
+    # borde del suelo en el horizonte, a los lados del Duomo.
+    quad(bm, P(-170, 0, 130), P(320, 0, 130), P(320, 0, -250), P(-170, 0, -250), i['lastra'])
     # Dentro de la galería, el mosaico.
     quad(bm, P(-7.9, 0.01, GAL_Z0), P(7.9, 0.01, GAL_Z0), P(7.9, 0.01, GAL_FIN), P(-7.9, 0.01, GAL_FIN), i['mosaico'])
     # Las líneas: la retícula grande y un rombo inscrito en cada tramo del
@@ -320,6 +328,15 @@ def portici (bm):
 
 MATS_POR, IDX_POR = indices('portici', 'portici-sombra', 'hueco', 'tejado', 'brillo-escaparate')
 o_por = malla('portici', portici, MATS_POR)
+# Se construyen a lo largo de z, con la fachada en x = -17, y luego se giran
+# para ponerlos en la línea de la Galleria (cara en z = -40, de x = -17 a -81),
+# mirando a la plaza. Donde estaban tapaban la llegada: con el Duomo a lo largo
+# del campo, la única forma de verlo entero y de frente en un móvil en vertical
+# es desde 120 a su izquierda, y ahí estaban ellos. El tramo que iba pegado a la
+# Galleria sigue pegado a ella. Jugando no se ven ni antes ni ahora: el borde de
+# la pantalla pasa por x ≈ -13.
+o_por.rotation_euler = (0, 0, math.radians(-90))
+o_por.location = P(-57, 0, -23)
 
 # ======================================================================================
 # 4. EL DUOMO
@@ -328,16 +345,17 @@ o_por = malla('portici', portici, MATS_POR)
 # 22— y luego se gira para darle la cara a la plaza, como en la foto de la
 # plaza al anochecer: la Galleria a la izquierda y el Duomo a la derecha.
 #
-# Primero iba en (31, -23) girado 60°, y en la llegada se veía de sesgo y
-# encima, con las agujas cayendo hacia dentro. Isidro: «queda más plano, o sea
-# un poco más alejado y más recto como se ve en la imagen». Ahora va más al
-# fondo y girado solo 20°: casi de cara a la plaza, que es como sale en la foto,
-# y la llegada lo mira de frente desde detrás del tablero.
-# El extremo izquierdo de la fachada queda en (20, -51) y la esquina del sagrato
-# en (17, -48): fuera de la Galleria, que acaba en x = 15, y fuera del cuadro
-# del móvil mientras se juega.
-DUOMO_CENTRO = (40.0, -44.0)
-DUOMO_GIRO = -20.0                       # grados: la fachada mira a (-0,34, 0, +0,94)
+# Primero iba en (31, -23) girado 60°, y luego en (40, -44) girado 20°. Ninguno
+# era lo que quería Isidro: lo dibujó en Paint, con la foto del Duomo tumbada al
+# lado derecho de una captura de la partida, desde la altura del arco hasta
+# donde está el jugador. O sea: A LO LARGO del campo, con la fachada mirando a
+# los carriles, que es como está en la plaza de verdad.
+# La fachada va en x = 18 (el sagrato llega a 13,4) y de z = -33 a 9, con el
+# sagrato hasta -35: fuera de la Galleria, que acaba en x = 15 y en z = -39. El
+# borde de la pantalla del móvil pasa por x ≈ 10-13 en ese tramo, así que
+# jugando no se ve.
+DUOMO_CENTRO = (18.0, -12.0)
+DUOMO_GIRO = -90.0                       # grados: la fachada mira a -x, a los carriles
 
 def duomo (bm):
     i = IDX_DUO
@@ -438,7 +456,9 @@ def farolas (bm):
     i = IDX_FAR
     # A la izquierda solo una: la del fondo quedaba DENTRO de la torre alien,
     # que va en (-10,5, -35,5).
-    for x, z in ((-10.2, -12), (10.2, -12), (10.2, -30)):
+    # Las dos de z = -12 se corren a 0,5: la llegada mira al Duomo de frente
+    # justo a esa z, y quedaban delante de la puerta grande.
+    for x, z in ((-10.2, 0.5), (10.2, 0.5), (10.2, -30)):
         cilindro(bm, (x, 0, z), 0.5, 1.3, 8, i['hierro'])
         cilindro(bm, (x, 1.3, z), 0.17, 6.8, 8, i['hierro'])
         for k in range(4):
@@ -528,6 +548,6 @@ if '--vista' in ARGS:
     foto('milan-juego.png', (0, 14.58, 22.27), (0, 0, -9), 48, 390, 844)
     # El primer plano de la llegada: el Duomo de frente, desde la plaza (los
     # mismos números que `vista` en escenarios.js).
-    foto('milan-duomo.png', (-2.8, 12, 73.5), (40, 26, -44), 48, 390, 844)
+    foto('milan-duomo.png', (-102, 13, -12), (18, 26, -12), 48, 390, 844)
     # Y una general desde lo alto.
     foto('milan-general.png', (-40, 70, 40), (5, 5, -45), 50, 900, 600)
