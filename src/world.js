@@ -43,7 +43,7 @@ function paintRoad (scene, pintables) {
   const stainMat = flat(0x4a1310, 0.2)
   const paintMat = pintables.raya
 
-  const put = (mesh, x, z, rotZ = 0, y = 0.014) => {
+  const put = (mesh, x, z, rotZ = 0, y = 0.06) => {
     mesh.rotation.x = -Math.PI / 2
     mesh.rotation.z = rotZ
     mesh.position.set(x, y, z)
@@ -87,7 +87,7 @@ function paintRoad (scene, pintables) {
     stain.scale.set(1, rand(0.5, 1), 1)
     for (let k = 0; k < 3; k++) {
       put(new THREE.Mesh(new THREE.CircleGeometry(rand(0.1, 0.3), 7), stainMat),
-        stain.position.x + rand(-s * 1.6, s * 1.6), stain.position.z + rand(-s * 1.6, s * 1.6), 0, 0.016)
+        stain.position.x + rand(-s * 1.6, s * 1.6), stain.position.z + rand(-s * 1.6, s * 1.6), 0, 0.064)
     }
   }
   // tapas de alcantarilla
@@ -97,7 +97,7 @@ function paintRoad (scene, pintables) {
     const x = rand(-half + 0.6, half - 0.6)
     const z = rand(FIELD.spawnZ - 14, FIELD.baseZ)
     put(new THREE.Mesh(new THREE.CircleGeometry(0.42, 14), tapaMat), x, z)
-    put(new THREE.Mesh(new THREE.RingGeometry(0.3, 0.36, 14), aroMat), x, z, 0, 0.015)
+    put(new THREE.Mesh(new THREE.RingGeometry(0.3, 0.36, 14), aroMat), x, z, 0, 0.062)
   }
   // flechas de dirección descoloridas, apuntando hacia la base
   for (let i = 0; i < 3; i++) {
@@ -570,7 +570,14 @@ export function createWorld (canvas) {
   scene.add(perfil)
   const CON_CIUDAD = new Set(['ciudad', 'costa', 'mediterraneo', 'egeo', 'parque', 'caribe', 'monzon'])
 
-  const camera = new THREE.PerspectiveCamera(48, 1, 0.1, 200)
+  // El plano cercano NO es 0,1. La precisión del búfer de profundidad es
+  // (z² / cercano) / 2^bits, así que con 0,1 a cien unidades solo se distinguen
+  // 0,006 de separación: el suelo del lugar (0,005 sobre la calzada) y las rayas
+  // de carril parpadeaban en blanco al mover la cámara — lo que Isidro llamaba
+  // «flashes blancos entre las texturas». Con 0,6 baja a 0,001 y a z = -150
+  // (donde estaba peor) de 0,018 a 0,003. Nada se acerca tanto a la cámara:
+  // hasta en el vuelo que roza el techo del estadio hay metros de sobra.
+  const camera = new THREE.PerspectiveCamera(48, 1, 0.6, 200)
   const camTarget = new THREE.Vector3(0, 0, -9)
 
   // Sol de mediodía: sombras marcadas y limpias, como en la referencia.
@@ -729,7 +736,7 @@ export function createWorld (canvas) {
     new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, opacity: 0.85 })
   )
   detalleSuelo.rotation.x = -Math.PI / 2
-  detalleSuelo.position.set(0, 0.014, road.position.z)
+  detalleSuelo.position.set(0, 0.06, road.position.z)
   detalleSuelo.renderOrder = 1
   detalleSuelo.visible = false
   scene.add(detalleSuelo)
@@ -1145,7 +1152,8 @@ export function createWorld (canvas) {
     for (let z = FIELD.baseZ + 4; z > -150; z -= 2.9) {
       const dash = new THREE.Mesh(dashGeo, lineMat)
       dash.rotation.x = -Math.PI / 2
-      dash.position.set(x, 0.02, z)
+      // A 0,09 y no a 0,02: a z = -150 la profundidad no distingue 0,01.
+      dash.position.set(x, 0.09, z)
       decor.add(dash)
     }
   }
@@ -1155,7 +1163,7 @@ export function createWorld (canvas) {
   for (const side of [-1, 1]) {
     const edgeLine = new THREE.Mesh(new THREE.PlaneGeometry(0.16, roadLength), lineMat)
     edgeLine.rotation.x = -Math.PI / 2
-    edgeLine.position.set(side * (fieldWidth / 2 + 0.42), 0.02, road.position.z)
+    edgeLine.position.set(side * (fieldWidth / 2 + 0.42), 0.08, road.position.z)
     decor.add(edgeLine)
 
     const gravel = new THREE.Mesh(
@@ -1163,7 +1171,7 @@ export function createWorld (canvas) {
       grava
     )
     gravel.rotation.x = -Math.PI / 2
-    gravel.position.set(side * (fieldWidth / 2 + 1.5), 0.008, road.position.z)
+    gravel.position.set(side * (fieldWidth / 2 + 1.5), 0.04, road.position.z)
     decor.add(gravel)
   }
 
@@ -1291,6 +1299,12 @@ export function createWorld (canvas) {
   // compositor del resplandor tiene sus propios destinos de render y se queda a
   // media resolución si nadie se lo dice.
   const oyentesTam = []
+
+  // La base alien medía 0,36 a 130 de la cámara. Manteniendo esa proporción, su
+  // tamaño en pantalla no depende de dónde se plante ni del móvil que sea.
+  const BASE_Z = -62
+  const escalaDeLaBase = (x, z) => 0.36 / 130 * 1.25 *
+    Math.hypot(camera.position.x - x, camera.position.y, camera.position.z - z)
 
   function resize () {
     const w = canvas.clientWidth
@@ -1466,9 +1480,15 @@ export function createWorld (canvas) {
           // conjunto entero se salga: más de 100 de ancho no cabe en la cuña
           // que se ve en un móvil vertical y más de 84 de fondo se lo come la
           // niebla, que cierra del todo a z ≈ -130.
+          // Los topes están calculados para la distancia a la que se planta
+          // (cara delantera en z = -68, o sea a 90 de la cámara). Antes se
+          // plantaba en -56 y los topes eran 46 / 40 / 100 / 84; al echarlo doce
+          // atrás para dejar sitio a la base alien, se suben un 15 % y en pantalla
+          // ocupa exactamente lo mismo. El fondo NO se sube: la niebla cierra del
+          // todo en z ≈ -130 y con 62 de fondo la cara de atrás llega a -130 justo.
           const f = Math.min(2.4,
-            46 / Math.max(t.x, 1), 40 / Math.max(t.y, 1),
-            100 / Math.max(tt.x, 1), 84 / Math.max(tt.z, 1))
+            53 / Math.max(t.x, 1), 46 / Math.max(t.y, 1),
+            115 / Math.max(tt.x, 1), 62 / Math.max(tt.z, 1))
           if (f < 0.98 || f > 1.05) {
             h.scale.multiplyScalar(f)
             caja = cajaMonumento(h)
@@ -1478,10 +1498,13 @@ export function createWorld (canvas) {
           }
         }
         const c = todo.getCenter(new THREE.Vector3())
-        // Su cara de delante justo detrás de donde aparecen los bichos (-52):
-        // así se ve grande sin estorbar el pasillo.
+        // Su cara de delante en z = -68. Antes era -56, pegada a donde aparecen
+        // los bichos, y eso dejaba a la base alien —que va en z = -62— DETRÁS del
+        // monumento: en Abuja la roca de Aso, de 46 de ancho, la tapaba entera.
+        // Doce unidades más atrás caben las dos cosas: la torre delante y el
+        // monumento cerrando el eje por encima de ella.
         const destino = n === 0
-          ? new THREE.Vector3(0, 0, -56 - tt.z / 2)
+          ? new THREE.Vector3(0, 0, -68 - tt.z / 2)
           : new THREE.Vector3((n % 2 ? 1 : -1) * (30 + Math.min(40, tt.x) / 2), 0, -100)
         h.position.x += destino.x - c.x
         h.position.z += destino.z - c.z
@@ -1904,10 +1927,25 @@ export function createWorld (canvas) {
     }
     for (const [v, base] of bases) base.visible = v === variante
     baseVisible = bases.get(variante)
-    // Dónde se planta. Normalmente al fondo del todo, en la niebla; un escenario
-    // puede pedir otro sitio, y el estadio lo hace: con el césped recortado, la
-    // de siempre se quedaba por detrás del graderío.
-    baseVisible.position.z = escenarioVisto?.userData.baseZ ?? -108
+    // Dónde se planta. Ya no al fondo del todo: ahí estaba TAPADA.
+    //
+    // Isidro, 27/09/2026: «gran parte de las veces la torre que se destruye al
+    // final de la partida queda oculta por algún edificio». Medido con
+    // `herramientas/navegador/donde-la-base.js`, que prueba cuarenta sitios por
+    // mapa contando píxeles: estaba en z = -108 y cada lugar se cierra en z = -95,
+    // así que quedaba DETRÁS del decorado. De los 41 mapas, 22 la tapaban del
+    // todo y solo uno la dejaba ver entera.
+    //
+    // El sitio bueno es z = -62 en casi todos: por delante del cierre, por detrás
+    // de donde aparecen los bichos, y lo bastante abajo en la pantalla para no
+    // meterse debajo del marcador de oleada. Cada lugar puede correrla a un lado
+    // (`baseX`) para esquivar su monumento, y cambiar la z si le hace falta.
+    baseVisible.position.z = escenarioVisto?.userData.baseZ ?? BASE_Z
+    baseVisible.position.x = escenarioVisto?.userData.baseX ?? 0
+    // Y su tamaño sale de la distancia, no de un número fijo: así se ve igual de
+    // grande en cualquier pantalla, esté la cámara donde esté. El 1,25 es lo que
+    // pidió Isidro al acercarla: «un punto más grande, no el doble».
+    baseVisible.scale.setScalar(escalaDeLaBase(baseVisible.position.x, baseVisible.position.z))
 
     sand.material.color.setHex(b.tierra)
     road.material.color.setHex(b.asfalto)

@@ -13,6 +13,13 @@
 // módulo es repetible y esa semilla es su entrada. Dos ciudades no comparten
 // semilla para que no salgan con los edificios en el mismo orden.
 
+// `base` es dónde se planta la base alien —la torre que se revienta al final—
+// cuando no vale el sitio de siempre, que es el eje de la calle en z = -62. Son
+// números MEDIDOS, no a ojo: los saca `herramientas/navegador/donde-la-base.js`
+// probando cuarenta posiciones por mapa y contando cuántos píxeles de la torre
+// quedan a la vista. Con `base: [x]` se corre a un lado y con `base: [x, z]` se
+// cambia también la distancia. Casi ninguna lo necesita: en cuanto el monumento
+// se plantó doce unidades más atrás, el eje quedó libre en los 41 mapas.
 import { TIPOS } from './lugares.js'
 
 export const CIUDADES = {
@@ -327,6 +334,7 @@ export const CIUDADES = {
   // Plaza São Sebastião: el mismo empedrado en olas que Copacabana —lo trajeron
   // de Lisboa los dos—, el Teatro Amazonas con su cúpula de mosaico y la selva.
   manaos: ['plaza', {
+    base: [4],
     semilla: 138, tono: 0xc6bca8, farolas: 'fernandina', arboles: 'copa', puestos: true,
     estilo: 'colonial', paleta: [0xd8c4a8, 0xc9ae8c, 0xd4bc9c, 0xc2a884], alturas: [8, 13], remate: 0xc2ac8c,
     tonoToldo: 0x3d7a4a, cierre: 'monte', tonoMonte: 0x3f5e3a
@@ -343,6 +351,11 @@ for (const [clave, [tipo, vestido]] of Object.entries(CIUDADES)) {
     // mobiliario) pero NO el monumento de la ciudad: `world.js` lo ve por esta
     // marca y lo coloca cerrando el eje de la calle.
     g.userData.conHitos = true
+    // Y dónde va la base alien en este sitio, si no vale el de siempre.
+    if (vestido.base) {
+      g.userData.baseX = vestido.base[0]
+      if (vestido.base[1] !== undefined) g.userData.baseZ = vestido.base[1]
+    }
     // Con nombre: sirve para saber desde fuera qué sitio se está viendo, que es
     // como se comprueba que una captura es del mapa que dice ser.
     g.name = 'lugar:' + clave

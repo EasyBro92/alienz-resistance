@@ -68,10 +68,31 @@ function dado (semilla) {
 // El suelo por donde se anda. Una losa grande y ancha; lo que la hace de un
 // sitio o de otro es el tono y lo que lleva encima.
 function suelo (g, v) {
-  const piso = mat(v.tono ?? 0x9a958d, v.brillo ?? 0.9)
-  const s = pon(g, new THREE.PlaneGeometry(v.ancho ?? 40, LARGO), piso, 0, 0.005, (DESDE_Z + HASTA_Z) / 2)
-  s.rotation.x = -Math.PI / 2
-  return s
+  return tiras(g, mat(v.tono ?? 0x9a958d, v.brillo ?? 0.9), v.ancho ?? 40)
+}
+
+// El suelo de un lugar, en DOS TIRAS, dejando el medio a la calzada.
+//
+// Antes era un plano entero que pasaba por debajo de `road` a cinco milésimas de
+// distancia, y eso es menos de lo que el búfer de profundidad distingue a partir
+// de noventa unidades: los dos planos se peleaban por el mismo píxel y el suelo
+// destellaba al mover la cámara. Como la calzada mide 13,6 y lleva encima la
+// textura del sitio, por debajo no hacía falta nada.
+//
+// Las tiras se solapan 6 cm con el borde de la calzada para que no se abra una
+// costura; ahí manda la calzada, que va un poco más alta.
+const VIA = 13.6
+function tiras (g, material, ancho, y = 0.005) {
+  const w = (ancho - VIA) / 2
+  if (w <= 0.1) return null
+  const hechas = []
+  for (const l of [-1, 1]) {
+    const s = pon(g, new THREE.PlaneGeometry(w + 0.12, LARGO), material,
+      l * (VIA / 2 + w / 2 - 0.06), y, (DESDE_Z + HASTA_Z) / 2)
+    s.rotation.x = -Math.PI / 2
+    hechas.push(s)
+  }
+  return hechas
 }
 
 // Una fila de edificios a un lado. Es la pieza más usada del módulo: lo que
@@ -414,8 +435,7 @@ export function puenteDe (v) {
   const acero = mat(v.tonoAcero ?? 0xb9bec4, 0.45, 0.55)
 
   pon(g, new THREE.BoxGeometry(medio * 2, 1.1, LARGO), hormigon, 0, -0.55, (DESDE_Z + HASTA_Z) / 2)
-  const s = pon(g, new THREE.PlaneGeometry(medio * 2 - 1.6, LARGO), calzada, 0, 0.005, (DESDE_Z + HASTA_Z) / 2)
-  s.rotation.x = -Math.PI / 2
+  tiras(g, calzada, medio * 2 - 1.6)
   for (const l of [-1, 1]) {
     pon(g, new THREE.BoxGeometry(0.5, 1.2, LARGO), hormigon, l * (medio - 0.3), 0.6, (DESDE_Z + HASTA_Z) / 2)
     barandilla(g, l, medio - 0.3, 'hierro')
@@ -483,7 +503,6 @@ export function puenteDe (v) {
   // Por encima de lo más alto que haya a los lados: es la altura a la que el
   // plano de llegada puede recorrer la calle sin meterse dentro de un edificio.
   g.userData.altoVuelo = Math.max(32, (v.alturas?.[1] ?? 16) + 20)
-  g.userData.baseZ = -96
   return g
 }
 

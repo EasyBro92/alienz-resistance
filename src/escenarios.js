@@ -229,16 +229,16 @@ function estadio () {
   const LINEA_FONDO = FONDO + 6
 
   // --- el césped y sus rayas -------------------------------------------------
-  pon(g, new THREE.PlaneGeometry(MEDIO * 2, FRENTE - FONDO), cesped, 0, -0.02, (FRENTE + FONDO) / 2)
+  pon(g, new THREE.PlaneGeometry(MEDIO * 2, FRENTE - FONDO), cesped, 0, -0.07, (FRENTE + FONDO) / 2)
     .rotation.x = -Math.PI / 2
   // Franjas de siega. Ademas de ser lo propio de un campo, disimulan la costura
   // entre este cesped y la franja central, que es la calzada del juego teñida.
   for (let z = FRENTE; z > FONDO; z -= 16) {
-    pon(g, new THREE.PlaneGeometry(MEDIO * 2, 8), cespedClaro, 0, -0.012, z - 4)
+    pon(g, new THREE.PlaneGeometry(MEDIO * 2, 8), cespedClaro, 0, -0.035, z - 4)
       .rotation.x = -Math.PI / 2
   }
   const raya = (ancho, largo, x, z) => {
-    const m = pon(g, new THREE.PlaneGeometry(ancho, largo), cespedRaya, x, 0.015, z)
+    const m = pon(g, new THREE.PlaneGeometry(ancho, largo), cespedRaya, x, 0.06, z)
     m.rotation.x = -Math.PI / 2
     return m
   }
@@ -251,7 +251,7 @@ function estadio () {
     raya(20, 0.3, 0, z)
     for (const lado of [-1, 1]) raya(0.3, 13, lado * 10, z + (z > MEDIO_CAMPO ? 6.5 : -6.5))
   }
-  const circulo = pon(g, new THREE.RingGeometry(7.2, 7.5, 40), cespedRaya, 0, 0.015, MEDIO_CAMPO)
+  const circulo = pon(g, new THREE.RingGeometry(7.2, 7.5, 40), cespedRaya, 0, 0.06, MEDIO_CAMPO)
   circulo.rotation.x = -Math.PI / 2
 
   // --- el graderío ------------------------------------------------------------
@@ -507,10 +507,10 @@ function estadio () {
 
   g.userData.carriles = 5
   g.userData.tapaElMundo = true
-  // La base alien se planta en el campo, no a 108 de distancia: con el césped
-  // recortado, allí se quedaría por detrás del graderío y el asalto final se
-  // vería contra una pared de butacas.
-  g.userData.baseZ = LINEA_FONDO - 4
+  // La base alien ya se planta cerca en todos los mapas (ver `BASE_Z` en
+  // world.js), así que aquí no hace falta pedir nada: medida en el césped, se ve
+  // al 88 % desde la cámara del juego.
+  void LINEA_FONDO
   g.userData.sinSombra = true
   // La ciudad va aparte y NO cuelga del estadio: se funde por su cuenta y se
   // enciende solo durante el vuelo de llegada (ver `verCiudad` en world.js).
@@ -733,15 +733,19 @@ function circuito () {
   }
 
   // --- el pórtico de meta ----------------------------------------------------
+  // OJO CON LA ALTURA: el travesaño cruza la pista de lado a lado y la línea de
+  // visión desde la cámara hasta la antena de la base alien pasa por y = 11,1 a
+  // esta z. Con el travesaño en 11,4 cortaba justo la antena y de la base solo se
+  // veía la falda (medido: 7 % de antena a la vista). A 14 pasa por debajo.
   for (const z of [-8, -120]) {
     for (const lado of [-1, 1]) {
-      pon(g, new THREE.BoxGeometry(1.1, 11, 1.1), acero, lado * (BORDE + 2.6), 5.5, z)
+      pon(g, new THREE.BoxGeometry(1.1, 14, 1.1), acero, lado * (BORDE + 2.6), 7, z)
     }
-    pon(g, new THREE.BoxGeometry((BORDE + 3.2) * 2, 1.9, 1.6), mat(0x22262c, 0.7), 0, 11.4, z)
-    pon(g, new THREE.BoxGeometry((BORDE + 2) * 2, 1.1, 0.5), mat(0xe8e6e0, 0.6), 0, 11.4, z - 0.9)
+    pon(g, new THREE.BoxGeometry((BORDE + 3.2) * 2, 1.9, 1.6), mat(0x22262c, 0.7), 0, 14, z)
+    pon(g, new THREE.BoxGeometry((BORDE + 2) * 2, 1.1, 0.5), mat(0xe8e6e0, 0.6), 0, 14, z - 0.9)
     // Los semáforos de salida.
     for (let k = -2; k <= 2; k++) {
-      pon(g, new THREE.SphereGeometry(0.34, 8, 6), k < 0 ? mat(0x3a1010, 0.5) : mat(0x120c0c, 0.5), k * 2.2, 10.2, z - 0.9)
+      pon(g, new THREE.SphereGeometry(0.34, 8, 6), k < 0 ? mat(0x3a1010, 0.5) : mat(0x120c0c, 0.5), k * 2.2, 12.8, z - 0.9)
     }
   }
 
