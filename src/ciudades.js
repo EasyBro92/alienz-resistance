@@ -24,10 +24,13 @@ import { TIPOS } from './lugares.js'
 
 export const CIUDADES = {
   // --- España ---------------------------------------------------------------
-  // Playa del Miracle, con el anfiteatro romano en el talud y el mar al este.
-  // Tarragona no tiene ni una torre: es ciudad baja de piedra dorada.
+  // Playa del Miracle. Mirando fotos: la arena es dorada y ancha, el agua entra
+  // muy azul, y entre la playa y la ciudad PASA EL TREN —la línea de la costa va
+  // pegada a la arena, con su catenaria—, y por encima, en el talud, el
+  // anfiteatro romano. Tarragona no tiene ni una torre: es ciudad baja de piedra
+  // dorada con tejado árabe.
   tarragona: ['paseo', {
-    semilla: 101, tono: 0xdad2c2, ladoMar: -1, tonoArena: 0xe8d9b6, tonoAgua: 0x2f7f96,
+    semilla: 101, tono: 0xdad2c2, ladoMar: -1, tonoArena: 0xe8d9b6, tonoAgua: 0x2f7f96, via: true,
     estilo: 'europeo', paleta: [0xd8c9a8, 0xc9b894, 0xbfab86], alturas: [7, 13], tejado: 0x9b5b3c,
     farolas: 'fernandina', arboles: 'palmera', arbolesMar: 'palmera', pretil: 'piedra',
     cierre: 'monte', tonoMonte: 0x7e7a5e
@@ -36,6 +39,7 @@ export const CIUDADES = {
   // curvas. Aquí no hay arena: el agua es de los estanques.
   valencia: ['paseo', {
     semilla: 102, tono: 0xe8e5dc, brillo: 0.6, ladoMar: -1, arena: false, tonoAgua: 0x36b0bd,
+    calatrava: true,
     estilo: 'moderno', paleta: [0xf2f0ea, 0xe6e3da, 0xdcd8cd], alturas: [8, 16],
     farolas: 'recta', arboles: 'palmera', pretil: 'piedra', cierre: 'perfil',
     perfil: [16, 22, 18, 26], tonoPerfil: 0xd6d2c8
@@ -45,14 +49,14 @@ export const CIUDADES = {
   // Vieux Port: el agua entra hasta el centro, los barcos amarrados de proa al
   // muelle, las fachadas ocres con persianas y Notre-Dame de la Garde arriba.
   marsella: ['muelle', {
-    semilla: 103, tono: 0xc9c2b2, ladoAgua: -1, tonoAgua: 0x3f9fb4, barcas: true,
+    semilla: 103, tono: 0xc9c2b2, ladoAgua: -1, tonoAgua: 0x3f9fb4, barcas: true, ombriere: true,
     estilo: 'europeo', paleta: [0xdcc9a4, 0xcbb389, 0xc2a57c], alturas: [12, 20], tejado: 0x9b5b3c,
     farolas: 'fernandina', cierre: 'monte', tonoMonte: 0x8a8164
   }],
   // Ribera del Ródano: el agua verde, las barcazas-bar amarradas, los tejados
   // rojos de la Presqu'île y la colina de Fourvière cerrando.
   lyon: ['paseo', {
-    semilla: 104, tono: 0xbdb5a4, ladoMar: -1, arena: false, tonoAgua: 0x4a6b52,
+    semilla: 104, tono: 0xbdb5a4, ladoMar: -1, arena: false, tonoAgua: 0x4a6b52, penichas: true,
     estilo: 'europeo', paleta: [0xd8c4a0, 0xc9ae87, 0xd2b893], alturas: [13, 21], tejado: 0x9b4a34,
     farolas: 'fernandina', arboles: 'copa', pretil: 'piedra',
     cierre: 'monte', tonoMonte: 0x6f7a5c
@@ -60,6 +64,7 @@ export const CIUDADES = {
   // Campo de Marte: gravilla, setos recortados, los plátanos en fila y la torre
   // justo encima. En París no hay rascacielos en el centro.
   paris: ['explanada', {
+    parterres: true,
     semilla: 105, tono: 0xc4b79c, bordes: 'setos', arboles: 'copa',
     estilo: 'europeo', paleta: [0xdfd5c0, 0xd4c8b0, 0xcabda4],
     alturas: [16, 22], tejado: 0x5a6068, remate: 0xc8bda6,
@@ -92,7 +97,7 @@ export const CIUDADES = {
   // Piazza del Duomo: el empedrado en abanico, los pórticos de la plaza y la
   // Galería. Aquí no se ve ni un rascacielos, así que no hay perfil de torres.
   milan: ['plaza', {
-    semilla: 108, tono: 0x9e988e, farolas: 'fernandina',
+    semilla: 108, tono: 0x9e988e, farolas: 'fernandina', galeria: true, tranvia: true, tonoTranvia: 0xf0d048,
     estilo: 'colonial', paleta: [0xdcd2bc, 0xd0c4ab, 0xc7b99f], alturas: [17, 22], remate: 0xc2b498,
     cierre: 'fachada'
   }],

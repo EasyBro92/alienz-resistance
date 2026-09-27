@@ -968,6 +968,145 @@ function vestirExtras (g, v) {
       }
     }
   }
+  if (v.via) {
+    // LA VÍA DEL TREN. En la Platja del Miracle de Tarragona el tren pasa
+    // literalmente entre la arena y la ciudad, al pie del talud del anfiteatro:
+    // es lo primero que sale en cualquier foto de esa playa y no lo tiene
+    // ninguna otra. Dos carriles, traviesas cada dos metros y medio y los postes
+    // de la catenaria, por fuera del pasillo y por dentro de las fachadas.
+    const lado = v.ladoVia ?? -(v.ladoMar ?? -1)
+    const x = v.xVia ?? 10.6
+    const balasto = mat(0x6f6a62, 0.95)
+    const traviesa = mat(0x4a3d33, 0.95)
+    const carril = mat(0x8e8d8a, 0.5, 0.6)
+    const poste = mat(0x7d8286, 0.7, 0.2)
+    pon(g, new THREE.BoxGeometry(4.6, 0.3, LARGO), balasto, lado * x, 0.15, (DESDE_Z + HASTA_Z) / 2)
+    for (let z = DESDE_Z; z > HASTA_Z; z -= 2.5) {
+      pon(g, new THREE.BoxGeometry(3.4, 0.16, 0.5), traviesa, lado * x, 0.34, z)
+    }
+    for (const d of [-0.72, 0.72]) {
+      pon(g, new THREE.BoxGeometry(0.14, 0.18, LARGO), carril, lado * x + d, 0.48, (DESDE_Z + HASTA_Z) / 2)
+    }
+    // La catenaria: poste, ménsula y el hilo. Cada veinte metros.
+    for (let z = DESDE_Z - 6; z > -120; z -= 20) {
+      pon(g, new THREE.CylinderGeometry(0.13, 0.17, 6.4, 6), poste, lado * (x + 2.6), 3.2, z)
+      pon(g, new THREE.BoxGeometry(2.8, 0.12, 0.12), poste, lado * (x + 1.3), 6.1, z)
+    }
+    pon(g, new THREE.BoxGeometry(0.05, 0.05, 130), carril, lado * x, 5.6, -50)
+  }
+  if (v.calatrava) {
+    // La Ciudad de las Artes. No son edificios: son CUATRO FORMAS blancas sobre
+    // el agua, y sin ellas Valencia es un paseo cualquiera.
+    //   · el Hemisfèric, el ojo: media elipse tumbada con su párpado
+    //   · el Umbracle, la pérgola de arcos blancos en fila
+    //   · el Palau de les Arts, la mole con la visera
+    //   · el Àgora, el capullo azul
+    // Todas en el lado del agua y fuera del pasillo, que es donde están de
+    // verdad respecto al paseo central.
+    const lado = v.ladoMar ?? -1
+    const blanco = mat(0xf4f2ec, 0.55)
+    const hueso = mat(0xe4e0d6, 0.7)
+    const azul = mat(0x2f6f9e, 0.4, 0.3)
+    // El ojo: media esfera achatada y muy larga, con la ceja por encima.
+    const ojo = pon(g, new THREE.SphereGeometry(9, seg(22), seg(10), 0, Math.PI * 2, 0, Math.PI / 2), blanco, lado * 21, 0.2, -34)
+    ojo.scale.set(1, 0.52, 1.75)
+    const ceja = pon(g, new THREE.SphereGeometry(9.4, seg(22), seg(8), 0, Math.PI, 0, Math.PI / 2), hueso, lado * 21, 0.4, -34)
+    ceja.scale.set(1, 0.6, 1.8)
+    ceja.rotation.y = lado > 0 ? 0 : Math.PI
+    // El Umbracle: la fila de arcos blancos, que es lo que se ve desde el paseo.
+    for (let z = 4; z > -96; z -= 6) {
+      const a = pon(g, new THREE.TorusGeometry(5.2, 0.3, 5, seg(14), Math.PI), blanco, -lado * 15, 0, z)
+      a.rotation.y = Math.PI / 2
+    }
+    // El Palau de les Arts: el casco con la visera curva encima.
+    pon(g, new THREE.SphereGeometry(11, seg(16), seg(10), 0, Math.PI * 2, 0, Math.PI / 2), hueso, lado * 26, 0, -78).scale.set(1, 0.9, 1.5)
+    const visera = pon(g, new THREE.TorusGeometry(15, 1.1, 5, seg(16), Math.PI * 0.55), blanco, lado * 26, 11, -78)
+    visera.rotation.set(Math.PI / 2, 0, lado * 0.5)
+    // El Àgora, más al fondo, y su tono azul.
+    const agora = pon(g, new THREE.SphereGeometry(10, seg(14), seg(12), 0, Math.PI * 2, 0, Math.PI / 2), azul, lado * 22, 0, -106)
+    agora.scale.set(0.55, 2.2, 1)
+  }
+  if (v.ombriere) {
+    // L'Ombrière del Vieux Port: la chapa de acero pulido de Foster, 46×22, a
+    // seis metros del suelo sobre ocho pilares finos, que refleja el muelle
+    // entero. Es lo más fotografiado de Marsella después de la Bonne Mère.
+    const lado = v.ladoOmbriere ?? -(v.ladoAgua ?? -1)
+    const espejo = new THREE.MeshStandardMaterial({ color: 0xb9c2c8, roughness: 0.12, metalness: 0.95 })
+    const pilar = mat(0x9aa2a8, 0.35, 0.7)
+    const x = lado * 15.5
+    pon(g, new THREE.BoxGeometry(17, 0.35, 34), espejo, x, 6.2, -34)
+    for (const dx of [-6.5, 6.5]) {
+      for (const dz of [-14, -4, 6, 14]) {
+        pon(g, new THREE.CylinderGeometry(0.16, 0.16, 6.2, 6), pilar, x + dx, 3.1, -34 + dz)
+      }
+    }
+  }
+  if (v.penichas) {
+    // Las barcazas del Ródano, amarradas de costado al muelle y convertidas en
+    // bares. En Lyon el río no se ve vacío nunca: se ve por detrás de una fila
+    // de péniches negras con la caseta blanca.
+    const lado = v.ladoMar ?? -1
+    const az = dado(v.semilla + 44)
+    const casco = mat(0x2f3a3f, 0.8)
+    const caseta = mat(0xe8e4da, 0.85)
+    const toldo = mat(v.tonoToldo ?? 0xb03a34, 0.9)
+    for (let z = -2; z > -104; z -= 26) {
+      const x = lado * (13 + az() * 1.5)
+      pon(g, new THREE.BoxGeometry(5.2, 1.9, 21), casco, x, -0.5, z)
+      pon(g, new THREE.BoxGeometry(3.6, 2.2, 7), caseta, x, 1.5, z - 4)
+      pon(g, new THREE.BoxGeometry(5.4, 0.12, 9), toldo, x, 1.9, z + 5)
+      pon(g, new THREE.CylinderGeometry(0.09, 0.09, 4.4, 5), mat(0x8e8d8a, 0.5, 0.5), x, 3.6, z - 4)
+    }
+  }
+  if (v.parterres) {
+    // El Campo de Marte no es una explanada de gravilla: son PANELES DE CÉSPED
+    // larguísimos, separados por paseos de albero y cerrados con seto bajo, en
+    // fila hasta la torre. Eso es lo que se ve en cualquier foto desde la École
+    // Militaire, y es lo que hacía falta aquí.
+    const cesped = mat(v.tonoCesped ?? 0x5c7f3f, 0.95)
+    const seto = mat(0x3f5f34, 0.95)
+    for (const l of [-1, 1]) {
+      for (let z = 2; z > -104; z -= 27) {
+        const p = pon(g, new THREE.BoxGeometry(11, 0.12, 23), cesped, l * 15, 0.06, z - 11)
+        void p
+        // El seto que lo bordea, cuatro tiras finas.
+        pon(g, new THREE.BoxGeometry(11.6, 0.7, 0.5), seto, l * 15, 0.35, z + 0.6)
+        pon(g, new THREE.BoxGeometry(11.6, 0.7, 0.5), seto, l * 15, 0.35, z - 22.6)
+        pon(g, new THREE.BoxGeometry(0.5, 0.7, 23), seto, l * 9.4, 0.35, z - 11)
+        pon(g, new THREE.BoxGeometry(0.5, 0.7, 23), seto, l * 20.6, 0.35, z - 11)
+      }
+    }
+  }
+  if (v.galeria) {
+    // La Galleria Vittorio Emanuele II, en el lado norte de la Piazza del Duomo:
+    // el arco de triunfo con su frontón y, detrás, la bóveda de cristal. Junto al
+    // Duomo es LO que hace que esa plaza sea esa plaza.
+    const lado = v.ladoGaleria ?? -1
+    const piedra = mat(v.tonoGaleria ?? 0xd6cbb0, 0.9)
+    const sombra = mat(0x8e8470, 0.95)
+    const cristal = new THREE.MeshStandardMaterial({ color: 0x9fb6bd, roughness: 0.2, metalness: 0.5, transparent: true, opacity: 0.55 })
+    // OJO CON LA X: en 19 quedaba DETRÁS de la fila de fachadas de la plaza (que
+    // empieza en 17) y no se veía nunca. Y en el móvil vertical, a z = -56 solo
+    // se ve hasta x ≈ 14: puesta en 13,5 y al final de la plaza, aparece al lado
+    // del Duomo, que es como se ve de verdad desde la piazza.
+    const x = lado * 13.5
+    const z = -56
+    // El cuerpo, con el hueco oscuro del arco y la rosca por delante.
+    pon(g, new THREE.BoxGeometry(6, 26, 26), piedra, x, 13, z)
+    pon(g, new THREE.BoxGeometry(6.4, 13, 7.6), sombra, x - lado * 0.3, 6.5, z)
+    const arco = pon(g, new THREE.CylinderGeometry(3.8, 3.8, 6.6, seg(14), 1, false, 0, Math.PI), sombra, x - lado * 0.3, 13, z)
+    arco.rotation.set(0, 0, Math.PI / 2)
+    arco.rotation.z = Math.PI / 2
+    // El frontón triangular de arriba.
+    const front = pon(g, new THREE.CylinderGeometry(7, 7, 6.2, 3), piedra, x, 27.5, z)
+    front.rotation.set(0, 0, Math.PI / 2)
+    front.scale.set(0.5, 1, 1)
+    // La bóveda de cristal que sale por detrás, hacia fuera de la plaza.
+    const boveda = pon(g, new THREE.CylinderGeometry(5.4, 5.4, 40, seg(16), 1, true, 0, Math.PI), cristal, x + lado * 22, 15, z)
+    boveda.rotation.set(0, 0, Math.PI / 2)
+    pon(g, new THREE.BoxGeometry(40, 15, 0.6), piedra, x + lado * 22, 7.5, z + 5.4)
+    pon(g, new THREE.BoxGeometry(40, 15, 0.6), piedra, x + lado * 22, 7.5, z - 5.4)
+  }
   if (v.tranvia && CON_EXTRAS) {
     const cuerpo = mat(v.tonoTranvia ?? 0xf0d048, 0.7)
     for (const z of [-24, -74]) {
