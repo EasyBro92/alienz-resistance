@@ -33,39 +33,63 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--fondo)
 .gc-volver { background: transparent; }
 
 /* --- marcador --- */
+/* Lo mínimo tapando el campo: una franja fina arriba, una tira de cartas abajo
+   y dos botones en el lateral derecho. */
 #gc-hud { position: fixed; inset: 0; pointer-events: none; z-index: 3; }
 #gc-hud button { pointer-events: auto; }
-.gc-arriba { position: absolute; top: calc(8px + env(safe-area-inset-top)); left: 10px; right: 10px;
-  display: flex; align-items: center; gap: 10px; }
-.gc-mini { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--borde); background: var(--panel); color: var(--tinta); font-size: 16px; }
-.gc-reloj { background: var(--panel); border: 1px solid var(--borde); border-radius: 10px; padding: 7px 10px; font-variant-numeric: tabular-nums; }
-.gc-vida { flex: 1; background: var(--panel); border: 1px solid var(--borde); border-radius: 10px; padding: 5px 9px; }
-.gc-vida span { display: block; font-size: 11px; color: var(--tenue); text-transform: uppercase; letter-spacing: 0.1em; }
-.gc-barra { height: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.12); overflow: hidden; margin-top: 3px; }
+.gc-arriba { position: absolute; top: calc(6px + env(safe-area-inset-top)); left: 8px; right: 8px;
+  display: flex; align-items: stretch; gap: 6px; }
+.gc-mini { width: 34px; border-radius: 10px; border: 1px solid var(--borde); background: var(--panel); color: var(--tinta); font-size: 15px; }
+.gc-vidas { flex: 1; display: flex; flex-direction: column; gap: 3px; background: var(--panel); border: 1px solid var(--borde); border-radius: 10px; padding: 4px 8px; }
+.gc-vida { display: flex; align-items: center; gap: 6px; }
+.gc-vida span { width: 56px; font-size: 10px; color: var(--tenue); text-transform: uppercase; letter-spacing: 0.08em; }
+.gc-barra { flex: 1; height: 7px; border-radius: 4px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
 .gc-barra i { display: block; height: 100%; width: 100%; transition: width 0.25s; }
 .gc-rojo .gc-barra i { background: var(--rojo); }
 .gc-azul .gc-barra i { background: var(--azul); }
-
-.gc-abajo { position: absolute; left: 0; right: 0; bottom: 0; padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
-  background: linear-gradient(180deg, transparent, rgba(8, 10, 14, 0.9) 22%); display: flex; flex-direction: column; gap: 6px; pointer-events: auto; }
-.gc-fila { display: flex; gap: 8px; align-items: center; }
-.gc-monedas { background: var(--panel); border: 1px solid rgba(255, 201, 60, 0.5); color: var(--oro); border-radius: 10px; padding: 8px 12px; font-variant-numeric: tabular-nums; min-width: 72px; text-align: center; }
+.gc-lado { display: flex; flex-direction: column; gap: 3px; }
+.gc-reloj, .gc-monedas { background: var(--panel); border: 1px solid var(--borde); border-radius: 8px; padding: 2px 8px; font-size: 13px;
+  font-variant-numeric: tabular-nums; text-align: center; min-width: 64px; }
+.gc-monedas { color: var(--oro); border-color: rgba(255, 201, 60, 0.5); }
 .gc-monedas::before { content: '● '; }
-.gc-modo { display: flex; background: var(--panel); border: 1px solid var(--borde); border-radius: 10px; overflow: hidden; }
-.gc-modo button, .gc-pestanas button { border: 0; background: transparent; color: var(--tenue); padding: 8px 12px; font: 700 13px inherit; }
-.gc-modo button.activo, .gc-pestanas button.activo { background: rgba(255, 255, 255, 0.14); color: var(--tinta); }
-.gc-avanzar { flex: 1; border-radius: 10px; border: 1px solid #ff8a7a; background: linear-gradient(180deg, #e0463c, #9e2620); color: #fff; font: 900 14px inherit; padding: 9px; letter-spacing: 0.04em; }
-.gc-avanzar:disabled { opacity: 0.4; }
-.gc-pestanas { display: flex; gap: 4px; }
-.gc-pestanas button { border-radius: 8px; }
-.gc-cartas { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.gc-pista { position: absolute; top: calc(62px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
+  margin: 0; padding: 5px 12px; border-radius: 999px; background: rgba(8, 10, 14, 0.78); font-size: 12px; white-space: nowrap;
+  max-width: calc(100% - 20px); overflow: hidden; text-overflow: ellipsis; transition: opacity 0.3s; }
+.gc-pista:empty { opacity: 0; }
+
+.gc-ordenes { position: absolute; right: 8px; bottom: calc(112px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 6px; }
+.gc-orden { width: 86px; padding: 7px 4px; border-radius: 12px; border: 1px solid var(--borde); background: var(--panel); color: var(--tinta); font: inherit; }
+.gc-orden b { display: block; font-size: 12px; font-weight: 900; letter-spacing: 0.04em; }
+.gc-orden small { display: block; font-size: 9.5px; color: var(--tenue); margin-top: 1px; }
+.gc-avanzar { border-color: #ff8a7a; background: linear-gradient(180deg, #e0463c, #9e2620); }
+.gc-avanzar small { color: rgba(255, 255, 255, 0.8); }
+.gc-avanzar:disabled { opacity: 0.35; }
+
+.gc-tira { position: absolute; left: 0; right: 0; bottom: 0; pointer-events: auto;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: linear-gradient(transparent, rgba(6, 9, 13, 0.92) 40%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 calc(100% - 24px), transparent 100%);
+          mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 calc(100% - 24px), transparent 100%); }
+.gc-tira::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: repeating-linear-gradient(115deg, rgba(216, 64, 58, 0.55) 0 9px, rgba(8, 12, 10, 0.6) 9px 18px); opacity: 0.6; }
+.gc-cartas { display: flex; gap: 6px; padding: 10px 10px 10px; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; touch-action: pan-x; }
 .gc-cartas::-webkit-scrollbar { display: none; }
-.gc-carta { flex: 0 0 auto; width: 76px; padding: 7px 5px; border-radius: 10px; border: 1px solid var(--borde);
-  background: var(--panel); color: var(--tinta); font: 700 12px/1.15 inherit; text-align: center; position: relative; }
-.gc-carta b { display: block; color: var(--oro); font-size: 13px; margin-top: 4px; }
-.gc-carta small { display: block; color: var(--tenue); font-weight: 500; font-size: 10px; margin-top: 2px; }
-.gc-carta.elegida { border-color: var(--oro); box-shadow: 0 0 0 2px rgba(255, 201, 60, 0.45) inset; }
-.gc-carta.caro { opacity: 0.5; }
-.gc-carta.bloqueada { border-style: dashed; }
-.gc-carta .gc-nivel { position: absolute; top: 3px; right: 5px; font-size: 10px; color: var(--oro); }
-.gc-pista { margin: 0; font-size: 12px; color: var(--tenue); text-align: center; min-height: 15px; }
+.gc-sep { flex: 0 0 auto; align-self: stretch; width: 14px; position: relative; }
+.gc-sep::after { content: attr(data-label); position: absolute; left: 1px; bottom: 4px; writing-mode: vertical-rl;
+  font-size: 8px; font-weight: 900; letter-spacing: 1.4px; text-transform: uppercase; color: var(--tenue); }
+.gc-carta { flex: 0 0 auto; width: 68px; padding: 4px 4px 5px; border-radius: 12px; border: 1px solid var(--borde);
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), transparent 42%), linear-gradient(180deg, #1a212b, #0d1117);
+  color: var(--tinta); font: 700 10.5px/1.1 inherit; text-align: center; position: relative; overflow: hidden;
+  transition: transform 0.2s cubic-bezier(.2,.9,.28,1.3), border-color 0.15s; }
+.gc-carta:active { transform: scale(0.93); }
+.gc-cara { display: block; height: 46px; margin: 0 auto 2px; position: relative; }
+.gc-cara img { position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); height: 54px; filter: drop-shadow(0 3px 3px rgba(0,0,0,0.6)); }
+.gc-cara em { position: absolute; inset: 0; display: grid; place-items: center; font-style: normal; font-size: 22px; opacity: 0.8; }
+.gc-carta b { display: block; color: var(--oro); font-size: 12px; margin-top: 2px; }
+.gc-carta small { display: block; color: var(--tenue); font-weight: 500; font-size: 9px; }
+.gc-carta.elegida { transform: translateY(-6px); border-color: var(--oro); box-shadow: 0 0 0 2px rgba(255, 201, 60, 0.5); }
+.gc-carta.caro { opacity: 0.45; }
+.gc-carta.bloqueada .gc-cara img { filter: grayscale(1) brightness(0.55); }
+.gc-carta .gc-nivel { position: absolute; top: 3px; right: 5px; font-size: 9px; color: var(--oro); z-index: 1; }
+.gc-carta .gc-candado { position: absolute; top: 3px; left: 5px; font-size: 10px; z-index: 1; }
+.gc-carta.mejora { width: 62px; }

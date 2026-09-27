@@ -26,32 +26,29 @@
     </div>
   </div>
 
-  <!-- Marcador de la partida -->
+  <!-- Marcador de la partida. Isidro: «el menú de abajo tapa la partida».
+       Arriba lo que se mira (vidas, monedas, reloj), abajo UNA tira de cartas
+       que se desliza de lado como la armería de la campaña, y las órdenes en
+       un lateral. -->
   <div id="gc-hud" hidden>
     <div class="gc-arriba">
       <button id="gc-salir" class="gc-mini" type="button" aria-label="Salir">✕</button>
-      <div class="gc-vida gc-rojo"><span>Máquina</span><div class="gc-barra"><i id="gc-vida-rojo"></i></div></div>
-      <b id="gc-reloj" class="gc-reloj">5:00</b>
-    </div>
-    <div class="gc-abajo">
-      <div class="gc-fila">
+      <div class="gc-vidas">
+        <div class="gc-vida gc-rojo"><span>Máquina</span><div class="gc-barra"><i id="gc-vida-rojo"></i></div></div>
         <div class="gc-vida gc-azul"><span>Tu base</span><div class="gc-barra"><i id="gc-vida-azul"></i></div></div>
+      </div>
+      <div class="gc-lado">
+        <b id="gc-reloj" class="gc-reloj">5:00</b>
         <b id="gc-monedas" class="gc-monedas">0</b>
       </div>
-      <div class="gc-fila gc-ordenes">
-        <div class="gc-modo" role="group" aria-label="Qué hacen al salir">
-          <button id="gc-soltar" class="activo" type="button">Soltar</button>
-          <button id="gc-colocar" type="button">Colocar</button>
-        </div>
-        <button id="gc-avanzar" class="gc-avanzar" type="button">¡AL ATAQUE! <span id="gc-quietos"></span></button>
-      </div>
-      <div class="gc-pestanas" role="tablist">
-        <button data-pestana="tropas" class="activo" type="button">Tropas</button>
-        <button data-pestana="defensas" type="button">Defensas</button>
-        <button data-pestana="mejoras" type="button">Mejoras</button>
-      </div>
+    </div>
+    <p id="gc-pista" class="gc-pista"></p>
+    <div class="gc-ordenes">
+      <button id="gc-modo" class="gc-orden" type="button" aria-label="Qué hacen al salir"><b>SOLTAR</b><small>avanzan solos</small></button>
+      <button id="gc-avanzar" class="gc-orden gc-avanzar" type="button"><b>¡AL ATAQUE!</b><small id="gc-quietos">nadie esperando</small></button>
+    </div>
+    <div class="gc-tira">
       <div id="gc-cartas" class="gc-cartas"></div>
-      <p id="gc-pista" class="gc-pista">Elige un soldado y toca el campo para mandarlo.</p>
     </div>
   </div>
 

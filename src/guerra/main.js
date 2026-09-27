@@ -21,6 +21,7 @@ import { createSoldier, muzzleWorld } from '../entities/soldier.js'
 import { buildSoldierMesh } from '../assets.js'
 import { createEffects } from '../systems/effects.js'
 import { createAudio } from '../audio.js'
+import { renderPortraits } from '../portraits.js'
 import { cargarCartera, ponerSinMejoras } from '../systems/cartera.js'
 import { crearCampo, CAMPO, carrilX, MITAD, COLOR } from './campo.js'
 
@@ -57,7 +58,6 @@ let jugando = false
 let tiempo = 0
 let elegida = null      // { tipo: 'tropa' | 'defensa', key }
 let modo = 'soltar'     // 'soltar' sale y avanza; 'colocar' se queda donde toques
-let pestana = 'tropas'
 
 function nuevoBando (nombre, tengo) {
   const azul = nombre === 'azul'
@@ -453,7 +453,11 @@ lienzo.addEventListener('pointerdown', e => {
     if (yo.monedas < spec.cost) { audio.denied(); return pista('No te llega.') }
     if (modo === 'colocar' && !enMiMitad(yo, punto.z)) { audio.denied(); return pista('Para colocar, toca en tu mitad del campo.') }
     const holdZ = Math.min(CAMPO.baseAzul - 1, punto.z)
-    mandarTropa(yo, elegida.key, x, modo === 'colocar' ? 'mantener' : 'avanza', holdZ)
+    // Soltando se sale por el centro del carril tocado (con algo de holgura,
+    // para que no vayan en fila india).
+    const carril = Math.max(0, Math.min(CAMPO.carriles - 1, Math.round(x / CAMPO.anchoCarril + (CAMPO.carriles - 1) / 2)))
+    const xs = modo === 'soltar' ? carrilX(carril) + (Math.random() - 0.5) * 0.8 : x
+    mandarTropa(yo, elegida.key, xs, modo === 'colocar' ? 'mantener' : 'avanza', holdZ)
     audio.place()
   } else {
     const spec = DEFENSES[elegida.key]
@@ -468,11 +472,15 @@ lienzo.addEventListener('pointerdown', e => {
 let pistaT = 0
 function pista (texto) { $('gc-pista').textContent = texto; pistaT = 3 }
 
-$('gc-soltar').onclick = () => { modo = 'soltar'; pintarModo() }
-$('gc-colocar').onclick = () => { modo = 'colocar'; pintarModo() }
+$('gc-modo').onclick = () => {
+  modo = modo === 'soltar' ? 'colocar' : 'soltar'
+  audio.unlock()
+  pintarModo()
+}
 function pintarModo () {
-  $('gc-soltar').classList.toggle('activo', modo === 'soltar')
-  $('gc-colocar').classList.toggle('activo', modo === 'colocar')
+  $('gc-modo').innerHTML = modo === 'soltar'
+    ? '<b>SOLTAR</b><small>avanzan solos</small>'
+    : '<b>COLOCAR</b><small>esperan la orden</small>'
   pista(modo === 'soltar' ? 'Salen de tu base y avanzan solos.' : 'Se quedan donde toques hasta que pulses ¡AL ATAQUE!')
 }
 $('gc-avanzar').onclick = () => {
@@ -480,54 +488,112 @@ $('gc-avanzar').onclick = () => {
   for (const u of unidades) if (u.bando === bandos.azul && u.orden === 'mantener') { u.orden = 'avanza'; n++ }
   if (n) { audio.place(); pista(`¡${n} al ataque!`) }
 }
-for (const b of document.querySelectorAll('[data-pestana]')) {
-  b.onclick = () => {
-    pestana = b.dataset.pestana
-    for (const o of document.querySelectorAll('[data-pestana]')) o.classList.toggle('activo', o === b)
-    pintarCartas()
+
+// --- dónde se puede poner -----------------------------------------------------------
+// Isidro: «que selecciones un personaje y te indique dónde puedes ponerlo». Al
+// elegir carta se ilumina en el suelo lo que vale: soltando, los cinco
+// carriles de punta a punta (se toca el carril por el que sale); colocando o
+// con una defensa, tu mitad del campo.
+const zona = (() => {
+  const g = new THREE.Group()
+  const verde = new THREE.MeshBasicMaterial({ color: 0x5fd97a, transparent: true, opacity: 0.18, depthWrite: false })
+  const borde = new THREE.MeshBasicMaterial({ color: 0x8fffa8, transparent: true, opacity: 0.8, depthWrite: false })
+  const ancho = CAMPO.carriles * CAMPO.anchoCarril
+  // Tu mitad.
+  const z0 = MITAD + 1
+  const z1 = CAMPO.baseAzul - 0.5
+  const mitad = new THREE.Group()
+  const suelo = new THREE.Mesh(new THREE.PlaneGeometry(ancho, z1 - z0).rotateX(-Math.PI / 2), verde)
+  suelo.position.set(0, 0.03, (z0 + z1) / 2)
+  mitad.add(suelo)
+  for (const [w, d, x, z] of [[ancho, 0.12, 0, z0], [ancho, 0.12, 0, z1], [0.12, z1 - z0, -ancho / 2, (z0 + z1) / 2], [0.12, z1 - z0, ancho / 2, (z0 + z1) / 2]]) {
+    const l = new THREE.Mesh(new THREE.PlaneGeometry(w, d).rotateX(-Math.PI / 2), borde)
+    l.position.set(x, 0.035, z)
+    mitad.add(l)
   }
-}
+  // Los carriles, con flechas a la salida de cada uno.
+  const carriles = new THREE.Group()
+  const largo = CAMPO.baseAzul - CAMPO.baseRoja
+  const flecha = new THREE.Shape([new THREE.Vector2(-0.7, 0), new THREE.Vector2(0, 1.1), new THREE.Vector2(0.7, 0), new THREE.Vector2(0.35, 0), new THREE.Vector2(0, 0.5), new THREE.Vector2(-0.35, 0)])
+  for (let c = 0; c < CAMPO.carriles; c++) {
+    const col = new THREE.Mesh(new THREE.PlaneGeometry(CAMPO.anchoCarril - 0.35, largo).rotateX(-Math.PI / 2), verde)
+    col.position.set(carrilX(c), 0.03, (CAMPO.baseAzul + CAMPO.baseRoja) / 2)
+    carriles.add(col)
+    for (let k = 0; k < 3; k++) {
+      // La forma se dibuja en x-y; al tumbarla, +y pasa a -z: apunta al frente.
+      const f = new THREE.Mesh(new THREE.ShapeGeometry(flecha).rotateX(-Math.PI / 2), borde)
+      f.position.set(carrilX(c), 0.036, CAMPO.baseAzul - 7 - k * 1.4)
+      carriles.add(f)
+    }
+  }
+  g.add(mitad, carriles)
+  g.visible = false
+  scene.add(g)
+  return {
+    pintar (t) {
+      g.visible = jugando && !!elegida
+      if (!g.visible) return
+      const soltando = elegida.tipo === 'tropa' && modo === 'soltar'
+      carriles.visible = soltando
+      mitad.visible = !soltando
+      verde.opacity = 0.24 + 0.1 * Math.sin(t * 4)
+      borde.opacity = 0.7 + 0.3 * Math.sin(t * 4)
+    }
+  }
+})()
 
 // --- cartas ---------------------------------------------------------------------
+// Una sola tira, como la armería de la campaña: TROPA, BARRERAS y MEJORAS
+// separadas, con el retrato de cada figura.
+let retratos = new Map()
+// Con su propio renderizador: el de la partida, mientras hace las fotos, tiene
+// puesto el lienzo de la foto y el campo se veía negro.
+const fotografo = new THREE.WebGLRenderer({ antialias: true, alpha: true })
+fotografo.outputColorSpace = THREE.SRGBColorSpace
+renderPortraits(fotografo).then(r => { retratos = r.retratos; if (bandos) pintarCartas(); fotografo.dispose() }).catch(() => {})
+
 function pintarCartas () {
   const yo = bandos.azul
-  const caja = $('gc-cartas')
-  let html = ''
-  if (pestana === 'tropas') {
-    for (const k of TROPAS) {
-      const spec = SOLDIERS[k]
-      const tiene = yo.tengo.has(k)
-      if (!tiene && SOLO_COFRE.has(k)) continue
-      if (tiene) {
-        html += carta(k, spec.name, spec.cost, yo.monedas < spec.cost, elegida?.key === k, `NV ${nivelDe(yo, k)}`)
-      } else {
-        const p = Math.round(spec.cost * REGLAS.precioDesbloqueo)
-        html += carta(k, spec.name, p, yo.monedas < p, false, '', 'bloqueada', 'desbloquear')
-      }
-    }
-  } else if (pestana === 'defensas') {
-    for (const k of DEFENSAS) {
-      const spec = DEFENSES[k]
-      if (!yo.tengo.has(k)) continue
-      html += carta(k, spec.name, spec.cost, yo.monedas < spec.cost, elegida?.key === k)
-    }
-    if (!html) html = '<p class="gc-pista">No tienes defensas desbloqueadas en la tienda.</p>'
-  } else {
-    for (const k of TROPAS) {
-      if (!yo.tengo.has(k)) continue
-      const n = nivelDe(yo, k)
-      const lleno = n >= REGLAS.nivelMax
-      const p = lleno ? 0 : REGLAS.precioMejora(SOLDIERS[k].cost, n)
-      html += carta(k, SOLDIERS[k].name, lleno ? '—' : p, !lleno && yo.monedas < p, false, `NV ${n}`, lleno ? 'caro' : '', lleno ? 'al máximo' : `a NV ${n + 1}`)
+  let html = '<span class="gc-sep" data-label="Tropa"></span>'
+  for (const k of TROPAS) {
+    const spec = SOLDIERS[k]
+    const tiene = yo.tengo.has(k)
+    if (!tiene && SOLO_COFRE.has(k)) continue
+    if (tiene) {
+      html += carta({ k, accion: 'tropa', nombre: spec.name, precio: spec.cost, caro: yo.monedas < spec.cost, activa: elegida?.key === k, nivel: `NV ${nivelDe(yo, k)}` })
+    } else {
+      const p = Math.round(spec.cost * REGLAS.precioDesbloqueo)
+      html += carta({ k, accion: 'desbloquear', nombre: spec.name, precio: p, caro: yo.monedas < p, clase: 'bloqueada', nota: 'desbloquear', candado: true })
     }
   }
+  const defensas = DEFENSAS.filter(k => yo.tengo.has(k))
+  if (defensas.length) {
+    html += '<span class="gc-sep" data-label="Barreras"></span>'
+    for (const k of defensas) {
+      const spec = DEFENSES[k]
+      html += carta({ k, accion: 'defensa', nombre: spec.name, precio: spec.cost, caro: yo.monedas < spec.cost, activa: elegida?.key === k })
+    }
+  }
+  html += '<span class="gc-sep" data-label="Mejoras"></span>'
+  for (const k of TROPAS) {
+    if (!yo.tengo.has(k)) continue
+    const n = nivelDe(yo, k)
+    const lleno = n >= REGLAS.nivelMax
+    const p = lleno ? '—' : REGLAS.precioMejora(SOLDIERS[k].cost, n)
+    html += carta({ k, accion: 'mejora', nombre: SOLDIERS[k].name, precio: p, caro: !lleno && yo.monedas < p, clase: 'mejora' + (lleno ? ' caro' : ''), nota: lleno ? 'al máximo' : `▲ NV ${n + 1}` })
+  }
+  const caja = $('gc-cartas')
+  const scroll = caja.scrollLeft
   caja.innerHTML = html
+  caja.scrollLeft = scroll
 }
 
-function carta (k, nombre, precio, caro, activa, nivel = '', clase = '', nota = '') {
-  return `<button class="gc-carta ${caro ? 'caro' : ''} ${activa ? 'elegida' : ''} ${clase}" data-key="${k}" type="button">` +
-    (nivel ? `<span class="gc-nivel">${nivel}</span>` : '') +
-    `${nombre}<b>${precio}</b>${nota ? `<small>${nota}</small>` : ''}</button>`
+function carta ({ k, accion, nombre, precio, caro, activa, nivel = '', clase = '', nota = '', candado = false }) {
+  const url = retratos.get(k)
+  const cara = url ? `<img src="${url}" alt="">` : `<em>${DEFENSES[k] ? '▦' : '♟'}</em>`
+  return `<button class="gc-carta ${caro ? 'caro' : ''} ${activa ? 'elegida' : ''} ${clase}" data-key="${k}" data-accion="${accion}" type="button">` +
+    (nivel ? `<span class="gc-nivel">${nivel}</span>` : '') + (candado ? '<span class="gc-candado">🔒</span>' : '') +
+    `<span class="gc-cara">${cara}</span>${nombre}<b>${precio}</b>${nota ? `<small>${nota}</small>` : ''}</button>`
 }
 
 $('gc-cartas').addEventListener('click', e => {
@@ -536,7 +602,8 @@ $('gc-cartas').addEventListener('click', e => {
   audio.unlock()
   const k = b.dataset.key
   const yo = bandos.azul
-  if (pestana === 'mejoras') {
+  const accion = b.dataset.accion
+  if (accion === 'mejora') {
     const n = nivelDe(yo, k)
     if (n >= REGLAS.nivelMax) return
     const p = REGLAS.precioMejora(SOLDIERS[k].cost, n)
@@ -545,7 +612,7 @@ $('gc-cartas').addEventListener('click', e => {
     subirNivel(yo, k)
     audio.coin()
     pista(`${SOLDIERS[k].name} a nivel ${n + 1}: los que hay y los que vengan.`)
-  } else if (pestana === 'tropas' && !yo.tengo.has(k)) {
+  } else if (accion === 'desbloquear') {
     const p = Math.round(SOLDIERS[k].cost * REGLAS.precioDesbloqueo)
     if (yo.monedas < p) { audio.denied(); return pista('No te llega.') }
     yo.monedas -= p
@@ -554,10 +621,10 @@ $('gc-cartas').addEventListener('click', e => {
     elegida = { tipo: 'tropa', key: k }
     pista(`${SOLDIERS[k].name} desbloqueado solo para esta partida.`)
   } else {
-    elegida = elegida?.key === k ? null : { tipo: pestana === 'tropas' ? 'tropa' : 'defensa', key: k }
-    if (elegida) pista(pestana === 'tropas'
-      ? (modo === 'soltar' ? 'Toca el campo: sale por ese lado y avanza.' : 'Toca en tu mitad: se queda ahí.')
-      : 'Toca en tu mitad para ponerla.')
+    elegida = elegida?.key === k ? null : { tipo: accion, key: k }
+    if (elegida) pista(accion === 'tropa'
+      ? (modo === 'soltar' ? 'Toca el carril por el que sale.' : 'Toca en la zona verde: se queda ahí.')
+      : 'Toca en la zona verde para ponerla.')
   }
   pintarHud(true)
 })
@@ -574,13 +641,14 @@ function pintarHud (forzar = false) {
   $('gc-reloj').textContent = `${Math.floor(falta / 60)}:${String(Math.floor(falta % 60)).padStart(2, '0')}`
   $('gc-monedas').textContent = Math.floor(az.monedas)
   const quietos = unidades.filter(u => u.bando === az && u.orden === 'mantener' && !u.s.dead).length
-  $('gc-quietos').textContent = quietos ? `(${quietos})` : ''
+  $('gc-quietos').textContent = quietos ? `${quietos} esperando` : 'nadie esperando'
   $('gc-avanzar').disabled = !quietos
   // Las cartas solo se repintan si cambia lo que se puede pagar.
-  const firma = pestana + '|' + (elegida?.key ?? '') + '|' + [...TROPAS, ...DEFENSAS].map(k => {
+  const firma = (elegida?.key ?? '') + '|' + [...TROPAS, ...DEFENSAS].map(k => {
     const spec = SOLDIERS[k] ?? DEFENSES[k]
-    return (az.monedas >= spec.cost ? 1 : 0) + ':' + nivelDe(az, k) + ':' + (az.tengo.has(k) ? 1 : 0)
-  }).join(',') + '|' + Math.floor(az.monedas / 25)
+    const mejora = SOLDIERS[k] ? REGLAS.precioMejora(spec.cost, nivelDe(az, k)) : 0
+    return [az.monedas >= spec.cost, az.monedas >= mejora, az.monedas >= spec.cost * REGLAS.precioDesbloqueo, nivelDe(az, k), az.tengo.has(k)].map(Number).join('')
+  }).join(',')
   if (forzar || firma !== ultimoHud) { ultimoHud = firma; pintarCartas() }
 }
 
@@ -657,6 +725,7 @@ function fotograma (ahora) {
     effects.update(dt)
   }
   animar(ahora / 1000)
+  zona.pintar(ahora / 1000)
   renderer.render(scene, camera)
 }
 requestAnimationFrame(fotograma)
