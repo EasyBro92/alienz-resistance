@@ -353,7 +353,7 @@ export function createUI ({ onSelect, onUpgrade, onMove, onDeselect, onArrastreC
       el.inspectorTitle.textContent = `${soldier.spec.name} · nivel ${soldier.level}`
       el.actUpgrade.textContent = `Mejorar ${cost}`
       el.actUpgrade.disabled = coins < cost
-      el.actMove.style.display = soldier.spec.blocker ? 'none' : ''
+      el.actMove.style.display = soldier.spec.fija ? 'none' : ''
     },
 
     closeInspector (keepTarget = false) {

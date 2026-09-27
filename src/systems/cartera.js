@@ -57,6 +57,8 @@ export const PRECIOS = {
   sandbags: 30,
   spikes: 90,
   mines: 180,
+  erizos: 120,
+  torreta: 500,
   grenade: 40,
   airstrike: 280,
   napalm: 350,

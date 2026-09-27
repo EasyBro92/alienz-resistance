@@ -74,8 +74,8 @@ def tubo (bm, pts, r, lados, col, mat=0):
             j = (i + 1) % lados
             cara(bm, [anillos[k][i], anillos[k][j], anillos[k + 1][j], anillos[k + 1][i]], col, mat)
 
-def viga (bm, a, b, grueso, col, lados=6):
-    tubo(bm, [a, b], grueso, lados, col)
+def viga (bm, a, b, grueso, col, lados=6, mat=0):
+    tubo(bm, [a, b], grueso, lados, col, mat)
     # Tapas: sin ellas, desde arriba se ve el hueco del palo.
     for p, q in ((a, b), (b, a)):
         t = (Vector(q) - Vector(p)).normalized()
@@ -84,7 +84,7 @@ def viga (bm, a, b, grueso, col, lados=6):
         n2 = t.cross(n1).normalized()
         vs = [bm.verts.new(P(*(Vector(p) + (n1 * math.cos(2 * math.pi * i / lados) + n2 * math.sin(2 * math.pi * i / lados)) * grueso)))
               for i in range(lados)]
-        cara(bm, vs, col, suave=False)
+        cara(bm, vs, col, mat, suave=False)
 
 def exportar_una (o, nombre):
     bpy.ops.object.select_all(action='DESELECT')
@@ -379,6 +379,118 @@ def luz_carga (bm):
 o_carga = objeto('defensa-carga', carga, [base])
 o_luz = objeto('brillo-luz', luz_carga, [luz])
 
+# ======================================================================================
+# 4. ERIZOS CHECOS
+# ======================================================================================
+# Tres vigas de acero en L cruzadas por el medio, cada una perpendicular a las
+# otras dos, y apoyadas en tres puntas: el obstáculo de las playas de
+# Normandía. No paran a nadie —se pasa entre ellos—, pero frenan. Dos, uno al
+# lado del otro, algo girados.
+from mathutils import Quaternion, Matrix
+ACERO = [0x5f5851, 0x6a625a, 0x544e48]
+OXIDO = 0x86512f
+
+def caja_ejes (bm, c, u, v, w, mu, mv, mw, col, mat=0):
+    # Caja orientada por tres ejes (vectores unitarios del juego) y sus medidas.
+    esquinas = []
+    for sv in (-1, 1):
+        for su, sw in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
+            p = Vector(c) + u * (su * mu / 2) + v * (sv * mv / 2) + w * (sw * mw / 2)
+            esquinas.append(bm.verts.new(P(p.x, p.y, p.z)))
+    d, a = esquinas[:4], esquinas[4:]
+    cara(bm, d[::-1], col, mat, suave=False)
+    cara(bm, a, col, mat, suave=False)
+    for i in range(4):
+        j = (i + 1) % 4
+        cara(bm, [d[i], d[j], a[j], a[i]], col, mat, suave=False)
+
+def erizo (bm, cx, cz, largo, giro, semilla):
+    random.seed(semilla)
+    # El giro que pone la diagonal (1, 1, 1) en vertical: así se apoya en tres
+    # puntas y las otras tres miran arriba.
+    q = Vector((1, 1, 1)).normalized().rotation_difference(Vector((0, 1, 0)))
+    qy = Quaternion(Vector((0, 1, 0)), giro)
+    alto = largo / 2 / math.sqrt(3) + 0.02
+    c = Vector((cx, alto, cz))
+    for k, e in enumerate(((1, 0, 0), (0, 1, 0), (0, 0, 1))):
+        eje = qy @ (q @ Vector(e))
+        otro = qy @ (q @ Vector(((0, 1, 0), (0, 0, 1), (1, 0, 0))[k]))
+        tercero = eje.cross(otro).normalized()
+        col = rgb(random.choice(ACERO), random.uniform(0.9, 1.08))
+        # La L: dos alas finas que forman el ángulo.
+        caja_ejes(bm, c + otro * 0.045, eje, otro, tercero, largo, 0.09, 0.022, col)
+        caja_ejes(bm, c + tercero * 0.045, eje, otro, tercero, largo, 0.022, 0.09, col)
+        # Óxido en las puntas: un tramo corto de otro color en cada extremo.
+        for s in (-1, 1):
+            caja_ejes(bm, c + eje * s * (largo / 2 - 0.08) + otro * 0.046, eje, otro, tercero, 0.14, 0.094, 0.026, rgb(OXIDO))
+
+def erizos (bm):
+    erizo(bm, -0.55, 0.05, 1.25, 0.35, 3)
+    erizo(bm, 0.58, -0.08, 1.2, -0.5, 4)
+
+o_erizos = objeto('defensa-erizos', erizos, [metal])
+
+# ======================================================================================
+# 5. TORRETA AUTOMÁTICA
+# ======================================================================================
+# Un nido de sacos en herradura (abierto por detrás, hacia la cámara) con una
+# ametralladora de dos cañones sobre un pedestal. El CABEZAL es una pieza
+# aparte con el origen en su eje: el juego lo gira hacia el blanco. La BOCA es
+# un punto vacío colgado del cabezal, donde el juego pone el fogonazo.
+# Tiene un ojo que brilla (`brillo-ojo`): es lo que dice que va sola.
+PIVOTE = (0.0, 0.66, 0.0)
+ojo = material('brillo-ojo', 0x6ef0ff, 0.3, emision=0x6ef0ff, fuerza=5.0)
+
+def torreta_base (bm):
+    random.seed(23)
+    R = 0.62
+    for k in range(7):
+        a = math.radians(-160 + k * 40)            # herradura: abierta hacia +z
+        cx, cz = math.sin(a) * R, -math.cos(a) * R
+        saco(bm, (cx, 0, cz), -a + math.pi / 2 + random.uniform(-0.1, 0.1), 0.44, 0.2, 0.28,
+             random.choice([0, 1, 2, 4]), random.uniform(0, 50), atado=0)
+    for k in range(5):
+        a = math.radians(-120 + k * 60)
+        cx, cz = math.sin(a) * R * 0.98, -math.cos(a) * R * 0.98
+        saco(bm, (cx, 0.16, cz), -a + math.pi / 2 + random.uniform(-0.1, 0.1), 0.42, 0.19, 0.27,
+             random.choice([0, 2, 3, 5]), random.uniform(0, 50), atado=0)
+    # El pedestal y sus tres patas.
+    hierro = rgb(0x3a3d3f)
+    viga(bm, (0, 0.02, 0), (0, PIVOTE[1], 0), 0.06, hierro, 8, mat=1)
+    for k in range(3):
+        a = 2 * math.pi * k / 3 + 0.5
+        viga(bm, (0, 0.34, 0), (math.cos(a) * 0.32, 0.01, math.sin(a) * 0.32), 0.028, hierro, 5, mat=1)
+
+def torreta_cabezal (bm):
+    oliva = rgb(0x58624b)
+    oscuro = rgb(0x2c2f30)
+    X, Y, Z = Vector((1, 0, 0)), Vector((0, 1, 0)), Vector((0, 0, 1))
+    # El cuerpo, con la placa de blindaje delantera inclinada.
+    caja_ejes(bm, (0, 0.84, 0.05), X, Y, Z, 0.42, 0.3, 0.5, oliva)
+    inc = Quaternion(Vector((1, 0, 0)), math.radians(-28))
+    caja_ejes(bm, (0, 0.86, -0.24), X, inc @ Y, inc @ Z, 0.56, 0.42, 0.05, rgb(0x4d5641))
+    # La caja de munición a un lado, con la cinta entrando.
+    caja_ejes(bm, (0.3, 0.78, 0.06), X, Y, Z, 0.16, 0.2, 0.28, rgb(0x6b6a45))
+    caja_ejes(bm, (0.22, 0.85, -0.05), X, Y, Z, 0.08, 0.03, 0.1, rgb(0xa08a3a))
+    # Los dos cañones con su camisa, hacia -z.
+    for x in (-0.09, 0.09):
+        viga(bm, (x, 0.8, -0.2), (x, 0.8, -0.62), 0.05, oscuro, 8)
+        viga(bm, (x, 0.8, -0.62), (x, 0.8, -0.98), 0.028, oscuro, 8)
+    # El ojo: un visor encima, que brilla.
+    caja_ejes(bm, (0, 1.03, -0.08), X, Y, Z, 0.16, 0.08, 0.14, oscuro)
+    caja_ejes(bm, (0, 1.03, -0.152), X, Y, Z, 0.1, 0.045, 0.01, (1, 1, 1, 1), mat=1)
+
+o_tor_base = objeto('torreta-base', torreta_base, [base, metal])
+o_tor_cab = objeto('torreta-cabezal', torreta_cabezal, [metal, ojo])
+# El origen del cabezal en su eje de giro.
+piv = P(*PIVOTE)
+o_tor_cab.data.transform(Matrix.Translation(-piv))
+o_tor_cab.location = piv
+o_boca = bpy.data.objects.new('torreta-boca', None)
+esc.collection.objects.link(o_boca)
+o_boca.parent = o_tor_cab
+o_boca.location = P(0, 0.8, -1.0) - piv
+
 # --- las tres, por separado ----------------------------------------------------------
 exportar_una(o_sacos, 'defensa-sacos')
 exportar_una(o_alambrada, 'defensa-alambrada')
@@ -401,11 +513,31 @@ print('EXPORTADO defensa-carga', os.path.getsize(salida), 'bytes',
 # ======================================================================================
 # FOTOS DE PRUEBA: las tres en fila, desde donde las ve el jugador
 # ======================================================================================
+exportar_una(o_erizos, 'defensa-erizos')
+bpy.ops.object.select_all(action='DESELECT')
+for o in (o_tor_base, o_tor_cab, o_boca):
+    o.select_set(True)
+bpy.context.view_layer.objects.active = o_tor_base
+salida = os.path.join(MODELOS, 'defensa-torreta.glb')
+for extra in (dict(export_vertex_color='ACTIVE'), dict(export_colors=True), {}):
+    try:
+        bpy.ops.export_scene.gltf(filepath=salida, export_format='GLB', use_selection=True, export_apply=True,
+                                  export_draco_mesh_compression_enable=True, export_draco_mesh_compression_level=6, **extra)
+        break
+    except TypeError:
+        continue
+print('EXPORTADO defensa-torreta', os.path.getsize(salida), 'bytes',
+      sum(len(p.vertices) - 2 for o in (o_tor_base, o_tor_cab) for p in o.data.polygons), 'triangulos')
+
 if '--vista' in ARGS:
     os.makedirs(VISTAS, exist_ok=True)
     o_sacos.location = P(-2.4, 0, 0)
     o_carga.location = P(2.4, 0, 0)
     o_luz.location = P(2.4, 0, 0)
+    o_erizos.location = P(-1.2, 0, 2.6)
+    o_tor_base.location = P(1.2, 0, 2.6)
+    o_tor_cab.location = P(1.2, PIVOTE[1], 2.6)
+    o_tor_cab.rotation_euler = (0, 0, math.radians(20))
     bpy.ops.mesh.primitive_plane_add(size=30, location=(0, 0, 0))
     suelo = bpy.context.active_object
     suelo.data.materials.append(material('suelo', 0x7d7a74, 0.95))

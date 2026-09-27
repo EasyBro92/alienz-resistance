@@ -163,15 +163,19 @@ export const SOLDIERS = {
   }
 }
 
+// Todas llevan `fija`: son cosas, no soldados. No andan, no se mueven de casilla,
+// no marchan al asalto final y no se visten con las mejoras. `blocker` es otra
+// cosa: que el bicho se pare delante a morderla. Los erizos son fijos pero NO
+// paran (`paso`), y la torreta es fija pero dispara (`dispara`).
 export const DEFENSES = {
   sandbags: {
     name: 'Sacos terreros', cost: 45, hp: 300, color: 0xc9b184, accent: 0x8a7350,
-    blocker: true,
+    blocker: true, fija: true,
     blurb: 'No dispara. Se lo comen a él mientras los tuyos disparan.'
   },
   spikes: {
     name: 'Alambrada', cost: 80, hp: 150, color: 0x8d949c, accent: 0x4a5058,
-    blocker: true, thorns: 14,
+    blocker: true, fija: true, thorns: 14,
     blurb: 'Frena y desangra: cada mordisco que recibe se lo devuelve al zombi.'
   },
   // La tercera barrera, y juega distinto a las otras dos. Los sacos aguantan y
@@ -181,8 +185,29 @@ export const DEFENSES = {
   // mitad de la campaña, donde aguantar ya no basta.
   mines: {
     name: 'Carga enterrada', cost: 120, hp: 12, color: 0x6d6a5c, accent: 0xc4622f,
-    blocker: true, revienta: { daño: 260, radio: 3.6 },
+    blocker: true, fija: true, revienta: { daño: 260, radio: 3.6 },
     blurb: 'No aguanta nada. Al romperse revienta y se lleva al corro entero.'
+  },
+  // Las dos nuevas del 27/09 (Isidro eligió estas entre cuatro). Van AL FINAL:
+  // el duelo y el cooperativo mandan las claves por su índice, y meterlas en
+  // medio cambiaría el de las que ya había.
+  //
+  // Erizos checos: no paran a nadie, se pasa entre ellos, pero frenan a todo el
+  // que los cruza. Y se gastan: cada bicho que pasa les quita un poco.
+  erizos: {
+    name: 'Erizos checos', cost: 70, hp: 260, color: 0x5f5851, accent: 0x86512f,
+    fija: true, paso: true, frena: { factor: 0.4, desgaste: 0.3 },
+    blurb: 'No paran a nadie, pero todo el que los cruza va a menos de la mitad de paso.'
+  },
+  // Torreta automática: una ametralladora sin soldado. Cara a propósito —Isidro:
+  // «la torreta debe ser cara, unos 500», en billetes y en monedas—, y a cambio
+  // no recarga nunca, aguanta como tres soldados y no se cansa.
+  torreta: {
+    name: 'Torreta automática', cost: 500, hp: 420, color: 0x58624b, accent: 0x2c2f30,
+    fija: true, dispara: true,
+    damage: 11, fireRate: 7, range: 26, armorPierce: 0.25, shake: true,
+    magazine: 100000, reloadTime: 0.1,
+    blurb: 'Dispara sola a su carril sin parar ni recargar. Cara, pero no se cansa.'
   }
 }
 

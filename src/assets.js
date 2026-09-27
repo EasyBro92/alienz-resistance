@@ -3105,7 +3105,10 @@ export function vestirMejoras (mesh, nivel) {
 // y la alambrada y la carga no se distinguían de los sacos. Isidro: «los sacos
 // se ven poco realistas». Cada una trae su modelo; si no llega (sin red, o una
 // defensa sin modelo), se usa el de siempre.
-const MODELO_DEFENSA = { sandbags: 'defensa-sacos', spikes: 'defensa-alambrada', mines: 'defensa-carga' }
+const MODELO_DEFENSA = {
+  sandbags: 'defensa-sacos', spikes: 'defensa-alambrada', mines: 'defensa-carga',
+  erizos: 'defensa-erizos', torreta: 'defensa-torreta'
+}
 let cargadorDefensas = null
 const moldesDefensa = new Map()
 
@@ -3146,12 +3149,23 @@ export async function buildDefensaMesh (key, spec) {
       }
     }
   })
-  // El juego encoge todas las figuras de la casilla a 0,59: a su tamaño de
-  // Blender la defensa ocupaba la mitad del carril y parecía de juguete. Así
-  // cubre unas tres cuartas partes, como una barrera de verdad.
-  copia.scale.setScalar(1.35)
+  // La torreta: el cabezal gira hacia el blanco (lo mueve soldier.js) y de la
+  // boca sale el fogonazo, como en los soldados.
+  const cabezal = copia.getObjectByName('torreta-cabezal')
+  const boca = copia.getObjectByName('torreta-boca')
+  if (cabezal) g.userData.cabezal = cabezal
+  if (boca) {
+    const fogonazo = montarFogonazo({ userData: { muzzleZ: 0 } })
+    boca.add(fogonazo)
+    g.userData.flash = fogonazo
+  }
+  // A 0,8 de su tamaño de Blender cubre unas tres cuartas partes del carril,
+  // como una barrera de verdad. (Los sacos de antes se quedaban en 0,59 de los
+  // suyos, pero por accidente: el rebote al colocarlos los encogía fotograma a
+  // fotograma. Ver `spec.fija` en soldier.js.)
+  copia.scale.setScalar(0.8)
   g.add(copia)
-  g.add(contactShadow(1.35))
+  g.add(contactShadow(0.8))
   return g
 }
 

@@ -288,7 +288,8 @@ function mejorHueco (item) {
   // Las barreras van delante, a comerse el primer mordisco; los que disparan,
   // detrás, donde tardan más en tenerlos encima. Con alcances de 15 a 44 llegan
   // igual de lejos desde la última fila.
-  const filas = item.spec.blocker ? [3, 2, 1, 0] : [0, 1, 2, 3]
+  // Lo que para o frena va delante; lo que dispara (también la torreta), detrás.
+  const filas = item.spec.blocker || item.spec.paso ? [3, 2, 1, 0] : [0, 1, 2, 3]
 
   // La FILA manda sobre el carril, y esto es lo que estaba al revés.
   //
@@ -335,7 +336,7 @@ async function place (item, lane, row) {
 
   // No aparecen en su casilla: entran por detrás de la línea y suben andando.
   // Las barreras sí aparecen puestas — un saco terrero no camina.
-  if (!spec.blocker) {
+  if (!spec.fija) {
     const entrada = new THREE.Vector3(laneX(lane), 0, FIELD.baseZ + 2.4)
     s.px = entrada.x
     s.pz = entrada.z
@@ -478,7 +479,7 @@ canvas.addEventListener('pointerdown', e => {
   const sHits = raycaster.intersectObjects(soldiers.map(s => s.mesh), true)
   if (sHits.length) {
     const s = findSoldierFrom(sHits[0].object)
-    if (s && !s.spec.blocker) {
+    if (s && !s.spec.fija) {
       arrastre = { soldado: s, x0: px, y0: py, activo: false }
       return
     }
@@ -853,6 +854,19 @@ function updateBrasas (dt) {
   }
 }
 
+// Erizos checos: el bicho que está entre ellos va frenado, y cada uno que pasa
+// los gasta un poco (una fracción de lo que muerde por segundo).
+function erizosAl (z, dt) {
+  if (z.intocable) return
+  for (const s of soldiers) {
+    const f = s.spec.frena
+    if (!f || s.dead || s.lane !== z.lane) continue
+    if (Math.abs(z.z - s.pz) > 1.4) continue
+    z.frenar(f.factor, 0.25)
+    s.hurt(z.spec.damage * (z.spec.attackRate ?? 1) * f.desgaste * dt)
+  }
+}
+
 function blockerAhead (zombie) {
   // Bajo tierra o en el aire no hay nada que le pare.
   if (zombie.intocable) return null
@@ -860,6 +874,8 @@ function blockerAhead (zombie) {
   let best = null
   for (const s of soldiers) {
     if (s.dead || s.lane !== zombie.lane) continue
+    // Los erizos no paran: se pasa entre ellos (frenan aparte, ver `erizosAl`).
+    if (s.spec.paso) continue
     if (s.pz <= zombie.z) continue
     if (!best || s.pz < best.pz) best = s
   }
@@ -1244,6 +1260,7 @@ function simulate (dt) {
         continue
       }
 
+      erizosAl(z, dt)
       const blocker = blockerAhead(z)
       const reach = (z.spec.rangedAttack ?? 1.1) + (z.spec.scale ?? 1) * 0.35
       const gap = blocker ? blocker.pz - z.z : Infinity
@@ -1746,7 +1763,7 @@ function empezarAsalto () {
   ui.closeInspector()
   ui.banner('¡A POR LA BASE!')
   const base = world.baseActual()
-  const tiradores = soldiers.filter(s => !s.dead && !s.spec.blocker)
+  const tiradores = soldiers.filter(s => !s.dead && !s.spec.fija)
   asalto = { t: 0, fase: 'andar', base, tiradores, sitio: base ? base.position.clone() : null }
   // Cada uno sale por su carril y se para en la franja donde se posaban las
   // naves, a tres profundidades distintas para que no parezca un desfile.

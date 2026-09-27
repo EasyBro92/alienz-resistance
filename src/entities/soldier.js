@@ -186,7 +186,7 @@ function pisada (fase, apoyo, recorrido, altura) {
 }
 
 export async function createSoldier (key, spec, lane, row) {
-  const mesh = spec.blocker ? await buildDefensaMesh(key, spec) : await buildSoldierMesh(key, spec)
+  const mesh = spec.fija ? await buildDefensaMesh(key, spec) : await buildSoldierMesh(key, spec)
   mesh.position.set(laneX(lane), 0, rowZ(row))
 
   // Figuras con esqueleto: el ciclo de andar viene dentro del archivo y lo
@@ -216,9 +216,9 @@ export async function createSoldier (key, spec, lane, row) {
   const mejoraDano = factorMejora(key, 'dano')
   const mejoraCadencia = factorMejora(key, 'cadencia')
   // Y lo que se le ve puesto: casco, hombreras y bocacha según lo mejorado.
-  if (!spec.blocker) vestirMejoras(mesh, nivelMejora(key, 'dano') + nivelMejora(key, 'cadencia'))
+  if (!spec.fija) vestirMejoras(mesh, nivelMejora(key, 'dano') + nivelMejora(key, 'cadencia'))
 
-  const bar = createHealthBar(1.4, spec.blocker ? 1.6 : 2.45)
+  const bar = createHealthBar(1.4, spec.fija ? 1.6 : 2.45)
   mesh.add(bar.group)
 
   return {
@@ -292,7 +292,7 @@ export async function createSoldier (key, spec, lane, row) {
     // diferencia entre las dos armas y ahora se ve sin leer ninguna ficha.
     calor: 0,
 
-    get canShoot () { return !spec.blocker && !this.andando },
+    get canShoot () { return (!spec.fija || !!spec.dispara) && !this.andando },
     // Cada mejora sube daño y cadencia: pagar por uno bueno compite de verdad
     // con pagar por uno más.
     get damage () { return spec.damage * (1 + 0.55 * (this.level - 1)) * mejoraDano },
@@ -607,6 +607,30 @@ export async function createSoldier (key, spec, lane, row) {
         }
       } else {
         this.mesh.rotation.x = 0
+      }
+
+      // Las defensas no pasan por el bloque del cuerpo, que es el que pone la
+      // escala en cada fotograma, y el rebote de abajo MULTIPLICA la escala: sin
+      // ponerla aquí se iban encogiendo mientras caían y se quedaban del tamaño
+      // que dieran los fotogramas por segundo (0,59 en un portátil a 60; más
+      // grandes en un móvil que fuera a 30).
+      if (spec.fija) this.mesh.scale.setScalar(this.sizeBoost)
+
+      // --- la torreta ---------------------------------------------------------
+      // No tiene cuerpo: gira el cabezal hacia el blanco, algo más deprisa que
+      // un soldado (es una máquina), y sin blanco barre despacio a un lado y a
+      // otro, que es lo que dice que está encendida. La base no se mueve.
+      if (ud.cabezal) {
+        let quiere = Math.sin(this.idle * 0.6 + this.phase) * 0.45
+        if (this.targetPos) {
+          quiere = Math.atan2(-(this.targetPos.x - this.px), -(this.targetPos.z - this.pz))
+        }
+        let d = quiere - (this.giroCabezal ?? 0)
+        while (d > Math.PI) d -= Math.PI * 2
+        while (d < -Math.PI) d += Math.PI * 2
+        this.giroCabezal = (this.giroCabezal ?? 0) + d * Math.min(1, dt * (this.targetPos ? 9 : 2))
+        ud.cabezal.rotation.y = this.giroCabezal
+        this.mesh.position.x = this.px
       }
 
       // --- aterrizaje al colocarlo ------------------------------------------
