@@ -573,6 +573,10 @@ export function createDropship (alFase) {
   let tPolvo = -1
 
   let estado = 'oculta'
+  // De qué altura y con qué giro empieza la bajada. Normalmente 13 y 0, pero si
+  // la anterior sigue en pantalla se sigue desde donde esté (ver `llegar`).
+  let alturaDesde = ALTURA
+  let giroDesde = 0
   let t = 0
   let despedida = false      // ya han salido todos: se irá en cuanto pueda
 
@@ -625,17 +629,23 @@ export function createDropship (alFase) {
       alFase?.('bajando')
       t = 0
       despedida = false
-      group.visible = true
-      group.position.y = ALTURA
-      // De frente y derecha desde el primer fotograma.
+      // Si la nave anterior todavía está en pantalla —subiendo o cerrando,
+      // porque el director pisa una oleada con la siguiente— NO se la endereza ni
+      // se la teletransporta arriba. Eso era el tirón que veía Isidro: «las naves
+      // a veces cuando bajan se colocan de frente de golpe», «dan el tirón
+      // algunas, no todas». Al despegar la nave se va girando
+      // (`rotation.y += dt * 0.35`) y subiendo hasta 13; poniendo de golpe el giro
+      // a cero y la altura a 13 se veían las dos cosas saltar en un fotograma.
       //
-      // Isidro: «las naves a veces cuando bajan se colocan de frente de golpe».
-      // Y pasaba: al despegar, la nave se va GIRANDO (`rotation.y += dt * 0.35`),
-      // y si la siguiente oleada la llamaba mientras aún subía —que es lo que
-      // hace el director cuando las oleadas se pisan— volvía a bajar con el giro
-      // a medias, sin que nadie lo deshiciera. Al posarse, el `rotation.set(0,0,0)`
-      // del final de la bajada la enderezaba DE GOLPE, en un fotograma.
-      group.rotation.set(0, 0, 0)
+      // Ahora se sigue desde donde esté: baja desde su altura y el giro se
+      // deshace poco a poco durante la bajada.
+      const enPantalla = group.visible && estado !== 'oculta'
+      alturaDesde = enPantalla ? Math.max(2, group.position.y) : ALTURA
+      // Por el camino corto: un giro de 4 radianes es -2,28, no 4.
+      giroDesde = enPantalla ? Math.atan2(Math.sin(group.rotation.y), Math.cos(group.rotation.y)) : 0
+      group.visible = true
+      group.position.y = alturaDesde
+      group.rotation.set(0, giroDesde, 0)
       bisagra.rotation.x = CERRADA
       desplegarPatas(0)
     },
@@ -666,7 +676,7 @@ export function createDropship (alFase) {
 
       switch (estado) {
         case 'bajando': {
-          group.position.y = ALTURA * (1 - easeOut(Math.min(1, t / T_BAJADA)))
+          group.position.y = alturaDesde * (1 - easeOut(Math.min(1, t / T_BAJADA)))
           // La compuerta se abre DURANTE la bajada, no después de posarse.
           // Esperar a tocar suelo para empezar a abrir dejaba a la nave un
           // segundo largo ahí plantada y cerrada, sin que pasara nada; y una
@@ -681,6 +691,9 @@ export function createDropship (alFase) {
           const resto = Math.max(0, 1 - t / T_BAJADA)
           group.rotation.z = Math.sin(t * 3.1) * 0.05 * resto
           group.rotation.x = Math.sin(t * 2.3 + 1) * 0.035 * resto
+          // Y el giro que traía de la oleada anterior se va soltando, en vez de
+          // desaparecer de un fotograma a otro al tocar suelo.
+          if (giroDesde) group.rotation.y = giroDesde * (1 - easeInOut(Math.min(1, t / T_BAJADA)))
           if (t >= T_BAJADA) {
             estado = 'rampa'
             // Dos avisos en el mismo instante: el golpe de las patas y el

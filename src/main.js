@@ -1434,6 +1434,7 @@ function empezarVuelo () {
     ? (yaVisto(nivelActivo().escenario) ? LUGAR_CORTO : LUGAR_ENTERO)
     : VUELO
   ui.banner(nivelActivo().name.toUpperCase())
+  ui.rotulo(nivelActivo().name.toUpperCase(), nivelActivo().lugar, vuelo.dura)
   actualizarVuelo(0)
 }
 
@@ -1501,6 +1502,7 @@ function empezarLlegadaEstadio () {
   camera.far = 1500
   camera.updateProjectionMatrix()
   ui.banner(nivelActivo().name.toUpperCase())
+  ui.rotulo(nivelActivo().name.toUpperCase(), nivelActivo().lugar, vuelo?.dura ?? VUELO)
   actualizarVuelo(0)
 }
 
@@ -1575,6 +1577,7 @@ function empezarLlegadaHeli () {
     hasta: camera.position.clone().add(new THREE.Vector3(lado * 3, 2.2, 5))
   }
   ui.banner(nivelActivo().name.toUpperCase())
+  ui.rotulo(nivelActivo().name.toUpperCase(), nivelActivo().lugar, vuelo?.dura ?? VUELO)
   actualizarVuelo(0)
 }
 
@@ -2897,6 +2900,10 @@ if (import.meta.env.DEV) {
   window.__zr = {
     start,
     simulate,
+    // El mundo entero, para las herramientas de medida del navegador
+    // (`herramientas/navegador/`): hace falta para preguntarle por la caja del
+    // monumento y por dónde se planta la base alien.
+    world,
     // Un reto de prueba sin pasar por la nube: hace falta para poder probar la
     // partida de un reto sin tener dos cuentas de Google delante.
     retoDePrueba: async composicion => {

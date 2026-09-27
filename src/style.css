@@ -249,6 +249,39 @@ html, body {
   100% { opacity: 0; transform: scale(1.1); }
 }
 
+/* El rótulo de la llegada. Aparte del banner a propósito: el banner es un grito
+   de dos segundos en medio de la pantalla y esto es un pie de foto que tiene que
+   poder leerse entero mientras la cámara recorre el sitio. Va abajo, donde no
+   hay nada, y dura lo que dure el vuelo (`--rotulo`). */
+.rotulo {
+  position: absolute; left: 0; right: 0; bottom: 17%;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+}
+.rotulo b {
+  display: block;
+  font-size: clamp(15px, 4.6vw, 23px);
+  font-weight: 800;
+  letter-spacing: 3px;
+  text-shadow: 0 2px 0 var(--sombra-fuerte), 0 0 18px rgba(0,0,0,0.55);
+}
+.rotulo span {
+  display: block;
+  margin-top: 2px;
+  font-size: clamp(11px, 3.3vw, 15px);
+  letter-spacing: 1px;
+  opacity: 0.85;
+  text-shadow: 0 2px 0 var(--sombra-fuerte), 0 0 14px rgba(0,0,0,0.5);
+}
+.rotulo.show { animation: rotulo var(--rotulo, 5s) ease forwards; }
+@keyframes rotulo {
+  0% { opacity: 0; transform: translateY(7px); }
+  10% { opacity: 1; transform: none; }
+  76% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: none; }
+}
+
 /* ---------- armería ---------- */
 /* El carril no se desplaza: lleva el fondo, la cinta y la máscara de los bordes.
    Solo se desplaza el <nav> de dentro. */

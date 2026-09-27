@@ -60,6 +60,7 @@ export function createUI ({ onSelect, onUpgrade, onMove, onDeselect, onArrastreC
     waveLabel: document.getElementById('wave-label'),
     baseFill: document.getElementById('base-fill'),
     banner: document.getElementById('banner'),
+    rotulo: document.getElementById('rotulo'),
     armory: document.getElementById('armory'),
     armed: document.getElementById('armed'),
     armedName: document.getElementById('armed-name'),
@@ -315,6 +316,17 @@ export function createUI ({ onSelect, onUpgrade, onMove, onDeselect, onArrastreC
       el.banner.classList.remove('show')
       void el.banner.offsetWidth
       el.banner.classList.add('show')
+    },
+
+    // El pie de foto de la llegada: ciudad y sitio. Dura lo que dure el vuelo.
+    rotulo (ciudad, sitio, segundos = 5) {
+      if (!el.rotulo) return
+      el.rotulo.firstElementChild.textContent = ciudad ?? ''
+      el.rotulo.lastElementChild.textContent = sitio ?? ''
+      el.rotulo.style.setProperty('--rotulo', segundos.toFixed(1) + 's')
+      el.rotulo.classList.remove('show')
+      void el.rotulo.offsetWidth
+      el.rotulo.classList.add('show')
     },
 
     clearSelection () { selected = null; refreshSelection() },
