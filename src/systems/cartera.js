@@ -3,7 +3,8 @@
 // Dentro de una partida se juega con monedas, y esas se pierden al acabar. La
 // cartera guarda lo que dura: los BILLETES, que salen jugando —uno por cada 30
 // monedas cobradas y lo que toque en el cofre— y se gastan en la tienda; las
-// MONEDAS GUARDADAS, que da el cofre y se cambian por billetes al juntar 30; lo
+// MONEDAS GUARDADAS, que da el cofre y sobran de cada partida, y se cambian en
+// la tienda cuando el jugador quiera, 100 por billete; lo
 // que se ha desbloqueado; y las mejoras de arma de cada soldado.
 //
 // Todo pasa por aquí para sumar billetes. Es a propósito: si algún día se venden

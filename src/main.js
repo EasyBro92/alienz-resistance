@@ -19,7 +19,7 @@ import { createUI } from './ui.js'
 import { renderPortraits } from './portraits.js'
 import { pintarMapa } from './mapa.js'
 import { montarZoomMapa } from './mapaZoom.js'
-import { cargarCartera, sumarBilletes, sumarMonedas, canjear, PRECIOS, MONEDAS_POR_DOLAR, PREMIOS_UNIDAD, ponerSinMejoras, factorMejora } from './systems/cartera.js'
+import { cargarCartera, sumarBilletes, sumarMonedas, PRECIOS, MONEDAS_POR_DOLAR, PREMIOS_UNIDAD, ponerSinMejoras, factorMejora } from './systems/cartera.js'
 import { crearDuelo, montarBandeja } from './duelo.js'
 import { montarExpediente, htmlHallazgo } from './expediente.js'
 import { crearCabina } from './helicoptero.js'
@@ -3000,16 +3000,15 @@ document.getElementById('mapa-tienda').addEventListener('click', () => { audio.u
 
 // El botín de la partida: lo sacado en billetes y el cofre. Va igual en la
 // victoria, en la derrota y en el cierre de campaña.
-// Al terminar, las monedas sin gastar pasan a la cartera y cada 100 guardadas se
-// cambian solas por un billete. Una vez por partida, antes de pintar el botín,
-// para poder contarlo en él.
+// Al terminar, las monedas sin gastar pasan a la cartera. Ya no se cambian
+// solas (27/09): se cambian en la tienda, 100 por billete, cuando el jugador
+// quiera. Una vez por partida, antes de pintar el botín, para poder contarlo.
 let cuentas = null
 function cerrarCuentas () {
   if (cuentas) return cuentas
   const sobran = Math.max(0, Math.floor(economy.coins))
   sumarMonedas(sobran)
-  const cambio = canjear()
-  cuentas = { sobran, cambiados: cambio.billetes, guardadas: cargarCartera().monedas }
+  cuentas = { sobran, guardadas: cargarCartera().monedas }
   pintarBilletes()
   return cuentas
 }
@@ -3020,7 +3019,7 @@ function htmlBotin () {
     : ''
   const c = cerrarCuentas()
   const ahorro = c.sobran || c.cambiados
-    ? `<p class="botin-billetes"><svg aria-hidden="true"><use href="#i-moneda"></use></svg><b>+${c.sobran}</b> monedas a la cartera${c.cambiados ? ` · <b>+${c.cambiados}</b> billete${c.cambiados === 1 ? '' : 's'} del cambio` : ''} <small>(${c.guardadas}/${MONEDAS_POR_DOLAR})</small></p>`
+    ? `<p class="botin-billetes"><svg aria-hidden="true"><use href="#i-moneda"></use></svg><b>+${c.sobran}</b> monedas a la cartera <small>(${c.guardadas} guardadas · cámbialas en la tienda, ${MONEDAS_POR_DOLAR} = 1 billete)</small></p>`
     : ''
   return `<div class="botin">${sacados}${ahorro}<div class="cofre" id="cofre"></div></div>`
 }
