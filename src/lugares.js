@@ -68,7 +68,7 @@ function dado (semilla) {
 // El suelo por donde se anda. Una losa grande y ancha; lo que la hace de un
 // sitio o de otro es el tono y lo que lleva encima.
 function suelo (g, v) {
-  return tiras(g, mat(v.tono ?? 0x9a958d, v.brillo ?? 0.9), v.ancho ?? 40)
+  return tiras(g, mat(v.tono ?? 0x9a958d, v.brillo ?? 0.9), v.ancho ?? 40, 0.005, v.hastaX)
 }
 
 // El suelo de un lugar, en DOS TIRAS, dejando el medio a la calzada.
@@ -82,17 +82,74 @@ function suelo (g, v) {
 // Las tiras se solapan 6 cm con el borde de la calzada para que no se abra una
 // costura; ahí manda la calzada, que va un poco más alta.
 const VIA = 13.6
-function tiras (g, material, ancho, y = 0.005) {
-  const w = (ancho - VIA) / 2
-  if (w <= 0.1) return null
+function tiras (g, material, ancho, y = 0.005, hastaX = null) {
+  // `hastaX` es [izquierda, derecha]: hasta dónde llega el suelo por cada lado.
+  // Sin él, simétrico. Hace falta en el paseo marítimo, donde por el lado del mar
+  // la baldosa se acaba enseguida y empieza la arena.
   const hechas = []
-  for (const l of [-1, 1]) {
+  for (const [i, l] of [[0, -1], [1, 1]]) {
+    const h = hastaX ? hastaX[i] : ancho / 2
+    const w = h - VIA / 2
+    if (w <= 0.1) continue
     const s = pon(g, new THREE.PlaneGeometry(w + 0.12, LARGO), material,
       l * (VIA / 2 + w / 2 - 0.06), y, (DESDE_Z + HASTA_Z) / 2)
     s.rotation.x = -Math.PI / 2
     hechas.push(s)
   }
   return hechas
+}
+
+// La arena, con la orilla en diagonal. Devuelve la función que dice dónde está
+// la orilla a cada z, que hace falta para no plantar sombrillas en el agua.
+function playaEnDiagonal (g, v, lado) {
+  // Medido en la pantalla del móvil: el borde del encuadre pasa por x ≈ 12 a la
+  // altura del tablero, 13,5 a z = -40 y 17 a z = -60. O sea que una playa ancha
+  // —la orilla estaba en x = 48— deja el mar SIEMPRE fuera del cuadro: eso era lo
+  // que hacía que un mapa de playa pareciera un pasillo de arena.
+  //
+  // Así que la orilla va pegada al tablero: arena seca de 7 a 11 y agua de ahí
+  // para afuera, cerrándose un poco con la distancia. Se pelea en la orilla, con
+  // el mar entrando por todo un lado de la pantalla, que es como se ve una playa
+  // estando de pie en ella.
+  const cerca = v.orillaCerca ?? 11.5
+  const lejos = v.orillaLejos ?? 9.4
+  const zCierre = v.zOrilla ?? -40
+  const dentro = 9.4
+  const orilla = z => z <= zCierre ? lejos : lejos + (cerca - lejos) * (z - zCierre) / (DESDE_Z - zCierre)
+  const pts = []
+  // Se construye en tiras de diez unidades de fondo: así la diagonal es una
+  // diagonal de verdad y no dos triángulos con un pliegue.
+  for (let z = DESDE_Z; z > HASTA_Z; z -= 10) {
+    const z2 = Math.max(HASTA_Z, z - 10)
+    const a = orilla(z), b = orilla(z2)
+    pts.push(
+      lado * dentro, z, lado * a, z, lado * b, z2,
+      lado * dentro, z, lado * b, z2, lado * dentro, z2
+    )
+  }
+  const pos = new Float32Array(pts.length / 2 * 3)
+  for (let i = 0, k = 0; i < pts.length; i += 2, k += 3) {
+    pos[k] = pts[i]; pos[k + 1] = 0; pos[k + 2] = pts[i + 1]
+  }
+  const geo = new THREE.BufferGeometry()
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3))
+  geo.computeVertexNormals()
+  const m = mat(v.tonoArena ?? 0xe6d6b0, 0.95)
+  m.side = THREE.DoubleSide
+  const malla = new THREE.Mesh(geo, m)
+  malla.position.y = -0.55
+  g.add(malla)
+
+  // La espuma. Sin ella el borde es una raya entre dos colores planos y no se
+  // lee como agua; con ella se ve dónde rompe.
+  const espuma = new THREE.MeshStandardMaterial({ color: 0xf2f4f2, roughness: 0.85, transparent: true, opacity: 0.8 })
+  for (let z = DESDE_Z; z > HASTA_Z; z -= 6) {
+    const z2 = Math.max(HASTA_Z, z - 6)
+    const x1 = orilla(z), x2 = orilla(z2)
+    const e = pon(g, new THREE.PlaneGeometry(1.5, z - z2), espuma, lado * ((x1 + x2) / 2 + 0.3), -0.52, (z + z2) / 2)
+    e.rotation.x = -Math.PI / 2
+  }
+  return orilla
 }
 
 // Una fila de edificios a un lado. Es la pieza más usada del módulo: lo que
@@ -381,38 +438,48 @@ export function plaza (v) {
 // baldosa del paseo, que en Copacabana y en Manaos es la misma onda portuguesa.
 export function paseo (v) {
   const g = new THREE.Group()
-  suelo(g, { ...v, ancho: 30 })
   const ladoMar = v.ladoMar ?? -1
   const ladoCiudad = -ladoMar
+  // La baldosa del paseo se acaba pronto por el lado del mar: luego es arena.
+  suelo(g, {
+    ...v,
+    ancho: 30,
+    hastaX: v.hastaX ?? (v.arena === false ? null : (ladoMar < 0 ? [9.6, 15] : [15, 9.6]))
+  })
 
-  // La playa y el mar. La arena baja un poco desde el paseo.
+  // La playa y el mar.
   if (v.arena !== false) {
-    const arena = pon(g, new THREE.PlaneGeometry(40, LARGO), mat(v.tonoArena ?? 0xe6d6b0, 0.95),
-      ladoMar * 28, -0.6, (DESDE_Z + HASTA_Z) / 2)
-    arena.rotation.x = -Math.PI / 2
+    const orilla = playaEnDiagonal(g, v, ladoMar)
     // Las hamacas y las sombrillas, solo en ultra: el sitio se reconoce sin
-    // ellas y son cuarenta piezas más.
+    // ellas y son cuarenta piezas más. Plantadas SIEMPRE dentro de la arena: con
+    // la orilla en diagonal, un x fijo las dejaba flotando en el agua.
     if (CON_EXTRAS) {
       const az = dado(v.semilla + 21)
       const lona = mat(v.tonoSombrilla ?? 0xd9d2c2, 0.9)
       for (let i = 0; i < 16; i++) {
-        const x = ladoMar * (12 + az() * 30)
-        const z = 10 - az() * 120
+        const z = 10 - az() * 90
+        const hasta = orilla(z) - 1.6
+        if (hasta < 11.5) continue
+        const x = ladoMar * (10.6 + az() * (hasta - 10.6))
         pon(g, new THREE.CylinderGeometry(0.06, 0.06, 2.4, 4), mat(0x8a7350, 0.9), x, 0.6, z)
         const s = pon(g, new THREE.ConeGeometry(1.8, 0.7, seg(9)), lona, x, 2, z)
         s.rotation.y = az()
       }
     }
   }
-  agua(g, -1.2, v.tonoAgua ?? 0x2f6f86, ladoMar, v.arena === false ? 8 : 46)
-  barandilla(g, ladoMar, 7.2, v.pretil ?? 'piedra')
+  // El agua empieza justo al lado del paseo y la arena se le pone encima: así la
+  // orilla la dibuja el borde de la arena y no un número fijo.
+  agua(g, -1.2, v.tonoAgua ?? 0x2f6f86, ladoMar, 8)
+  barandilla(g, ladoMar, v.arena === false ? 7.2 : 9.2, v.pretil ?? 'piedra')
 
   const desdeX = v.desdeX ?? ANCHOS.paseo
   fachadas(g, v, ladoCiudad, desdeX)
   if (v.doblefila) fachadas(g, v, ladoCiudad, desdeX + 12, { fila: 1, alturas: [(v.alturas?.[0] ?? 9) + 6, (v.alturas?.[1] ?? 18) + 12] })
   farolas(g, ladoCiudad, 8.4, v.farolas ?? 'recta', 18)
   if (v.arboles) arboles(g, ladoCiudad, 10.2, v.arboles, 17)
-  if (v.arbolesMar) arboles(g, ladoMar, 9.4, v.arbolesMar, 15)
+  // Las del lado del mar, en la arena seca y no dentro del agua: con la orilla
+  // pegada al tablero, 9,4 ya es agua.
+  if (v.arbolesMar) arboles(g, ladoMar, v.arena === false ? 9.4 : 8, v.arbolesMar, 15)
   cierre(g, v)
   vestirExtras(g, v)
   g.userData.carriles = v.carriles ?? 5

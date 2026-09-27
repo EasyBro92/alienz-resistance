@@ -1451,6 +1451,11 @@ export function createWorld (canvas) {
     // asi que no estorba el pasillo. El segundo y el tercero, a los lados y mas
     // atras, que son acompañamiento.
     if (dentroDeLugar) {
+      // Dónde va la cara delantera del monumento. -56 salvo que el sitio pida
+      // otra cosa: hay monumentos tan anchos que en -56 tapan la base alien
+      // entera (la roca de Aso, el Parthenón, San Basilio), y en esos se echa
+      // atrás lo justo. Medido con `herramientas/navegador/donde-la-base.js`.
+      const frente = dentroDeLugar.frenteMonumento ?? -56
       let n = 0
       for (const h of deMision) {
         let caja = cajaMonumento(h)
@@ -1480,15 +1485,22 @@ export function createWorld (canvas) {
           // conjunto entero se salga: más de 100 de ancho no cabe en la cuña
           // que se ve en un móvil vertical y más de 84 de fondo se lo come la
           // niebla, que cierra del todo a z ≈ -130.
-          // Los topes están calculados para la distancia a la que se planta
-          // (cara delantera en z = -68, o sea a 90 de la cámara). Antes se
-          // plantaba en -56 y los topes eran 46 / 40 / 100 / 84; al echarlo doce
-          // atrás para dejar sitio a la base alien, se suben un 15 % y en pantalla
-          // ocupa exactamente lo mismo. El fondo NO se sube: la niebla cierra del
-          // todo en z ≈ -130 y con 62 de fondo la cara de atrás llega a -130 justo.
+          // Los topes salen del encuadre del móvil vertical con el monumento en
+          // su sitio de siempre (cara delantera en z = -56, o sea a 78 de la
+          // cámara): más de 46 de ancho no cabe y por encima de 40 de alto lo
+          // tapa el marcador.
+          //
+          // Si el sitio pide echarlo más atrás para que se vea la base alien
+          // (`frenteMonumento`), los topes suben en la misma proporción que la
+          // distancia: así en pantalla ocupa lo mismo aunque esté más lejos.
+          // Probado a echarlos todos atrás y NO vale: Isidro lo vio al primer
+          // mapa —«estaba mucho mejor antes»— y medido perdían un 28 % de lo que
+          // se ve de ellos, porque a lo ancho ya se salían del cuadro y lo único
+          // que pasaba es que se alejaban. Solo se echa atrás donde hace falta.
+          const lejos = (22.3 + Math.abs(frente)) / 78.3
           const f = Math.min(2.4,
-            53 / Math.max(t.x, 1), 46 / Math.max(t.y, 1),
-            115 / Math.max(tt.x, 1), 62 / Math.max(tt.z, 1))
+            46 * lejos / Math.max(t.x, 1), 40 * lejos / Math.max(t.y, 1),
+            100 * lejos / Math.max(tt.x, 1), 84 / Math.max(tt.z, 1))
           if (f < 0.98 || f > 1.05) {
             h.scale.multiplyScalar(f)
             caja = cajaMonumento(h)
@@ -1498,13 +1510,9 @@ export function createWorld (canvas) {
           }
         }
         const c = todo.getCenter(new THREE.Vector3())
-        // Su cara de delante en z = -68. Antes era -56, pegada a donde aparecen
-        // los bichos, y eso dejaba a la base alien —que va en z = -62— DETRÁS del
-        // monumento: en Abuja la roca de Aso, de 46 de ancho, la tapaba entera.
-        // Doce unidades más atrás caben las dos cosas: la torre delante y el
-        // monumento cerrando el eje por encima de ella.
+        // Su cara de delante, justo detrás de donde aparecen los bichos.
         const destino = n === 0
-          ? new THREE.Vector3(0, 0, -68 - tt.z / 2)
+          ? new THREE.Vector3(0, 0, frente - tt.z / 2)
           : new THREE.Vector3((n % 2 ? 1 : -1) * (30 + Math.min(40, tt.x) / 2), 0, -100)
         h.position.x += destino.x - c.x
         h.position.z += destino.z - c.z

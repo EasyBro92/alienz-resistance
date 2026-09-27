@@ -101,9 +101,18 @@ window.__dondeLaBase = async function (indices, opciones = {}) {
   const filas = []
   for (const i of indices) {
     z.start(i)
-    await espera(900)
-    if (z.sinVuelo) z.sinVuelo()
-    await espera(350)
+    // OJO: no basta con llamar a `sinVuelo` una vez. El plano de llegada no
+    // empieza en el mismo milisegundo en todos los mapas —el primero tarda más
+    // porque está cargando— y si se corta ANTES de que empiece, arranca después y
+    // la medición se hace con la cámara a cien metros de altura. Medido: en
+    // Tarragona salían las cuarenta y tres posiciones como «no cabe en pantalla».
+    // Se insiste hasta que la cámara está donde se juega.
+    for (let intento = 0; intento < 12; intento++) {
+      await espera(300)
+      if (z.sinVuelo) z.sinVuelo()
+      if (cam.position.y < 20) break
+    }
+    await espera(200)
     const base = scene.children.find(o => o.userData && o.userData.arruinar && vis(o))
     if (!base) { filas.push({ i, error: 'sin base' }); continue }
 
@@ -163,6 +172,27 @@ window.__dondeLaBase = async function (indices, opciones = {}) {
         }
         if (!dentro) { probadas.push([xc, zc, -1]); continue }
 
+        // ¿Hay sitio en el suelo? Ocho rayos hacia abajo sobre su huella.
+        if (!medirAqui) {
+          const ray = new THREE.Raycaster()
+          const abajo = new THREE.Vector3(0, -1, 0)
+          let estorbos = 0
+          for (let k = 0; k < 8; k++) {
+            const a2 = (k / 8) * Math.PI * 2
+            ray.set(new THREE.Vector3(xc + Math.cos(a2) * r * 0.7, 70, zc + Math.sin(a2) * r * 0.7), abajo)
+            for (const h of ray.intersectObjects(scene.children, true)) {
+              if (!h.object.isMesh || !h.object.material || h.object.material.transparent) continue
+              let o = h.object, oculto = false
+              while (o) { if (!o.visible) { oculto = true; break } o = o.parent }
+              if (oculto) continue
+              if (70 - h.distance > 1.5) estorbos++
+              break
+            }
+          }
+          // Dos de ocho es un poste o un árbol: se le puede plantar al lado. Más
+          // es un edificio.
+          if (estorbos > 2) { probadas.push([xc, zc, -2]); continue }
+        }
         base.position.set(xc, base.position.y, zc)
         base.scale.setScalar(esc)
         base.updateMatrixWorld(true)

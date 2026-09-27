@@ -33,7 +33,12 @@ export const CIUDADES = {
     semilla: 101, tono: 0xdad2c2, ladoMar: -1, tonoArena: 0xe8d9b6, tonoAgua: 0x2f7f96, via: true,
     estilo: 'europeo', paleta: [0xd8c9a8, 0xc9b894, 0xbfab86], alturas: [7, 13], tejado: 0x9b5b3c,
     farolas: 'fernandina', arboles: 'palmera', arbolesMar: 'palmera', pretil: 'piedra',
-    cierre: 'monte', tonoMonte: 0x7e7a5e
+    // Nada cerrando el fondo. Había un 'monte' y lo que se veía era un pegote
+    // pelado gigante ocupando media pantalla: en la Platja del Miracle no hay
+    // ninguna montaña, la playa se va abriendo al mar y al fondo solo está la
+    // punta del Fortí. Cerrando con niebla y agua se ve lo que hay que ver: el
+    // anfiteatro en el talud y el Mediterráneo al lado.
+    cierre: 'nada'
   }],
   // Ciudad de las Artes: hormigón blanco, láminas de agua turquesa y formas
   // curvas. Aquí no hay arena: el agua es de los estanques.
@@ -49,6 +54,7 @@ export const CIUDADES = {
   // Vieux Port: el agua entra hasta el centro, los barcos amarrados de proa al
   // muelle, las fachadas ocres con persianas y Notre-Dame de la Garde arriba.
   marsella: ['muelle', {
+    frente: -74,
     semilla: 103, tono: 0xc9c2b2, ladoAgua: -1, tonoAgua: 0x3f9fb4, barcas: true, ombriere: true,
     estilo: 'europeo', paleta: [0xdcc9a4, 0xcbb389, 0xc2a57c], alturas: [12, 20], tejado: 0x9b5b3c,
     farolas: 'fernandina', cierre: 'monte', tonoMonte: 0x8a8164
@@ -106,6 +112,7 @@ export const CIUDADES = {
   // Paseo de mármol de Dionisiou Areopagitou, al pie de la Acrópolis: losa
   // blanca pulida, olivos grises y la roca subiendo al fondo.
   atenas: ['explanada', {
+    frente: -74,
     semilla: 109, tono: 0xe4ddcc, brillo: 0.7, bordes: 'murete', arboles: 'olivo',
     farolas: 'fernandina', cierre: 'monte', tonoMonte: 0x9a9280
   }],
@@ -160,12 +167,14 @@ export const CIUDADES = {
   // La explanada de Aso Rock: el monolito de gneis de cuatrocientos metros, la
   // tierra roja y la mezquita nacional con la cúpula dorada.
   abuja: ['explanada', {
+    frente: -78,
     semilla: 116, tono: 0xc9a074, bordes: 'setos', arboles: 'copa',
     farolas: 'recta', cierre: 'monte', tonoMonte: 0x55604a
   }],
   // Mercado de Kurmi: la muralla de adobe de la ciudad vieja, los puestos con
   // toldos de colores y el polvo del Sahel.
   kano: ['plaza', {
+    frente: -74,
     // Las fachadas van más lejos que en las demás plazas: el muro de adobe
     // lleva contrafuertes y los palos de andamio permanentes, y todo eso
     // SOBRESALE hacia la calle.
@@ -230,6 +239,7 @@ export const CIUDADES = {
   // Plaza Roja: el adoquín, la muralla del Kremlin con las almenas de cola de
   // golondrina a un lado y la fachada del GUM al otro.
   moscu: ['plaza', {
+    frente: -74,
     semilla: 125, tono: 0x8f857c, muralla: true, ladoMuralla: -1, farolas: 'fernandina',
     lados: [
       // Derecha: el GUM, tres plantas de piedra clara con arcadas.
@@ -357,6 +367,9 @@ for (const [clave, [tipo, vestido]] of Object.entries(CIUDADES)) {
     // marca y lo coloca cerrando el eje de la calle.
     g.userData.conHitos = true
     // Y dónde va la base alien en este sitio, si no vale el de siempre.
+    // Y si el monumento de este sitio tapa la base, dónde se planta su cara
+    // delantera (por defecto -56).
+    if (vestido.frente) g.userData.frenteMonumento = vestido.frente
     if (vestido.base) {
       g.userData.baseX = vestido.base[0]
       if (vestido.base[1] !== undefined) g.userData.baseZ = vestido.base[1]
