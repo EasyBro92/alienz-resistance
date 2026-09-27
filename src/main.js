@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import './style.css'
-import { FIELD, BASE, NIVELES, SOLDIERS, DEFENSES, STRIKES, ZOMBIES, ECONOMY, carrilAbierto, estrecharCampo, entrarPorElFondo } from './config.js'
+import { FIELD, BASE, NIVELES, SOLDIERS, DEFENSES, STRIKES, ZOMBIES, ECONOMY, carrilAbierto, carrilesAbiertos, estrecharCampo, entrarPorElFondo } from './config.js'
 import { createWorld, rowZ, laneX } from './world.js'
 import { createSoldier, upgradeCost, muzzleWorld, ejectorWorld } from './entities/soldier.js'
 // El invitado del cooperativo crea copias de los huéspedes que le manda el
@@ -19,7 +19,7 @@ import { createUI } from './ui.js'
 import { renderPortraits } from './portraits.js'
 import { pintarMapa } from './mapa.js'
 import { montarZoomMapa } from './mapaZoom.js'
-import { cargarCartera, sumarBilletes, sumarMonedas, canjear, PRECIOS, MONEDAS_POR_DOLAR, PREMIOS_UNIDAD, ponerSinMejoras } from './systems/cartera.js'
+import { cargarCartera, sumarBilletes, sumarMonedas, canjear, PRECIOS, MONEDAS_POR_DOLAR, PREMIOS_UNIDAD, ponerSinMejoras, factorMejora } from './systems/cartera.js'
 import { crearDuelo, montarBandeja } from './duelo.js'
 import { montarExpediente, htmlHallazgo } from './expediente.js'
 import { crearCabina } from './helicoptero.js'
@@ -356,23 +356,110 @@ async function place (item, lane, row) {
   if (!economy.canAfford(item.cost)) { ui.clearSelection(); world.setSlotsVisible(false) }
 }
 
+// La recarga de cada apoyo: segundos que le faltan y los que dura entera. La
+// lleva la partida (no la tarjeta) y se vacía al empezar una.
+const recargas = new Map()
+
 function useStrike (item, point) {
-  if (!economy.spend(item.cost)) return audio.denied()
   const spec = STRIKES[item.key]
+  if ((recargas.get(item.key)?.resto ?? 0) > 0) return audio.denied()
+  if (!economy.spend(item.cost)) return audio.denied()
+  const total = (spec.recarga ?? 0) * factorMejora(item.key, 'recarga')
+  if (total > 0) {
+    recargas.set(item.key, { resto: total, total })
+    ui.setRecarga(item.key, total, total)
+  }
+  // La mejora de «daño» de la tienda: más golpe, o más cura en el botiquín.
+  const fuerza = factorMejora(item.key, 'dano')
+  const golpe = (donde, radio, dano) => {
+    for (const z of zombies) {
+      if (z.intocable) continue
+      const d = z.mesh.position.distanceTo(donde)
+      if (d > radio) continue
+      z.hurt(dano * fuerza * (1 - (d / radio) * 0.45), 1)
+    }
+  }
+  const quemado = (donde, radio) => marcas.poner(donde.x, donde.z, 'quemado', radio * 1.5)
+  const listo = () => { ui.clearSelection(); world.setSlotsVisible(false) }
+
+  if (item.key === 'artilleria') {
+    // Al carril abierto más cercano al toque: el bombardeo es de carril.
+    let x = point.x
+    let mejor = Infinity
+    for (const l of carrilesAbiertos()) {
+      const d = Math.abs(laneX(l) - point.x)
+      if (d < mejor) { mejor = d; x = laneX(l) }
+    }
+    golpes.lanzar('artilleria', new THREE.Vector3(x, 0, point.z), (donde, radio) => {
+      quemado(donde, radio)
+      golpe(donde, radio, spec.damage)
+    }, { proyectiles: spec.proyectiles, radio: spec.radius })
+    return listo()
+  }
+  if (item.key === 'dron') {
+    // Al de más vida que quede; a igualdad, al más cercano a donde se tocó.
+    let objetivo = null
+    for (const z of zombies) {
+      if (z.dead || z.intocable) continue
+      if (!objetivo || z.hp > objetivo.hp ||
+        (z.hp === objetivo.hp && z.mesh.position.distanceTo(point) < objetivo.mesh.position.distanceTo(point))) objetivo = z
+    }
+    golpes.lanzar('dron', objetivo ? objetivo.mesh.position.clone() : point, (donde, radio) => {
+      quemado(donde, radio)
+      golpe(donde, radio, spec.damage)
+    }, { objetivo, radio: spec.radius })
+    return listo()
+  }
+  if (item.key === 'misilGuiado') {
+    golpes.lanzar('misilGuiado', point, (donde, radio) => {
+      quemado(donde, radio)
+      golpe(donde, radio, spec.damage)
+    }, { radio: spec.radius })
+    return listo()
+  }
+  if (item.key === 'campoMinas') {
+    const cercano = (p, r) => zombies.some(z => !z.dead && !z.intocable &&
+      Math.hypot(z.mesh.position.x - p.x, z.mesh.position.z - p.z) < r)
+    golpes.lanzar('campoMinas', point, (donde, radio) => {
+      quemado(donde, radio)
+      golpe(donde, radio, spec.damage)
+    }, { minas: spec.minas, dura: spec.dura, radio: spec.radius, cercano })
+    return listo()
+  }
+  if (item.key === 'botiquin') {
+    golpes.lanzar('botiquin', point, () => {
+      for (const s of soldiers) {
+        if (s.dead) continue
+        const cura = Math.round(s.maxHp * spec.cura / 100 * fuerza)
+        const antes = s.hp
+        s.hp = Math.min(s.maxHp, s.hp + cura)
+        s.bar.set(s.hp / s.maxHp)
+        effects.burst(s.mesh.position, 0x7dffae, 6, 0.6)
+        if (s.hp > antes) effects.floatText(s.mesh.position.clone().setY(2), '+' + Math.round(s.hp - antes), '#7dffae', 52)
+      }
+    })
+    return listo()
+  }
+
 
   // El daño ya no cae en el mismo fotograma que el toque: cae cuando llega lo
   // que has pedido. Con el avión eso son segundo y medio, y en segundo y medio
   // la horda ha andado: el golpe deja de ser "dónde están" y pasa a ser "dónde
   // van a estar". Por eso el aro marca el sitio desde el instante del toque.
+  // La granada la tira el soldado más cercano al blanco (no una defensa).
+  let desde = null
+  if (item.key === 'grenade') {
+    let mejor = Infinity
+    for (const s of soldiers) {
+      if (s.dead || s.spec.fija) continue
+      const d = Math.hypot(s.px - point.x, s.pz - point.z)
+      if (d < mejor) { mejor = d; desde = new THREE.Vector3(s.px, 0, s.pz) }
+    }
+  }
   golpes.lanzar(item.key, point, (donde, radio) => {
     marcas.poner(donde.x, donde.z, 'quemado', radio * 1.5)
-    for (const z of zombies) {
-      if (z.intocable) continue
-      const d = z.mesh.position.distanceTo(donde)
-      if (d > radio) continue
-      // Menos daño en el borde: acertar de lleno tiene que valer más que rozar.
-      z.hurt(spec.damage * (1 - (d / radio) * 0.45), 1)
-    }
+    // Menos daño en el borde: acertar de lleno tiene que valer más que rozar.
+    golpe(donde, radio, spec.damage)
     // El napalm no acaba al explotar: deja la calzada ardiendo. Tres focos en
     // vez de uno porque una sola brasa de radio 4,2 es un círculo perfecto y se
     // lee como un decalque; tres solapados se leen como fuego derramado.
@@ -385,7 +472,7 @@ function useStrike (item, point) {
         })
       }
     }
-  })
+  }, { desde })
 
   ui.clearSelection()
   world.setSlotsVisible(false)
@@ -1378,6 +1465,14 @@ function simulate (dt) {
   marcas.update(dt)
   actualizarJefes(dt, performance.now() / 1000)
   golpes.update(dt)
+  // Las recargas del apoyo corren con la partida (en pausa no).
+  if (running) {
+    for (const [clave, r] of recargas) {
+      r.resto = Math.max(0, r.resto - dt)
+      ui.setRecarga(clave, r.resto, r.total)
+      if (r.resto <= 0) recargas.delete(clave)
+    }
+  }
   updateCorpses(dt)
   if (running) updateBrasas(dt)
   ambient.update(dt)
@@ -2012,6 +2107,8 @@ function limpiarPartida () {
   economy.reset()
   document.getElementById('recolector')?.classList.add('hidden')
   golpes.limpiar()
+  for (const clave of recargas.keys()) ui.setRecarga(clave, 0, 1)
+  recargas.clear()
   for (const b of brasas) { b.t = 0; b.malla.visible = false }
   dropship.ocultar()
   baseHp = BASE.hp

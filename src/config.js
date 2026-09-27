@@ -211,13 +211,17 @@ export const DEFENSES = {
   }
 }
 
+// `recarga`: los segundos que tarda en volver a estar listo después de usarlo.
+// Isidro, 27/09: «monedas y recarga», y la recarga «según lo fuerte»: granada y
+// botiquín unos diez, lo intermedio veinticinco o treinta, y el misil y el
+// bombardeo cuarenta y cinco.
 export const STRIKES = {
   grenade: {
-    name: 'Granada', cost: 90, damage: 120, radius: 3.4,
+    name: 'Granada', cost: 90, damage: 120, radius: 3.4, recarga: 10,
     blurb: 'Barata y a mano. Para un apuro pequeño.'
   },
   airstrike: {
-    name: 'Ataque aéreo', cost: 300, damage: 400, radius: 5.5,
+    name: 'Ataque aéreo', cost: 300, damage: 400, radius: 5.5, recarga: 30,
     blurb: 'Arrasa una zona. Para cuando ya no llegas.'
   },
   // El aéreo mata de golpe y se acabó. Este mata poco y sigue matando: deja el
@@ -225,9 +229,42 @@ export const STRIKES = {
   // ESTRANGULA. Contra las hordas largas del final vale más que el golpe seco,
   // y contra un jefe no vale casi nada. Que elija el jugador.
   napalm: {
-    name: 'Napalm', cost: 260, damage: 90, radius: 4.6,
+    name: 'Napalm', cost: 260, damage: 90, radius: 4.6, recarga: 30,
     brasas: { daño: 46, dura: 20, radio: 4.2 },
     blurb: 'Poco golpe y mucho rato: deja la calzada ardiendo veinte segundos.'
+  },
+  // Los cinco del 27/09, elegidos por Isidro entre «opciones típicas de los
+  // juegos de resistencia». Cada uno resuelve algo que los otros no.
+  //
+  // Bombardeo de artillería: no es una zona, es un CARRIL entero, de punta a
+  // punta. Contra la columna que viene en fila.
+  artilleria: {
+    name: 'Bombardeo de artillería', cost: 280, damage: 110, radius: 2.4, recarga: 45,
+    proyectiles: 7,
+    blurb: 'Siete obuses que barren el carril que toques, del fondo hacia tu línea.'
+  },
+  // Dron kamikaze: no va donde tocas, va a por el bicho con más vida. Contra
+  // los jefes y los colosos, que es donde el aéreo se queda corto.
+  dron: {
+    name: 'Dron kamikaze', cost: 220, damage: 520, radius: 1.8, recarga: 25,
+    blurb: 'Busca al bicho con más vida y se estrella contra él. Para los jefes.'
+  },
+  // Misil guiado: el golpe más gordo del juego, en un sitio pequeño.
+  misilGuiado: {
+    name: 'Misil guiado', cost: 340, damage: 800, radius: 2.6, recarga: 45,
+    blurb: 'Sube desde tu retaguardia y cae donde toques: el impacto más fuerte que hay.'
+  },
+  // Campo de minas: se queda. Siete minas que esperan en el suelo a que alguien
+  // las pise, cuarenta y cinco segundos.
+  campoMinas: {
+    name: 'Campo de minas', cost: 220, damage: 150, radius: 2, recarga: 30,
+    minas: 7, dura: 45,
+    blurb: 'Un avión siembra siete minas en la zona; revientan cuando las pisan.'
+  },
+  // Botiquín: no mata. Cura al 40 % de su vida a todo lo tuyo que siga en pie.
+  botiquin: {
+    name: 'Botiquín', cost: 150, cura: 40, recarga: 10,
+    blurb: 'Cae en paracaídas y cura de golpe a todos tus soldados y defensas.'
   }
 }
 

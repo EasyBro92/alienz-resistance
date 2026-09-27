@@ -463,6 +463,19 @@ html, body {
   70% { transform: translateX(-2px); }
 }
 .card.nope { animation: nope 0.28s ease; border-color: #ff8f7d; }
+/* Recargando: un velo oscuro que se retira de abajo arriba y los segundos que
+   faltan en grande. Es lo que dice «ahora no» sin tener que tocar la carta. */
+.card.recargando::after {
+  content: attr(data-recarga) "s";
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: calc(var(--recarga, 0) * 100%);
+  display: grid; place-items: center;
+  background: rgba(8, 12, 10, 0.62);
+  color: #fff; font-weight: 900; font-size: 17px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+.card.recargando .card-cost { opacity: 0.5; }
 
 /* ---------- franja de "lo que llevas en la mano" ---------- */
 .armed {

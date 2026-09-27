@@ -88,7 +88,7 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
         <div class="articulo-cara">${cara(clave)}</div>
         <b>${spec.name}</b>
         <p>${spec.blurb ?? ''}</p>
-        <small>En partida: ${spec.cost} monedas</small>
+        <small>En partida: ${spec.cost} monedas${spec.recarga ? ` · recarga ${spec.recarga} s` : ''}</small>
         ${pie}
       </div>`
   }
@@ -97,16 +97,18 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
   // alambrada, o del reventón en la carga), disparos por segundo o vida.
   const valorBase = (spec, tipo) => tipo === 'vida' ? spec.hp
     : tipo === 'cadencia' ? spec.fireRate
-      : (spec.damage ?? spec.thorns ?? spec.revienta?.daño ?? 0)
+      : tipo === 'recarga' ? spec.recarga
+        : (spec.damage ?? spec.thorns ?? spec.revienta?.daño ?? spec.cura ?? 0)
 
   function mejoras (c) {
     const soldados = Object.entries(SOLDIERS).filter(([k]) => c.desbloqueadas.includes(k))
     const defensas = Object.entries(DEFENSES).filter(([k]) => c.desbloqueadas.includes(k))
-    if (!soldados.length && !defensas.length) return '<p class="tienda-vacia">Desbloquea soldados o defensas para poder mejorarlos.</p>'
+    const apoyo = Object.entries(STRIKES).filter(([k]) => c.desbloqueadas.includes(k))
+    if (!soldados.length && !defensas.length && !apoyo.length) return '<p class="tienda-vacia">Desbloquea soldados, defensas o apoyo para poder mejorarlos.</p>'
     const grupo = (titulo, lista) => lista.length
       ? `<h3 class="mejoras-grupo">${titulo}</h3>` + lista.map(ficha).join('')
       : ''
-    return grupo('Soldados', soldados) + grupo('Defensas', defensas)
+    return grupo('Soldados', soldados) + grupo('Defensas', defensas) + grupo('Apoyo', apoyo)
 
     function ficha ([clave, spec]) {
       const pistas = pistasMejora(clave).map(tipo => [tipo, MEJORAS[tipo]]).map(([tipo, m]) => {
@@ -125,14 +127,14 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
           : `<span class="mejora-salto">${val(nivel)} <i>→</i> <b>${val(nivel + 1)}</b></span>`
         return `
           <div class="mejora-pista">
-            <span class="mejora-nombre">${m.nombre}</span>
+            <span class="mejora-nombre">${tipo === 'dano' && spec.cura ? 'Curación' : m.nombre}</span>
             ${salto}
             <span class="pips">${pips}</span>
             ${boton}
           </div>`
       }).join('')
       return `
-        <div class="mejora" style="--u-tint:${hex(spec.color)}">
+        <div class="mejora" style="--u-tint:${spec.color != null ? hex(spec.color) : 'var(--verde-texto)'}">
           <div class="mejora-cabeza">
             <div class="articulo-cara mini">${cara(clave)}</div>
             <b>${spec.name}</b>

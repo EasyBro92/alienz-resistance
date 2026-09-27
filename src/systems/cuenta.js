@@ -117,7 +117,8 @@ export function fusionar (a, b) {
     mejoras[k] = {
       dano: Math.max(entero(x.dano), entero(y.dano)),
       cadencia: Math.max(entero(x.cadencia), entero(y.cadencia)),
-      vida: Math.max(entero(x.vida), entero(y.vida))
+      vida: Math.max(entero(x.vida), entero(y.vida)),
+      recarga: Math.max(entero(x.recarga), entero(y.recarga))
     }
   }
   const pa = a?.progreso ?? {}

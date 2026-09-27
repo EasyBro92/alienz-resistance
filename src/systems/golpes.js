@@ -1,7 +1,13 @@
 import * as THREE from 'three'
 import { brilla } from './resplandor.js'
 
-// Los golpes de apoyo: la granada y el ataque aéreo.
+// Los golpes de apoyo. Primero fueron la granada y el ataque aéreo; el 27/09
+// Isidro pidió más («dame más opciones típicas de los juegos de resistencia»)
+// y eligió cinco: bombardeo de artillería, dron kamikaze, misil guiado, campo de
+// minas y botiquín. Y que se viera QUIÉN lo lanza, no solo la explosión: el
+// avión cruza y suelta, los obuses silban desde atrás, el dron sale de tu línea
+// y persigue a su blanco, el misil sube desde detrás de la cámara, la caja del
+// botiquín baja en paracaídas y la granada la tira el soldado más cercano.
 //
 // Antes eran instantáneos. Tocabas la pantalla, salían veintidós partículas
 // naranjas y los huéspedes caían muertos en el mismo fotograma. Un ataque aéreo
@@ -120,11 +126,175 @@ function construirGranada () {
   return g
 }
 
+// --- el dron ----------------------------------------------------------------------
+// Cuadricóptero: cuerpo, dos brazos en aspa, cuatro rotores (discos que giran) y
+// la carga colgando debajo. Con la luz roja que dice que va armado.
+const ROTOR = new THREE.MeshBasicMaterial({ color: 0xdfe6ea, transparent: true, opacity: 0.4, depthWrite: false })
+const LUZ_ROJA = new THREE.MeshStandardMaterial({ color: 0xff3b2e, emissive: 0xff3b2e, emissiveIntensity: 3 })
+const OLIVA = new THREE.MeshStandardMaterial({ color: 0x4d5537, roughness: 0.8 })
+const LONA = new THREE.MeshStandardMaterial({ color: 0xe9e3d3, roughness: 0.95, side: THREE.DoubleSide })
+const CAJA = new THREE.MeshStandardMaterial({ color: 0xf1ede4, roughness: 0.8 })
+const CRUZ = new THREE.MeshStandardMaterial({ color: 0xd8342c, roughness: 0.7 })
+const VERDE = new THREE.MeshBasicMaterial({
+  color: 0x7dffae, transparent: true, opacity: 1, depthWrite: false, side: THREE.DoubleSide
+})
+
+function construirDron () {
+  const g = new THREE.Group()
+  g.add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.16, 0.5), CHAPA_OSCURA))
+  for (const giro of [Math.PI / 4, -Math.PI / 4]) {
+    const brazo = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.05, 0.08), CHAPA)
+    brazo.rotation.y = giro
+    g.add(brazo)
+  }
+  const rotores = []
+  for (const [x, z] of [[0.39, 0.39], [-0.39, 0.39], [0.39, -0.39], [-0.39, -0.39]]) {
+    const r = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.015, 12), ROTOR)
+    r.position.set(x, 0.09, z)
+    g.add(r)
+    rotores.push(r)
+  }
+  const carga = new THREE.Mesh(new THREE.SphereGeometry(0.15, 10, 8), OLIVA)
+  carga.position.y = -0.16
+  g.add(carga)
+  const luz = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), LUZ_ROJA)
+  luz.position.set(0, 0.02, -0.27)
+  brilla(luz)
+  g.add(luz)
+  g.userData.rotores = rotores
+  g.scale.setScalar(1.4)
+  // Primero el rumbo y luego el cabeceo: con el orden de siempre, al girar se
+  // inclinaba de lado en vez de hacia delante.
+  g.rotation.order = 'YXZ'
+  g.visible = false
+  return g
+}
+
+// --- el misil -----------------------------------------------------------------------
+function construirMisil () {
+  const g = new THREE.Group()
+  const cuerpo = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 1.7, 12), CHAPA)
+  cuerpo.rotation.x = Math.PI / 2
+  g.add(cuerpo)
+  const punta = new THREE.Mesh(new THREE.ConeGeometry(0.17, 0.55, 12), CHAPA_OSCURA)
+  punta.rotation.x = -Math.PI / 2
+  punta.position.z = -1.12
+  g.add(punta)
+  for (let k = 0; k < 4; k++) {
+    const aleta = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.42, 0.34), CHAPA_OSCURA)
+    aleta.rotation.z = k * Math.PI / 2
+    aleta.position.z = 0.7
+    g.add(aleta)
+  }
+  const llama = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.8, 8), TOBERA)
+  llama.rotation.x = Math.PI / 2
+  llama.position.z = 1.25
+  brilla(llama)
+  g.add(llama)
+  g.visible = false
+  return g
+}
+
+// --- el obús de artillería ----------------------------------------------------------
+function construirObus () {
+  const g = new THREE.Group()
+  const o = new THREE.Mesh(new THREE.CapsuleGeometry(0.13, 0.42, 4, 8), HIERRO)
+  g.add(o)
+  g.visible = false
+  return g
+}
+
+// --- la mina del campo de minas -------------------------------------------------------
+function construirMina () {
+  const g = new THREE.Group()
+  const disco = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.33, 0.11, 14), OLIVA)
+  disco.position.y = 0.055
+  g.add(disco)
+  const espoleta = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 0.05, 10), CHAPA_OSCURA)
+  espoleta.position.y = 0.13
+  g.add(espoleta)
+  const luz = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), LUZ_ROJA)
+  luz.position.set(0.18, 0.13, 0)
+  brilla(luz)
+  g.add(luz)
+  g.userData.luz = luz
+  g.visible = false
+  return g
+}
+
+// --- la caja del botiquín, con su paracaídas ----------------------------------------
+function construirCaja () {
+  const g = new THREE.Group()
+  const caja = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.62, 0.9), CAJA)
+  caja.position.y = 0.31
+  g.add(caja)
+  for (const [w, d] of [[0.56, 0.16], [0.16, 0.56]]) {
+    const c = new THREE.Mesh(new THREE.BoxGeometry(w, 0.02, d), CRUZ)
+    c.position.y = 0.63
+    g.add(c)
+  }
+  for (const [w, d, x, z] of [[0.02, 0.4, 0.46, 0], [0.02, 0.4, -0.46, 0]]) {
+    const c = new THREE.Mesh(new THREE.BoxGeometry(w, 0.13, d), CRUZ)
+    c.position.set(x, 0.31, z)
+    g.add(c)
+    const c2 = new THREE.Mesh(new THREE.BoxGeometry(w, d, 0.13), CRUZ)
+    c2.position.set(x, 0.31, z)
+    g.add(c2)
+  }
+  const para = new THREE.Group()
+  const lona = new THREE.Mesh(new THREE.SphereGeometry(1.3, 14, 6, 0, Math.PI * 2, 0, Math.PI / 2.4), LONA)
+  lona.scale.y = 0.6
+  lona.position.y = 2.6
+  para.add(lona)
+  for (const [x, z] of [[0.95, 0.95], [-0.95, 0.95], [0.95, -0.95], [-0.95, -0.95]]) {
+    const cuerda = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 2.2, 4), CHAPA_OSCURA)
+    cuerda.position.set(x * 0.5, 1.72, z * 0.5)
+    cuerda.rotation.set(z * 0.36, 0, -x * 0.36)
+    para.add(cuerda)
+  }
+  g.add(para)
+  g.userData.paracaidas = para
+  g.visible = false
+  return g
+}
+
 export function crearGolpes (scene, effects, audio) {
   const avion = construirAvion()
   const bomba = construirBomba()
   const granada = construirGranada()
   scene.add(avion, bomba, granada)
+
+  // Los nuevos, en reserva: se crean la primera vez y se reaprovechan.
+  const reservas = { dron: [], misil: [], obus: [], mina: [], caja: [] }
+  const construir = { dron: construirDron, misil: construirMisil, obus: construirObus, mina: construirMina, caja: construirCaja }
+  function pieza (tipo) {
+    let p = reservas[tipo].find(o => !o.userData.enUso)
+    if (!p) {
+      p = construir[tipo]()
+      scene.add(p)
+      reservas[tipo].push(p)
+    }
+    p.userData.enUso = true
+    p.visible = true
+    return p
+  }
+  function soltarPieza (p) {
+    p.userData.enUso = false
+    p.visible = false
+  }
+
+  // Las minas sembradas: se quedan en el suelo hasta que alguien las pisa o
+  // hasta que se acaba su tiempo.
+  const minas = []
+  // El aro verde del botiquín, que recorre el campo.
+  const aroVerde = new THREE.Mesh(new THREE.RingGeometry(0.9, 1, 40), VERDE)
+  aroVerde.rotation.x = -Math.PI / 2
+  aroVerde.position.y = 0.1
+  aroVerde.renderOrder = 4
+  aroVerde.visible = false
+  brilla(aroVerde)
+  scene.add(aroVerde)
+  let aroT = 0
 
   // Marca de objetivo: un aro que late en el suelo desde el instante del toque.
   // Sin ella, con un golpe que tarda, el jugador no sabría dónde va a caer.
@@ -191,10 +361,63 @@ export function crearGolpes (scene, effects, audio) {
   return {
     // `alImpacto` recibe el punto: el daño lo aplica quien llama, que es quien
     // sabe de huéspedes. Aquí solo se sabe de aviones y de fuego.
-    lanzar (clave, punto, alImpacto) {
+    lanzar (clave, punto, alImpacto, extra = {}) {
       const destino = punto.clone()
       marca.position.set(destino.x, 0.06, destino.z)
       marca.visible = true
+
+      if (clave === 'artilleria') {
+        // Los obuses caen en fila por el carril, del fondo hacia la línea, uno
+        // cada cuarto de segundo, después de silbar un momento.
+        const n = extra.proyectiles ?? 7
+        vuelos.push({
+          tipo: 'artilleria', t: 0, destino, alImpacto, entrada: 1.1, caida: (n - 1) * 0.26 + 0.55,
+          radio: extra.radio ?? 2.4, marca: false, n, hechos: 0,
+          obuses: Array.from({ length: n }, () => null),
+          zDesde: extra.zDesde ?? -42, zHasta: extra.zHasta ?? -2
+        })
+        audio.silbido?.()
+        return
+      }
+      if (clave === 'dron') {
+        vuelos.push({
+          tipo: 'dron', t: 0, destino, alImpacto, entrada: 99, caida: 0, radio: extra.radio ?? 1.8,
+          marca: false, objetivo: extra.objetivo ?? null, malla: pieza('dron'),
+          pos: new THREE.Vector3(destino.x * 0.3, 3.4, 9)
+        })
+        return
+      }
+      if (clave === 'misilGuiado') {
+        vuelos.push({
+          tipo: 'misil', t: 0, destino, alImpacto, entrada: 0, caida: 1.55, radio: extra.radio ?? 2.6,
+          marca: true, malla: pieza('misil'), desde: new THREE.Vector3(destino.x * 0.2, 1.5, 24)
+        })
+        return
+      }
+      if (clave === 'campoMinas') {
+        // El avión siembra: cada mina sale de la panza en su momento y cae a su
+        // sitio, repartidas por la zona sin montarse.
+        const n = extra.minas ?? 7
+        const sitios = []
+        for (let k = 0; k < n; k++) {
+          const a = k / n * Math.PI * 2 + Math.random() * 0.5
+          const r = k === 0 ? 0 : 1.4 + Math.random() * 2.1
+          sitios.push(new THREE.Vector3(destino.x + Math.cos(a) * r, 0, destino.z + Math.sin(a) * r))
+        }
+        vuelos.push({
+          tipo: 'siembra', t: 0, destino, alImpacto, entrada: 1.05, caida: 0.7, radio: 3.6,
+          marca: true, sitios, sueltas: [], cercano: extra.cercano, dura: extra.dura ?? 45,
+          radioMina: extra.radio ?? 2
+        })
+        return
+      }
+      if (clave === 'botiquin') {
+        vuelos.push({
+          tipo: 'caja', t: 0, destino, alImpacto, entrada: 0, caida: 2.1, radio: 1.2,
+          marca: false, malla: pieza('caja')
+        })
+        return
+      }
 
       // El napalm también lo trae el avión —es una bomba incendiaria, no algo
       // que se tire a mano—, con el mismo radio de aro que su explosión.
@@ -207,26 +430,33 @@ export function crearGolpes (scene, effects, audio) {
           entrada: 1.05, caida: 0.62, radio: clave === 'napalm' ? 4.6 : 5.5, marca: true
         })
       } else {
+        // La tira el soldado más cercano, si hay alguno; si no, llega de detrás
+        // de la línea como antes.
         vuelos.push({
           tipo: 'granada', t: 0, destino, alImpacto,
-          entrada: 0, caida: 0.72, radio: 3.4, marca: true
+          entrada: 0, caida: 0.72, radio: 3.4, marca: true, desde: extra.desde ?? null
         })
       }
     },
 
     limpiar () {
       vuelos.length = 0
+      for (const lista of Object.values(reservas)) for (const p of lista) soltarPieza(p)
+      minas.length = 0
+      aroVerde.visible = false
+      aroT = 0
       avion.visible = bomba.visible = granada.visible = marca.visible = false
       for (const o of [...bolas, ...ondas]) { o.t = 0; o.malla.visible = false }
     },
 
     update (dt) {
       // --- la marca late mientras haya algo en camino -----------------------
-      const enCamino = vuelos.length > 0
-      marca.visible = enCamino
-      if (enCamino) {
+      const conMarca = vuelos.find(v => v.marca)
+      marca.visible = !!conMarca
+      if (conMarca) {
+        marca.position.set(conMarca.destino.x, 0.06, conMarca.destino.z)
         const p = 1 + Math.sin(performance.now() * 0.012) * 0.12
-        marca.scale.setScalar(p * (vuelos[0].radio * 0.45))
+        marca.scale.setScalar(p * (conMarca.radio * 0.45))
         marca.material.opacity = 0.55 + Math.sin(performance.now() * 0.012) * 0.3
       }
 
@@ -234,6 +464,142 @@ export function crearGolpes (scene, effects, audio) {
         const v = vuelos[i]
         v.t += dt
         const total = v.entrada + v.caida
+
+        if (v.tipo === 'artilleria') {
+          // Cada obús cae en picado desde atrás y arriba hasta su punto del
+          // carril; revienta al llegar y el siguiente ya viene detrás.
+          for (let k = 0; k < v.n; k++) {
+            const llega = v.entrada + k * 0.26 + 0.55
+            const sale = llega - 0.55
+            const zk = v.zDesde + (v.zHasta - v.zDesde) * (k / Math.max(1, v.n - 1))
+            if (v.t >= sale && !v.obuses[k]) {
+              v.obuses[k] = { malla: pieza('obus'), blanco: new THREE.Vector3(v.destino.x + (Math.random() - 0.5) * 0.3, 0, zk) }
+            }
+            const o = v.obuses[k]
+            if (!o || o.hecho) continue
+            if (v.t < llega) {
+              const c = (v.t - sale) / 0.55
+              o.malla.position.set(o.blanco.x, 26 * (1 - c), o.blanco.z + 16 * (1 - c))
+              o.malla.rotation.set(-0.55, 0, 0)
+            } else {
+              o.hecho = true
+              soltarPieza(o.malla)
+              reventar(o.blanco, v.radio, false)
+              v.alImpacto(o.blanco, v.radio)
+            }
+          }
+          if (v.t >= total + 0.05) vuelos.splice(i, 1)
+          continue
+        }
+
+        if (v.tipo === 'dron') {
+          // Sale de detrás de la línea, vuela a media altura siguiendo a su
+          // blanco (que se mueve) y, a cuatro metros, se lanza en picado.
+          const m = v.malla
+          const vivo = v.objetivo && !v.objetivo.dead
+          if (vivo) v.destino.copy(v.objetivo.mesh.position)
+          const dx = v.destino.x - v.pos.x
+          const dz = v.destino.z - v.pos.z
+          const d = Math.hypot(dx, dz)
+          const paso = Math.min(d, 13 * dt)
+          if (d > 0.01) { v.pos.x += dx / d * paso; v.pos.z += dz / d * paso }
+          const alto = d > 4 ? 3.4 : 0.9 + 2.5 * (d / 4)
+          v.pos.y += (alto - v.pos.y) * Math.min(1, dt * 8)
+          m.position.copy(v.pos)
+          m.rotation.set(d > 4 ? -0.25 : -0.7, Math.atan2(-dx, -dz), 0)
+          for (const r of m.userData.rotores) r.rotation.y += dt * 60
+          if (d < 0.6 || v.t > 7) {
+            soltarPieza(m)
+            const p = v.pos.clone().setY(0)
+            reventar(p, v.radio, false)
+            v.alImpacto(p, v.radio, { objetivo: v.objetivo })
+            vuelos.splice(i, 1)
+          }
+          continue
+        }
+
+        if (v.tipo === 'misil') {
+          // Sube desde detrás de la cámara en un arco alto y cae de morro.
+          const c = Math.min(1, v.t / v.caida)
+          const m = v.malla
+          const antes = m.position.clone()
+          m.position.set(
+            v.desde.x + (v.destino.x - v.desde.x) * c,
+            v.desde.y * (1 - c) + Math.sin(c * Math.PI) * 15,
+            v.desde.z + (v.destino.z - v.desde.z) * c
+          )
+          if (v.t > dt) {
+            const dir = m.position.clone().sub(antes)
+            if (dir.lengthSq() > 1e-6) m.lookAt(m.position.clone().add(dir))
+            // lookAt apunta +z hacia el blanco, y el misil mira a -z: media vuelta.
+            m.rotateY(Math.PI)
+            if (Math.random() < 0.8) effects.smoke(antes, 1, 0xd9d4cc)
+          }
+          if (c >= 1) {
+            soltarPieza(m)
+            reventar(v.destino, v.radio, true)
+            v.alImpacto(v.destino, v.radio)
+            vuelos.splice(i, 1)
+          }
+          continue
+        }
+
+        if (v.tipo === 'caja') {
+          // Baja en paracaídas, meciéndose; al tocar suelo, la onda verde.
+          const c = Math.min(1, v.t / v.caida)
+          const m = v.malla
+          m.position.set(v.destino.x, 13 * (1 - c), v.destino.z)
+          m.rotation.z = Math.sin(v.t * 3) * 0.12 * (1 - c)
+          m.userData.paracaidas.visible = c < 1
+          if (c >= 1 && !v.aterrizo) {
+            v.aterrizo = true
+            aroVerde.position.set(v.destino.x, 0.1, v.destino.z)
+            aroVerde.visible = true
+            aroT = 1.1
+            effects.burst(v.destino, 0x7dffae, 16, 1.2)
+            v.alImpacto(v.destino, v.radio)
+          }
+          if (v.t > v.caida + 1.6) {
+            soltarPieza(m)
+            vuelos.splice(i, 1)
+          }
+          continue
+        }
+
+        if (v.tipo === 'siembra') {
+          // El mismo avión que el ataque aéreo, pero en vez de una bomba suelta
+          // las minas una a una mientras pasa por encima de la zona.
+          const z0 = v.destino.z - 44
+          const z1 = v.destino.z + 22
+          avion.visible = v.t < v.entrada + 0.5
+          avion.position.set(v.destino.x * 0.5, 8, z0 + (z1 - z0) * (v.t / (v.entrada + 0.5)))
+          avion.rotation.set(0.06, 0, Math.sin(v.t * 3) * 0.05)
+          v.sitios.forEach((s, k) => {
+            const sale = v.entrada * 0.55 + k * 0.08
+            if (v.t < sale || v.sueltas[k]) return
+            v.sueltas[k] = { malla: pieza('mina'), desde: avion.position.clone(), t: 0, s }
+          })
+          for (const q of v.sueltas) {
+            if (!q || q.puesta) continue
+            q.t += dt
+            const c = Math.min(1, q.t / v.caida)
+            q.malla.position.set(
+              q.desde.x + (q.s.x - q.desde.x) * c,
+              q.desde.y * (1 - c * c),
+              q.desde.z + (q.s.z - q.desde.z) * c
+            )
+            q.malla.rotation.x += dt * 8
+            if (c >= 1) {
+              q.puesta = true
+              q.malla.rotation.set(0, Math.random() * 6, 0)
+              q.malla.position.copy(q.s)
+              effects.burst(q.s, 0x8a7a5a, 4, 0.5)
+              minas.push({ malla: q.malla, p: q.s, t: 0, vida: v.dura, radio: v.radioMina, cercano: v.cercano, alImpacto: v.alImpacto })
+            }
+          }
+          if (v.sueltas.filter(q => q?.puesta).length === v.sitios.length) vuelos.splice(i, 1)
+          continue
+        }
 
         if (v.tipo === 'avion') {
           const k = Math.min(1, v.t / v.entrada)
@@ -273,11 +639,12 @@ export function crearGolpes (scene, effects, audio) {
           // Granada: sale de detrás de la línea y describe un arco.
           const c = Math.min(1, v.t / v.caida)
           granada.visible = true
-          const x0 = v.destino.x * 0.35
-          const z0 = 7
+          const x0 = v.desde ? v.desde.x : v.destino.x * 0.35
+          const z0 = v.desde ? v.desde.z : 7
+          const y0 = v.desde ? 1.5 : 0
           granada.position.set(
             x0 + (v.destino.x - x0) * c,
-            Math.sin(c * Math.PI) * 4.2 * (1 - c * 0.3),
+            y0 * (1 - c) + Math.sin(c * Math.PI) * 4.2 * (1 - c * 0.3),
             z0 + (v.destino.z - z0) * c
           )
           granada.rotation.x += dt * 14
@@ -293,9 +660,40 @@ export function crearGolpes (scene, effects, audio) {
         }
       }
 
-      if (!vuelos.length) { bomba.visible = false; granada.visible = false }
+      if (!vuelos.some(v => v.tipo === 'avion')) bomba.visible = false
+      if (!vuelos.some(v => v.tipo === 'granada')) granada.visible = false
+
+      // --- las minas sembradas ------------------------------------------------
+      for (let i = minas.length - 1; i >= 0; i--) {
+        const m = minas[i]
+        m.t += dt
+        // Armada a los cuatro décimos: si no, la que cae encima de un bicho
+        // revienta en el aire.
+        const armada = m.t > 0.4
+        m.malla.userData.luz.visible = (m.t % 1) < (armada ? 0.3 : 0.9)
+        if (armada && m.cercano?.(m.p, 0.9)) {
+          soltarPieza(m.malla)
+          reventar(m.p, m.radio, false)
+          m.alImpacto(m.p, m.radio)
+          minas.splice(i, 1)
+          continue
+        }
+        if (m.t > m.vida) {
+          soltarPieza(m.malla)
+          minas.splice(i, 1)
+        }
+      }
+
+      // --- el aro verde del botiquín ------------------------------------------
+      if (aroT > 0) {
+        aroT -= dt
+        const k = Math.max(0, aroT / 1.1)
+        aroVerde.scale.setScalar(1 + (1 - k) * 26)
+        aroVerde.material.opacity = k * 0.85
+        if (aroT <= 0) aroVerde.visible = false
+      }
       // El avión sigue un poco más para salir de cuadro aunque ya haya soltado.
-      if (avion.visible && !vuelos.some(v => v.tipo === 'avion')) {
+      if (avion.visible && !vuelos.some(v => v.tipo === 'avion' || v.tipo === 'siembra')) {
         avion.position.z += 46 * dt
         if (avion.position.z > 30) avion.visible = false
       }

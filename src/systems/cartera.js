@@ -14,7 +14,7 @@
 // texto que cualquiera puede editar, y un `billetes: -5` o un JSON roto no deben
 // romper la tienda.
 
-import { INICIALES, SOLDIERS, DEFENSES } from '../config.js'
+import { INICIALES, SOLDIERS, DEFENSES, STRIKES } from '../config.js'
 
 const CLAVE = 'alienz-cartera-v1'
 
@@ -62,6 +62,11 @@ export const PRECIOS = {
   grenade: 40,
   airstrike: 280,
   napalm: 350,
+  artilleria: 300,
+  dron: 350,
+  misilGuiado: 450,
+  campoMinas: 250,
+  botiquin: 200,
   collector: 150
 }
 
@@ -73,7 +78,9 @@ export const MEJORAS = {
   dano: { nombre: 'Daño', paso: 0.15 },
   cadencia: { nombre: 'Cadencia', paso: 0.10 },
   // Para las defensas (27/09): con todo, aguantan un 75 % más.
-  vida: { nombre: 'Vida', paso: 0.25 }
+  vida: { nombre: 'Vida', paso: 0.25 },
+  // Para el apoyo: un 12 % menos de espera por nivel (30 s → 19 s con todo).
+  recarga: { nombre: 'Recarga', paso: -0.12 }
 }
 
 // Qué se le puede mejorar a cada cosa. A los soldados, daño y cadencia, como
@@ -82,6 +89,8 @@ export const MEJORAS = {
 // Isidro, 27/09: «sí, tres niveles».
 export function pistasMejora (clave) {
   if (SOLDIERS[clave]) return ['dano', 'cadencia']
+  // Al apoyo, más efecto (daño, o curación en el botiquín) y menos recarga.
+  if (STRIKES[clave]) return ['dano', 'recarga']
   const d = DEFENSES[clave]
   if (!d) return []
   return d.thorns || d.revienta || d.dispara ? ['vida', 'dano'] : ['vida']
@@ -135,7 +144,8 @@ export function cargarCartera () {
       mejoras[k] = {
         dano: Math.min(NIVEL_MAX, entero(m.dano)),
         cadencia: Math.min(NIVEL_MAX, entero(m.cadencia)),
-        vida: Math.min(NIVEL_MAX, entero(m.vida))
+        vida: Math.min(NIVEL_MAX, entero(m.vida)),
+        recarga: Math.min(NIVEL_MAX, entero(m.recarga))
       }
     }
   }
@@ -213,6 +223,7 @@ export function comprarMejora (clave, tipo) {
     dano: c.mejoras[clave]?.dano ?? 0,
     cadencia: c.mejoras[clave]?.cadencia ?? 0,
     vida: c.mejoras[clave]?.vida ?? 0,
+    recarga: c.mejoras[clave]?.recarga ?? 0,
     [tipo]: nivel + 1
   }
   guardar(c)

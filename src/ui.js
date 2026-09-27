@@ -7,19 +7,27 @@ import { cartasAbiertas } from './systems/progreso.js'
 const SERIAL = {
   archer: 'A-01', rifle: 'R-02', shotgun: 'S-03', sniper: 'T-04',
   flamer: 'F-05', gunner: 'M-06', misil: 'K-07', mortar: 'X-08',
-  sandbags: 'B-01', spikes: 'B-02',
-  grenade: 'G-01', airstrike: 'G-02', collector: 'C-00'
+  sandbags: 'B-01', spikes: 'B-02', mines: 'B-03', erizos: 'B-04', torreta: 'B-05',
+  grenade: 'G-01', airstrike: 'G-02', napalm: 'G-03', artilleria: 'G-04', dron: 'G-05',
+  misilGuiado: 'G-06', campoMinas: 'G-07', botiquin: 'M-01', collector: 'C-00'
 }
 
 // La chapa manda un nombre corto porque el largo no entra en 76 px y se cortaba
 // con puntos suspensivos: AMETRALLAD… y SACOS TERR… hay que descifrarlos. El
 // nombre completo sigue vivo en la franja de estado y en la etiqueta hablada.
-const CORTO = { flamer: 'Fuego', gunner: 'Metralla', misil: 'Misiles', sandbags: 'Sacos', airstrike: 'Aéreo' }
+const CORTO = {
+  flamer: 'Fuego', gunner: 'Metralla', misil: 'Misiles', sandbags: 'Sacos', airstrike: 'Aéreo',
+  mines: 'Carga', erizos: 'Erizos', torreta: 'Torreta',
+  artilleria: 'Obuses', dron: 'Dron', misilGuiado: 'Misil', campoMinas: 'Minas', botiquin: 'Botiquín'
+}
 
 // Los apoyos no tienen figura en el tablero, así que toman el color de su propio
 // efecto: el naranja de la explosión, el azul del cristal de la óptica y el oro
 // exacto de la moneda.
-const TINTE_APOYO = { grenade: 0xffb03a, airstrike: 0x7fd8ff, collector: 0xffcf45 }
+const TINTE_APOYO = {
+  grenade: 0xffb03a, airstrike: 0x7fd8ff, collector: 0xffcf45, napalm: 0xff6a2a,
+  artilleria: 0xc9a66b, dron: 0xb6e35a, misilGuiado: 0xff5a4d, campoMinas: 0xd1a526, botiquin: 0x7dffae
+}
 
 const GRUPO = { soldier: 'Tropa', defense: 'Barreras', strike: 'Apoyo', upgrade: 'Mando' }
 const PISTA = {
@@ -201,6 +209,13 @@ export function createUI ({ onSelect, onUpgrade, onMove, onDeselect, onArrastreC
 
     card.addEventListener('click', () => {
       if (veniaDeArrastre) return
+      // Recargando no se elige: el mismo rechazo que sin monedas.
+      if (card.classList.contains('recargando')) {
+        card.classList.remove('nope')
+        void card.offsetWidth
+        card.classList.add('nope')
+        return
+      }
       // Sin biomasa no se selecciona: antes se podía elegir, tocar el carril y
       // solo entonces oír el rechazo, lejos de donde se había pulsado.
       if (purse < item.cost) {
@@ -264,6 +279,22 @@ export function createUI ({ onSelect, onUpgrade, onMove, onDeselect, onArrastreC
   const api = {
     el,
     catalog,
+
+    // La recarga de un apoyo sobre su carta: un velo que se va retirando y los
+    // segundos que faltan. Si estaba elegido, se suelta: ya no se puede usar.
+    setRecarga (clave, resto, total) {
+      const card = cards.get(clave)
+      if (!card) return
+      const activa = resto > 0.05
+      card.classList.toggle('recargando', activa)
+      card.style.setProperty('--recarga', activa ? (resto / total).toFixed(3) : '0')
+      card.dataset.recarga = activa ? String(Math.ceil(resto)) : ''
+      if (activa && selected?.key === clave) {
+        selected = null
+        refreshSelection()
+        onDeselect?.()
+      }
+    },
 
     setCoins (value) {
       purse = value
