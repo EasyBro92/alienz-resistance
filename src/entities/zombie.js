@@ -103,7 +103,22 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
     // tiempo a recolocar media línea antes de que asome.
     get velocidad () {
       const base = this.spec.speed * (this.bajoTierra ? (this.spec.escarba.prisa ?? 1) : 1)
-      return base * (this.tLastre > 0 ? this.lastre : 1)
+      return base * (this.tLastre > 0 ? this.lastre : 1) * this.prisaDeEntrada
+    },
+
+    // En Milán nacen al fondo de la galería, dentro de la niebla, para que no se
+    // vea el momento en que aparecen (Isidro: «que vengan de mucho más atrás,
+    // que no se llegue a distinguir el momento en el que aparecen»). Andando a
+    // su paso tardarían veinte segundos más en llegar a la plaza, así que dentro
+    // de la niebla vienen deprisa y van frenando hasta su paso normal antes de
+    // verse bien. Con el paso ligado a la velocidad, se lee como que salen
+    // corriendo de la galería. Fuera de Milán vale siempre 1.
+    get prisaDeEntrada () {
+      const p = FIELD.prisa
+      const z = this.mesh.position.z
+      if (!p || z >= p.hasta) return 1
+      const t = Math.min(1, (p.hasta - z) / (p.hasta - p.desde))
+      return 1 + (p.por - 1) * t
     },
 
     // Mientras está bajo tierra o en el aire nadie le dispara ni le bloquea el

@@ -790,8 +790,8 @@ function circuito () {
 // guion de Blender, y si se retoca uno hay que retocar el otro:
 //   · el arco de la Galleria, centrado en el eje, con la cara en z = -40; por él
 //     salen los bichos (`entrada` en la misión de campana.js),
-//   · el Duomo a la derecha, con el centro de la fachada en (31, -23), girado
-//     para dar la cara a la plaza,
+//   · el Duomo a la derecha, con el centro de la fachada en (40, -44), girado
+//     20° para dar la cara a la plaza,
 //   · los pórticos a la izquierda, con la fachada en x = -17.
 function milanDuomo () {
   const g = new THREE.Group()
@@ -816,11 +816,14 @@ function milanDuomo () {
     altoVuelo: 40,
     // La llegada empieza mirando al Duomo —Isidro: «al principio de la partida
     // tiene que verse la cámara viendo al Duomo y luego se coloca en posición de
-    // batalla»— desde el lado de la plaza, en tres cuartos, que es como se ve
-    // entero en un móvil en vertical: de frente, para que quepan sus 44 de ancho
-    // habría que irse a 112 y la niebla se lo comería. Luego gira hacia el arco.
-    vista: { desde: [25, 14, 50], mira: [31, 22, -23] },
-    foco: [[15, 0, -50], [47, 50, 0]]
+    // batalla»—, y DE FRENTE Y DE LEJOS, como en su foto: «queda más plano, o
+    // sea un poco más alejado y más recto». Para que quepan sus 46 de ancho en
+    // un móvil en vertical hay que irse a 125, y ahí la niebla del juego (que
+    // cierra a 152) se lo comería: por eso el vuelo la abre (`niebla`) y la
+    // devuelve a la suya mientras baja al campo. La cámara arranca detrás del
+    // tablero, sobre el eje de la fachada, y luego gira hacia el arco.
+    vista: { desde: [-2.8, 12, 73.5], mira: [40, 26, -44], niebla: { cerca: 150, lejos: 330 } },
+    foco: [[15, 0, -112], [85, 72, -36]]
   })
   return g
 }

@@ -176,9 +176,15 @@ export const PAISES = [
         // la Galleria al fondo, el Duomo a la derecha y los pórticos a la izquierda.
         // Sin monumento aparte: el Duomo viene en el modelo.
         escenario: 'milanDuomo', suelo: 'losas', tonoSuelo: 0x8e8983, hitos: [],
-        // Salen de la galería, por debajo del arco: nacen entre z = -50 y -60, dentro,
-        // y la cara del arco está en -40. Sin nave.
-        entrada: { z: -50, fondo: 10 },
+        // Salen de la galería, por debajo del arco: nacen al fondo de ella, entre
+        // z = -120 y -130, donde la niebla ya los tapa (en el eje cierra del todo
+        // a -140), y la cara del arco está en -40. Hasta -105 vienen a cuatro
+        // veces su paso y van frenando hasta el suyo a -68, antes de verse bien.
+        // Sin nave.
+        entrada: { z: -120, fondo: 10, prisa: { desde: -105, hasta: -68, por: 4 } },
+        // Sin pájaros ni nubes: la bandada, los buitres y las nubes, que vuelan
+        // bajas, cruzaban por dentro del Duomo y de la Galleria.
+        sinPajaros: true, sinNubes: true,
         // Al anochecer, como en las fotos de la plaza: el cielo azul arriba, rosa
         // en el horizonte, y los escaparates de la galería encendidos.
         fondo: { hora: 'ocaso', cielo: 0x7f9cc8, niebla: 0xd9b9b4 },

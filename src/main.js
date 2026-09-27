@@ -1145,7 +1145,10 @@ function simulate (dt) {
           z.update(dt, camera, true)
           // Ya en suelo firme, anda su trecho (distinto cada vez) y se pone a cavar.
           c.tocable = z.suelo <= 0.001
-          if (c.tocable) c.enSuelo = (c.enSuelo ?? 0) + z.velocidad * dt
+          // Si viene del fondo de la niebla (Milán), su trecho empieza a contar
+          // al salir de ella: si no, cavaba dentro de la galería, donde no se ve.
+          const aLaVista = !FIELD.prisa || pos.z > FIELD.prisa.hasta
+          if (c.tocable && aLaVista) c.enSuelo = (c.enSuelo ?? 0) + z.velocidad * dt
           if (c.tocable && c.enSuelo > c.meta) {
             c.tocable = false
             c.estado = 'cavando'
@@ -1433,6 +1436,15 @@ function empezarVuelo () {
   vuelo.dura = vuelo.vista
     ? (yaVisto(nivelActivo().escenario) ? LUGAR_CORTO : LUGAR_ENTERO)
     : VUELO
+  // Una vista que mira de lejos (el Duomo de Milán, de frente, a 125) trae su
+  // niebla: la del juego se lo comería. Se abre aquí, se va cerrando mientras
+  // la cámara baja al campo y `terminarVuelo` deja la de siempre.
+  if (vuelo.vista?.niebla && scene.fog) {
+    vuelo.niebla = { cerca: scene.fog.near, lejos: scene.fog.far }
+    vuelo.lente = { cerca: camera.near, lejos: camera.far }
+    camera.far = Math.max(camera.far, vuelo.vista.niebla.lejos + 60)
+    camera.updateProjectionMatrix()
+  }
   ui.banner(nivelActivo().name.toUpperCase())
   ui.rotulo(nivelActivo().name.toUpperCase(), nivelActivo().lugar, vuelo.dura)
   actualizarVuelo(0)
@@ -1655,6 +1667,12 @@ function actualizarVuelo (dt) {
   if (mezcla > 0) {
     camera.position.lerp(v.fin.pos, mezcla)
     camera.quaternion.slerp(v.fin.rot, mezcla)
+  }
+  // La niebla abierta vuelve a la suya en ese mismo tramo, sin salto.
+  if (v.vista?.niebla && v.niebla && scene.fog) {
+    const a = v.vista.niebla
+    scene.fog.near = a.cerca + (v.niebla.cerca - a.cerca) * mezcla
+    scene.fog.far = a.lejos + (v.niebla.lejos - a.lejos) * mezcla
   }
   if (k >= 1) terminarVuelo()
 }
@@ -2012,6 +2030,9 @@ function start (indice = nivelActual) {
     FIELD.entradaZ = nivelDeHoy.entrada.z
     FIELD.entradaAncho = nivelDeHoy.entrada.fondo
   }
+  // Y si nacen muy al fondo, dentro de la niebla, traen prisa hasta salir de
+  // ella (ver `velocidad` en zombie.js).
+  FIELD.prisa = nivelDeHoy.entrada?.prisa ?? null
   sinNave = !!dueloEnCurso || !!nivelDeHoy.entrada
   dropship.recolocar()
   if (sinNave) dropship.ocultar()

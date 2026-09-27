@@ -57,8 +57,10 @@ mat('hierro', 0x33332f, 0.6, metal=0.5)
 mat('portici', 0xdcc7a0, 0.88)
 mat('portici-sombra', 0xb7a17d, 0.9)
 mat('tejado', 0x6a645c, 0.9)
-mat('marmol', 0xf4ebe1, 0.7)
-mat('marmol-sombra', 0xe0d2c3, 0.8)
+# Algo más blanco que el primero: con la luz del anochecer salía beis, e Isidro
+# lo veía «un poco más blanco, pero un poco».
+mat('marmol', 0xfaf6f0, 0.7)
+mat('marmol-sombra', 0xece5db, 0.8)
 mat('puerta', 0x2e4a3b, 0.6, metal=0.3)
 mat('vidriera', 0x39404a, 0.3)
 # Lo que brilla se llama brillo-*: el juego apaga la emisión de todo lo demás.
@@ -155,14 +157,20 @@ GAL_X = 14.0                            # medio ancho de la fachada
 # NUNCA jugando y el arco era un pasillo entre dos muros.
 ARCO_R, ARCO_Y = 8.0, 10.5              # hueco de 16 de ancho, arranca a 10,5 y remata a 18,5
 GAL_ALTO = 30.0
-GAL_FIN = -112.0                        # fondo de la galería
+# El fondo de la galería, dentro de la niebla: en -112 se veía el muro del
+# final y los bichos aparecían a la vista. La niebla del juego se mide en
+# profundidad de cámara y cierra del todo a 152, que en el eje es z ≈ -140.
+GAL_FIN = -160.0
 
 # ======================================================================================
 # 1. EL SUELO: lastra gris y las líneas blancas
 # ======================================================================================
 def suelo (bm):
     i = IDX_SUELO
-    quad(bm, P(-44, 0, 30), P(50, 0, 30), P(50, 0, -70), P(-44, 0, -70), i['lastra'])
+    # Mucho más grande que la plaza que se juega: la llegada mira al Duomo desde
+    # lejos y con la niebla abierta, y con la lastra cortada en x = 50 y z = 30 se
+    # veía el borde del mundo por delante y por detrás del Duomo.
+    quad(bm, P(-90, 0, 130), P(150, 0, 130), P(150, 0, -250), P(-90, 0, -250), i['lastra'])
     # Dentro de la galería, el mosaico.
     quad(bm, P(-7.9, 0.01, GAL_Z0), P(7.9, 0.01, GAL_Z0), P(7.9, 0.01, GAL_FIN), P(-7.9, 0.01, GAL_FIN), i['mosaico'])
     # Las líneas: la retícula grande y un rombo inscrito en cada tramo del
@@ -319,10 +327,17 @@ o_por = malla('portici', portici, MATS_POR)
 # Se construye en su propio marco —fachada en w = 0 mirando a +w, de u = -22 a
 # 22— y luego se gira para darle la cara a la plaza, como en la foto de la
 # plaza al anochecer: la Galleria a la izquierda y el Duomo a la derecha.
-# El extremo lejano de la fachada queda en (20, -42): a un paso de la Galleria,
-# que acaba en x = 14, y fuera del cuadro del móvil mientras se juega.
-DUOMO_CENTRO = (31.0, -23.0)
-DUOMO_GIRO = -60.0                       # grados: la fachada mira a (-0,87, 0, +0,5)
+#
+# Primero iba en (31, -23) girado 60°, y en la llegada se veía de sesgo y
+# encima, con las agujas cayendo hacia dentro. Isidro: «queda más plano, o sea
+# un poco más alejado y más recto como se ve en la imagen». Ahora va más al
+# fondo y girado solo 20°: casi de cara a la plaza, que es como sale en la foto,
+# y la llegada lo mira de frente desde detrás del tablero.
+# El extremo izquierdo de la fachada queda en (20, -51) y la esquina del sagrato
+# en (17, -48): fuera de la Galleria, que acaba en x = 15, y fuera del cuadro
+# del móvil mientras se juega.
+DUOMO_CENTRO = (40.0, -44.0)
+DUOMO_GIRO = -20.0                       # grados: la fachada mira a (-0,34, 0, +0,94)
 
 def duomo (bm):
     i = IDX_DUO
@@ -442,9 +457,9 @@ o_far = malla('farolas', farolas, MATS_FAR)
 # ======================================================================================
 # Aquí los bichos no bajan de una nave, salen andando de la galería: el pasillo
 # se mira hasta donde nacen, dentro de ella (la misión de campana.js los hace
-# nacer entre z = -50 y -60), no solo hasta z = -52. Más al fondo no pisa nadie:
-# ahí está el muro que cierra la galería.
-Z_NACEN = -62.0
+# nacer entre z = -120 y -130, ya dentro de la niebla), no solo hasta z = -52.
+# Más al fondo no pisa nadie: ahí está el muro que cierra la galería.
+Z_NACEN = -132.0
 def pasillo_libre ():
     malos = []
     for o in bpy.data.objects:
@@ -511,7 +526,8 @@ if '--vista' in ARGS:
         bpy.ops.render.render(write_still=True)
     # La cámara del juego en el móvil vertical.
     foto('milan-juego.png', (0, 14.58, 22.27), (0, 0, -9), 48, 390, 844)
-    # El primer plano de la llegada: el Duomo de frente, desde la plaza.
-    foto('milan-duomo.png', (25, 14, 50), (31, 22, -23), 48, 390, 844)
+    # El primer plano de la llegada: el Duomo de frente, desde la plaza (los
+    # mismos números que `vista` en escenarios.js).
+    foto('milan-duomo.png', (-2.8, 12, 73.5), (40, 26, -44), 48, 390, 844)
     # Y una general desde lo alto.
     foto('milan-general.png', (-40, 70, 40), (5, 5, -45), 50, 900, 600)

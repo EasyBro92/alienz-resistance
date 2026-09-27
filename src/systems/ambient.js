@@ -75,6 +75,14 @@ export function createAmbient (scene) {
   scene.add(flock)
   let flockTimer = rand(3, 10)
   let flockActive = false
+  // Hay sitios sin pájaros: en Milán la bandada y los buitres se metían por
+  // dentro del Duomo y de la Galleria (Isidro: «quita los pájaros porque se
+  // chocan contra el edificio»).
+  let sinPajaros = false
+  // Y sin nubes: vuelan bajas (y = 8 a 13, entre z = -96 y -142) para que se vean
+  // con la cámara tan picada, y en Milán eso es DENTRO de la Galleria: se veía
+  // una bola blanca cruzando la bóveda y atravesando el Duomo en la llegada.
+  let sinNubes = false
 
   function launchFlock () {
     flockActive = true
@@ -534,6 +542,14 @@ export function createAmbient (scene) {
     vestir (destino = {}, alturaEn = null) {
       const { bioma, suelo, hitos = [] } = destino
       sinNaves = !!destino.entrada
+      sinPajaros = !!destino.sinPajaros
+      if (sinPajaros) {
+        flockActive = false
+        flock.visible = false
+      }
+      for (const v of vultures) v.bird.visible = !sinPajaros
+      sinNubes = !!destino.sinNubes
+      for (const c of clouds) c.group.visible = !sinNubes
       if (sinNaves) {
         mother.visible = false
         for (const sc of scouts) { sc.active = false; sc.ship.visible = false }
@@ -687,7 +703,7 @@ export function createAmbient (scene) {
       // bandada de paso
       if (!flockActive) {
         flockTimer -= dt
-        if (flockTimer <= 0) { launchFlock(); flock.visible = true }
+        if (flockTimer <= 0 && !sinPajaros) { launchFlock(); flock.visible = true }
       } else {
         flock.position.x += flock.userData.speed * dt
         for (const b of birds) flap(b)
