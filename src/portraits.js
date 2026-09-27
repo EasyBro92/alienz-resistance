@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { SOLDIERS, DEFENSES, ZOMBIES } from './config.js'
-import { buildSoldierMesh, buildSandbagsMesh, buildZombieMesh } from './assets.js'
+import { buildSoldierMesh, buildDefensaMesh, buildZombieMesh } from './assets.js'
 
 // Retratos de la armería.
 //
@@ -153,7 +153,7 @@ export async function renderPortraits (renderer, alAvanzar) {
     await fotografiar(clave, await buildSoldierMesh(clave, spec))
   }
   for (const [clave, spec] of Object.entries(DEFENSES)) {
-    const malla = buildSandbagsMesh(spec)
+    const malla = await buildDefensaMesh(clave, spec)
     malla.position.y = 0.45          // los sacos son bajos: se suben al encuadre
     await fotografiar(clave, malla)
   }

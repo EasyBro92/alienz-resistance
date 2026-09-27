@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { ZOMBIES, SOLDIERS, DEFENSES } from '../config.js'
-import { buildSoldierMesh, buildSandbagsMesh, buildZombieMesh } from '../assets.js'
+import { buildSoldierMesh, buildDefensaMesh, buildZombieMesh } from '../assets.js'
 
 // Las figuras del campo del rival, fotografiadas.
 //
@@ -234,7 +234,7 @@ export async function fotografiarCampo (renderer, alAvanzar) {
   }
   for (const [clave, spec] of Object.entries(DEFENSES)) {
     try {
-      const malla = buildSandbagsMesh(spec)
+      const malla = await buildDefensaMesh(clave, spec)
       await fotografiar(clave, malla, [null])
     } catch (e) { console.warn('Sin foto de', clave, e) }
   }

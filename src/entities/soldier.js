@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { buildSoldierMesh, buildSandbagsMesh, vestirMejoras } from '../assets.js'
+import { buildSoldierMesh, buildDefensaMesh, vestirMejoras } from '../assets.js'
 import { laneX, rowZ } from '../world.js'
 import { createHealthBar } from './healthbar.js'
 import { factorMejora, nivelMejora } from '../systems/cartera.js'
@@ -186,7 +186,7 @@ function pisada (fase, apoyo, recorrido, altura) {
 }
 
 export async function createSoldier (key, spec, lane, row) {
-  const mesh = spec.blocker ? buildSandbagsMesh(spec) : await buildSoldierMesh(key, spec)
+  const mesh = spec.blocker ? await buildDefensaMesh(key, spec) : await buildSoldierMesh(key, spec)
   mesh.position.set(laneX(lane), 0, rowZ(row))
 
   // Figuras con esqueleto: el ciclo de andar viene dentro del archivo y lo

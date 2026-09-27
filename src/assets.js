@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { brilla, apagarEmision } from './systems/resplandor.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { crearCuerpo, crearManosDePiezas } from './entities/cuerpo.js'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
@@ -3097,6 +3098,61 @@ export function vestirMejoras (mesh, nivel) {
     radio.add(punta)
     colgar(espalda, radio, [-0.07, 0.1, 0.14])
   }
+}
+
+// Las defensas, hechas en Blender (`herramientas/blender/defensas.py`). Antes
+// las tres eran `buildSandbagsMesh` —cinco cápsulas y un poste— con otro color,
+// y la alambrada y la carga no se distinguían de los sacos. Isidro: «los sacos
+// se ven poco realistas». Cada una trae su modelo; si no llega (sin red, o una
+// defensa sin modelo), se usa el de siempre.
+const MODELO_DEFENSA = { sandbags: 'defensa-sacos', spikes: 'defensa-alambrada', mines: 'defensa-carga' }
+let cargadorDefensas = null
+const moldesDefensa = new Map()
+
+function moldeDefensa (nombre) {
+  if (!cargadorDefensas) {
+    cargadorDefensas = new GLTFLoader().setDRACOLoader(
+      new DRACOLoader().setDecoderPath(`${import.meta.env.BASE_URL}draco/`).setDecoderConfig({ type: 'wasm' }))
+  }
+  if (!moldesDefensa.has(nombre)) {
+    moldesDefensa.set(nombre, cargadorDefensas.loadAsync(`${import.meta.env.BASE_URL}models/${nombre}.glb`).then(g => g.scene))
+  }
+  return moldesDefensa.get(nombre)
+}
+
+export async function buildDefensaMesh (key, spec) {
+  const nombre = MODELO_DEFENSA[key]
+  if (!nombre) return buildSandbagsMesh(spec)
+  let molde
+  try {
+    molde = await moldeDefensa(nombre)
+  } catch (e) {
+    console.warn('Sin modelo de', key, e)
+    return buildSandbagsMesh(spec)
+  }
+  const g = new THREE.Group()
+  const copia = molde.clone(true)
+  copia.traverse(o => {
+    if (!o.isMesh) return
+    // Geometría propia: la partida y las fotos de la armería sueltan la de cada
+    // figura al quitarla, y compartida dejaría a las demás sin la suya.
+    o.geometry = o.geometry.clone()
+    o.castShadow = true
+    o.receiveShadow = true
+    // La luz de la carga parpadea: encendida un cuarto de segundo de cada uno.
+    if (/^brillo/.test(o.material?.name ?? '')) {
+      o.onBeforeRender = () => {
+        o.material.emissiveIntensity = (performance.now() / 1000) % 1 < 0.25 ? 3.2 : 0.25
+      }
+    }
+  })
+  // El juego encoge todas las figuras de la casilla a 0,59: a su tamaño de
+  // Blender la defensa ocupaba la mitad del carril y parecía de juguete. Así
+  // cubre unas tres cuartas partes, como una barrera de verdad.
+  copia.scale.setScalar(1.35)
+  g.add(copia)
+  g.add(contactShadow(1.35))
+  return g
 }
 
 export function buildSandbagsMesh (spec) {
