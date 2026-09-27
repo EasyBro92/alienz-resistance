@@ -498,6 +498,13 @@
             <span><b>Defender entre dos</b><small>El mismo tramo, a la vez, con otro jugador</small></span>
             <svg class="multi-flecha" aria-hidden="true"><use href="#i-multi"></use></svg>
           </button>
+          <!-- Guerra civil (27/09): va en su propia página, para que no toque nada de
+               la campaña; por eso es un enlace y no un botón. -->
+          <a id="multi-guerra" class="multi-boton" href="guerra.html" style="--tinte:#d8403a">
+            <i class="multi-vineta" data-arte="guerra" aria-hidden="true"></i>
+            <span><b>Guerra civil</b><small>Sin alienz: soldados contra soldados por el territorio</small></span>
+            <svg class="multi-flecha" aria-hidden="true"><use href="#i-rayo"></use></svg>
+          </a>
         </div>
         <button id="multi-volver" class="chip chip-ghost">Volver al mapa</button>
       </div>
@@ -914,8 +921,6 @@
           <button id="ir-tienda" class="menu-boton" type="button"><svg aria-hidden="true"><use href="#i-billete"></use></svg>TIENDA</button>
           <button id="ir-enemigos" class="menu-boton" type="button"><svg aria-hidden="true"><use href="#i-enemigos"></use></svg>ENEMIGOS</button>
         </div>
-        <!-- Guerra civil (27/09): su propia página, para que no toque nada de aquí. -->
-        <a id="ir-guerra" class="menu-boton guerra-boton" href="guerra.html">GUERRA CIVIL</a>
       </div>
     </div>
   </div>

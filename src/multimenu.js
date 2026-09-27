@@ -22,6 +22,7 @@ const $ = id => document.getElementById(id)
 const ARTE = {
   duelo: { soldados: ['rifle', 'shotgun'], pose: 'enfrentados' },
   coop: { soldados: ['gunner', 'sniper'], pose: 'juntos' },
+  guerra: { soldados: ['gunner', 'rifle'], pose: 'enfrentados' },
   retos: { alienz: ['tank'], pose: 'centro' },
   ranking: { podio: true }
 }
