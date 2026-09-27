@@ -760,6 +760,11 @@ function circuito () {
 
   g.userData.carriles = 4
   g.userData.tapaElMundo = true
+  // Interlagos tampoco tenía plano de llegada: no lleva monumento y sin `foco`
+  // el vuelo ni empieza. Con esto entra por la misma puerta que los lugares y
+  // se recorre la recta de meta desde arriba antes de la primera oleada.
+  g.userData.conHitos = true
+  g.userData.altoVuelo = 34
   return g
 }
 

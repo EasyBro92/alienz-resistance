@@ -1374,6 +1374,25 @@ function simulate (dt) {
 // toque lo salta, y mientras dura la partida no avanza.
 let vuelo = null
 const VUELO = 3.4
+// El plano de un sitio, la primera vez que se entra y las siguientes. Isidro lo
+// eligió así para Madrid —«entero la primera vez, corto después»— y vale igual
+// para los otros cuarenta: la primera vez quieres ver dónde estás, y al tercer
+// intento del mismo nivel lo que quieres es jugar.
+const LUGAR_ENTERO = 5
+const LUGAR_CORTO = 2.4
+const LUGARES_VISTOS = 'alienz-lugares-vistos-v1'
+function yaVisto (clave) {
+  if (!clave) return false
+  try {
+    const lista = JSON.parse(localStorage.getItem(LUGARES_VISTOS) ?? '[]')
+    if (!Array.isArray(lista)) return false
+    if (lista.includes(clave)) return true
+    lista.push(clave)
+    // Sin tope: son cuarenta y una claves cortas, no llega a un kilobyte.
+    localStorage.setItem(LUGARES_VISTOS, JSON.stringify(lista))
+  } catch { /* modo privado: siempre entero, que tampoco pasa nada */ }
+  return false
+}
 // La llegada en helicóptero dura algo más: hay que ver el paisaje pasar por la
 // puerta antes de posarse, y en 3,4 s no daba tiempo a leer que vas dentro.
 const VUELO_HELI = 4.4
@@ -1406,6 +1425,14 @@ function empezarVuelo () {
     // Algunos monumentos piden su ángulo (el Bernabéu, desde arriba de la avenida).
     vista: world.vistaMonumento()
   }
+  // Los tramos que se juegan en un sitio de verdad tienen su propio plano por el
+  // eje de la calle, y ese necesita más tiempo: Isidro, «antes se veía la ciudad
+  // y luego la batalla, ahora va directo a la batalla». Con 3,4 s repartidos a
+  // medias no daba tiempo a mirar nada, porque desde la mitad la cámara ya se
+  // está fundiendo con la posición de juego.
+  vuelo.dura = vuelo.vista
+    ? (yaVisto(nivelActivo().escenario) ? LUGAR_CORTO : LUGAR_ENTERO)
+    : VUELO
   ui.banner(nivelActivo().name.toUpperCase())
   actualizarVuelo(0)
 }
@@ -1587,11 +1614,21 @@ function actualizarVuelo (dt) {
   v.t += dt
   if (v.heli) return actualizarHeli(dt)
   if (v.estadio) return actualizarEstadio(dt)
-  const k = Math.min(1, v.t / VUELO)
+  const k = Math.min(1, v.t / (v.dura ?? VUELO))
   // Por encima de la carretera, acercándose al monumento. La carretera es lo
   // único despejado: desde el descampado de al lado, en las ciudades con
   // avenida, la cámara acababa detrás de un edificio.
-  const acerca = 1 - Math.min(1, k / 0.5) * 0.3
+  // DOS TIEMPOS, y el primero es para MIRAR. Antes la cámara empezaba a caer
+  // desde el primer fotograma y a mitad de plano ya estaba en la partida: se
+  // veía el sitio de refilón. Ahora los primeros dos segundos la cámara casi no
+  // se mueve —solo se acerca un poco, lo justo para que no parezca una foto— y
+  // la bajada al campo pasa en el resto.
+  //
+  // Solo para los planos con `vista`, que son los de los sitios. El de siempre
+  // (monumento de lado) se queda como estaba: ese ya funcionaba.
+  const mirando = v.vista ? 0.42 : 0
+  const avance = k < mirando ? (k / Math.max(mirando, 0.001)) * 0.18 : 0.18 + (k - mirando) / (1 - mirando) * 0.82
+  const acerca = v.vista ? 1 - avance * 0.34 : 1 - Math.min(1, k / 0.5) * 0.3
   if (v.vista) {
     // Desde su punto, acercándose hacia lo que mira.
     const [dx, dy, dz] = v.vista.desde
@@ -1607,8 +1644,11 @@ function actualizarVuelo (dt) {
     )
     camera.lookAt(tmpVueloMira.set(v.centro.x, v.alto * 0.45, v.centro.z))
   }
-  // La segunda mitad se funde con la posición de juego.
-  const mezcla = k < 0.5 ? 0 : suave((k - 0.5) / 0.5)
+  // Y el fundido con la posición de juego, después de haber mirado.
+  // Con el plano de un sitio el fundido empieza más tarde: primero se mira, y
+  // la caída al campo se hace en el último 40 %.
+  const desde = v.vista ? 0.6 : 0.5
+  const mezcla = k < desde ? 0 : suave((k - desde) / (1 - desde))
   if (mezcla > 0) {
     camera.position.lerp(v.fin.pos, mezcla)
     camera.quaternion.slerp(v.fin.rot, mezcla)
