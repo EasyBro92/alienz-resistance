@@ -77,6 +77,11 @@ function nuevoBando (nombre, tengo) {
 }
 const rival = b => b === bandos.azul ? bandos.rojo : bandos.azul
 const nivelDe = (bando, key) => bando.niveles[key] ?? 1
+// La línea de defensa: hasta aquí llega como mínimo lo que colocas. Isidro:
+// «al sacar un soldado debería avanzar mínimo hasta la línea que defiende,
+// porque si no queda oculto»: lo que se quedaba pegado a la base caía debajo de
+// la tira de cartas.
+const LINEA = CAMPO.baseAzul - 7
 const enMiMitad = (bando, z) => bando.dir < 0 ? z > MITAD + 1 : z < MITAD - 1
 
 // --- crear unidades -----------------------------------------------------------------
@@ -262,7 +267,8 @@ function disparar (u, blanco) {
 function paso (dt) {
   if (!jugando) return
   tiempo += dt
-  for (const b of [bandos.azul, bandos.rojo]) b.monedas += REGLAS.goteo * dt
+  bandos.azul.monedas += REGLAS.goteo * dt
+  bandos.rojo.monedas += REGLAS.goteo * duro.ingreso * dt
   maquina(dt)
 
   // El capitán anima a los suyos de alrededor, como en la campaña.
@@ -362,13 +368,46 @@ function paso (dt) {
 // soldado elegido de antemano (si comprara siempre lo más barato, nunca vería
 // un mortero), manda por donde más le aprietan, levanta sacos al principio y
 // de vez en cuando junta una línea para salir todos a la vez.
+//
+// Por niveles (Isidro: «si gano una partida bien, pero si sigo jugando y
+// ganando, debería ser más difícil»). Ganar sube uno; perder o empatar lo deja
+// donde está. Cada nivel le da más ingreso y más dinero al empezar, le adelanta
+// las tropas caras y las mejoras, y le deja poner más sacos y, desde el cuarto,
+// torretas. El 1 es un poco más blando que la máquina de antes (0,85 de
+// ingreso), para aprender.
+const CLAVE_NIVEL = 'alienz-guerra-maquina-v1'
+function leerNivel () {
+  try {
+    const n = JSON.parse(localStorage.getItem(CLAVE_NIVEL))?.nivel
+    return Number.isInteger(n) && n >= 1 ? n : 1
+  } catch { return 1 }
+}
+function guardarNivel (n) {
+  try { localStorage.setItem(CLAVE_NIVEL, JSON.stringify({ nivel: n })) } catch {}
+}
+let nivelMaquina = leerNivel()
+function dureza (n) {
+  const k = n - 1
+  return {
+    ingreso: Math.min(2.6, 0.85 + 0.14 * k),
+    inicial: REGLAS.monedasIniciales + 40 * k,
+    prisa: 1 + 0.18 * k,
+    sacos: Math.min(5, 2 + Math.floor(k / 2)),
+    torretas: k >= 3 ? Math.min(3, Math.floor((k - 1) / 2)) : 0,
+    mejoraDesde: Math.max(30, 120 - 15 * k),
+    mejoraProb: Math.min(0.5, 0.15 + 0.05 * k),
+    reserva: Math.max(40, 150 - 15 * k)
+  }
+}
+let duro = dureza(1)
+
 let ia = null
 function nuevaIA () {
-  return { plan: null, pensar: 1.5, linea: 0, sacos: 0, carga: 35 + Math.random() * 20 }
+  return { plan: null, pensar: 1.5, linea: 0, sacos: 0, torretas: 0, carga: 35 + Math.random() * 20 }
 }
 
 function planIA () {
-  const t = tiempo
+  const t = tiempo * duro.prisa
   const pool = t < 50 ? ['archer', 'rifle', 'rifle', 'shotgun']
     : t < 130 ? ['rifle', 'shotgun', 'sniper', 'flamer', 'gunner', 'rifle']
       : ['rifle', 'shotgun', 'sniper', 'flamer', 'gunner', 'misil', 'mortar', 'gunner']
@@ -394,17 +433,23 @@ function maquina (dt) {
   ia.pensar = 0.8 + Math.random() * 0.7
 
   // Sacos delante de la base al principio.
-  if (tiempo > 15 && ia.sacos < 2 && yo.monedas >= DEFENSES.sandbags.cost) {
+  if (tiempo > 15 && ia.sacos < duro.sacos && yo.monedas >= DEFENSES.sandbags.cost) {
     ia.sacos++
-    ponerDefensa(yo, 'sandbags', carrilX(1 + ia.sacos) + (Math.random() - 0.5) * 0.4, CAMPO.baseRoja + 9)
+    ponerDefensa(yo, 'sandbags', carrilX(ia.sacos % CAMPO.carriles) + (Math.random() - 0.5) * 0.4, CAMPO.baseRoja + 8 + (ia.sacos > 3 ? 4 : 0))
+    return
+  }
+  // Torretas desde el nivel 4, cuando le sobra para pagarlas.
+  if (tiempo > 60 && ia.torretas < duro.torretas && yo.monedas >= DEFENSES.torreta.cost + 60) {
+    ia.torretas++
+    ponerDefensa(yo, 'torreta', carrilX(ia.torretas === 1 ? 2 : ia.torretas === 2 ? 0 : 4), CAMPO.baseRoja + 6)
     return
   }
   // Mejora lo que más usa a partir de la mitad.
-  if (tiempo > 120 && Math.random() < 0.15) {
+  if (tiempo > duro.mejoraDesde && Math.random() < duro.mejoraProb) {
     const k = ['rifle', 'gunner', 'sniper'][Math.floor(Math.random() * 3)]
     const n = nivelDe(yo, k)
     const precio = REGLAS.precioMejora(SOLDIERS[k].cost, n)
-    if (n < REGLAS.nivelMax && yo.monedas > precio + 150) { yo.monedas -= precio; subirNivel(yo, k) }
+    if (n < REGLAS.nivelMax && yo.monedas > precio + duro.reserva) { yo.monedas -= precio; subirNivel(yo, k) }
   }
   if (!ia.plan) ia.plan = planIA()
   if (yo.monedas < SOLDIERS[ia.plan].cost) return
@@ -452,7 +497,7 @@ lienzo.addEventListener('pointerdown', e => {
     const spec = SOLDIERS[elegida.key]
     if (yo.monedas < spec.cost) { audio.denied(); return pista('No te llega.') }
     if (modo === 'colocar' && !enMiMitad(yo, punto.z)) { audio.denied(); return pista('Para colocar, toca en tu mitad del campo.') }
-    const holdZ = Math.min(CAMPO.baseAzul - 1, punto.z)
+    const holdZ = Math.min(LINEA, punto.z)
     // Soltando se sale por el centro del carril tocado (con algo de holgura,
     // para que no vayan en fila india).
     const carril = Math.max(0, Math.min(CAMPO.carriles - 1, Math.round(x / CAMPO.anchoCarril + (CAMPO.carriles - 1) / 2)))
@@ -462,8 +507,8 @@ lienzo.addEventListener('pointerdown', e => {
   } else {
     const spec = DEFENSES[elegida.key]
     if (yo.monedas < spec.cost) { audio.denied(); return pista('No te llega.') }
-    if (!enMiMitad(yo, punto.z) || punto.z > CAMPO.baseAzul - 0.5) { audio.denied(); return pista('Las defensas van en tu mitad.') }
-    ponerDefensa(yo, elegida.key, x, punto.z)
+    if (!enMiMitad(yo, punto.z)) { audio.denied(); return pista('Las defensas van en tu mitad.') }
+    ponerDefensa(yo, elegida.key, x, Math.min(LINEA, punto.z))
     audio.place()
   }
   pintarHud(true)
@@ -501,7 +546,7 @@ const zona = (() => {
   const ancho = CAMPO.carriles * CAMPO.anchoCarril
   // Tu mitad.
   const z0 = MITAD + 1
-  const z1 = CAMPO.baseAzul - 0.5
+  const z1 = LINEA + 0.6
   const mitad = new THREE.Group()
   const suelo = new THREE.Mesh(new THREE.PlaneGeometry(ancho, z1 - z0).rotateX(-Math.PI / 2), verde)
   suelo.position.set(0, 0.03, (z0 + z1) / 2)
@@ -665,8 +710,11 @@ async function empezar () {
   bandos = {
     azul: nuevoBando('azul', mio),
     // La máquina lleva todas las tropas corrientes y las defensas básicas.
-    rojo: nuevoBando('rojo', ['archer', 'rifle', 'shotgun', 'sniper', 'flamer', 'gunner', 'misil', 'mortar', 'sandbags'])
+    rojo: nuevoBando('rojo', ['archer', 'rifle', 'shotgun', 'sniper', 'flamer', 'gunner', 'misil', 'mortar', 'sandbags', 'torreta'])
   }
+  duro = dureza(nivelMaquina)
+  bandos.rojo.monedas = duro.inicial
+  $('gc-nombre-rival').textContent = `Máquina · nv ${nivelMaquina}`
   ia = nuevaIA()
   tiempo = 0
   elegida = null
@@ -692,7 +740,17 @@ function terminar () {
   else if (az.dañoHecho > ro.dañoHecho) { titulo = 'VICTORIA'; texto = 'Se acabó el tiempo y le has hecho más daño a su base.' }
   else if (az.dañoHecho < ro.dañoHecho) { titulo = 'DERROTA'; texto = 'Se acabó el tiempo y te han hecho más daño.' }
   else { titulo = 'EMPATE'; texto = 'Se acabó el tiempo con las dos bases igual.' }
-  texto += ` Bajas: ${az.bajas} tuyas contra ${ro.bajas} suyas. Partida de práctica: no cuenta para el mapa.`
+  texto += ` Bajas: ${az.bajas} tuyas contra ${ro.bajas} suyas.`
+  if (titulo === 'VICTORIA') {
+    texto += ` Nivel ${nivelMaquina} superado: la próxima vez la máquina juega al ${nivelMaquina + 1}, con más dinero, tropas caras antes y más defensas.`
+    nivelMaquina++
+    guardarNivel(nivelMaquina)
+  } else {
+    texto += ` Sigues en el nivel ${nivelMaquina}.`
+  }
+  texto += ' Práctica: no cuenta para el mapa.'
+  $('gc-otra').textContent = titulo === 'VICTORIA' ? `SIGUIENTE: NIVEL ${nivelMaquina}` : `REPETIR NIVEL ${nivelMaquina}`
+  pintarNivelMenu()
   $('gc-final-titulo').textContent = titulo
   $('gc-final-texto').textContent = texto
   $('gc-hud').hidden = true
@@ -700,6 +758,10 @@ function terminar () {
   if (titulo === 'VICTORIA') audio.desbloqueo?.()
 }
 
+function pintarNivelMenu () {
+  $('gc-maquina').innerHTML = `CONTRA LA MÁQUINA <small>práctica · nivel ${nivelMaquina}</small>`
+}
+pintarNivelMenu()
 $('gc-maquina').onclick = empezar
 $('gc-otra').onclick = empezar
 $('gc-menu-otra').onclick = () => { $('gc-final').hidden = true; $('gc-menu').hidden = false }
@@ -734,6 +796,7 @@ requestAnimationFrame(fotograma)
 if (import.meta.env.DEV) {
   window.__gc = {
     empezar,
+    nivel: n => { if (n) { nivelMaquina = n; pintarNivelMenu() } return nivelMaquina },
     estado: () => ({ tiempo: Math.round(tiempo), jugando, azul: bandos && { ...bandos.azul, tengo: [...bandos.azul.tengo] }, rojo: bandos && { ...bandos.rojo, tengo: [...bandos.rojo.tengo] }, unidades: unidades.length }),
     unidades: () => unidades,
     mandar: (key, carril, orden = 'avanza') => mandarTropa(bandos.azul, key, carrilX(carril), orden, CAMPO.baseAzul - 6),
