@@ -2252,6 +2252,23 @@ html, body {
 /* La sombra de la página al doblarse: la pone el gesto. */
 .carta-sombra { position: absolute; inset: 0; border-radius: 22px; pointer-events: none; opacity: 0; }
 
+/* La tienda usa la misma baraja para Defensas y Apoyo, con el precio al pie. */
+.tienda-lista.lista-baraja { display: block; }
+.baraja-tienda .baraja-pila { height: clamp(430px, 62dvh, 560px); }
+.carta-pie {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 8px;
+  margin-top: 2px; font-size: 11px; text-align: center;
+}
+.carta-pie small { flex-basis: 100%; opacity: 0.8; }
+.carta-pie .articulo-comprar { margin: 0; }
+.carta-icono {
+  position: absolute; left: 50%; top: 50%; width: 46%; height: 46%;
+  transform: translate(-50%, -50%);
+  color: var(--a-tinte); --u-tint: var(--a-tinte);
+  transition: opacity 0.35s ease;
+}
+/* El icono solo hace de reserva: con retrato o con la figura viva, se va. */
+.carta.vivo .carta-icono, .carta-ventana:has(.carta-cara:not([hidden])) .carta-icono { opacity: 0; }
 .baraja-mandos { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 2px; }
 .baraja-flecha {
   width: 40px; height: 40px; border-radius: 999px; padding: 0;

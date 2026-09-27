@@ -10,6 +10,11 @@
 // La carta que queda arriba cobra vida: en vez del retrato se ve la figura de
 // verdad, andando y girando despacio, del mismo modelo que baja por la
 // carretera. Las demás llevan su retrato fijo, que no cuesta nada.
+//
+// Desde el 27/09 la baraja no sabe de huéspedes: lo que pinta cada carta lo
+// dice una FICHA (`fichaHuesped` aquí abajo; las de Defensas y Apoyo de la
+// tienda están en tienda.js). Isidro pidió la tienda «como la baraja de
+// Enemigos», y la manera de que sea igual es que sea la misma.
 
 import * as THREE from 'three'
 import { buildZombieMesh } from './assets.js'
@@ -46,7 +51,8 @@ function soltar (raiz) {
   raiz.traverse(o => { if (o.isMesh && o.userData.fundida) o.geometry.dispose() })
 }
 
-export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos }) {
+// La ficha de un huésped: lo que la baraja de Enemigos ha pintado siempre.
+function fichaHuesped (zombies, textos, claves) {
   const specs = claves.map(k => zombies[k])
   const max = {
     hp: Math.max(...specs.map(s => s.hp)),
@@ -54,6 +60,54 @@ export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos })
     damage: Math.max(...specs.map(s => s.damage)),
     coins: Math.max(...specs.map(s => s.coins))
   }
+  let fase = 0
+  return {
+    specs: zombies,
+    etiqueta: 'Huésped',
+    tinte: (clave, spec) => spec.color,
+    rol: clave => ROL[clave] ?? '',
+    barras: (clave, spec) => [
+      ['Vida', spec.hp, max.hp, spec.hp],
+      ['Velocidad', spec.speed, max.speed, spec.speed],
+      ['Daño', spec.damage, max.damage, spec.damage],
+      ['Botín', spec.coins, max.coins, spec.coins]
+    ],
+    texto: clave => textos[clave] ?? '',
+    dones,
+    pieTexto: (k, N) => k < N - 1 ? 'Desliza la carta hacia la izquierda para pasar la página.' : 'Última forma confirmada. Desliza a la derecha para volver.',
+    async construir (clave, spec) {
+      const malla = await buildZombieMesh(clave, spec)
+      // Al tamaño de un soldado, como en los retratos: el Coloso no se sale.
+      malla.scale.multiplyScalar(1 / (spec.scale ?? 1))
+      fase = 0
+      return malla
+    },
+    animar (figura, dt, t, spec, alturaBase) {
+      fase += dt * 5.2 * Math.min(1.8, Math.max(0.6, spec.speed / 3.4))
+      // El mismo paso que en la carretera (ver zombie.js), andando en el sitio.
+      const swing = Math.sin(fase)
+      const lag = Math.sin(fase - 0.7)
+      const limbs = figura.userData.limbs
+      if (limbs) {
+        limbs.legL.rotation.x = swing * 0.6
+        limbs.legR.rotation.x = -swing * 0.6
+        limbs.legL.userData.lower.rotation.x = limbs.legL.userData.restBend - Math.max(0, -lag) * 0.7
+        limbs.legR.userData.lower.rotation.x = limbs.legR.userData.restBend - Math.max(0, lag) * 0.7
+        limbs.armL.rotation.x = 1.32 + swing * 0.1
+        limbs.armR.rotation.x = 1.2 - swing * 0.1
+        limbs.armL.userData.lower.rotation.x = limbs.armL.userData.restBend + swing * 0.12
+        limbs.armR.userData.lower.rotation.x = limbs.armR.userData.restBend - swing * 0.12
+      }
+      if (figura.userData.lean) figura.userData.lean.rotation.z = swing * 0.07
+      // De cara, girando despacio a un lado y a otro para enseñar el perfil.
+      figura.rotation.y = Math.PI + Math.sin(t * 0.55) * 0.75
+      figura.position.y = alturaBase + Math.abs(swing) * 0.025
+    }
+  }
+}
+
+export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos, ficha = null }) {
+  const F = ficha ?? fichaHuesped(zombies, textos, claves)
 
   contenedor.innerHTML = ''
   const pila = document.createElement('div')
@@ -62,29 +116,29 @@ export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos })
 
   // --- las cartas ---
   const cartas = claves.map((clave, i) => {
-    const spec = zombies[clave]
+    const spec = F.specs[clave]
     const el = document.createElement('article')
     el.className = 'carta'
-    el.style.setProperty('--a-tinte', hex(spec.color))
+    el.style.setProperty('--a-tinte', hex(F.tinte(clave, spec) ?? 0x8fbf5a))
+    // Una barra sin tope (un apoyo que no hace daño) sale vacía y con un guion.
     const barra = (nombre, valor, tope, texto) =>
-      `<li><span>${nombre}</span><b class="barra"><i style="--v:${Math.max(6, Math.round((valor / tope) * 100))}%"></i></b><em>${texto}</em></li>`
+      `<li><span>${nombre}</span><b class="barra"><i style="--v:${tope ? Math.max(6, Math.round((valor / tope) * 100)) : 0}%"></i></b><em>${texto}</em></li>`
     el.innerHTML = `
       <div class="carta-marco">
-        <header class="carta-cab"><span>${String(i + 1).padStart(2, '0')} / ${String(claves.length).padStart(2, '0')}</span><span>Huésped</span></header>
+        <header class="carta-cab"><span>${String(i + 1).padStart(2, '0')} / ${String(claves.length).padStart(2, '0')}</span><span>${F.etiqueta}</span></header>
         <div class="carta-ventana">
           <div class="carta-halo"></div>
+          ${F.icono?.(clave) ?? ''}
           <img class="carta-cara" alt="${spec.name}" hidden>
         </div>
         <h3 class="carta-nombre">${spec.name}</h3>
-        <p class="carta-rol">${ROL[clave] ?? ''}</p>
+        <p class="carta-rol">${F.rol(clave, spec)}</p>
         <ul class="carta-stats">
-          ${barra('Vida', spec.hp, max.hp, spec.hp)}
-          ${barra('Velocidad', spec.speed, max.speed, spec.speed)}
-          ${barra('Daño', spec.damage, max.damage, spec.damage)}
-          ${barra('Botín', spec.coins, max.coins, spec.coins)}
+          ${F.barras(clave, spec).map(b => barra(...b)).join('')}
         </ul>
-        <p class="carta-texto">${textos[clave] ?? ''}</p>
-        <div class="carta-dones">${dones(spec).map(t => `<span>${t}</span>`).join('')}</div>
+        <p class="carta-texto">${F.texto(clave, spec)}</p>
+        <div class="carta-dones">${F.dones(spec, clave).map(t => `<span>${t}</span>`).join('')}</div>
+        ${F.pie ? '<div class="carta-pie"></div>' : ''}
         <div class="carta-brillo"></div>
       </div>
       <div class="carta-sombra"></div>`
@@ -94,7 +148,8 @@ export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos })
       el,
       cara: el.querySelector('.carta-cara'),
       ventana: el.querySelector('.carta-ventana'),
-      sombra: el.querySelector('.carta-sombra')
+      sombra: el.querySelector('.carta-sombra'),
+      pie: el.querySelector('.carta-pie')
     }
   })
   const N = cartas.length
@@ -118,7 +173,7 @@ export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos })
   const botonesPunto = cartas.map((c, i) => {
     const b = document.createElement('button')
     b.type = 'button'
-    b.setAttribute('aria-label', zombies[c.clave].name)
+    b.setAttribute('aria-label', F.specs[c.clave].name)
     b.addEventListener('click', () => ir(i))
     puntos.appendChild(b)
     return b
@@ -223,7 +278,7 @@ export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos })
     if (k === activa) return
     activa = k
     cartas.forEach((c, i) => c.el.classList.toggle('activa', i === k))
-    if (pie) pie.textContent = k < N - 1 ? 'Desliza la carta hacia la izquierda para pasar la página.' : 'Última forma confirmada. Desliza a la derecha para volver.'
+    if (pie && F.pieTexto) pie.textContent = F.pieTexto(k, N)
     mostrarVivo(cartas[k])
   }
 
@@ -278,6 +333,8 @@ export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos })
   pila.addEventListener('pointercancel', soltarDedo)
   window.addEventListener('keydown', e => {
     if (capa?.classList.contains('hidden')) return
+    // En la tienda hay dos barajas en la misma capa: solo manda la que se ve.
+    if (!contenedor.isConnected || !contenedor.offsetWidth) return
     if (e.key === 'ArrowRight') ir(Math.round(objetivo) + 1)
     if (e.key === 'ArrowLeft') ir(Math.round(objetivo) - 1)
   })
@@ -291,7 +348,6 @@ export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos })
   let figura = null
   let claveViva = null
   let turnoCarga = 0
-  let fase = 0
 
   function prepararVivo () {
     if (renderer) return true
@@ -330,17 +386,17 @@ export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos })
       return
     }
     const turno = ++turnoCarga
-    const spec = zombies[carta.clave]
+    const spec = F.specs[carta.clave]
     let malla
     try {
-      malla = await buildZombieMesh(carta.clave, spec)
+      malla = await F.construir(carta.clave, spec)
     } catch {
       return
     }
+    // Lo que no tiene figura (el Recolector) se queda con su icono.
+    if (!malla) return
     if (turno !== turnoCarga) { soltar(malla); return }
     if (figura) { escena.remove(figura); soltar(figura) }
-    // Al tamaño de un soldado, como en los retratos: el Coloso no se sale.
-    malla.scale.multiplyScalar(1 / (spec.scale ?? 1))
     figura = malla
     // Se encuadra en cuanto tenga su pose de verdad: las piezas que se añaden
     // por código (el taladro del Escarbador, la jeringa, el saco) no están
@@ -348,8 +404,7 @@ export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos })
     encuadre = 0
     claveViva = carta.clave
     escena.add(malla)
-    contraluz.color.setHex(spec.color).lerp(new THREE.Color(0xffffff), 0.35)
-    fase = 0
+    contraluz.color.setHex(F.tinte(carta.clave, spec) ?? 0xffffff).lerp(new THREE.Color(0xffffff), 0.35)
     if (cartas[activa] === carta) carta.el.classList.add('vivo')
   }
 
@@ -365,11 +420,17 @@ export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos })
     figura.updateMatrixWorld(true)
     cajaFigura.setFromObject(figura)
     const alto = cajaFigura.max.y - cajaFigura.min.y
-    const ancho = Math.max(cajaFigura.max.x - cajaFigura.min.x, (cajaFigura.max.z - cajaFigura.min.z) * 0.6)
+    const dx = cajaFigura.max.x - cajaFigura.min.x
+    const dz = cajaFigura.max.z - cajaFigura.min.z
+    // Lo que da la vuelta entera (las fichas de la tienda) tiene que caber de
+    // cualquier lado: se mide por la diagonal, o al girar se salía de la carta.
+    const ancho = F.giraEntero ? Math.hypot(dx, dz) : Math.max(dx, dz * 0.6)
     if (!isFinite(alto) || alto <= 0) return
     // Lo que se ve a la distancia de la cámara, con un margen.
     const visibleAlto = 2 * Math.tan((camara.fov * Math.PI / 180) / 2) * camara.position.z
-    const k = Math.min(1, (visibleAlto * 0.86) / alto, (visibleAlto * camara.aspect * 0.86) / Math.max(ancho, 1e-3))
+    // Los huéspedes solo se encogen; lo de la tienda (una granada, una mina)
+    // también crece, o se quedaba en un punto en medio de la carta.
+    const k = Math.min(F.crecer ? Infinity : 1, (visibleAlto * 0.86) / alto, (visibleAlto * camara.aspect * 0.86) / Math.max(ancho, 1e-3))
     figura.scale.multiplyScalar(k)
     figura.updateMatrixWorld(true)
     cajaFigura.setFromObject(figura)
@@ -389,28 +450,15 @@ export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos })
       camara.aspect = w / h
       camara.updateProjectionMatrix()
     }
-    const spec = zombies[claveViva]
-    fase += dt * 5.2 * Math.min(1.8, Math.max(0.6, spec.speed / 3.4))
+    const spec = F.specs[claveViva]
     const t = ahora / 1000
-    // El mismo paso que en la carretera (ver zombie.js), andando en el sitio.
-    const swing = Math.sin(fase)
-    const lag = Math.sin(fase - 0.7)
-    const limbs = figura.userData.limbs
-    if (limbs) {
-      limbs.legL.rotation.x = swing * 0.6
-      limbs.legR.rotation.x = -swing * 0.6
-      limbs.legL.userData.lower.rotation.x = limbs.legL.userData.restBend - Math.max(0, -lag) * 0.7
-      limbs.legR.userData.lower.rotation.x = limbs.legR.userData.restBend - Math.max(0, lag) * 0.7
-      limbs.armL.rotation.x = 1.32 + swing * 0.1
-      limbs.armR.rotation.x = 1.2 - swing * 0.1
-      limbs.armL.userData.lower.rotation.x = limbs.armL.userData.restBend + swing * 0.12
-      limbs.armR.userData.lower.rotation.x = limbs.armR.userData.restBend - swing * 0.12
+    if (encuadre >= 0) {
+      // Hasta encuadrarla, sin el vaivén: se mide la figura quieta.
+      F.animar(figura, dt, t, spec, 0)
+      if (++encuadre > 4) { encuadrar(); encuadre = -1; alturaBase = figura.position.y }
+    } else {
+      F.animar(figura, dt, t, spec, alturaBase)
     }
-    if (figura.userData.lean) figura.userData.lean.rotation.z = swing * 0.07
-    // De cara, girando despacio a un lado y a otro para enseñar el perfil.
-    figura.rotation.y = Math.PI + Math.sin(t * 0.55) * 0.75
-    if (encuadre >= 0 && ++encuadre > 4) { encuadrar(); encuadre = -1; alturaBase = figura.position.y }
-    figura.position.y = alturaBase + Math.abs(swing) * 0.025
     renderer.render(escena, camara)
   }
 
@@ -433,6 +481,12 @@ export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos })
   revisar()
 
   return {
+    // El pie de cada carta (en la tienda: el precio y el botón de comprar). Se
+    // repinta sin rehacer la baraja, que se quedaría sin su sitio y sin su
+    // figura cada vez que se compra algo.
+    ponerPies (html) {
+      for (const c of cartas) if (c.pie) c.pie.innerHTML = html(c.clave)
+    },
     ponerCaras (caras) {
       for (const c of cartas) {
         const url = caras?.get(c.clave)

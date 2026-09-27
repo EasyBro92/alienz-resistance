@@ -258,6 +258,34 @@ function construirCaja () {
   return g
 }
 
+// La figura de cada apoyo para la ficha de la tienda: lo que lo trae (el
+// avión, el dron, el misil, la caja en paracaídas) o lo que cae (la granada,
+// los obuses, las minas). El Recolector no tiene: se queda con su icono.
+export function figuraDeApoyo (clave) {
+  const g = new THREE.Group()
+  const pon = (o, x = 0, y = 0, z = 0) => { o.visible = true; o.position.set(x, y, z); g.add(o); return o }
+  if (clave === 'grenade') pon(construirGranada())
+  else if (clave === 'airstrike') pon(construirAvion())
+  else if (clave === 'napalm') { pon(construirAvion(), 0, 0.9, 0); pon(construirBomba(), 0, 0, 0.4) }
+  else if (clave === 'artilleria') {
+    for (const [x, z] of [[-0.34, 0], [0.34, 0], [0, -0.4]]) pon(construirObus(), x, 0.34, z)
+  } else if (clave === 'dron') {
+    const d = pon(construirDron())
+    d.scale.setScalar(1)
+    g.userData.rotores = d.userData.rotores
+  } else if (clave === 'misilGuiado') {
+    const m = pon(construirMisil())
+    m.rotation.x = 0.45
+  } else if (clave === 'campoMinas') {
+    for (const [x, z] of [[-0.45, 0.2], [0.45, 0.25], [0, -0.4]]) {
+      const m = pon(construirMina(), x, 0, z)
+      g.userData.luces = [...(g.userData.luces ?? []), m.userData.luz]
+    }
+  } else if (clave === 'botiquin') pon(construirCaja())
+  else return null
+  return g
+}
+
 export function crearGolpes (scene, effects, audio) {
   const avion = construirAvion()
   const bomba = construirBomba()

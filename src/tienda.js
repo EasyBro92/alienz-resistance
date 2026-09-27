@@ -9,6 +9,10 @@
 // lo que cuesta desbloquearlo en billetes y lo que cuesta ponerlo en partida.
 
 import { SOLDIERS, DEFENSES, STRIKES, UPGRADES } from './config.js'
+import { buildDefensaMesh } from './assets.js'
+import { figuraDeApoyo } from './systems/golpes.js'
+import { crearBaraja } from './enemigos.js'
+import { TINTE_APOYO } from './ui.js'
 import {
   cargarCartera, PRECIOS, comprar, canjear, precioMejora, comprarMejora,
   MEJORAS, NIVEL_MAX, MONEDAS_POR_DOLAR, pistasMejora
@@ -41,6 +45,82 @@ const GRUPOS = {
 }
 
 const hex = n => '#' + n.toString(16).padStart(6, '0')
+
+// --- las fichas de Defensas y Apoyo -------------------------------------------------
+// Isidro, 27/09: «fichas con la figura en 3D, como la baraja de Enemigos». Son
+// la misma baraja (enemigos.js) con otra ficha: cada artículo con su figura
+// girando, su papel, sus números en barras, lo que tiene de especial y, al pie,
+// lo que cuesta y el botón de comprar.
+const ROL = {
+  sandbags: 'Aguanta el golpe', spikes: 'Devuelve el mordisco', mines: 'Revienta', erizos: 'Frena sin parar',
+  torreta: 'Dispara sola',
+  grenade: 'A mano', airstrike: 'Desde el aire', napalm: 'Incendiario', artilleria: 'Un carril entero',
+  dron: 'Contra jefes', misilGuiado: 'El golpe más gordo', campoMinas: 'Se queda esperando', botiquin: 'Cura',
+  collector: 'Economía'
+}
+// Daño de una defensa en su número: por segundo la torreta, por mordisco la
+// alambrada, de una vez la carga.
+const danoDefensa = s => s.dispara ? s.damage * s.fireRate : s.revienta ? s.revienta.daño : (s.thorns ?? 0)
+const textoDanoDefensa = s => s.dispara ? `${Math.round(s.damage * s.fireRate)}/s` : s.revienta ? String(s.revienta.daño) : s.thorns ? String(s.thorns) : '—'
+const tope = (lista, f) => Math.max(...lista.map(f))
+
+function fichaTienda (grupo) {
+  const specs = grupo === 'defensas' ? DEFENSES : { ...STRIKES, ...UPGRADES }
+  const todas = Object.values(specs)
+  const maxVida = tope(Object.values(DEFENSES), s => s.hp)
+  const maxDanoDef = tope(Object.values(DEFENSES), danoDefensa)
+  const maxCoste = tope(todas, s => s.cost)
+  const maxDano = tope(Object.values(STRIKES), s => s.damage ?? 0)
+  const maxRadio = tope(Object.values(STRIKES), s => s.radius ?? 0)
+  const maxRecarga = tope(Object.values(STRIKES), s => s.recarga ?? 0)
+  const monedas = s => ['Monedas', s.cost, maxCoste, s.cost]
+  return {
+    specs,
+    etiqueta: grupo === 'defensas' ? 'Barrera' : 'Apoyo',
+    tinte: (clave, s) => s.color ?? TINTE_APOYO[clave] ?? 0x8fbf5a,
+    rol: clave => ROL[clave] ?? '',
+    barras (clave, s) {
+      if (grupo === 'defensas') {
+        return [['Vida', s.hp, maxVida, s.hp], ['Daño', danoDefensa(s), maxDanoDef, textoDanoDefensa(s)], monedas(s)]
+      }
+      if (!STRIKES[clave]) return [monedas(s)]
+      const efecto = s.cura != null ? ['Cura', s.cura, 100, `${s.cura} %`] : ['Daño', s.damage, maxDano, s.damage]
+      const alcance = s.proyectiles ? ['Alcance', maxRadio, maxRadio, 'carril'] : s.cura != null ? ['Alcance', maxRadio, maxRadio, 'todos'] : ['Alcance', s.radius, maxRadio, `${String(s.radius).replace('.', ',')} m`]
+      return [efecto, alcance, ['Recarga', s.recarga, maxRecarga, `${s.recarga} s`], monedas(s)]
+    },
+    texto: (clave, s) => s.blurb ?? '',
+    dones (s) {
+      const d = []
+      if (s.blocker) d.push('Para al bicho')
+      if (s.paso) d.push('Se cruza, pero frena')
+      if (s.thorns) d.push('Devuelve cada mordisco')
+      if (s.revienta) d.push(`Revienta en ${s.revienta.radio} m`)
+      if (s.dispara) d.push('No recarga nunca')
+      if (s.brasas) d.push(`Deja fuego ${s.brasas.dura} s`)
+      if (s.proyectiles) d.push(`${s.proyectiles} obuses`)
+      if (s.minas) d.push(`${s.minas} minas, ${s.dura} s`)
+      if (s.cura != null) d.push('A todos a la vez')
+      return d
+    },
+    icono: clave => document.getElementById('i-' + clave)
+      ? `<svg class="carta-icono" aria-hidden="true"><use href="#i-${clave}"></use></svg>`
+      : '',
+    pie: true,
+    crecer: true,
+    giraEntero: true,
+    construir: (clave, s) => grupo === 'defensas' ? buildDefensaMesh(clave, s) : figuraDeApoyo(clave),
+    animar (figura, dt, t, s, alturaBase) {
+      // Da la vuelta entera, despacio: de una barrera importa también lo que ve
+      // el bicho, que es el otro lado.
+      figura.rotation.y = t * 0.55
+      figura.position.y = alturaBase
+      const ud = figura.userData
+      if (ud.cabezal) ud.cabezal.rotation.y = Math.sin(t * 1.3) * 0.6
+      if (ud.rotores) for (const r of ud.rotores) r.rotation.y += dt * 40
+      if (ud.luces) for (const l of ud.luces) l.visible = (t % 1) < 0.35
+    }
+  }
+}
 const billete = '<svg aria-hidden="true"><use href="#i-billete"></use></svg>'
 
 export function crearTienda ({ audio, retratos, alCerrar }) {
@@ -66,23 +146,29 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
     return ''
   }
 
-  function articulo (clave, spec, c) {
+  function pieCompra (clave, c) {
     const tuya = c.desbloqueadas.includes(clave)
     const precio = PRECIOS[clave]
     const puede = !tuya && precio != null && c.billetes >= precio
-    const tinte = spec.color != null ? hex(spec.color) : 'var(--verde-texto)'
     // Cuando no llega el dinero, el botón no se limita a estar apagado: dice
     // cuánto falta. Es la diferencia entre "no puedo" y "me faltan 30".
     const falta = !tuya && precio != null ? precio - c.billetes : 0
     // Lo que no tiene precio y no es de serie es un premio del cofre: se enseña
     // bloqueado y sin botón, porque no hay forma de pagarlo.
     const premio = !tuya && precio == null
-    const pie = premio
+    return premio
       ? '<span class="articulo-premio">Solo en el cofre</span>'
       : tuya
       ? `<span class="articulo-tuyo">${precio == null ? 'De serie' : 'Tuyo'}</span>`
       : `<button type="button" class="articulo-comprar" data-comprar="${clave}" ${puede ? '' : 'disabled'}>${billete}${precio}</button>
          ${falta > 0 ? `<span class="articulo-falta">Te faltan ${billete}${falta}</span>` : ''}`
+  }
+
+  function articulo (clave, spec, c) {
+    const tuya = c.desbloqueadas.includes(clave)
+    const premio = !tuya && PRECIOS[clave] == null
+    const tinte = spec.color != null ? hex(spec.color) : 'var(--verde-texto)'
+    const pie = pieCompra(clave, c)
     return `
       <div class="articulo${tuya ? ' propio' : ''}${premio ? ' bloqueado' : ''}" style="--u-tint:${tinte}">
         <div class="articulo-cara">${cara(clave)}</div>
@@ -172,6 +258,22 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
       <p class="tienda-nota">Daño/s es lo que hace en un segundo disparando sin parar. Monedas es lo que cuesta ponerlo en el campo.</p>`
   }
 
+  // Una baraja por pestaña, hecha la primera vez que se abre y guardada: al
+  // comprar se repintan solo los pies, y la carta que estabas mirando sigue ahí.
+  const barajas = {}
+  function baraja (grupo) {
+    if (barajas[grupo]) return barajas[grupo]
+    const contenedor = document.createElement('div')
+    contenedor.className = 'baraja baraja-tienda'
+    elLista.replaceChildren(contenedor)
+    const ficha = fichaTienda(grupo)
+    const api = crearBaraja({ contenedor, pie: null, capa, claves: Object.keys(ficha.specs), ficha })
+    const caras = retratos?.()
+    if (caras) api.ponerCaras(caras)
+    barajas[grupo] = { contenedor, api, ficha }
+    return barajas[grupo]
+  }
+
   function pintar () {
     const c = cargarCartera()
     elBilletes.textContent = c.billetes
@@ -188,6 +290,17 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
               role="tab" aria-selected="${p.id === pestana}">${p.nombre}</button>`).join('')
 
     elLista.classList.toggle('lista-mejoras', pestana === 'mejoras' || pestana === 'comparar')
+    const enBaraja = pestana === 'defensas' || pestana === 'apoyo'
+    elLista.classList.toggle('lista-baraja', enBaraja)
+    if (enBaraja) {
+      const b = baraja(pestana)
+      if (b.contenedor.parentNode !== elLista) elLista.replaceChildren(b.contenedor)
+      b.api.ponerPies(clave => {
+        const s = b.ficha.specs[clave]
+        return `<small>En partida: ${s.cost} monedas${s.recarga ? ` · recarga ${s.recarga} s` : ''}</small>${pieCompra(clave, c)}`
+      })
+      return
+    }
     elLista.innerHTML = pestana === 'mejoras'
       ? mejoras(c)
       : pestana === 'comparar'

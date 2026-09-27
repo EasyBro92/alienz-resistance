@@ -24,7 +24,7 @@ const CORTO = {
 // Los apoyos no tienen figura en el tablero, así que toman el color de su propio
 // efecto: el naranja de la explosión, el azul del cristal de la óptica y el oro
 // exacto de la moneda.
-const TINTE_APOYO = {
+export const TINTE_APOYO = {
   grenade: 0xffb03a, airstrike: 0x7fd8ff, collector: 0xffcf45, napalm: 0xff6a2a,
   artilleria: 0xc9a66b, dron: 0xb6e35a, misilGuiado: 0xff5a4d, campoMinas: 0xd1a526, botiquin: 0x7dffae
 }
