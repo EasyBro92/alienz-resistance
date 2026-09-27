@@ -1,10 +1,27 @@
-// El campo de la Guerra civil: dos bases en las puntas y una carretera que
-// cruza por en medio. Provisional, hecho por código: el escenario de verdad de
-// cada continente sale de Blender en la fase 2. Aquí solo hace falta que se lea
-// quién está en cada lado y por dónde se pelea.
+// El campo de la Guerra civil.
+//
+// Isidro, al ver la primera versión: «se ve muy básico, usa elementos ya
+// creados en otros mapas y dale sentido al mapa». El sentido: UN PUEBLO PARTIDO
+// POR LA CARRETERA. Abajo el barrio azul, arriba el rojo; cada uno ha
+// fortificado su plaza al final de la calle (la base) y la carretera de en
+// medio es tierra de nadie, con lo que quedó de los primeros días: coches
+// quemados, un autobús atravesado, contenedores y erizos a los lados.
+//
+// Todo son piezas que ya existen: las casas y bloques de las ciudades
+// (`monumentos/piezas.js`), los restos de la campaña (`RESTOS`, `FLORA`), el
+// suelo y el asfalto dibujados por código (`texturas.js`) y las defensas de
+// Blender. Lo quieto se funde con `bake`, como en la campaña: lo que ahoga al
+// móvil son las llamadas de dibujado, no los triángulos.
+//
+// El escenario de verdad de cada continente sale de Blender en la fase 2; este
+// es el pueblo «de serie».
 
 import * as THREE from 'three'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
+import { bake, buildDefensaMesh } from '../assets.js'
+import { texturasDelSuelo } from '../systems/texturas.js'
+import { RESTOS, FLORA } from '../biomas.js'
+import { casitas, bloques, coche, farola, mat, pon, geoCaja, geoCil } from '../monumentos/piezas.js'
 
 // Todo lo que el resto del modo necesita saber del terreno.
 export const CAMPO = {
@@ -21,28 +38,67 @@ export const MITAD = (CAMPO.baseAzul + CAMPO.baseRoja) / 2
 
 export const COLOR = { azul: 0x2f7de0, rojo: 0xd8403a }
 
+// La calle: el frente va de x = -6 a 6; las aceras llegan a 9 y las fachadas
+// empiezan en 10. Nada macizo por dentro de ±6,6, que es por donde se anda.
+const LIBRE = 6.6
+const ACERA = 9.4
+
+// Semilla fija: el mismo pueblo cada partida.
+let semilla = 7
+const azar = (a, b) => { semilla = (semilla * 16807) % 2147483647; return a + (semilla / 2147483647) * (b - a) }
+const elige = l => l[Math.floor(azar(0, l.length))]
+
 export function crearCampo (lienzo) {
   const renderer = new THREE.WebGLRenderer({ canvas: lienzo, antialias: true, powerPreference: 'high-performance' })
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio))
   renderer.outputColorSpace = THREE.SRGBColorSpace
   renderer.toneMapping = THREE.ACESFilmicToneMapping
+  renderer.toneMappingExposure = 0.9
+  renderer.shadowMap.enabled = true
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap
 
   const scene = new THREE.Scene()
-  scene.background = new THREE.Color(0x9fb4c4)
-  scene.fog = new THREE.Fog(0x9fb4c4, 60, 150)
-  // Las figuras de Meshy son metal y tela con PBR: sin entorno salen negras.
+  // Cielo de tarde con humo: la guerra se nota también en el aire.
+  const cielo = 0xb9a58c
+  scene.background = new THREE.Color(cielo)
+  scene.fog = new THREE.Fog(cielo, 55, 140)
   const pmrem = new THREE.PMREMGenerator(renderer)
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture
 
-  scene.add(new THREE.HemisphereLight(0xdfeaff, 0x5a5040, 1.1))
-  const sol = new THREE.DirectionalLight(0xfff1dc, 2.2)
-  sol.position.set(12, 30, 10)
-  scene.add(sol)
+  scene.add(new THREE.HemisphereLight(0xffe6c8, 0x4a4036, 0.65))
+  const sol = new THREE.DirectionalLight(0xffd9a8, 1.7)
+  sol.position.set(-18, 30, 6)
+  sol.target.position.set(0, 0, MITAD)
+  sol.castShadow = true
+  sol.shadow.mapSize.set(1024, 1024)
+  Object.assign(sol.shadow.camera, { left: -26, right: 26, top: 40, bottom: -40, near: 1, far: 90 })
+  scene.add(sol, sol.target)
 
-  const camera = new THREE.PerspectiveCamera(48, 1, 0.5, 220)
+  const camera = new THREE.PerspectiveCamera(48, 1, 0.6, 220)
 
-  scene.add(suelo(), carretera(), marcasDeCarril())
-  scene.add(base('azul', CAMPO.baseAzul, 1), base('rojo', CAMPO.baseRoja, -1))
+  // Lo quieto, fundido en pocas mallas.
+  const quieto = new THREE.Group()
+  suelo(quieto)
+  calle(quieto)
+  barrio(quieto, 'azul')
+  barrio(quieto, 'rojo')
+  tierraDeNadie(quieto)
+  plaza(quieto, 'azul')
+  plaza(quieto, 'rojo')
+  const fundido = bake(quieto, false)
+  fundido.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true } })
+  scene.add(fundido)
+
+  // El suelo aparte: lleva textura y no se funde.
+  scene.add(sueloConTextura())
+
+  // Lo que se mueve o viene de fuera va suelto.
+  const vivo = new THREE.Group()
+  scene.add(vivo)
+  const banderas = []
+  for (const bando of ['azul', 'rojo']) banderas.push(...banderasDe(vivo, bando))
+  const humos = columnasDeHumo(vivo)
+  barricadasDeBlender(vivo)
 
   function encuadrar () {
     const w = lienzo.clientWidth || window.innerWidth
@@ -59,130 +115,358 @@ export function crearCampo (lienzo) {
   encuadrar()
   window.addEventListener('resize', encuadrar)
 
-  return { renderer, scene, camera }
+  // Banderas que ondean y humo que sube: lo poco que se mueve en el decorado.
+  function animar (t) {
+    for (const b of banderas) {
+      const p = b.geometry.attributes.position
+      const base = b.userData.base
+      for (let i = 0; i < p.count; i++) {
+        const x = base[i * 3]
+        p.setZ(i, Math.sin(t * 3 + x * 2.2 + b.userData.fase) * 0.12 * (x + 0.8))
+      }
+      p.needsUpdate = true
+    }
+    for (const h of humos) {
+      for (const bola of h.children) {
+        bola.userData.v = (bola.userData.v + 0.004) % 1
+        const v = bola.userData.v
+        bola.position.set(Math.sin(v * 5 + bola.userData.f) * 0.6 + v * 2.5, v * 14, Math.cos(v * 4) * 0.4)
+        bola.scale.setScalar(0.7 + v * 2.6)
+        bola.material.opacity = 0.42 * (1 - v)
+      }
+    }
+  }
+
+  return { renderer, scene, camera, animar }
 }
 
-function suelo () {
-  const g = new THREE.PlaneGeometry(260, 260, 1, 1)
-  g.rotateX(-Math.PI / 2)
-  const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0x6d7a45, roughness: 1 }))
-  m.position.y = -0.02
-  // Tierra pisada en el frente, entre las dos bases.
-  const frente = new THREE.Mesh(
-    new THREE.PlaneGeometry(CAMPO.carriles * CAMPO.anchoCarril + 6, CAMPO.baseAzul - CAMPO.baseRoja + 16).rotateX(-Math.PI / 2),
-    new THREE.MeshStandardMaterial({ color: 0x8a7a5a, roughness: 1 })
-  )
-  frente.position.set(0, -0.01, MITAD)
+// --- suelo ---------------------------------------------------------------------
+function sueloConTextura () {
+  const piel = texturasDelSuelo()
   const grupo = new THREE.Group()
-  grupo.add(m, frente)
+  // Tierra pisada alrededor: la textura de arena de la campaña, oscurecida.
+  const tierra = new THREE.MeshStandardMaterial({
+    color: 0x7a6a52, roughness: 1,
+    map: piel.arena.map.clone(), normalMap: piel.arena.normalMap.clone()
+  })
+  for (const t of [tierra.map, tierra.normalMap]) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(26, 26); t.needsUpdate = true }
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(300, 300).rotateX(-Math.PI / 2), tierra)
+  m.position.set(0, -0.02, MITAD)
+  m.receiveShadow = true
+  grupo.add(m)
+  // La carretera con el asfalto de verdad.
+  const asf = new THREE.MeshStandardMaterial({
+    color: 0x8d8d8d, roughness: 0.95,
+    map: piel.asfalto.map.clone(), normalMap: piel.asfalto.normalMap?.clone() ?? null
+  })
+  for (const t of [asf.map, asf.normalMap]) { if (!t) continue; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(40, 1.2); t.needsUpdate = true }
+  const via = new THREE.Mesh(new THREE.PlaneGeometry(280, CAMPO.anchoCarretera).rotateX(-Math.PI / 2), asf)
+  via.position.set(0, 0.004, CAMPO.carretera)
+  via.receiveShadow = true
+  grupo.add(via)
   return grupo
 }
 
-function carretera () {
-  const grupo = new THREE.Group()
-  const asfalto = new THREE.Mesh(
-    new THREE.PlaneGeometry(260, CAMPO.anchoCarretera).rotateX(-Math.PI / 2),
-    new THREE.MeshStandardMaterial({ color: 0x3a3b3e, roughness: 0.95 })
-  )
-  asfalto.position.set(0, 0.005, CAMPO.carretera)
-  grupo.add(asfalto)
-  const raya = new THREE.MeshBasicMaterial({ color: 0xe8e2c8 })
-  for (let x = -60; x <= 60; x += 4) {
-    const r = new THREE.Mesh(new THREE.PlaneGeometry(2, 0.18).rotateX(-Math.PI / 2), raya)
-    r.position.set(x, 0.01, CAMPO.carretera)
-    grupo.add(r)
+function suelo (g) {
+  // La calle de cada barrio: adoquín gris entre las aceras, más claro que la
+  // tierra, para que el frente se lea como una calle y no como un descampado.
+  const calle = mat(0x6e675c, 1)
+  for (const [z0, z1] of [[CAMPO.baseAzul + 2, CAMPO.carretera + CAMPO.anchoCarretera / 2], [CAMPO.carretera - CAMPO.anchoCarretera / 2, CAMPO.baseRoja - 2]]) {
+    const largo = z0 - z1
+    pon(g, new THREE.PlaneGeometry(ACERA * 2, largo).rotateX(-Math.PI / 2), calle, 0, 0.002, (z0 + z1) / 2)
   }
-  for (const lado of [-1, 1]) {
-    const borde = new THREE.Mesh(new THREE.PlaneGeometry(260, 0.14).rotateX(-Math.PI / 2), raya)
-    borde.position.set(0, 0.01, CAMPO.carretera + lado * (CAMPO.anchoCarretera / 2 - 0.4))
-    grupo.add(borde)
-  }
-  // Un par de coches quemados fuera del frente, para que la carretera sea una
-  // carretera y no una franja gris.
-  const chapa = new THREE.MeshStandardMaterial({ color: 0x3b2f2a, roughness: 0.8, metalness: 0.3 })
-  for (const [x, giro] of [[-11, 0.3], [12.5, -0.2], [-19, 1.2]]) {
-    const coche = new THREE.Group()
-    const cuerpo = new THREE.Mesh(new THREE.BoxGeometry(4, 1, 1.8), chapa)
-    cuerpo.position.y = 0.6
-    const techo = new THREE.Mesh(new THREE.BoxGeometry(2, 0.7, 1.6), chapa)
-    techo.position.set(-0.2, 1.4, 0)
-    coche.add(cuerpo, techo)
-    coche.position.set(x, 0, CAMPO.carretera + 1)
-    coche.rotation.y = giro
-    grupo.add(coche)
-  }
-  return grupo
-}
-
-// «Carriles casi imperceptibles»: surcos de tierra muy suaves, que se notan si
-// los buscas y no parecen una rejilla.
-function marcasDeCarril () {
-  const grupo = new THREE.Group()
-  const mat = new THREE.MeshBasicMaterial({ color: 0x5c4f38, transparent: true, opacity: 0.05, depthWrite: false })
-  const largo = CAMPO.baseAzul - CAMPO.baseRoja
+  // Surcos de los carriles, casi invisibles (Isidro: «carriles casi
+  // imperceptibles»): se notan si se buscan.
+  const surco = mat(0x7d7466, 1)
   for (let c = 0; c < CAMPO.carriles - 1; c++) {
     const x = carrilX(c) + CAMPO.anchoCarril / 2
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(0.12, largo).rotateX(-Math.PI / 2), mat)
-    m.position.set(x, 0.012, MITAD)
-    grupo.add(m)
+    for (const [z0, z1] of [[CAMPO.baseAzul, CAMPO.carretera + 3.6], [CAMPO.carretera - 3.6, CAMPO.baseRoja]]) {
+      pon(g, new THREE.PlaneGeometry(0.1, z0 - z1).rotateX(-Math.PI / 2), surco, x, 0.006, (z0 + z1) / 2)
+    }
   }
-  return grupo
 }
 
-// La base: búnker, cuartel y campamento juntos (Isidro: «todo»), con sacos
-// alrededor y la bandera del bando. `hacia` es hacia dónde queda el frente.
-function base (bando, z, hacia) {
-  const grupo = new THREE.Group()
+// --- la carretera y lo que quedó en ella ----------------------------------------
+function calle (g) {
+  const raya = mat(0xe6dfc5, 0.8)
+  const z = CAMPO.carretera
+  for (let x = -130; x <= 130; x += 5) pon(g, new THREE.PlaneGeometry(2.4, 0.16).rotateX(-Math.PI / 2), raya, x, 0.012, z)
+  for (const lado of [-1, 1]) {
+    pon(g, new THREE.PlaneGeometry(280, 0.14).rotateX(-Math.PI / 2), raya, 0, 0.012, z + lado * (CAMPO.anchoCarretera / 2 - 0.5))
+    // Bordillo.
+    pon(g, geoCaja(280, 0.18, 0.35), mat(0xb5ad9d, 0.9), 0, 0.09, z + lado * (CAMPO.anchoCarretera / 2 + 0.1))
+  }
+  // Aceras a lo largo de la calle de cada barrio, con su bordillo.
+  const acera = mat(0x948c7e, 0.95)
+  for (const lado of [-1, 1]) {
+    for (const [z0, z1] of [[CAMPO.baseAzul + 4, z + 4], [z - 4, CAMPO.baseRoja - 4]]) {
+      pon(g, geoCaja(ACERA - LIBRE - 0.4, 0.16, z0 - z1), acera, lado * (LIBRE + (ACERA - LIBRE) / 2 + 0.2), 0.08, (z0 + z1) / 2)
+    }
+  }
+  // Farolas en las aceras, algunas dobladas.
+  for (const lado of [-1, 1]) {
+    for (let zz = CAMPO.baseAzul; zz >= CAMPO.baseRoja; zz -= 8) {
+      if (Math.abs(zz - z) < 5) continue
+      const f = new THREE.Group()
+      farola(f, 0, 0, 5)
+      f.position.set(lado * (ACERA - 0.6), 0, zz)
+      if (azar(0, 1) < 0.3) f.rotation.z = lado * azar(0.2, 0.45)
+      g.add(f)
+    }
+  }
+  // Guardarraíl a los lados de la carretera, fuera del frente.
+  const metal = mat(0x9aa0a4, 0.4, 0.6)
+  for (const lado of [-1, 1]) {
+    for (const zz of [z - 4.2, z + 4.2]) {
+      pon(g, geoCaja(60, 0.3, 0.08), metal, lado * (ACERA + 31), 0.6, zz)
+      for (let x = ACERA + 2; x < ACERA + 60; x += 3) pon(g, geoCaja(0.12, 0.6, 0.12), metal, lado * x, 0.3, zz)
+    }
+  }
+}
+
+function tierraDeNadie (g) {
+  const z = CAMPO.carretera
+  const quemado = [0x2c2622, 0x3a2f28, 0x33302c]
+  // Coches quemados en la carretera, a los lados del frente y fuera de él.
+  for (const [x, zz, giro] of [[-9.5, z + 1.3, 0.35], [10.5, z - 1, -0.3], [-15, z - 0.8, 1.4], [17, z + 1, 1.7], [-24, z, 1.6], [26, z - 1.2, 1.3]]) {
+    coche(g, x, zz, giro, elige(quemado))
+  }
+  // Un autobús atravesado a la izquierda y una camioneta volcada a la derecha:
+  // lo que cortó la carretera el primer día.
+  const bus = RESTOS.autobus(0x6a4a2e)
+  bus.position.set(-13, 0, z + 0.3)
+  bus.rotation.set(0, 1.2, 0)
+  g.add(bus)
+  const cam = RESTOS.camioneta(0x3f4a3a)
+  cam.position.set(13.5, 0, z + 1.5)
+  cam.rotation.set(0, -0.6, 0.12)
+  g.add(cam)
+  // Contenedores de obra en las esquinas del cruce.
+  for (const [x, zz, giro, tono] of [[-11, z + 6, 0.1, 0x7a3b2a], [12, z - 6.5, -0.15, 0x2f5a6b]]) {
+    const c = RESTOS.contenedor(tono)
+    c.position.set(x, 0, zz)
+    c.rotation.y = giro
+    c.scale.setScalar(0.7)
+    g.add(c)
+  }
+  // Escombros sueltos por el asfalto (planos, no molestan al andar).
+  const cascote = mat(0x7a746a, 1)
+  for (let i = 0; i < 40; i++) {
+    const s = azar(0.12, 0.35)
+    const p = pon(g, geoCaja(s, s * 0.5, s * 0.8), cascote, azar(-12, 12), s * 0.2, z + azar(-3, 3))
+    p.rotation.y = azar(0, 3)
+  }
+  // Manchas de quemado en el asfalto.
+  const mancha = new THREE.MeshBasicMaterial({ color: 0x1c1a18, transparent: true, opacity: 0.45, depthWrite: false })
+  for (const [x, zz, r] of [[-3, z + 1, 1.6], [4, z - 1.5, 1.2], [0.5, z + 5, 1], [-5, z - 8, 1.3]]) {
+    pon(g, new THREE.CircleGeometry(r, 14).rotateX(-Math.PI / 2), mancha, x, 0.014, zz)
+  }
+}
+
+// --- los barrios -----------------------------------------------------------------
+// Cada barrio es su mitad de la calle: casas bajas junto a la carretera y
+// bloques más altos hacia su plaza. Los dos de piedra y ladrillo, con persianas,
+// toldos y ropa tendida del color de su bando: se ve de quién es cada acera sin
+// leer nada.
+function barrio (g, bando) {
+  const azul = bando === 'azul'
   const color = COLOR[bando]
-  const hormigon = new THREE.MeshStandardMaterial({ color: 0x8c8a84, roughness: 0.95 })
-  const oscuro = new THREE.MeshStandardMaterial({ color: 0x1c1c1e, roughness: 1 })
-  const lona = new THREE.MeshStandardMaterial({ color: 0x5d6645, roughness: 1 })
-  const saco = new THREE.MeshStandardMaterial({ color: 0xb9a176, roughness: 1 })
-  const tinte = new THREE.MeshStandardMaterial({ color, roughness: 0.7 })
-  const fondo = z + hacia * 7   // detrás de la línea
+  const z0 = azul ? CAMPO.baseAzul + 2 : CAMPO.carretera - 5
+  const z1 = azul ? CAMPO.carretera + 5 : CAMPO.baseRoja - 2
+  const tinte = mat(color, 0.8)
+  for (const lado of [-1, 1]) {
+    // Fachada a fachada, a lo largo de la calle.
+    let z = z0
+    let i = 0
+    while (z > z1) {
+      const fondo = azar(5, 8)
+      const zc = z - fondo / 2
+      const cercaDeLaCarretera = Math.abs(zc - CAMPO.carretera) < 12
+      const ancho = azar(4.5, 7)
+      const cx = lado * (ACERA + 0.8 + ancho / 2)
+      // Junto a la carretera, casas bajas y alguna en ruinas; hacia la plaza,
+      // bloques de pisos. Se hacen en el origen con la fachada hacia -x (como
+      // las dejan `casitas` y `bloques`) y se giran para mirar a la calle.
+      const ruina = cercaDeLaCarretera && azar(0, 1) < 0.45
+      const alto = ruina ? azar(2, 3.5) : cercaDeLaCarretera ? azar(3.8, 5.2) : azar(6.5, 11)
+      const casa = new THREE.Group()
+      if (cercaDeLaCarretera) {
+        casitas(casa, [[0, 0, ancho, alto, fondo]], { colores: [0xd8cbb0, 0xc9b596, 0xbfae92, 0xd6c4a4], teja: ruina ? 0x3a3430 : 0x8f4a36 })
+      } else {
+        bloques(casa, [[0, 0, ancho, alto, fondo]], 1, { colores: [0xc9c1b2, 0xb8ad9c, 0xd2c6b2, 0xa89d8c] })
+        // Persianas del color del bando en cada piso.
+        for (let y = 2.4; y < alto - 1.5; y += 3) pon(casa, geoCaja(0.08, 0.8, fondo * 0.7), tinte, -ancho / 2 - 0.08, y + 0.9, 0)
+      }
+      casa.position.set(cx, 0, zc)
+      if (lado < 0) casa.rotation.y = Math.PI
+      g.add(casa)
+      if (ruina) {
+        // Pared rota: cascotes al pie y un hueco negro.
+        const escombro = mat(0x8a7f70, 1)
+        for (let k = 0; k < 5; k++) pon(g, geoCaja(azar(0.4, 0.9), azar(0.2, 0.5), azar(0.4, 0.9)), escombro, cx - lado * azar(0, ancho / 2 + 1), 0.2, zc + azar(-fondo / 2, fondo / 2)).rotation.y = azar(0, 3)
+      } else if (i % 2 === 0) {
+        // Ropa tendida o una sábana colgada del color del bando.
+        pon(g, geoCaja(0.06, 1.6, 1.1), tinte, lado * (ACERA + 0.72), Math.min(alto - 0.8, 3.2), zc + azar(-1, 1))
+      }
+      z -= fondo + azar(0.2, 1.4)
+      i++
+    }
+    // Árboles detrás de las casas.
+    const arbol = FLORA[azul ? 'olivo' : 'pino']
+    for (let zz = z0; zz > z1; zz -= azar(5, 8)) {
+      const a = arbol(azul ? 0x6f7d52 : 0x3f5a3c)
+      a.position.set(lado * azar(ACERA + 11, ACERA + 22), 0, zz)
+      g.add(a)
+    }
+  }
+}
 
-  // Búnker en el centro, con la tronera mirando al frente.
-  const bunker = new THREE.Mesh(new THREE.BoxGeometry(7, 2.6, 4.5), hormigon)
-  bunker.position.set(0, 1.3, fondo)
-  const tronera = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.35, 0.1), oscuro)
-  tronera.position.set(0, 1.9, fondo - hacia * 2.26)
-  grupo.add(bunker, tronera)
+// --- las plazas (las bases) -------------------------------------------------------
+// Cada barrio ha convertido su plaza en el cuartel: el búnker en medio, el
+// cuartel (el ayuntamiento, con el tejado pintado), un muro de contenedores a
+// los lados, el tanque aparcado, las tiendas del campamento y una torre de
+// vigía. Por la línea de sacos entra quien gana.
+function plaza (g, bando) {
+  const azul = bando === 'azul'
+  const hacia = azul ? 1 : -1       // hacia dónde queda la retaguardia
+  const z = azul ? CAMPO.baseAzul : CAMPO.baseRoja
+  const color = COLOR[bando]
+  const tinte = mat(color, 0.7)
+  const hormigon = mat(0x8e8b84, 0.95)
+  const oscuro = mat(0x1d1d1f, 1)
+  const fondo = z + hacia * 8
 
-  // Cuartel a un lado: dos plantas y tejado con el color del bando.
-  const cuartel = new THREE.Mesh(new THREE.BoxGeometry(5, 5, 5), hormigon)
-  cuartel.position.set(-10, 2.5, fondo + hacia * 3)
-  const tejado = new THREE.Mesh(new THREE.BoxGeometry(5.4, 0.5, 5.4), tinte)
-  tejado.position.set(-10, 5.25, fondo + hacia * 3)
-  grupo.add(cuartel, tejado)
-  for (let i = 0; i < 3; i++) {
-    const v = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.8, 0.05), oscuro)
-    v.position.set(-11.6 + i * 1.6, 3.4, fondo + hacia * 3 - hacia * 2.53)
-    grupo.add(v)
+  // Suelo de la plaza: losas.
+  pon(g, new THREE.PlaneGeometry(40, 18).rotateX(-Math.PI / 2), mat(0x7d7669, 1), 0, 0.003, z + hacia * 9)
+
+  // Búnker con tronera y el emblema del bando.
+  pon(g, geoCaja(7.5, 2.8, 4.5), hormigon, 0, 1.4, fondo)
+  pon(g, geoCaja(8.2, 0.4, 5.2), hormigon, 0, 2.95, fondo)
+  pon(g, geoCaja(5, 0.35, 0.1), oscuro, 0, 2, fondo - hacia * 2.28)
+  pon(g, geoCaja(1.6, 1.6, 0.08), tinte, 0, 1.1, fondo - hacia * 2.3).rotation.z = Math.PI / 4
+
+  // El ayuntamiento hecho cuartel, a un lado, con el tejado del color del bando.
+  const cx = -13
+  pon(g, geoCaja(8, 6.5, 6), mat(0xcdbf9f, 0.9), cx, 3.25, fondo + hacia * 2)
+  pon(g, geoCaja(8.6, 0.6, 6.6), tinte, cx, 6.8, fondo + hacia * 2)
+  for (let i = 0; i < 4; i++) {
+    for (const y of [2, 4.6]) pon(g, geoCaja(1, 1.3, 0.06), oscuro, cx - 3 + i * 2, y, fondo + hacia * 2 - hacia * 3.03)
+  }
+  // Torre del reloj encima.
+  pon(g, geoCaja(2.2, 3.2, 2.2), mat(0xcdbf9f, 0.9), cx, 8.7, fondo + hacia * 2)
+  pon(g, new THREE.ConeGeometry(1.7, 2, 4).rotateY(Math.PI / 4), tinte, cx, 11.3, fondo + hacia * 2)
+
+  // Campamento al otro lado: tiendas de lona.
+  const lona = mat(0x5d6645, 1)
+  for (let i = 0; i < 4; i++) {
+    pon(g, new THREE.CylinderGeometry(0, 2, 2.1, 4).rotateY(Math.PI / 4), lona, 11 + (i % 2) * 4.2, 1.05, fondo + hacia * (Math.floor(i / 2) * 4.5 - 1.5))
   }
 
-  // Campamento al otro lado: tres tiendas de lona.
-  for (let i = 0; i < 3; i++) {
-    const t = new THREE.Mesh(new THREE.CylinderGeometry(0, 1.9, 2, 4), lona)
-    t.position.set(9 + (i % 2) * 3.4, 1, fondo + hacia * (i * 2.6 - 1))
-    t.rotation.y = Math.PI / 4
-    grupo.add(t)
+  // Muro de contenedores cerrando la plaza por los lados.
+  for (const [x, tono] of [[-9, 0x7a3b2a], [9, 0x2f5a6b], [-19, 0x6b6b3a], [19, 0x5a3a5a]]) {
+    const c = RESTOS.contenedor(tono)
+    c.position.set(x, 0, z + hacia * 3.5)
+    c.rotation.y = Math.PI / 2 + azar(-0.08, 0.08)
+    c.scale.setScalar(0.75)
+    g.add(c)
   }
 
-  // Muro de sacos a lo ancho, con un hueco en cada carril para entrar.
-  for (let x = -8; x <= 8; x += 1.1) {
-    if (Math.abs(((x + 6) % 2.4) - 1.2) < 0.5) continue
-    const s = new THREE.Mesh(new THREE.CapsuleGeometry(0.32, 0.6, 3, 6).rotateZ(Math.PI / 2), saco)
-    s.position.set(x, 0.3, z + hacia * 0.8)
-    grupo.add(s)
-  }
+  // El tanque aparcado junto al cuartel, pintado del color del bando.
+  const tanque = RESTOS.oruga(azul ? 0x3d5670 : 0x6b3a34)
+  tanque.position.set(-6.5, 0, fondo + hacia * 4.5)
+  tanque.rotation.y = azul ? Math.PI : 0
+  g.add(tanque)
+  const cam = RESTOS.camioneta(azul ? 0x4a5a6a : 0x6a4a44)
+  cam.position.set(6.5, 0, fondo + hacia * 4)
+  cam.rotation.y = azul ? Math.PI + 0.3 : 0.3
+  g.add(cam)
 
-  // Bandera alta, que se vea desde la otra punta.
-  const mastil = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 8, 6), oscuro)
-  mastil.position.set(4.5, 4, fondo)
-  const bandera = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 1.6), new THREE.MeshStandardMaterial({ color, side: THREE.DoubleSide }))
-  bandera.position.set(5.8, 7.1, fondo)
-  bandera.name = 'bandera'
-  grupo.add(mastil, bandera)
-  grupo.userData.bandera = bandera
-  return grupo
+  // Torre de vigía de madera, en la esquina de la línea.
+  const madera = mat(0x6b5236, 0.9)
+  const tx = 8
+  const tz = z + hacia * 1.2
+  for (const [dx, dz] of [[-0.9, -0.9], [0.9, -0.9], [-0.9, 0.9], [0.9, 0.9]]) pon(g, geoCil(0.1, 0.12, 5, 5), madera, tx + dx, 2.5, tz + dz)
+  pon(g, geoCaja(2.6, 0.2, 2.6), madera, tx, 5, tz)
+  pon(g, geoCaja(2.6, 0.9, 0.1), madera, tx, 5.5, tz - hacia * 1.25)
+  pon(g, new THREE.ConeGeometry(2, 1, 4).rotateY(Math.PI / 4), tinte, tx, 6.9, tz)
+
+  // Pórtico de entrada sobre la línea, con el nombre del bando pintado en la
+  // viga: marca exactamente dónde está la base.
+  for (const x of [-7.2, 7.2]) pon(g, geoCaja(0.5, 4.2, 0.5), hormigon, x, 2.1, z + hacia * 0.6)
+  pon(g, geoCaja(15, 0.7, 0.6), tinte, 0, 4.4, z + hacia * 0.6)
+}
+
+// Sacos, erizos y alambradas de Blender: las mismas piezas que se compran en la
+// tienda, puestas donde las habría puesto cada barrio. Todas fuera del frente.
+async function barricadasDeBlender (grupo) {
+  const sitios = [
+    // Sacos delante de cada plaza, a los lados del pórtico.
+    ['sandbags', -8.6, CAMPO.baseAzul + 0.4, 0], ['sandbags', 8.6, CAMPO.baseAzul + 0.4, 0],
+    ['sandbags', -8.6, CAMPO.baseRoja - 0.4, Math.PI], ['sandbags', 8.6, CAMPO.baseRoja - 0.4, Math.PI],
+    // Erizos y alambrada en las cunetas de la carretera, a los dos lados.
+    ['erizos', -8.4, CAMPO.carretera + 4.6, 0.2], ['erizos', 8.2, CAMPO.carretera - 4.6, -0.3],
+    ['erizos', -20, CAMPO.carretera - 4.4, 0.5], ['erizos', 21, CAMPO.carretera + 4.4, 0.1],
+    ['spikes', 8.4, CAMPO.carretera + 4.8, 0], ['spikes', -8.4, CAMPO.carretera - 4.8, 0],
+    ['spikes', 15, CAMPO.carretera + 4.6, 0.1], ['spikes', -16, CAMPO.carretera - 4.6, -0.1]
+  ]
+  for (const [key, x, z, giro] of sitios) {
+    try {
+      const m = await buildDefensaMesh(key, {})
+      m.position.set(x, 0, z)
+      m.rotation.y = giro
+      m.scale.setScalar(0.9)
+      grupo.add(m)
+    } catch (e) {
+      console.warn('Sin barricada', key, e)
+    }
+  }
+}
+
+// Una bandera grande por plaza y otras en los balcones de cada barrio.
+function banderasDe (grupo, bando) {
+  const azul = bando === 'azul'
+  const hacia = azul ? 1 : -1
+  const z = azul ? CAMPO.baseAzul : CAMPO.baseRoja
+  const lista = []
+  const tela = new THREE.MeshStandardMaterial({ color: COLOR[bando], roughness: 0.8, side: THREE.DoubleSide })
+  const palo = mat(0xcfcfcf, 0.4, 0.6)
+  const sitios = [
+    [3.5, z + hacia * 8, 9, 2.8],          // la de la plaza, junto al búnker
+    [-ACERA - 0.9, z - hacia * 8, 6, 1.4],  // balcones de la calle
+    [ACERA + 0.9, z - hacia * 13, 7, 1.4],
+    [-ACERA - 0.9, z - hacia * 18, 5, 1.2]
+  ]
+  for (const [x, zz, alto, tam] of sitios) {
+    pon(grupo, geoCil(0.06, 0.09, alto, 6), palo, x, alto / 2, zz)
+    const geo = new THREE.PlaneGeometry(tam * 1.6, tam, 8, 1)
+    geo.translate(tam * 0.8, 0, 0)
+    const b = new THREE.Mesh(geo, tela)
+    b.position.set(x, alto - tam / 2 - 0.1, zz)
+    // Las de los balcones salen hacia la calle.
+    if (Math.abs(x) > 5) b.rotation.y = x > 0 ? Math.PI : 0
+    b.userData.base = geo.attributes.position.array.slice()
+    b.userData.fase = azar(0, 6)
+    b.castShadow = true
+    grupo.add(b)
+    lista.push(b)
+  }
+  return lista
+}
+
+// Humo de las casas que siguen ardiendo, junto a la carretera.
+function columnasDeHumo (grupo) {
+  const lista = []
+  const geo = new THREE.SphereGeometry(0.8, 7, 5)
+  for (const [x, z] of [[-14, CAMPO.carretera + 8], [15, CAMPO.carretera - 9], [-26, CAMPO.carretera - 3]]) {
+    const h = new THREE.Group()
+    h.position.set(x, 1, z)
+    for (let i = 0; i < 10; i++) {
+      const bola = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0x3b3632, transparent: true, depthWrite: false }))
+      bola.userData = { v: i / 10, f: azar(0, 6) }
+      h.add(bola)
+    }
+    grupo.add(h)
+    lista.push(h)
+  }
+  return lista
 }

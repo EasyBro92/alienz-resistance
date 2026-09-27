@@ -46,7 +46,7 @@ const SOLO_COFRE = new Set(['capitan'])
 
 const $ = id => document.getElementById(id)
 const lienzo = $('gc-lienzo')
-const { renderer, scene, camera } = crearCampo(lienzo)
+const { renderer, scene, camera, animar } = crearCampo(lienzo)
 const effects = createEffects(scene, camera)
 const audio = createAudio()
 
@@ -656,6 +656,7 @@ function fotograma (ahora) {
   } else {
     effects.update(dt)
   }
+  animar(ahora / 1000)
   renderer.render(scene, camera)
 }
 requestAnimationFrame(fotograma)
