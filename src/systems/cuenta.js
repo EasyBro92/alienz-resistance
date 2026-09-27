@@ -114,7 +114,11 @@ export function fusionar (a, b) {
   for (const k of new Set([...Object.keys(ca.mejoras ?? {}), ...Object.keys(cb.mejoras ?? {})])) {
     const x = ca.mejoras?.[k] ?? {}
     const y = cb.mejoras?.[k] ?? {}
-    mejoras[k] = { dano: Math.max(entero(x.dano), entero(y.dano)), cadencia: Math.max(entero(x.cadencia), entero(y.cadencia)) }
+    mejoras[k] = {
+      dano: Math.max(entero(x.dano), entero(y.dano)),
+      cadencia: Math.max(entero(x.cadencia), entero(y.cadencia)),
+      vida: Math.max(entero(x.vida), entero(y.vida))
+    }
   }
   const pa = a?.progreso ?? {}
   const pb = b?.progreso ?? {}

@@ -1325,14 +1325,14 @@ function simulate (dt) {
           // retire — si no, se la llevaría la limpieza sin haber estallado.
           if (blocker.spec.revienta && blocker.hp <= 0 && !blocker.detonada) {
             blocker.detonada = true
-            const { daño, radio } = blocker.spec.revienta
-            splashDamage(blocker.mesh.position, radio, daño, 1)
+            const { radio } = blocker.spec.revienta
+            splashDamage(blocker.mesh.position, radio, blocker.reventon, 1)
             effects.burst(blocker.mesh.position, 0xffb03a, 22, 2.4)
             audio.boom()
           }
           // La alambrada devuelve parte del mordisco: no dispara, pero desangra.
           if (blocker.spec.thorns) {
-            z.hurt(blocker.spec.thorns, 0.5)
+            z.hurt(blocker.espinas, 0.5)
             effects.burst(z.mesh.position, 0x9c2f24, 2, 0.5)
           }
           effects.burst(blocker.mesh.position, z.spec.rangedAttack ? 0xa05fb8 : 0xd8d8d8, 3, 0.6)

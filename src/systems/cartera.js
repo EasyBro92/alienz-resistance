@@ -14,7 +14,7 @@
 // texto que cualquiera puede editar, y un `billetes: -5` o un JSON roto no deben
 // romper la tienda.
 
-import { INICIALES } from '../config.js'
+import { INICIALES, SOLDIERS, DEFENSES } from '../config.js'
 
 const CLAVE = 'alienz-cartera-v1'
 
@@ -71,7 +71,20 @@ export const PRECIOS = {
 // de la campaña, que está medida sin mejoras.
 export const MEJORAS = {
   dano: { nombre: 'Daño', paso: 0.15 },
-  cadencia: { nombre: 'Cadencia', paso: 0.10 }
+  cadencia: { nombre: 'Cadencia', paso: 0.10 },
+  // Para las defensas (27/09): con todo, aguantan un 75 % más.
+  vida: { nombre: 'Vida', paso: 0.25 }
+}
+
+// Qué se le puede mejorar a cada cosa. A los soldados, daño y cadencia, como
+// siempre. A las defensas, la vida todas, y el daño las que hacen daño: la
+// alambrada (sus púas), la carga (el reventón) y la torreta (sus balas).
+// Isidro, 27/09: «sí, tres niveles».
+export function pistasMejora (clave) {
+  if (SOLDIERS[clave]) return ['dano', 'cadencia']
+  const d = DEFENSES[clave]
+  if (!d) return []
+  return d.thorns || d.revienta || d.dispara ? ['vida', 'dano'] : ['vida']
 }
 export const NIVEL_MAX = 3
 
@@ -121,7 +134,8 @@ export function cargarCartera () {
       if (!validas.has(k) || !m || typeof m !== 'object') continue
       mejoras[k] = {
         dano: Math.min(NIVEL_MAX, entero(m.dano)),
-        cadencia: Math.min(NIVEL_MAX, entero(m.cadencia))
+        cadencia: Math.min(NIVEL_MAX, entero(m.cadencia)),
+        vida: Math.min(NIVEL_MAX, entero(m.vida))
       }
     }
   }
@@ -187,7 +201,7 @@ export function precioMejora (clave, tipo) {
 }
 
 export function comprarMejora (clave, tipo) {
-  if (!MEJORAS[tipo]) return false
+  if (!MEJORAS[tipo] || !pistasMejora(clave).includes(tipo)) return false
   const c = cargarCartera()
   if (!c.desbloqueadas.includes(clave)) return false
   const nivel = c.mejoras[clave]?.[tipo] ?? 0
@@ -198,6 +212,7 @@ export function comprarMejora (clave, tipo) {
   c.mejoras[clave] = {
     dano: c.mejoras[clave]?.dano ?? 0,
     cadencia: c.mejoras[clave]?.cadencia ?? 0,
+    vida: c.mejoras[clave]?.vida ?? 0,
     [tipo]: nivel + 1
   }
   guardar(c)

@@ -11,7 +11,7 @@
 import { SOLDIERS, DEFENSES, STRIKES, UPGRADES } from './config.js'
 import {
   cargarCartera, PRECIOS, comprar, canjear, precioMejora, comprarMejora,
-  MEJORAS, NIVEL_MAX, MONEDAS_POR_DOLAR
+  MEJORAS, NIVEL_MAX, MONEDAS_POR_DOLAR, pistasMejora
 } from './systems/cartera.js'
 
 const PESTANAS = [
@@ -93,11 +93,23 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
       </div>`
   }
 
+  // El número de partida de cada mejora: daño por disparo (o por mordisco en la
+  // alambrada, o del reventón en la carga), disparos por segundo o vida.
+  const valorBase = (spec, tipo) => tipo === 'vida' ? spec.hp
+    : tipo === 'cadencia' ? spec.fireRate
+      : (spec.damage ?? spec.thorns ?? spec.revienta?.daño ?? 0)
+
   function mejoras (c) {
-    const mias = Object.entries(SOLDIERS).filter(([k]) => c.desbloqueadas.includes(k))
-    if (!mias.length) return '<p class="tienda-vacia">Desbloquea soldados para poder mejorarlos.</p>'
-    return mias.map(([clave, spec]) => {
-      const pistas = Object.entries(MEJORAS).map(([tipo, m]) => {
+    const soldados = Object.entries(SOLDIERS).filter(([k]) => c.desbloqueadas.includes(k))
+    const defensas = Object.entries(DEFENSES).filter(([k]) => c.desbloqueadas.includes(k))
+    if (!soldados.length && !defensas.length) return '<p class="tienda-vacia">Desbloquea soldados o defensas para poder mejorarlos.</p>'
+    const grupo = (titulo, lista) => lista.length
+      ? `<h3 class="mejoras-grupo">${titulo}</h3>` + lista.map(ficha).join('')
+      : ''
+    return grupo('Soldados', soldados) + grupo('Defensas', defensas)
+
+    function ficha ([clave, spec]) {
+      const pistas = pistasMejora(clave).map(tipo => [tipo, MEJORAS[tipo]]).map(([tipo, m]) => {
         const nivel = c.mejoras[clave]?.[tipo] ?? 0
         const precio = precioMejora(clave, tipo)
         const pips = Array.from({ length: NIVEL_MAX }, (_, i) => `<i class="${i < nivel ? 'on' : ''}"></i>`).join('')
@@ -106,7 +118,7 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
           : `<button type="button" class="articulo-comprar" data-mejora="${clave}:${tipo}" ${c.billetes >= precio ? '' : 'disabled'}>${billete}${precio}</button>`
         // Lo que se gana, en el número que importa: daño por disparo y disparos
         // por segundo. Un "+15%" no dice nada; "9,5 → 10,9" sí.
-        const base = tipo === 'dano' ? spec.damage : spec.fireRate
+        const base = valorBase(spec, tipo)
         const val = n => (base * (1 + n * m.paso)).toFixed(base < 10 ? 1 : 0).replace('.', ',')
         const salto = precio == null
           ? `<span class="mejora-salto">${val(nivel)}</span>`
@@ -127,7 +139,7 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
           </div>
           ${pistas}
         </div>`
-    }).join('')
+    }
   }
 
   // La tabla de comparar. Cada columna pinta una barra sobre el mejor de todos,

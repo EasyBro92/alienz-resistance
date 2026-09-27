@@ -215,6 +215,8 @@ export async function createSoldier (key, spec, lane, row) {
   // sería absurdo: lo que se compra entre partidas no cambia a mitad de una.
   const mejoraDano = factorMejora(key, 'dano')
   const mejoraCadencia = factorMejora(key, 'cadencia')
+  // La vida solo se mejora en las defensas; en un soldado vale siempre 1.
+  const mejoraVida = factorMejora(key, 'vida')
   // Y lo que se le ve puesto: casco, hombreras y bocacha según lo mejorado.
   if (!spec.fija) vestirMejoras(mesh, nivelMejora(key, 'dano') + nivelMejora(key, 'cadencia'))
 
@@ -230,8 +232,8 @@ export async function createSoldier (key, spec, lane, row) {
     row,
     mesh,
     bar,
-    hp: spec.hp,
-    maxHp: spec.hp,
+    hp: Math.round(spec.hp * mejoraVida),
+    maxHp: Math.round(spec.hp * mejoraVida),
     level: 1,
     cooldown: Math.random() * 0.4,
     dead: false,
@@ -300,6 +302,10 @@ export async function createSoldier (key, spec, lane, row) {
     // a los de al lado. Se guarda como número y no como bandera para que dos
     // capitanes no se multipliquen entre sí sin control.
     animo: 1,
+    // Lo que devuelven la alambrada (por mordisco) y la carga (al reventar),
+    // con su mejora de daño de la tienda.
+    get espinas () { return (spec.thorns ?? 0) * mejoraDano },
+    get reventon () { return (spec.revienta?.daño ?? 0) * mejoraDano },
     get fireRate () { return spec.fireRate * (1 + 0.18 * (this.level - 1)) * mejoraCadencia * this.animo },
 
     // Reubicar ya no es teletransportar: el soldado se va andando. La casilla se
@@ -322,7 +328,7 @@ export async function createSoldier (key, spec, lane, row) {
 
     upgrade () {
       this.level++
-      this.maxHp = Math.round(this.spec.hp * (1 + 0.35 * (this.level - 1)))
+      this.maxHp = Math.round(this.spec.hp * mejoraVida * (1 + 0.35 * (this.level - 1)))
       this.hp = this.maxHp
       // La escala real la aplica update() cada fotograma junto con la respiración.
       this.sizeBoost = 1 + 0.06 * (this.level - 1)
