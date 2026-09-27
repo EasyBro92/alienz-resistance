@@ -1556,6 +1556,15 @@ export function createWorld (canvas) {
     // de dron. Los de Meshy siguen con el vuelo de siempre: su caja cambia cuando
     // llega el modelo.
     let vista = principal?.userData.vista ?? null
+    // Un lugar hecho a mano puede traer su propio plano de llegada y su caja
+    // (Milán: empieza mirando al Duomo). Manda sobre todo lo demás.
+    if (dentroDeLugar?.vista) {
+      vista = dentroDeLugar.vista
+      if (dentroDeLugar.foco) {
+        foco = new THREE.Box3(new THREE.Vector3(...dentroDeLugar.foco[0]), new THREE.Vector3(...dentroDeLugar.foco[1]))
+        fundido.userData.foco = foco
+      }
+    }
 
     // EL PLANO DE LLEGADA DENTRO DE UN LUGAR.
     //
@@ -1695,6 +1704,22 @@ export function createWorld (canvas) {
       g.traverse(o => { if (o.isMesh) { o.receiveShadow = true; o.castShadow = sombra } })
       scene.add(g)
       escenariosHechos.set(nombre, g)
+      // Los lugares hechos en Blender traen su decorado en un .glb. Se carga una
+      // vez y se cuelga dentro del grupo: llega un momento después, como las
+      // arenas del duelo, y hasta entonces se ve la plaza vacía.
+      if (crudo.userData.modelo) {
+        cargadorArenas.loadAsync(`${import.meta.env.BASE_URL}models/${crudo.userData.modelo}.glb`).then(gltf => {
+          gltf.scene.traverse(o => {
+            if (!o.isMesh) return
+            // Solo brilla lo que se llama brillo-*: los escaparates de la
+            // galería, los faroles y el oro de las agujas.
+            if (!/^(foco|brillo)/.test(o.material?.name ?? '')) apagarEmision(o)
+            o.receiveShadow = /suelo/.test(o.name)
+            o.castShadow = false
+          })
+          g.add(gltf.scene)
+        }).catch(e => console.warn('Sin modelo del lugar:', e))
+      }
     }
     escenarioVisto = nombre ? escenariosHechos.get(nombre) ?? null : null
     // Al cambiar de escenario la ciudad se apaga siempre: solo la enciende el
@@ -1972,6 +1997,11 @@ export function createWorld (canvas) {
     const extra = b.sueloExtra
     detalleSuelo.visible = !!extra?.length
     if (extra?.length) detalleSuelo.material.map = texturaDetalle(clave, extra)
+    // Un lugar que trae su propio suelo (el de Milán, hecho en Blender, con su
+    // lastra y sus líneas blancas) no quiere la calzada del juego por encima.
+    const sinCalzada = !!escenarioVisto?.userData.sinCalzada
+    road.visible = !sinCalzada
+    if (sinCalzada) detalleSuelo.visible = false
     road.material.map = campo ?? pielCarretera.map
     road.material.normalMap = campo ? null : pielCarretera.normalMap
     if (campo) road.material.color.setHex(tonoSuelo ?? COLOR_CAMPO[suelo] ?? 0xffffff)

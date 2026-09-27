@@ -776,4 +776,53 @@ function circuito () {
 // `world.ponerEscenario` son escenarios como el puente o el estadio, y no hay
 // que tocar nada mas. Cada uno se construye la primera vez que se entra en su
 // mision y se queda en cache.
-export const ESCENARIOS = { puente, estadio, circuito, ...LUGARES }
+// --- Milán, hecho en Blender --------------------------------------------------
+//
+// Isidro, 27/09/2026: «no me están gustando nada las distribuciones, los mapas
+// ahora no son nada reconocibles. Recrea el mapa de Milán con el Duomo al lado
+// derecho y que los enemigos vengan debajo del arco, que no vengan en naves...
+// el mapa hazlo con Blender». Es el primero de los lugares que no sale de las
+// piezas de `lugares.js` sino de un modelo: `herramientas/blender/lugar_milan.py`
+// deja `public/models/lugar-milan.glb` y aquí solo se dice qué es cada cosa.
+//
+// El grupo va vacío: el modelo lo carga `world.ponerEscenario` al verlo en
+// `modelo` y lo cuelga dentro cuando llega. Los números que hay aquí son los del
+// guion de Blender, y si se retoca uno hay que retocar el otro:
+//   · el arco de la Galleria, centrado en el eje, con la cara en z = -40; por él
+//     salen los bichos (`entrada` en la misión de campana.js),
+//   · el Duomo a la derecha, con el centro de la fachada en (31, -23), girado
+//     para dar la cara a la plaza,
+//   · los pórticos a la izquierda, con la fachada en x = -17.
+function milanDuomo () {
+  const g = new THREE.Group()
+  g.name = 'lugar:milanDuomo'
+  Object.assign(g.userData, {
+    modelo: 'lugar-milan',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    // Se trata como un lugar (deja pasar los hitos, se vuela por su vista), pero
+    // sin hitos: el Duomo ya viene en el modelo.
+    conHitos: true,
+    // La lastra con sus líneas blancas es el modelo: la calzada del juego, que va
+    // por encima, la taparía.
+    sinCalzada: true,
+    // La torre a un lado, delante de los pórticos y fuera del paso de los bichos
+    // (el pasillo acaba en x = 6,9 y el disco de la torre empieza en 7,6).
+    // En (-10,5, -35,5): delante del ala izquierda de la Galleria (su cara está
+    // en -40) y a la vista en el móvil, donde el borde del cuadro pasa por x ≈ 13.
+    baseX: -10.5,
+    baseZ: -35.5,
+    altoVuelo: 40,
+    // La llegada empieza mirando al Duomo —Isidro: «al principio de la partida
+    // tiene que verse la cámara viendo al Duomo y luego se coloca en posición de
+    // batalla»— desde el lado de la plaza, en tres cuartos, que es como se ve
+    // entero en un móvil en vertical: de frente, para que quepan sus 44 de ancho
+    // habría que irse a 112 y la niebla se lo comería. Luego gira hacia el arco.
+    vista: { desde: [25, 14, 50], mira: [31, 22, -23] },
+    foco: [[15, 0, -50], [47, 50, 0]]
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, ...LUGARES }

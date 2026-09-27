@@ -325,6 +325,10 @@ export function createAmbient (scene) {
   let vueloExplorador = { z: -70, y: 4.2 }
   let alturaNodriza = 6
   let zNodriza = -100
+  // Misiones sin ninguna nave: las que traen su propia entrada (Milán, por el
+  // arco de la Galleria). Isidro: «que no vengan en naves». Y los exploradores
+  // cruzaban justo por dentro de la galería.
+  let sinNaves = false
 
   // Exploradores que cruzan el cielo de vez en cuando, con el haz encendido.
   const scouts = []
@@ -529,6 +533,11 @@ export function createAmbient (scene) {
     // de paso. `alturaEn(zMin, zMax)` la da el mundo.
     vestir (destino = {}, alturaEn = null) {
       const { bioma, suelo, hitos = [] } = destino
+      sinNaves = !!destino.entrada
+      if (sinNaves) {
+        mother.visible = false
+        for (const sc of scouts) { sc.active = false; sc.ship.visible = false }
+      }
       const conAvenida = hitos.some(h => h[0] === 'castellana')
       let tipo = 'hojas'
       if (suelo === 'playa') tipo = 'pelota'
@@ -577,7 +586,7 @@ export function createAmbient (scene) {
         }
         zNodriza = mejor.z
         alturaNodriza = Math.max(6, mejor.h + 3)
-        mother.visible = alturaNodriza <= 11
+        mother.visible = alturaNodriza <= 11 && !sinNaves
         if (mother.position.x < -40 || mother.position.x > 40) mother.position.x = -40
         for (const sc of scouts) {
           sc.active = false
@@ -609,7 +618,7 @@ export function createAmbient (scene) {
       for (const sc of scouts) {
         if (!sc.active) {
           sc.timer -= dt
-          if (sc.timer <= 0) launchScout(sc)
+          if (sc.timer <= 0 && !sinNaves) launchScout(sc)
           continue
         }
         blink(sc.ship, 1.2)

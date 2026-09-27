@@ -1707,6 +1707,8 @@ function frame (now) {
 // entonces llega el informe. Es lo que cuenta de qué va esto: venimos a
 // quitarles las bases, no solo a aguantar.
 let asalto = null
+// Si la partida va sin nave (duelo, o una misión con entrada propia como Milán).
+let sinNave = false
 // `andar`: al trote se tarda más que corriendo (unos 30 m a 3,7 m/s y la espera).
 // `fuego` es lo que aguanta la base antes de caer. Estaba en 3,8 y se venía
 // abajo casi sin darte tiempo a ver el tiroteo: ahora el doble, que es el final
@@ -1730,9 +1732,15 @@ function empezarAsalto () {
   asalto = { t: 0, fase: 'andar', base, tiradores, sitio: base ? base.position.clone() : null }
   // Cada uno sale por su carril y se para en la franja donde se posaban las
   // naves, a tres profundidades distintas para que no parezca un desfile.
+  //
+  // Con la torre a un lado (Milán la tiene delante de los pórticos, fuera del
+  // paso de los bichos) no vale ir recto: se abren hacia ella y se plantan a
+  // diez de su cara. Isidro: «al final de la partida los soldados van a ir a la
+  // torre y la destruyen».
+  const aUnLado = base && Math.abs(base.position.x) > 4
   tiradores.forEach((s, i) => {
-    s.destX = s.px * 0.8
-    s.destZ = FIELD.spawnZ + 10 - (i % 3) * 2.5
+    s.destX = aUnLado ? base.position.x * 0.55 + s.px * 0.6 : s.px * 0.8
+    s.destZ = (aUnLado ? base.position.z + 11 : FIELD.spawnZ + 10) - (i % 3) * 2.5
     s.andando = true
     s.entrando = true
     // Al trote, y cada uno arranca cuando le toca: salir todos a la vez, al
@@ -1996,9 +2004,17 @@ function start (indice = nivelActual) {
   // En duelo y arena los huéspedes vienen andando desde el horizonte y la nave
   // se posa allí: no se nota el momento en que aparecen. En la campaña se queda
   // la nave de siempre, que forma parte de cómo se cuenta cada misión.
-  entrarPorElFondo(!!dueloEnCurso)
+  entrarPorElFondo(!!dueloEnCurso || !!nivelDeHoy.entrada)
+  // Una misión puede traer su propia entrada: en Milán salen de la Galleria, por
+  // debajo del arco, andando desde dentro de la galería. Sin nave: Isidro, «que
+  // no vengan en naves, tienen que ir apareciendo del fondo del arco hacia mí».
+  if (nivelDeHoy.entrada) {
+    FIELD.entradaZ = nivelDeHoy.entrada.z
+    FIELD.entradaAncho = nivelDeHoy.entrada.fondo
+  }
+  sinNave = !!dueloEnCurso || !!nivelDeHoy.entrada
   dropship.recolocar()
-  if (dueloEnCurso) dropship.ocultar()
+  if (sinNave) dropship.ocultar()
   world.vestir(nivelDeHoy.bioma, nivelDeHoy.hitos, nivelDeHoy.suelo, nivelDeHoy.tonoSuelo, nivelDeHoy.escenario, nivelDeHoy.fondo)
   // Lo que arrastra el viento en este sitio, y por dónde vuelan las naves de paso.
   ambient.vestir(nivelDeHoy, world.alturaEn)
@@ -2037,8 +2053,8 @@ function start (indice = nivelActual) {
     // En la arena no baja ninguna nave: los alienz salen por arriba del
     // graderío y bajan la escalera. La nave es de la campaña, que es donde
     // cuenta algo.
-    (n, jefe) => { if (dueloEnCurso) return; dropship.llegar(n, jefe); audio.nave(jefe) },
-    () => { if (!dueloEnCurso) dropship.partir() }
+    (n, jefe) => { if (sinNave) return; dropship.llegar(n, jefe); audio.nave(jefe) },
+    () => { if (!sinNave) dropship.partir() }
   )
   running = true
   last = performance.now()

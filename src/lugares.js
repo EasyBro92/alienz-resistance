@@ -1144,36 +1144,6 @@ function vestirExtras (g, v) {
       }
     }
   }
-  if (v.galeria) {
-    // La Galleria Vittorio Emanuele II, en el lado norte de la Piazza del Duomo:
-    // el arco de triunfo con su frontón y, detrás, la bóveda de cristal. Junto al
-    // Duomo es LO que hace que esa plaza sea esa plaza.
-    const lado = v.ladoGaleria ?? -1
-    const piedra = mat(v.tonoGaleria ?? 0xd6cbb0, 0.9)
-    const sombra = mat(0x8e8470, 0.95)
-    const cristal = new THREE.MeshStandardMaterial({ color: 0x9fb6bd, roughness: 0.2, metalness: 0.5, transparent: true, opacity: 0.55 })
-    // OJO CON LA X: en 19 quedaba DETRÁS de la fila de fachadas de la plaza (que
-    // empieza en 17) y no se veía nunca. Y en el móvil vertical, a z = -56 solo
-    // se ve hasta x ≈ 14: puesta en 13,5 y al final de la plaza, aparece al lado
-    // del Duomo, que es como se ve de verdad desde la piazza.
-    const x = lado * 13.5
-    const z = -56
-    // El cuerpo, con el hueco oscuro del arco y la rosca por delante.
-    pon(g, new THREE.BoxGeometry(6, 26, 26), piedra, x, 13, z)
-    pon(g, new THREE.BoxGeometry(6.4, 13, 7.6), sombra, x - lado * 0.3, 6.5, z)
-    const arco = pon(g, new THREE.CylinderGeometry(3.8, 3.8, 6.6, seg(14), 1, false, 0, Math.PI), sombra, x - lado * 0.3, 13, z)
-    arco.rotation.set(0, 0, Math.PI / 2)
-    arco.rotation.z = Math.PI / 2
-    // El frontón triangular de arriba.
-    const front = pon(g, new THREE.CylinderGeometry(7, 7, 6.2, 3), piedra, x, 27.5, z)
-    front.rotation.set(0, 0, Math.PI / 2)
-    front.scale.set(0.5, 1, 1)
-    // La bóveda de cristal que sale por detrás, hacia fuera de la plaza.
-    const boveda = pon(g, new THREE.CylinderGeometry(5.4, 5.4, 40, seg(16), 1, true, 0, Math.PI), cristal, x + lado * 22, 15, z)
-    boveda.rotation.set(0, 0, Math.PI / 2)
-    pon(g, new THREE.BoxGeometry(40, 15, 0.6), piedra, x + lado * 22, 7.5, z + 5.4)
-    pon(g, new THREE.BoxGeometry(40, 15, 0.6), piedra, x + lado * 22, 7.5, z - 5.4)
-  }
   if (v.tranvia && CON_EXTRAS) {
     const cuerpo = mat(v.tonoTranvia ?? 0xf0d048, 0.7)
     for (const z of [-24, -74]) {

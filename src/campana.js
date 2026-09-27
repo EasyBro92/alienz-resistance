@@ -172,8 +172,16 @@ export const PAISES = [
       },
       {
         name: 'Milán', lugar: 'Piazza del Duomo', mapa: sitio(45.46, 9.19), bioma: 'mediterraneo',
-        // La plaza con los pórticos. Aquí no se ve ni un rascacielos: los de Porta Nuova están a dos kilómetros.
-        escenario: 'milan', suelo: 'losas', tonoSuelo: 0x9e988e, hitos: [['duomo']],
+        // La plaza hecha en Blender (herramientas/blender/lugar_milan.py): el arco de
+        // la Galleria al fondo, el Duomo a la derecha y los pórticos a la izquierda.
+        // Sin monumento aparte: el Duomo viene en el modelo.
+        escenario: 'milanDuomo', suelo: 'losas', tonoSuelo: 0x8e8983, hitos: [],
+        // Salen de la galería, por debajo del arco: nacen entre z = -50 y -60, dentro,
+        // y la cara del arco está en -40. Sin nave.
+        entrada: { z: -50, fondo: 10 },
+        // Al anochecer, como en las fotos de la plaza: el cielo azul arriba, rosa
+        // en el horizonte, y los escaparates de la galería encendidos.
+        fondo: { hora: 'ocaso', cielo: 0x7f9cc8, niebla: 0xd9b9b4 },
         resumen: 'Formas nuevas. Aquí prueban cosas.',
         parte: ['Milán era su laboratorio de diseño. Lo que funcionaba aquí lo copiaban en el resto de Europa.',
           'Espera formas que no has visto nunca.'],

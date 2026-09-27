@@ -100,13 +100,7 @@ export const CIUDADES = {
     arboles: 'pino', coches: false, ruinas: true,
     cierre: 'monte', tonoMonte: 0x6b6a52
   }],
-  // Piazza del Duomo: el empedrado en abanico, los pórticos de la plaza y la
-  // Galería. Aquí no se ve ni un rascacielos, así que no hay perfil de torres.
-  milan: ['plaza', {
-    semilla: 108, tono: 0x9e988e, farolas: 'fernandina', galeria: true, tranvia: true, tonoTranvia: 0xf0d048,
-    estilo: 'colonial', paleta: [0xdcd2bc, 0xd0c4ab, 0xc7b99f], alturas: [17, 22], remate: 0xc2b498,
-    cierre: 'fachada'
-  }],
+  // Milán ya no sale de aquí: se hizo en Blender (`milanDuomo` en escenarios.js).
 
   // --- Grecia ---------------------------------------------------------------
   // Paseo de mármol de Dionisiou Areopagitou, al pie de la Acrópolis: losa
