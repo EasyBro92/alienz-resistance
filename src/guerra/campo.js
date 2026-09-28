@@ -96,7 +96,71 @@ export function crearCampo (lienzo) {
   const vivo = new THREE.Group()
   scene.add(vivo)
   const banderas = []
-  for (const bando of ['azul', 'rojo']) banderas.push(...banderasDe(vivo, bando))
+  const telas = {}
+  for (const bando of ['azul', 'rojo']) {
+    const lista = banderasDe(vivo, bando)
+    telas[bando] = lista[0].material
+    banderas.push(...lista)
+  }
+
+  // El emblema de la compañía, pintado en su color de fondo. Un lienzo de
+  // 256 × 160, la proporción de la tela: el emoji se dibuja con la letra del
+  // sistema, así que en cada móvil sale con su propio dibujo.
+  function emblema (bando, icono) {
+    const tela = telas[bando]
+    const lienzo = document.createElement('canvas')
+    lienzo.width = 256; lienzo.height = 160
+    const ctx = lienzo.getContext('2d')
+    ctx.fillStyle = '#' + COLOR[bando].toString(16).padStart(6, '0')
+    ctx.fillRect(0, 0, 256, 160)
+    ctx.fillStyle = 'rgba(255,255,255,0.9)'
+    ctx.fillRect(0, 0, 256, 10); ctx.fillRect(0, 150, 256, 10)
+    if (icono) {
+      ctx.beginPath(); ctx.arc(128, 80, 58, 0, Math.PI * 2)
+      ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.fill()
+      ctx.font = '76px system-ui, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif'
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+      ctx.fillText(icono, 128, 86)
+    }
+    const tex = new THREE.CanvasTexture(lienzo)
+    tex.colorSpace = THREE.SRGBColorSpace
+    tela.map?.dispose()
+    tela.map = tex
+    tela.color.set(0xffffff)
+    tela.needsUpdate = true
+    escudoEnElSuelo(bando, icono)
+  }
+
+  // Y grande en el suelo de su mitad, como el escudo pintado en un campo: las
+  // banderas de tu plaza caen por debajo del cuadro y así el emblema se ve
+  // toda la partida. Tumbado hacia la cámara, se lee derecho en los dos lados.
+  const escudos = {}
+  function escudoEnElSuelo (bando, icono) {
+    const lienzo = document.createElement('canvas')
+    lienzo.width = lienzo.height = 256
+    const ctx = lienzo.getContext('2d')
+    const col = '#' + COLOR[bando].toString(16).padStart(6, '0')
+    ctx.beginPath(); ctx.arc(128, 128, 118, 0, Math.PI * 2)
+    ctx.lineWidth = 12; ctx.strokeStyle = col; ctx.stroke()
+    ctx.fillStyle = 'rgba(20,24,30,0.35)'; ctx.fill()
+    ctx.font = '150px system-ui, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif'
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    ctx.fillText(icono, 128, 138)
+    const tex = new THREE.CanvasTexture(lienzo)
+    tex.colorSpace = THREE.SRGBColorSpace
+    if (!escudos[bando]) {
+      const m = new THREE.Mesh(
+        new THREE.PlaneGeometry(5.2, 5.2).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.92, depthWrite: false })
+      )
+      m.position.set(0, 0.02, bando === 'azul' ? CAMPO.baseAzul - 11 : CAMPO.baseRoja + 10)
+      scene.add(m)
+      escudos[bando] = m
+    }
+    escudos[bando].material.map?.dispose()
+    escudos[bando].material.map = tex
+    escudos[bando].material.needsUpdate = true
+  }
   const humos = columnasDeHumo(vivo)
   barricadasDeBlender(vivo)
 
@@ -137,7 +201,7 @@ export function crearCampo (lienzo) {
     }
   }
 
-  return { renderer, scene, camera, animar }
+  return { renderer, scene, camera, animar, emblema }
 }
 
 // --- suelo ---------------------------------------------------------------------

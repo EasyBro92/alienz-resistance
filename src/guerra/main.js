@@ -47,7 +47,7 @@ const SOLO_COFRE = new Set(['capitan'])
 
 const $ = id => document.getElementById(id)
 const lienzo = $('gc-lienzo')
-const { renderer, scene, camera, animar } = crearCampo(lienzo)
+const { renderer, scene, camera, animar, emblema } = crearCampo(lienzo)
 const effects = createEffects(scene, camera)
 const audio = createAudio()
 
@@ -735,7 +735,7 @@ function terminar () {
   const az = bandos.azul
   const ro = bandos.rojo
   let titulo, texto
-  if (ro.vida <= 0) { titulo = 'VICTORIA'; texto = 'Tu compañía ha entrado en la base enemiga.' }
+  if (ro.vida <= 0) { titulo = 'VICTORIA'; texto = `${compania.icono} ${nombreCompania()} ha entrado en la base enemiga.` }
   else if (az.vida <= 0) { titulo = 'DERROTA'; texto = 'Han entrado en tu base.' }
   else if (az.dañoHecho > ro.dañoHecho) { titulo = 'VICTORIA'; texto = 'Se acabó el tiempo y le has hecho más daño a su base.' }
   else if (az.dañoHecho < ro.dañoHecho) { titulo = 'DERROTA'; texto = 'Se acabó el tiempo y te han hecho más daño.' }
@@ -751,12 +751,63 @@ function terminar () {
   texto += ' Práctica: no cuenta para el mapa.'
   $('gc-otra').textContent = titulo === 'VICTORIA' ? `SIGUIENTE: NIVEL ${nivelMaquina}` : `REPETIR NIVEL ${nivelMaquina}`
   pintarNivelMenu()
-  $('gc-final-titulo').textContent = titulo
+  $('gc-final-titulo').textContent = titulo === 'VICTORIA' ? `${compania.icono} VICTORIA` : titulo
   $('gc-final-texto').textContent = texto
   $('gc-hud').hidden = true
   $('gc-final').hidden = false
   if (titulo === 'VICTORIA') audio.desbloqueo?.()
 }
+
+// --- tu compañía ---------------------------------------------------------------
+// Isidro: «que puedas elegir el nombre de tu compañía o equipo, con un logo de
+// una lista de iconos prefijados». Se guarda en el móvil; cuando haya partidas
+// en directo, es lo que verá el rival.
+const EMBLEMAS = ['🐺', '🦅', '🐍', '🦂', '🐻', '🦁', '🐉', '🦈', '💀', '🔥', '⚡', '⭐', '⚔️', '🛡️', '🎯', '💣', '⚓', '👑', '☢️', '🌪️', '🗡️', '🏴', '🦏', '🐗']
+const CLAVE_COMPANIA = 'alienz-guerra-compania-v1'
+const compania = (() => {
+  try {
+    const c = JSON.parse(localStorage.getItem(CLAVE_COMPANIA)) ?? {}
+    return {
+      nombre: typeof c.nombre === 'string' ? c.nombre.slice(0, 20) : '',
+      icono: EMBLEMAS.includes(c.icono) ? c.icono : EMBLEMAS[0]
+    }
+  } catch { return { nombre: '', icono: EMBLEMAS[0] } }
+})()
+const nombreCompania = () => compania.nombre.trim() || 'Tu compañía'
+function guardarCompania () {
+  try { localStorage.setItem(CLAVE_COMPANIA, JSON.stringify(compania)) } catch {}
+}
+function pintarCompania () {
+  $('gc-escudo').textContent = compania.icono
+  $('gc-nombre').value = compania.nombre
+  $('gc-nombre-mio').textContent = `${compania.icono} ${nombreCompania()}`
+  for (const b of $('gc-iconos').children) b.setAttribute('aria-selected', String(b.dataset.icono === compania.icono))
+  emblema('azul', compania.icono)
+}
+$('gc-iconos').innerHTML = EMBLEMAS.map(i => `<button type="button" role="option" data-icono="${i}" aria-label="Emblema ${i}">${i}</button>`).join('')
+$('gc-escudo').onclick = () => {
+  const abrir = $('gc-iconos').hidden
+  $('gc-iconos').hidden = !abrir
+  $('gc-escudo').setAttribute('aria-expanded', String(abrir))
+}
+$('gc-iconos').onclick = e => {
+  const b = e.target.closest('[data-icono]')
+  if (!b) return
+  compania.icono = b.dataset.icono
+  guardarCompania()
+  pintarCompania()
+  $('gc-iconos').hidden = true
+  $('gc-escudo').setAttribute('aria-expanded', 'false')
+}
+$('gc-nombre').oninput = () => {
+  // Sin saltos ni caracteres de control; espacios dobles fuera.
+  compania.nombre = $('gc-nombre').value.replace(/[\u0000-\u001f]/g, '').replace(/\s{2,}/g, ' ').slice(0, 20)
+  guardarCompania()
+  $('gc-nombre-mio').textContent = `${compania.icono} ${nombreCompania()}`
+}
+pintarCompania()
+// La máquina también lleva el suyo.
+emblema('rojo', '🤖')
 
 function pintarNivelMenu () {
   $('gc-maquina').innerHTML = `CONTRA LA MÁQUINA <small>práctica · nivel ${nivelMaquina}</small>`

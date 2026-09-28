@@ -18,6 +18,16 @@
       <p class="gc-antetitulo">Multijugador</p>
       <h1>GUERRA CIVIL</h1>
       <p class="gc-texto">Sin alienz. Dos compañías, una carretera en medio y una base en cada punta. Manda soldados, ponles defensas y entra en la base del otro.</p>
+      <!-- Tu compañía: nombre y emblema, elegidos aquí y guardados en el
+           móvil. Salen en el marcador, en el final y en tus banderas. -->
+      <div class="gc-compania">
+        <button id="gc-escudo" class="gc-escudo" type="button" aria-label="Elegir emblema" aria-expanded="false"></button>
+        <label class="gc-compania-nombre">
+          <span>Tu compañía</span>
+          <input id="gc-nombre" type="text" maxlength="20" autocomplete="off" spellcheck="false" placeholder="Ponle nombre">
+        </label>
+      </div>
+      <div id="gc-iconos" class="gc-iconos" hidden role="listbox" aria-label="Emblemas"></div>
       <button id="gc-maquina" class="gc-boton gc-principal" type="button">CONTRA LA MÁQUINA <small>práctica</small></button>
       <button class="gc-boton" type="button" disabled>MAPA DEL MUNDO <small>próximamente</small></button>
       <button class="gc-boton" type="button" disabled>EMPAREJAMIENTO RÁPIDO <small>próximamente</small></button>
@@ -35,7 +45,7 @@
       <button id="gc-salir" class="gc-mini" type="button" aria-label="Salir">✕</button>
       <div class="gc-vidas">
         <div class="gc-vida gc-rojo"><span id="gc-nombre-rival">Máquina</span><div class="gc-barra"><i id="gc-vida-rojo"></i></div></div>
-        <div class="gc-vida gc-azul"><span>Tu base</span><div class="gc-barra"><i id="gc-vida-azul"></i></div></div>
+        <div class="gc-vida gc-azul"><span id="gc-nombre-mio">Tu base</span><div class="gc-barra"><i id="gc-vida-azul"></i></div></div>
       </div>
       <div class="gc-lado">
         <b id="gc-reloj" class="gc-reloj">5:00</b>

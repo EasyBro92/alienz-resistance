@@ -42,7 +42,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--fondo)
 .gc-mini { width: 34px; border-radius: 10px; border: 1px solid var(--borde); background: var(--panel); color: var(--tinta); font-size: 15px; }
 .gc-vidas { flex: 1; display: flex; flex-direction: column; gap: 3px; background: var(--panel); border: 1px solid var(--borde); border-radius: 10px; padding: 4px 8px; }
 .gc-vida { display: flex; align-items: center; gap: 6px; }
-.gc-vida span { width: 92px; white-space: nowrap; font-size: 10px; color: var(--tenue); text-transform: uppercase; letter-spacing: 0.08em; }
+.gc-vida span { width: 108px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px; color: var(--tenue); text-transform: uppercase; letter-spacing: 0.08em; }
 .gc-barra { flex: 1; height: 7px; border-radius: 4px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
 .gc-barra i { display: block; height: 100%; width: 100%; transition: width 0.25s; }
 .gc-rojo .gc-barra i { background: var(--rojo); }
@@ -93,3 +93,18 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--fondo)
 .gc-carta .gc-nivel { position: absolute; top: 3px; right: 5px; font-size: 9px; color: var(--oro); z-index: 1; }
 .gc-carta .gc-candado { position: absolute; top: 3px; left: 5px; font-size: 10px; z-index: 1; }
 .gc-carta.mejora { width: 62px; }
+
+/* --- tu compañía --- */
+.gc-compania { display: flex; gap: 10px; align-items: stretch; margin-bottom: 2px; }
+.gc-escudo { flex: none; width: 62px; border-radius: 14px; border: 2px solid var(--azul);
+  background: radial-gradient(circle at 50% 35%, rgba(47, 125, 224, 0.45), rgba(14, 19, 26, 0.9)); font-size: 32px; line-height: 1; cursor: pointer; }
+.gc-escudo[aria-expanded="true"] { box-shadow: 0 0 0 3px rgba(47, 125, 224, 0.4); }
+.gc-compania-nombre { flex: 1; display: flex; flex-direction: column; gap: 4px; text-align: left; }
+.gc-compania-nombre span { font-size: 11px; color: var(--tenue); text-transform: uppercase; letter-spacing: 0.12em; }
+.gc-compania-nombre input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--borde);
+  background: rgba(255, 255, 255, 0.07); color: var(--tinta); font: 800 16px inherit; }
+.gc-compania-nombre input::placeholder { color: rgba(255, 255, 255, 0.35); }
+.gc-iconos { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; padding: 8px; border-radius: 12px;
+  background: var(--panel); border: 1px solid var(--borde); }
+.gc-iconos button { aspect-ratio: 1; border-radius: 10px; border: 1px solid var(--borde); background: rgba(255, 255, 255, 0.05); font-size: 22px; line-height: 1; cursor: pointer; }
+.gc-iconos button[aria-selected="true"] { border-color: var(--azul); background: rgba(47, 125, 224, 0.3); }
