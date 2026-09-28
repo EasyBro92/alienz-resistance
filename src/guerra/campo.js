@@ -154,6 +154,7 @@ export function crearCampo (lienzo) {
         new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.92, depthWrite: false })
       )
       m.position.set(0, 0.02, bando === 'azul' ? CAMPO.baseAzul - 11 : CAMPO.baseRoja + 10)
+      m.rotation.y = girado ? Math.PI : 0
       scene.add(m)
       escudos[bando] = m
     }
@@ -164,6 +165,16 @@ export function crearCampo (lienzo) {
   const humos = columnasDeHumo(vivo)
   barricadasDeBlender(vivo)
 
+  // Quien juega de rojo lo ve todo desde su lado: la cámara se pone detrás de
+  // la base roja, mirando hacia la azul. Los escudos del suelo se giran con
+  // ella para que se sigan leyendo derechos.
+  let girado = false
+  function girar (si) {
+    girado = !!si
+    for (const m of Object.values(escudos)) m.rotation.y = girado ? Math.PI : 0
+    encuadrar()
+  }
+
   function encuadrar () {
     const w = lienzo.clientWidth || window.innerWidth
     const h = lienzo.clientHeight || window.innerHeight
@@ -172,8 +183,13 @@ export function crearCampo (lienzo) {
     // En vertical el ancho es lo que falta: se aleja la cámara hasta que los
     // cinco carriles caben con un poco de margen, en cualquier pantalla.
     const vista = Math.max(1, 0.62 / camera.aspect)
-    camera.position.set(0, 21 * vista, CAMPO.baseAzul + 14 * vista)
-    camera.lookAt(0, 0, MITAD + 2)
+    if (girado) {
+      camera.position.set(0, 21 * vista, CAMPO.baseRoja - 14 * vista)
+      camera.lookAt(0, 0, MITAD - 2)
+    } else {
+      camera.position.set(0, 21 * vista, CAMPO.baseAzul + 14 * vista)
+      camera.lookAt(0, 0, MITAD + 2)
+    }
     camera.updateProjectionMatrix()
   }
   encuadrar()
@@ -201,7 +217,7 @@ export function crearCampo (lienzo) {
     }
   }
 
-  return { renderer, scene, camera, animar, emblema }
+  return { renderer, scene, camera, animar, emblema, girar }
 }
 
 // --- suelo ---------------------------------------------------------------------

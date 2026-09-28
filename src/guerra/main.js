@@ -24,6 +24,8 @@ import { createAudio } from '../audio.js'
 import { renderPortraits } from '../portraits.js'
 import { cargarCartera, ponerSinMejoras } from '../systems/cartera.js'
 import { crearCampo, CAMPO, carrilX, MITAD, COLOR } from './campo.js'
+import { crearRed } from './red.js'
+import { filtrar, FRASES, MAX_MENSAJE, ESPERA_MENSAJE } from '../systems/duelo.js'
 
 ponerSinMejoras(true)
 
@@ -47,7 +49,7 @@ const SOLO_COFRE = new Set(['capitan'])
 
 const $ = id => document.getElementById(id)
 const lienzo = $('gc-lienzo')
-const { renderer, scene, camera, animar, emblema } = crearCampo(lienzo)
+const { renderer, scene, camera, animar, emblema, girar } = crearCampo(lienzo)
 const effects = createEffects(scene, camera)
 const audio = createAudio()
 
@@ -202,7 +204,7 @@ function morir (o, quien) {
     const botin = Math.round(o.s.spec.cost * (o.esDefensa ? REGLAS.botinDefensa : REGLAS.botinBaja))
     quien.monedas += botin
     quien.bajas++
-    if (quien === bandos.azul) effects.floatText(tmpA.copy(p).setY(2), `+${botin}`)
+    if (quien === yoB()) effects.floatText(tmpA.copy(p).setY(2), `+${botin}`)
   }
   if (o.s.spec.revienta) reventar(o)
 }
@@ -227,8 +229,12 @@ function enArea (bando, centro, radio, daño) {
   }
 }
 
-function disparar (u, blanco) {
+// `soloVer`: el invitado pinta los disparos que le llegan, sin hacer daño (la
+// vida ya la calcula el anfitrión).
+function disparar (u, blanco, soloVer = false) {
   const s = u.s
+  u.disparos = (u.disparos ?? 0) + 1
+  u.blancoId = blanco.s.id
   const spec = s.spec
   const from = muzzleWorld(s, tmpA)
   const to = tmpB.copy(blanco.s.mesh.position).setY(1)
@@ -240,7 +246,7 @@ function disparar (u, blanco) {
   } else if (spec.flame) {
     effects.flame(from, u.bando.dir, spec.range)
     // La llamarada quema todo lo que tiene delante en su franja.
-    for (const e of unidades) {
+    if (!soloVer) for (const e of unidades) {
       if (e.bando === u.bando || e.s.dead || e.oculta) continue
       const delante = (e.s.pz - s.pz) * u.bando.dir
       if (delante > 0 && delante < spec.range && Math.abs(e.s.px - s.px) < 1.4) herir(e, s.damage, u.bando)
@@ -254,22 +260,23 @@ function disparar (u, blanco) {
       audio.boom()
       effects.burst(p, 0xffb03a, 14, 1.8)
       effects.burst(p, 0x4a4a4a, 8, 1.1)
-      enArea(u.bando, p, spec.splash, s.damage)
+      if (!soloVer) enArea(u.bando, p, spec.splash, s.damage)
     })
     return
   } else {
     effects.tracer(from, to)
     if (Math.random() < 0.3) effects.smoke(from, 1)
   }
-  herir(blanco, daño, u.bando)
+  if (!soloVer) herir(blanco, daño, u.bando)
 }
 
 function paso (dt) {
   if (!jugando) return
   tiempo += dt
   bandos.azul.monedas += REGLAS.goteo * dt
-  bandos.rojo.monedas += REGLAS.goteo * duro.ingreso * dt
-  maquina(dt)
+  bandos.rojo.monedas += REGLAS.goteo * (rol === 'solo' ? duro.ingreso : 1) * dt
+  if (rol === 'solo') maquina(dt)
+  else for (const o of colaOrdenes.splice(0)) ejecutar(bandos.rojo, o)
 
   // El capitán anima a los suyos de alrededor, como en la campaña.
   for (const u of unidades) u.s.animo = 1
@@ -359,6 +366,7 @@ function paso (dt) {
   })
 
   effects.update(dt)
+  if (rol === 'anfitrion') publicar(dt)
 
   if (bandos.azul.vida <= 0 || bandos.rojo.vida <= 0 || tiempo >= REGLAS.duracion) terminar()
 }
@@ -473,10 +481,333 @@ function subirNivel (bando, key) {
   for (const u of unidades) {
     if (u.bando === bando && u.key === key && !u.s.dead) {
       u.s.upgrade()
-      if (bando === bandos.azul) effects.floatText(tmpA.copy(u.s.mesh.position).setY(2.4), `NV ${u.s.level}`, '#5fd97a', 52)
+      if (bando === yoB()) effects.floatText(tmpA.copy(u.s.mesh.position).setY(2.4), `NV ${u.s.level}`, '#5fd97a', 52)
     }
   }
 }
+
+// --- en directo ------------------------------------------------------------------
+// 'solo' contra la máquina; en directo, 'anfitrion' (azul, simula la partida) o
+// 'invitado' (rojo, pinta lo que le manda el anfitrión y le manda órdenes).
+let rol = 'solo'
+const red = crearRed()
+let rivalRed = null           // { alias, icono, tengo } del otro jugador
+const yoB = () => rol === 'invitado' ? bandos.rojo : bandos.azul
+const enDirecto = () => rol !== 'solo'
+const CLAVES = [...TROPAS, ...DEFENSAS]
+const anchoCampo = (CAMPO.carriles * CAMPO.anchoCarril) / 2
+const clampX = x => Math.max(-anchoCampo + 0.6, Math.min(anchoCampo - 0.6, x))
+// Lo colocado llega como mínimo a la línea de defensa de SU bando.
+const aLinea = (bando, z) => bando.dir < 0 ? Math.min(LINEA, z) : Math.max(CAMPO.baseRoja + (CAMPO.baseAzul - LINEA), z)
+
+// Todo lo que hace un jugador pasa por aquí. Jugando solo o de anfitrión se
+// hace en el acto; de invitado se le manda al anfitrión, que lo comprueba
+// (monedas, desbloqueos, mitad del campo) antes de hacerlo: el invitado no
+// puede colar nada que no podría hacer tocando.
+function ordenar (o) {
+  if (rol === 'invitado') red.mandarOrden(o)
+  else ejecutar(bandos.azul, o)
+}
+
+function ejecutar (bando, o) {
+  if (!o || typeof o !== 'object') return
+  const k = o.k
+  if (o.tipo === 'tropa' && SOLDIERS[k] && bando.tengo.has(k)) {
+    mandarTropa(bando, k, clampX(+o.x || 0), o.orden === 'mantener' ? 'mantener' : 'avanza', aLinea(bando, +o.z || 0))
+  } else if (o.tipo === 'defensa' && DEFENSES[k] && bando.tengo.has(k)) {
+    const z = +o.z || 0
+    if (enMiMitad(bando, z)) ponerDefensa(bando, k, clampX(+o.x || 0), aLinea(bando, z))
+  } else if (o.tipo === 'mejora' && SOLDIERS[k] && bando.tengo.has(k)) {
+    const n = nivelDe(bando, k)
+    const p = REGLAS.precioMejora(SOLDIERS[k].cost, n)
+    if (n >= REGLAS.nivelMax || bando.monedas < p) return
+    bando.monedas -= p
+    subirNivel(bando, k)
+  } else if (o.tipo === 'desbloquear' && SOLDIERS[k] && !SOLO_COFRE.has(k) && !bando.tengo.has(k)) {
+    const p = Math.round(SOLDIERS[k].cost * REGLAS.precioDesbloqueo)
+    if (bando.monedas < p) return
+    bando.monedas -= p
+    bando.tengo.add(k)
+  } else if (o.tipo === 'ataque') {
+    for (const u of unidades) if (u.bando === bando && u.orden === 'mantener') u.orden = 'avanza'
+  }
+}
+
+// El anfitrión manda el campo ocho veces por segundo: cada unidad en una fila
+// corta [id, clave, bando, x, z, vida %, disparos, blanco, quieta, nivel].
+let colaOrdenes = []
+let publicarT = 0
+function publicar (dt) {
+  publicarT -= dt
+  if (publicarT > 0) return
+  publicarT = 0.125
+  const az = bandos.azul
+  const ro = bandos.rojo
+  red.mandarEstado({
+    t: Math.round(tiempo * 10) / 10,
+    m: [Math.floor(az.monedas), Math.floor(ro.monedas)],
+    v: [az.vida, ro.vida],
+    d: [az.dañoHecho, ro.dañoHecho],
+    b: [az.bajas, ro.bajas],
+    n: [{ ...az.niveles, _: 1 }, { ...ro.niveles, _: 1 }],
+    g: [[...az.tengo].join(','), [...ro.tengo].join(',')],
+    u: unidades.filter(u => !u.s.dead).map(u => [
+      u.s.id, CLAVES.indexOf(u.key), u.bando === az ? 0 : 1,
+      Math.round(u.s.px * 10), Math.round(u.s.pz * 10), Math.round(100 * Math.max(0, u.s.hp) / u.s.maxHp),
+      u.disparos ?? 0, u.blancoId ?? 0, u.orden === 'mantener' ? 1 : 0, u.s.level
+    ])
+  })
+}
+
+// El invitado pinta ese campo. Cada unidad del anfitrión tiene aquí su figura
+// (la misma `crearUnidad`, sin combate): anda hacia donde le dicen, se encara
+// con su blanco y dispara cuando el contador de disparos sube. El daño no lo
+// hace nadie aquí: la vida llega hecha.
+let estadoRed = null
+let ultimoEstado = 0
+const espejo = new Map()
+const pendientes = new Set()
+function pasoEspejo (dt) {
+  const e = estadoRed
+  estadoRed = null
+  if (e) {
+    ultimoEstado = performance.now()
+    const az = bandos.azul
+    const ro = bandos.rojo
+    tiempo = e.t ?? tiempo
+    if (e.m) { az.monedas = e.m[0]; ro.monedas = e.m[1] }
+    if (e.v) { az.vida = e.v[0]; ro.vida = e.v[1] }
+    if (e.d) { az.dañoHecho = e.d[0]; ro.dañoHecho = e.d[1] }
+    if (e.b) { az.bajas = e.b[0]; ro.bajas = e.b[1] }
+    if (e.n) { az.niveles = { ...e.n[0] }; ro.niveles = { ...e.n[1] } }
+    if (e.g) {
+      az.tengo = new Set(e.g[0] ? e.g[0].split(',') : [])
+      ro.tengo = new Set(e.g[1] ? e.g[1].split(',') : [])
+    }
+    const vistos = new Set()
+    for (const f of e.u ?? []) {
+      const [id, ki, b, x10, z10, hp, disp, blanco, quieta, nivel] = f
+      vistos.add(id)
+      const u = espejo.get(id)
+      const meta = { x: x10 / 10, z: z10 / 10, hp, disp, blanco, quieta, nivel }
+      if (u) { u.meta = meta; continue }
+      if (pendientes.has(id) || !CLAVES[ki]) continue
+      pendientes.add(id)
+      crearUnidad(b ? ro : az, CLAVES[ki], meta.x, meta.z, quieta ? 'mantener' : 'avanza').then(n => {
+        pendientes.delete(id)
+        if (!n) return
+        n.meta = meta
+        n.disparosVistos = disp
+        espejo.set(id, n)
+      })
+    }
+    for (const [id, u] of espejo) {
+      if (vistos.has(id)) continue
+      espejo.delete(id)
+      desaparecer(u)
+    }
+  }
+  for (const u of espejo.values()) {
+    const s = u.s
+    const m = u.meta
+    if (m) {
+      const d = Math.hypot(m.x - s.px, m.z - s.pz)
+      if (d > 4) { s.px = m.x; s.pz = m.z }
+      if (!u.esDefensa) {
+        s.destX = m.x
+        s.destZ = m.z
+        s.andando = d > 0.12
+        s.modoPaso = 'trote'
+      }
+      u.orden = u.esDefensa ? 'fija' : m.quieta ? 'mantener' : 'avanza'
+      while (s.level < (m.nivel ?? 1)) s.upgrade()
+      s.hp = (m.hp / 100) * s.maxHp
+      s.bar.set(m.hp / 100)
+      const bl = espejo.get(m.blanco)
+      if (bl && !s.andando) { s.targetPos = bl.s.mesh.position; s.hasTarget = true } else if (!bl) { s.targetPos = null; s.hasTarget = false }
+      if (m.disp > (u.disparosVistos ?? 0)) {
+        u.disparosVistos = m.disp
+        if (bl) disparar(u, bl, true)
+      }
+    }
+    s.update(dt, camera)
+  }
+  effects.update(dt)
+}
+
+function desaparecer (u) {
+  const p = u.s.mesh.position
+  // Si se ha ido pasada la base del otro, ha entrado: explosión en la base.
+  if (!u.esDefensa && (u.s.pz - u.bando.suBase) * u.bando.dir > -1.5) {
+    audio.boom()
+    effects.burst(tmpA.copy(p).setY(1.2), COLOR[u.bando.nombre], 18, 2)
+  } else {
+    effects.burst(tmpA.copy(p).setY(1), u.esDefensa ? 0x9a8a6a : 0x8a1f1f, 8, 1)
+    if (u.key === 'mines') { audio.boom(); effects.burst(tmpA.copy(p).setY(0.6), 0xffb03a, 16, 2) }
+  }
+  scene.remove(u.s.mesh)
+  unidades = unidades.filter(o => o !== u)
+}
+
+// Si el otro se va (o deja de llegar el campo) veinte segundos, gana el que
+// se queda.
+let ausencia = 0
+function vigilarRival (dt) {
+  if (!jugando || !enDirecto()) return
+  const falta = !red.sala?.rival || (rol === 'invitado' && performance.now() - ultimoEstado > 4000)
+  if (!falta) { if (ausencia > 0) { ausencia = 0; pista('El rival ha vuelto.') } return }
+  ausencia += dt
+  if (Math.floor(ausencia) !== Math.floor(ausencia - dt)) pista(`Rival desconectado… ${Math.max(0, 20 - Math.floor(ausencia))} s`)
+  if (ausencia >= 20) terminar({ g: yoB().nombre, r: 'abandono' })
+}
+
+red.en('orden', o => { if (rol === 'anfitrion' && jugando) colaOrdenes.push(o) })
+red.en('estado', e => { if (rol === 'invitado') estadoRed = e })
+red.en('fin', f => {
+  if (!jugando || rol !== 'invitado') return
+  if (f.d) { bandos.azul.dañoHecho = f.d[0]; bandos.rojo.dañoHecho = f.d[1] }
+  if (f.b) { bandos.azul.bajas = f.b[0]; bandos.rojo.bajas = f.b[1] }
+  mostrarFinal(f)
+})
+// El anfitrión también se entera si el invitado se rinde.
+red.en('fin', f => { if (jugando && rol === 'anfitrion' && f.r === 'abandono' && f.g === 'azul') mostrarFinal(f) })
+red.en('inicio', async sala => {
+  // El nombre y el emblema del otro pueden llegar un pelo después del arranque.
+  for (let i = 0; i < 30 && !sala.rival; i++) await new Promise(r => setTimeout(r, 100))
+  rivalRed = sala.rival
+  $('gc-espera').hidden = true
+  empezarPartida(sala.anfitrion ? 'anfitrion' : 'invitado')
+})
+
+// --- vestíbulo: emparejamiento rápido y sala con código -------------------------------
+const aviso = t => { $('gc-aviso').textContent = t }
+function datosYo () {
+  const cartera = cargarCartera()
+  return { alias: nombreCompania(), icono: compania.icono, tengo: [...new Set([...INICIALES, ...cartera.desbloqueadas])].filter(k => CLAVES.includes(k)) }
+}
+async function conectarConAviso () {
+  aviso('Conectando…')
+  try {
+    red.ponerYo(datosYo())
+    await red.conectar()
+    aviso('')
+    return true
+  } catch (e) {
+    console.warn('Sin red:', e)
+    aviso(/operation-not-allowed|admin-restricted/.test(e?.code ?? '')
+      ? 'Hace falta entrar con tu cuenta (en Ajustes del juego) para jugar en línea.'
+      : 'No se ha podido conectar. Revisa la conexión e inténtalo otra vez.')
+    return false
+  }
+}
+let esperaDesde = 0
+let esperaTic = null
+function esperar (texto, codigo = '') {
+  $('gc-espera').hidden = false
+  $('gc-espera-codigo').textContent = codigo
+  $('gc-espera-codigo').hidden = !codigo
+  esperaDesde = performance.now()
+  clearInterval(esperaTic)
+  const pintar = () => {
+    const seg = Math.floor((performance.now() - esperaDesde) / 1000)
+    $('gc-espera-texto').textContent = `${texto} ${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, '0')}`
+  }
+  pintar()
+  esperaTic = setInterval(pintar, 1000)
+}
+function dejarDeEsperar () {
+  clearInterval(esperaTic)
+  $('gc-espera').hidden = true
+}
+$('gc-rapida').onclick = async () => {
+  audio.unlock()
+  if (!await conectarConAviso()) return
+  try {
+    const r = await red.rapida()
+    if (r === 'dentro') esperar('¡Rival encontrado! Preparando…')
+    else esperar('Buscando rival…')
+  } catch (e) { console.warn(e); aviso('No se ha podido buscar partida. Inténtalo otra vez.') }
+}
+$('gc-codigo').onclick = () => { $('gc-sala').hidden = !$('gc-sala').hidden }
+$('gc-crear').onclick = async () => {
+  audio.unlock()
+  if (!await conectarConAviso()) return
+  try {
+    const codigo = await red.crearSala()
+    esperar('Pásale este código a tu rival. Esperando…', codigo)
+  } catch (e) { console.warn(e); aviso('No se ha podido abrir la sala.') }
+}
+$('gc-entrar').onclick = async () => {
+  audio.unlock()
+  const codigo = $('gc-codigo-campo').value.trim().toUpperCase()
+  if (!/^[A-Z2-9]{4}$/.test(codigo)) return aviso('El código son cuatro letras o números.')
+  if (!await conectarConAviso()) return
+  try {
+    const error = await red.unirse(codigo)
+    if (error) return aviso(error)
+    esperar('Dentro. Empezando…')
+  } catch (e) { console.warn(e); aviso('No se ha podido entrar en la sala.') }
+}
+$('gc-cancelar').onclick = () => { red.cancelar(); dejarDeEsperar(); aviso('') }
+
+// --- chat ---------------------------------------------------------------------------
+// Como el del 1 contra 1: frases rápidas, texto libre filtrado, un mensaje cada
+// tres segundos y botón para denunciar lo del otro. Lo que se le escape al
+// filtro lo ve una persona en la bandeja de Ajustes.
+let ultimoMensaje = 0
+let chatBloqueado = false
+$('gc-frases').innerHTML = FRASES.map(f => `<button type="button" class="gc-frase">${f}</button>`).join('')
+$('gc-chat-boton').onclick = () => {
+  const abrir = $('gc-chat').hidden
+  $('gc-chat').hidden = !abrir
+  $('gc-chat-boton').classList.remove('nuevo')
+  $('gc-chat-nuevo').textContent = ''
+  if (abrir) $('gc-mensajes').scrollTop = $('gc-mensajes').scrollHeight
+}
+$('gc-frases').onclick = e => { const b = e.target.closest('.gc-frase'); if (b) hablar(b.textContent) }
+$('gc-escribir-form').onsubmit = e => {
+  e.preventDefault()
+  if (hablar($('gc-escribir').value)) $('gc-escribir').value = ''
+}
+function hablar (texto) {
+  if (!enDirecto() || !red.sala) return false
+  if (chatBloqueado) { pista('Tu chat está silenciado.'); return false }
+  const limpio = filtrar(texto)
+  if (!limpio) return false
+  const ahora = performance.now() / 1000
+  if (ahora - ultimoMensaje < ESPERA_MENSAJE) { pista('Espera un momento para volver a escribir.'); return false }
+  ultimoMensaje = ahora
+  red.hablar(limpio.slice(0, MAX_MENSAJE), nombreCompania())
+  return true
+}
+red.en('chat', m => {
+  if (!m || typeof m.t !== 'string') return
+  const lista = $('gc-mensajes')
+  const li = document.createElement('li')
+  const mio = m.de === red.uid
+  li.className = mio ? 'mio' : 'suyo'
+  li.innerHTML = `<b></b> <span></span>`
+  li.querySelector('b').textContent = m.alias ?? ''
+  li.querySelector('span').textContent = filtrar(m.t)
+  if (!mio) {
+    const d = document.createElement('button')
+    d.type = 'button'
+    d.className = 'gc-denunciar'
+    d.textContent = 'Denunciar'
+    d.onclick = async () => {
+      d.disabled = true
+      try { await red.denunciar(m); d.textContent = 'Denunciado' } catch { d.textContent = 'Error'; d.disabled = false }
+    }
+    li.append(' ', d)
+    if ($('gc-chat').hidden) {
+      $('gc-chat-boton').classList.add('nuevo')
+      $('gc-chat-nuevo').textContent = 'mensaje nuevo'
+    }
+  }
+  lista.append(li)
+  while (lista.children.length > 30) lista.firstElementChild.remove()
+  lista.scrollTop = lista.scrollHeight
+})
 
 // --- toques ---------------------------------------------------------------------
 const rayo = new THREE.Raycaster()
@@ -489,26 +820,24 @@ lienzo.addEventListener('pointerdown', e => {
   const r = lienzo.getBoundingClientRect()
   rayo.setFromCamera({ x: ((e.clientX - r.left) / r.width) * 2 - 1, y: -((e.clientY - r.top) / r.height) * 2 + 1 }, camera)
   if (!rayo.ray.intersectPlane(plano, punto)) return
-  const yo = bandos.azul
+  const yo = yoB()
   if (!elegida) return pista('Elige primero algo de abajo.')
-  const ancho = (CAMPO.carriles * CAMPO.anchoCarril) / 2
-  const x = Math.max(-ancho + 0.6, Math.min(ancho - 0.6, punto.x))
+  const x = clampX(punto.x)
   if (elegida.tipo === 'tropa') {
     const spec = SOLDIERS[elegida.key]
     if (yo.monedas < spec.cost) { audio.denied(); return pista('No te llega.') }
     if (modo === 'colocar' && !enMiMitad(yo, punto.z)) { audio.denied(); return pista('Para colocar, toca en tu mitad del campo.') }
-    const holdZ = Math.min(LINEA, punto.z)
     // Soltando se sale por el centro del carril tocado (con algo de holgura,
     // para que no vayan en fila india).
     const carril = Math.max(0, Math.min(CAMPO.carriles - 1, Math.round(x / CAMPO.anchoCarril + (CAMPO.carriles - 1) / 2)))
     const xs = modo === 'soltar' ? carrilX(carril) + (Math.random() - 0.5) * 0.8 : x
-    mandarTropa(yo, elegida.key, xs, modo === 'colocar' ? 'mantener' : 'avanza', holdZ)
+    ordenar({ tipo: 'tropa', k: elegida.key, x: xs, z: punto.z, orden: modo === 'colocar' ? 'mantener' : 'avanza' })
     audio.place()
   } else {
     const spec = DEFENSES[elegida.key]
     if (yo.monedas < spec.cost) { audio.denied(); return pista('No te llega.') }
     if (!enMiMitad(yo, punto.z)) { audio.denied(); return pista('Las defensas van en tu mitad.') }
-    ponerDefensa(yo, elegida.key, x, Math.min(LINEA, punto.z))
+    ordenar({ tipo: 'defensa', k: elegida.key, x, z: punto.z })
     audio.place()
   }
   pintarHud(true)
@@ -529,9 +858,11 @@ function pintarModo () {
   pista(modo === 'soltar' ? 'Salen de tu base y avanzan solos.' : 'Se quedan donde toques hasta que pulses ¡AL ATAQUE!')
 }
 $('gc-avanzar').onclick = () => {
-  let n = 0
-  for (const u of unidades) if (u.bando === bandos.azul && u.orden === 'mantener') { u.orden = 'avanza'; n++ }
-  if (n) { audio.place(); pista(`¡${n} al ataque!`) }
+  const n = unidades.filter(u => u.bando === yoB() && u.orden === 'mantener' && !u.s.dead).length
+  if (!n) return
+  ordenar({ tipo: 'ataque' })
+  audio.place()
+  pista(`¡${n} al ataque!`)
 }
 
 // --- dónde se puede poner -----------------------------------------------------------
@@ -541,8 +872,10 @@ $('gc-avanzar').onclick = () => {
 // con una defensa, tu mitad del campo.
 const zona = (() => {
   const g = new THREE.Group()
-  const verde = new THREE.MeshBasicMaterial({ color: 0x5fd97a, transparent: true, opacity: 0.18, depthWrite: false })
-  const borde = new THREE.MeshBasicMaterial({ color: 0x8fffa8, transparent: true, opacity: 0.8, depthWrite: false })
+  // Por las dos caras: al rojo se le pinta reflejada (escala -1), y reflejada
+  // la cara de arriba pasa a ser la de abajo.
+  const verde = new THREE.MeshBasicMaterial({ color: 0x5fd97a, transparent: true, opacity: 0.18, depthWrite: false, side: THREE.DoubleSide })
+  const borde = new THREE.MeshBasicMaterial({ color: 0x8fffa8, transparent: true, opacity: 0.8, depthWrite: false, side: THREE.DoubleSide })
   const ancho = CAMPO.carriles * CAMPO.anchoCarril
   // Tu mitad.
   const z0 = MITAD + 1
@@ -578,6 +911,8 @@ const zona = (() => {
     pintar (t) {
       g.visible = jugando && !!elegida
       if (!g.visible) return
+      g.scale.z = rol === 'invitado' ? -1 : 1
+      g.position.z = rol === 'invitado' ? 2 * MITAD : 0
       const soltando = elegida.tipo === 'tropa' && modo === 'soltar'
       carriles.visible = soltando
       mitad.visible = !soltando
@@ -598,7 +933,7 @@ fotografo.outputColorSpace = THREE.SRGBColorSpace
 renderPortraits(fotografo).then(r => { retratos = r.retratos; if (bandos) pintarCartas(); fotografo.dispose() }).catch(() => {})
 
 function pintarCartas () {
-  const yo = bandos.azul
+  const yo = yoB()
   let html = '<span class="gc-sep" data-label="Tropa"></span>'
   for (const k of TROPAS) {
     const spec = SOLDIERS[k]
@@ -646,22 +981,20 @@ $('gc-cartas').addEventListener('click', e => {
   if (!b) return
   audio.unlock()
   const k = b.dataset.key
-  const yo = bandos.azul
+  const yo = yoB()
   const accion = b.dataset.accion
   if (accion === 'mejora') {
     const n = nivelDe(yo, k)
     if (n >= REGLAS.nivelMax) return
     const p = REGLAS.precioMejora(SOLDIERS[k].cost, n)
     if (yo.monedas < p) { audio.denied(); return pista('No te llega.') }
-    yo.monedas -= p
-    subirNivel(yo, k)
+    ordenar({ tipo: 'mejora', k })
     audio.coin()
     pista(`${SOLDIERS[k].name} a nivel ${n + 1}: los que hay y los que vengan.`)
   } else if (accion === 'desbloquear') {
     const p = Math.round(SOLDIERS[k].cost * REGLAS.precioDesbloqueo)
     if (yo.monedas < p) { audio.denied(); return pista('No te llega.') }
-    yo.monedas -= p
-    yo.tengo.add(k)
+    ordenar({ tipo: 'desbloquear', k })
     audio.coin()
     elegida = { tipo: 'tropa', key: k }
     pista(`${SOLDIERS[k].name} desbloqueado solo para esta partida.`)
@@ -678,10 +1011,14 @@ $('gc-cartas').addEventListener('click', e => {
 let hudT = 0
 let ultimoHud = ''
 function pintarHud (forzar = false) {
-  const az = bandos.azul
-  const ro = bandos.rojo
+  const az = yoB()
+  const ro = rival(az)
+  // `gc-vida-azul` es la barra de abajo (la tuya) y `gc-vida-rojo` la de
+  // arriba (la del otro); el color sigue al bando de verdad.
   $('gc-vida-azul').style.width = `${az.vida}%`
   $('gc-vida-rojo').style.width = `${ro.vida}%`
+  $('gc-vida-azul').closest('.gc-vida').className = `gc-vida gc-${az.nombre}`
+  $('gc-vida-rojo').closest('.gc-vida').className = `gc-vida gc-${ro.nombre}`
   const falta = Math.max(0, REGLAS.duracion - tiempo)
   $('gc-reloj').textContent = `${Math.floor(falta / 60)}:${String(Math.floor(falta % 60)).padStart(2, '0')}`
   $('gc-monedas').textContent = Math.floor(az.monedas)
@@ -699,22 +1036,44 @@ function pintarHud (forzar = false) {
 
 // --- partida --------------------------------------------------------------------
 async function empezar () {
+  return empezarPartida('solo')
+}
+
+async function empezarPartida (rolNuevo) {
+  rol = rolNuevo
   $('gc-menu').hidden = true
   $('gc-final').hidden = true
   $('gc-carga').hidden = false
   audio.unlock()
   for (const u of unidades) scene.remove(u.s.mesh)
   unidades = []
+  espejo.clear()
+  pendientes.clear()
+  estadoRed = null
+  colaOrdenes = []
+  ausencia = 0
+  ultimoEstado = performance.now()
   const cartera = cargarCartera()
   const mio = new Set([...INICIALES, ...cartera.desbloqueadas])
-  bandos = {
-    azul: nuevoBando('azul', mio),
-    // La máquina lleva todas las tropas corrientes y las defensas básicas.
-    rojo: nuevoBando('rojo', ['archer', 'rifle', 'shotgun', 'sniper', 'flamer', 'gunner', 'misil', 'mortar', 'sandbags', 'torreta'])
-  }
-  duro = dureza(nivelMaquina)
-  bandos.rojo.monedas = duro.inicial
-  $('gc-nombre-rival').textContent = `Máquina · nv ${nivelMaquina}`
+  // La máquina lleva todas las tropas corrientes y las defensas básicas; una
+  // persona, lo que tenga desbloqueado en su juego.
+  const suyo = rol === 'solo'
+    ? ['archer', 'rifle', 'shotgun', 'sniper', 'flamer', 'gunner', 'misil', 'mortar', 'sandbags', 'torreta']
+    : (Array.isArray(rivalRed?.tengo) ? rivalRed.tengo : INICIALES)
+  bandos = rol === 'invitado'
+    ? { azul: nuevoBando('azul', suyo), rojo: nuevoBando('rojo', mio) }
+    : { azul: nuevoBando('azul', mio), rojo: nuevoBando('rojo', suyo) }
+  duro = dureza(rol === 'solo' ? nivelMaquina : 1)
+  if (rol === 'solo') bandos.rojo.monedas = duro.inicial
+  girar(rol === 'invitado')
+  const suIcono = rol === 'solo' ? '🤖' : (rivalRed?.icono ?? '🏴')
+  emblema(yoB().nombre, compania.icono)
+  emblema(rival(yoB()).nombre, suIcono)
+  $('gc-nombre-rival').textContent = rol === 'solo' ? `Máquina · nv ${nivelMaquina}` : `${suIcono} ${rivalRed?.alias ?? 'Rival'}`
+  $('gc-chat-boton').hidden = !enDirecto()
+  $('gc-chat').hidden = true
+  $('gc-mensajes').replaceChildren()
+  if (enDirecto()) red.bloqueado().then(b => { chatBloqueado = b }).catch(() => {})
   ia = nuevaIA()
   tiempo = 0
   elegida = null
@@ -730,32 +1089,61 @@ async function empezar () {
   pintarHud(true)
 }
 
-function terminar () {
-  jugando = false
+function resultado () {
   const az = bandos.azul
   const ro = bandos.rojo
-  let titulo, texto
-  if (ro.vida <= 0) { titulo = 'VICTORIA'; texto = `${compania.icono} ${nombreCompania()} ha entrado en la base enemiga.` }
-  else if (az.vida <= 0) { titulo = 'DERROTA'; texto = 'Han entrado en tu base.' }
-  else if (az.dañoHecho > ro.dañoHecho) { titulo = 'VICTORIA'; texto = 'Se acabó el tiempo y le has hecho más daño a su base.' }
-  else if (az.dañoHecho < ro.dañoHecho) { titulo = 'DERROTA'; texto = 'Se acabó el tiempo y te han hecho más daño.' }
-  else { titulo = 'EMPATE'; texto = 'Se acabó el tiempo con las dos bases igual.' }
-  texto += ` Bajas: ${az.bajas} tuyas contra ${ro.bajas} suyas.`
-  if (titulo === 'VICTORIA') {
-    texto += ` Nivel ${nivelMaquina} superado: la próxima vez la máquina juega al ${nivelMaquina + 1}, con más dinero, tropas caras antes y más defensas.`
-    nivelMaquina++
-    guardarNivel(nivelMaquina)
-  } else {
-    texto += ` Sigues en el nivel ${nivelMaquina}.`
+  if (ro.vida <= 0) return { g: 'azul', r: 'base' }
+  if (az.vida <= 0) return { g: 'rojo', r: 'base' }
+  if (az.dañoHecho !== ro.dañoHecho) return { g: az.dañoHecho > ro.dañoHecho ? 'azul' : 'rojo', r: 'tiempo' }
+  return { g: null, r: 'tiempo' }
+}
+
+// Lo decide quien simula (tú jugando solo, el anfitrión en directo) y se lo
+// cuenta al otro por `fin`.
+function terminar (res = resultado()) {
+  if (!jugando) return
+  if (rol === 'anfitrion' || (rol === 'invitado' && res.r === 'abandono')) {
+    red.mandarFin({ ...res, d: [bandos.azul.dañoHecho, bandos.rojo.dañoHecho], b: [bandos.azul.bajas, bandos.rojo.bajas] })
   }
-  texto += ' Práctica: no cuenta para el mapa.'
-  $('gc-otra').textContent = titulo === 'VICTORIA' ? `SIGUIENTE: NIVEL ${nivelMaquina}` : `REPETIR NIVEL ${nivelMaquina}`
-  pintarNivelMenu()
-  $('gc-final-titulo').textContent = titulo === 'VICTORIA' ? `${compania.icono} VICTORIA` : titulo
+  mostrarFinal(res)
+}
+
+function mostrarFinal (res) {
+  jugando = false
+  const yo = yoB()
+  const otro = rival(yo)
+  const gano = res.g === yo.nombre
+  const pierdo = !!res.g && !gano
+  const titulo = gano ? 'VICTORIA' : pierdo ? 'DERROTA' : 'EMPATE'
+  const suNombre = rol === 'solo' ? 'La máquina' : (rivalRed?.alias ?? 'Tu rival')
+  let texto
+  if (res.r === 'base') texto = gano ? `${compania.icono} ${nombreCompania()} ha entrado en la base enemiga.` : 'Han entrado en tu base.'
+  else if (res.r === 'abandono') texto = gano ? `${suNombre} se ha retirado.` : 'Te has retirado.'
+  else texto = gano ? 'Se acabó el tiempo y le has hecho más daño a su base.' : pierdo ? 'Se acabó el tiempo y te han hecho más daño.' : 'Se acabó el tiempo con las dos bases igual.'
+  texto += ` Bajas: ${yo.bajas} hechas por ti, ${otro.bajas} por el otro bando.`
+  if (rol === 'solo') {
+    if (gano) {
+      texto += ` Nivel ${nivelMaquina} superado: la próxima vez la máquina juega al ${nivelMaquina + 1}, con más dinero, tropas caras antes y más defensas.`
+      nivelMaquina++
+      guardarNivel(nivelMaquina)
+    } else {
+      texto += ` Sigues en el nivel ${nivelMaquina}.`
+    }
+    texto += ' Práctica: no cuenta para el mapa.'
+    $('gc-otra').textContent = gano ? `SIGUIENTE: NIVEL ${nivelMaquina}` : `REPETIR NIVEL ${nivelMaquina}`
+    pintarNivelMenu()
+  } else {
+    texto += ` Contra ${suNombre}, en directo.`
+    $('gc-otra').textContent = 'BUSCAR OTRA PARTIDA'
+    // La sala ya no pinta nada; el chat se queda abierto un momento por si
+    // queda algo que decirse, y luego se cierra.
+    setTimeout(() => { if (!jugando) red.salir() }, 8000)
+  }
+  $('gc-final-titulo').textContent = gano ? `${compania.icono} VICTORIA` : titulo
   $('gc-final-texto').textContent = texto
   $('gc-hud').hidden = true
   $('gc-final').hidden = false
-  if (titulo === 'VICTORIA') audio.desbloqueo?.()
+  if (gano) audio.desbloqueo?.()
 }
 
 // --- tu compañía ---------------------------------------------------------------
@@ -814,10 +1202,20 @@ function pintarNivelMenu () {
 }
 pintarNivelMenu()
 $('gc-maquina').onclick = empezar
-$('gc-otra').onclick = empezar
-$('gc-menu-otra').onclick = () => { $('gc-final').hidden = true; $('gc-menu').hidden = false }
+$('gc-otra').onclick = () => {
+  if (rol === 'solo') return empezar()
+  red.salir()
+  $('gc-final').hidden = true
+  $('gc-menu').hidden = false
+  $('gc-rapida').click()
+}
+$('gc-menu-otra').onclick = () => { if (enDirecto()) red.salir(); $('gc-final').hidden = true; $('gc-menu').hidden = false }
 $('gc-salir').onclick = () => {
-  if (!confirm('¿Salir de la partida?')) return
+  if (!confirm(enDirecto() ? '¿Retirarte? Tu rival ganará la partida.' : '¿Salir de la partida?')) return
+  if (enDirecto()) {
+    red.mandarFin({ g: rival(yoB()).nombre, r: 'abandono', d: [bandos.azul.dañoHecho, bandos.rojo.dañoHecho], b: [bandos.azul.bajas, bandos.rojo.bajas] })
+    setTimeout(() => red.salir(), 500)
+  }
   jugando = false
   $('gc-hud').hidden = true
   $('gc-menu').hidden = false
@@ -825,11 +1223,22 @@ $('gc-salir').onclick = () => {
 
 // --- bucle ----------------------------------------------------------------------
 let antes = performance.now()
+let ultimoFotograma = antes
+// Con la pestaña en segundo plano no llegan fotogramas, y el anfitrión es el
+// que lleva la partida de los dos: si se para, se para para el otro también.
+// Mientras tanto se sigue simulando a ritmo de reloj.
+setInterval(() => {
+  if (rol !== 'anfitrion' || !jugando || performance.now() - ultimoFotograma < 250) return
+  paso(0.1)
+  vigilarRival(0.1)
+}, 100)
 function fotograma (ahora) {
   requestAnimationFrame(fotograma)
   const dt = Math.min(0.05, (ahora - antes) / 1000)
   antes = ahora
-  paso(dt)
+  ultimoFotograma = ahora
+  if (rol === 'invitado') { if (jugando) pasoEspejo(dt) } else paso(dt)
+  vigilarRival(dt)
   if (jugando) {
     hudT -= dt
     if (hudT <= 0) { hudT = 0.2; pintarHud() }
@@ -849,6 +1258,8 @@ if (import.meta.env.DEV) {
     empezar,
     camera,
     nivel: n => { if (n) { nivelMaquina = n; pintarNivelMenu() } return nivelMaquina },
+    rol: () => rol,
+    red,
     estado: () => ({ tiempo: Math.round(tiempo), jugando, azul: bandos && { ...bandos.azul, tengo: [...bandos.azul.tengo] }, rojo: bandos && { ...bandos.rojo, tengo: [...bandos.rojo.tengo] }, unidades: unidades.length }),
     unidades: () => unidades,
     mandar: (key, carril, orden = 'avanza') => mandarTropa(bandos.azul, key, carrilX(carril), orden, CAMPO.baseAzul - 6),

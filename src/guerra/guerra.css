@@ -108,3 +108,32 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--fondo)
   background: var(--panel); border: 1px solid var(--borde); }
 .gc-iconos button { aspect-ratio: 1; border-radius: 10px; border: 1px solid var(--borde); background: rgba(255, 255, 255, 0.05); font-size: 22px; line-height: 1; cursor: pointer; }
 .gc-iconos button[aria-selected="true"] { border-color: var(--azul); background: rgba(47, 125, 224, 0.3); }
+
+/* --- en directo --- */
+.gc-directo { border-color: rgba(47, 125, 224, 0.55); }
+.gc-sala { display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; background: var(--panel); border: 1px solid var(--borde); }
+.gc-unirse { display: flex; gap: 8px; }
+.gc-unirse input { flex: 1; min-width: 0; padding: 10px; border-radius: 10px; border: 1px solid var(--borde); background: rgba(255,255,255,0.07);
+  color: var(--tinta); font: 900 18px ui-monospace, Menlo, Consolas, monospace; letter-spacing: 0.3em; text-align: center; text-transform: uppercase; }
+.gc-unirse .gc-boton { padding: 10px 16px; }
+.gc-aviso { margin: 0; min-height: 18px; font-size: 13px; color: #ffb3a8; }
+.gc-radar { position: relative; width: 120px; height: 120px; margin: 0 auto 10px; border-radius: 50%;
+  border: 2px solid rgba(95, 217, 122, 0.5); background: radial-gradient(circle, rgba(95,217,122,0.12), transparent 70%); overflow: hidden; }
+.gc-radar i { position: absolute; inset: 0; background: conic-gradient(from 0deg, rgba(95,217,122,0.55), transparent 25%); animation: gc-barrer 1.6s linear infinite; }
+@keyframes gc-barrer { to { transform: rotate(360deg); } }
+.gc-espera-codigo { display: block; font: 900 40px ui-monospace, Menlo, Consolas, monospace; letter-spacing: 0.25em; color: var(--oro); margin-bottom: 8px; user-select: text; }
+
+/* --- chat --- */
+.gc-orden.nuevo { box-shadow: 0 0 0 2px var(--oro); }
+.gc-chat { position: absolute; left: 8px; right: 104px; bottom: calc(112px + env(safe-area-inset-bottom)); max-height: 44vh; overflow: auto;
+  padding: 10px; border-radius: 14px; background: rgba(10, 14, 20, 0.92); border: 1px solid var(--borde); pointer-events: auto; }
+.gc-mensajes { list-style: none; margin: 0 0 8px; padding: 0; max-height: 22vh; overflow: auto; font-size: 12.5px; }
+.gc-mensajes li { padding: 3px 0; overflow-wrap: anywhere; }
+.gc-mensajes li.mio b { color: #8fc3ff; }
+.gc-mensajes li.suyo b { color: #ff9a8a; }
+.gc-denunciar { margin-left: 4px; padding: 1px 6px; border-radius: 6px; border: 1px solid var(--borde); background: transparent; color: var(--tenue); font-size: 10px; }
+.gc-frases { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 8px; }
+.gc-frase { padding: 4px 8px; border-radius: 999px; border: 1px solid var(--borde); background: rgba(255,255,255,0.07); color: var(--tinta); font: 600 11.5px inherit; }
+.gc-escribir { display: flex; gap: 6px; }
+.gc-escribir input { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--borde); background: rgba(255,255,255,0.07); color: var(--tinta); font: 14px inherit; }
+.gc-escribir button { padding: 8px 12px; border-radius: 10px; border: 1px solid var(--borde); background: rgba(255,255,255,0.12); color: var(--tinta); font: 700 13px inherit; }

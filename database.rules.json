@@ -54,6 +54,42 @@
         }
       }
     },
+    "guerras": {
+      "$codigo": {
+        ".read": "auth != null",
+        "jugadores": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            ".validate": "!newData.exists() || (newData.hasChildren(['alias', 'icono', 'bando']) && newData.child('alias').isString() && newData.child('alias').val().length <= 24 && newData.child('icono').isString() && newData.child('icono').val().length <= 8)"
+          }
+        },
+        "inicio": {
+          ".write": "auth != null"
+        },
+        "estado": {
+          ".write": "auth != null"
+        },
+        "ordenes": {
+          "$orden": {
+            ".write": "auth != null",
+            ".validate": "!newData.exists() || newData.hasChildren(['tipo'])"
+          }
+        },
+        "chat": {
+          "$msg": {
+            ".write": "auth != null && !data.exists() && newData.child('de').val() === auth.uid && !root.child('bloqueados/' + auth.uid).exists()",
+            ".validate": "newData.child('t').isString() && newData.child('t').val().length <= 60 && newData.child('alias').isString() && newData.child('alias').val().length <= 24"
+          }
+        },
+        "fin": {
+          ".write": "auth != null"
+        }
+      }
+    },
+    "colaGuerra": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
     "cola": {
       ".read": "auth != null",
       ".write": "auth != null"

@@ -30,8 +30,18 @@
       <div id="gc-iconos" class="gc-iconos" hidden role="listbox" aria-label="Emblemas"></div>
       <button id="gc-maquina" class="gc-boton gc-principal" type="button">CONTRA LA MÁQUINA <small>práctica</small></button>
       <button class="gc-boton" type="button" disabled>MAPA DEL MUNDO <small>próximamente</small></button>
-      <button class="gc-boton" type="button" disabled>EMPAREJAMIENTO RÁPIDO <small>próximamente</small></button>
-      <button class="gc-boton" type="button" disabled>JUGAR CON CÓDIGO <small>próximamente</small></button>
+      <!-- En directo contra otra persona (28/09), en el mismo pueblo que contra
+           la máquina hasta que haya mapa del mundo. -->
+      <button id="gc-rapida" class="gc-boton gc-directo" type="button">EMPAREJAMIENTO RÁPIDO <small>contra quien esté buscando ahora</small></button>
+      <button id="gc-codigo" class="gc-boton gc-directo" type="button">JUGAR CON CÓDIGO <small>abre una sala o entra en la de un amigo</small></button>
+      <div id="gc-sala" class="gc-sala" hidden>
+        <button id="gc-crear" class="gc-boton" type="button">CREAR SALA</button>
+        <div class="gc-unirse">
+          <input id="gc-codigo-campo" type="text" maxlength="4" autocomplete="off" spellcheck="false" placeholder="CÓDIGO" aria-label="Código de la sala">
+          <button id="gc-entrar" class="gc-boton" type="button">ENTRAR</button>
+        </div>
+      </div>
+      <p id="gc-aviso" class="gc-aviso" aria-live="polite"></p>
       <a class="gc-boton gc-volver" href="./">VOLVER</a>
     </div>
   </div>
@@ -55,7 +65,16 @@
     <p id="gc-pista" class="gc-pista"></p>
     <div class="gc-ordenes">
       <button id="gc-modo" class="gc-orden" type="button" aria-label="Qué hacen al salir"><b>SOLTAR</b><small>avanzan solos</small></button>
+      <button id="gc-chat-boton" class="gc-orden" type="button" hidden><b>💬 CHAT</b><small id="gc-chat-nuevo"></small></button>
       <button id="gc-avanzar" class="gc-orden gc-avanzar" type="button"><b>¡AL ATAQUE!</b><small id="gc-quietos">nadie esperando</small></button>
+    </div>
+    <div id="gc-chat" class="gc-chat" hidden>
+      <ul id="gc-mensajes" class="gc-mensajes"></ul>
+      <div id="gc-frases" class="gc-frases"></div>
+      <form id="gc-escribir-form" class="gc-escribir">
+        <input id="gc-escribir" type="text" maxlength="60" autocomplete="off" placeholder="Escribe algo…" aria-label="Mensaje">
+        <button type="submit">Enviar</button>
+      </form>
     </div>
     <div class="gc-tira">
       <div id="gc-cartas" class="gc-cartas"></div>
@@ -70,6 +89,16 @@
       <button id="gc-otra" class="gc-boton gc-principal" type="button">OTRA PARTIDA</button>
       <button id="gc-menu-otra" class="gc-boton" type="button">MENÚ DE GUERRA CIVIL</button>
       <a class="gc-boton gc-volver" href="./">VOLVER AL JUEGO</a>
+    </div>
+  </div>
+
+  <!-- Buscando rival o esperando a que entre en tu sala. -->
+  <div id="gc-espera" class="gc-capa" hidden>
+    <div class="gc-caja">
+      <div class="gc-radar" aria-hidden="true"><i></i></div>
+      <p id="gc-espera-texto" class="gc-texto"></p>
+      <b id="gc-espera-codigo" class="gc-espera-codigo" hidden></b>
+      <button id="gc-cancelar" class="gc-boton gc-volver" type="button">CANCELAR</button>
     </div>
   </div>
 
