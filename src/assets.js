@@ -161,6 +161,7 @@ function mandoDeHueso (hueso, huesoLower, ajuste = null, gan = 1, ganLower = 1) 
 const OLIVA = 0x55602f
 const OLIVA_OSCURO = 0x3f4724
 const CUERO = 0x6b4228
+const CAPA = 0x5a3b22
 
 // Cuelga `pieza` de un hueso anulando su escala y su giro de reposo: dentro se
 // construye en unidades de mundo, con +Y arriba y el soldado mirando a -Z (la
@@ -252,7 +253,8 @@ function vestirArquero (cuerpo, hueso) {
     if (Math.random() < 0.04) pos.setXYZ(i, pos.getX(i) * 0.9, pos.getY(i), pos.getZ(i) * 0.9)
   }
   geoCapa.computeVertexNormals()
-  const capa = new THREE.Mesh(geoCapa, telaVieja(OLIVA))
+  // Marrón (Isidro, 28/09: «el color de la capa que sea marrón»).
+  const capa = new THREE.Mesh(geoCapa, telaVieja(CAPA))
   capa.position.set(0, yCabeza - yPecho - 0.08 - largo / 2, 0.04)
   capa.scale.set(1, 1, 0.55)
   hombros.add(capa)
