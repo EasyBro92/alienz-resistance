@@ -2427,6 +2427,14 @@ html, body {
     radial-gradient(120% 80% at 50% 0%, rgba(20,40,32,0.72), rgba(6,10,14,0.94) 62%, rgba(4,7,10,0.97)),
     #05080b;
 }
+/* El botón verde apagado (CREAR EL RETO sin oleada, ABRIR UNA SALA sin cuenta)
+   era letra negra sobre un gris verdoso a media opacidad encima del panel
+   oscuro: no se leía (Isidro, 28/09). Aquí, solo en multijugador, apagado es
+   un botón hueco con la letra clara. */
+.retos-capa .big-btn:disabled, .coop-capa .big-btn:disabled {
+  background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.62);
+  border: 1px solid rgba(255,255,255,0.18); filter: none; opacity: 1; box-shadow: none;
+}
 .retos-capa .panel, .coop-capa .panel {
   background: linear-gradient(180deg, rgba(22,30,38,0.92), rgba(12,17,23,0.94));
   border: 1px solid var(--borde-2);
