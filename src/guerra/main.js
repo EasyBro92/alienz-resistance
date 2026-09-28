@@ -675,80 +675,130 @@ red.en('inicio', async sala => {
   // El nombre y el emblema del otro pueden llegar un pelo después del arranque.
   for (let i = 0; i < 30 && !sala.rival; i++) await new Promise(r => setTimeout(r, 100))
   rivalRed = sala.rival
-  $('gc-espera').hidden = true
+  dejarDeEsperar()
   empezarPartida(sala.anfitrion ? 'anfitrion' : 'invitado')
 })
 
 // --- vestíbulo: emparejamiento rápido y sala con código -------------------------------
+// Isidro: «el emparejamiento rápido no parece funcionar, se puede pulsar pero no
+// busca a nadie; debería salir como en el 1 contra 1, un radar buscando». Antes
+// se conectaba primero y solo después salía el radar: si la conexión fallaba
+// (sin reglas publicadas, sin cobertura) el aviso caía al fondo del menú y
+// parecía que el botón no hacía nada. Ahora el radar sale al tocar, y lo que
+// pase se cuenta ahí, en grande.
 const aviso = t => { $('gc-aviso').textContent = t }
 function datosYo () {
   const cartera = cargarCartera()
   return { alias: nombreCompania(), icono: compania.icono, tengo: [...new Set([...INICIALES, ...cartera.desbloqueadas])].filter(k => CLAVES.includes(k)) }
 }
-async function conectarConAviso () {
-  aviso('Conectando…')
-  try {
-    red.ponerYo(datosYo())
-    await red.conectar()
-    aviso('')
-    return true
-  } catch (e) {
-    console.warn('Sin red:', e)
-    aviso(/operation-not-allowed|admin-restricted/.test(e?.code ?? '')
-      ? 'Hace falta entrar con tu cuenta (en Ajustes del juego) para jugar en línea.'
-      : 'No se ha podido conectar. Revisa la conexión e inténtalo otra vez.')
-    return false
-  }
+
+// Por qué no se ha podido, en palabras de persona.
+function motivo (e, deQue) {
+  const txt = `${e?.code ?? ''} ${e?.message ?? e ?? ''}`
+  if (/operation-not-allowed|admin-restricted/.test(txt)) return 'Hace falta entrar con tu cuenta (en Ajustes del juego) para jugar en línea.'
+  if (/permission|denied/i.test(txt)) return 'El servidor todavía no deja jugar a la Guerra civil en línea: faltan por publicar sus reglas.'
+  if (/network|offline|unavailable|timeout/i.test(txt)) return 'Sin conexión con el servidor. Revisa la cobertura e inténtalo otra vez.'
+  return `No se ha podido ${deQue}. Inténtalo otra vez.`
 }
+
 let esperaDesde = 0
 let esperaTic = null
-function esperar (texto, codigo = '') {
+let esperaTitulo = ''
+function esperar (titulo, { codigo = '', pie = '' } = {}) {
+  esperaTitulo = titulo
   $('gc-espera').hidden = false
+  $('gc-espera').classList.remove('fallo')
+  $('gc-espera-titulo').textContent = titulo
   $('gc-espera-codigo').textContent = codigo
   $('gc-espera-codigo').hidden = !codigo
+  $('gc-espera-pie').textContent = pie
+  $('gc-espera-maquina').hidden = true
+  $('gc-cancelar').textContent = 'CANCELAR'
   esperaDesde = performance.now()
   clearInterval(esperaTic)
   const pintar = () => {
     const seg = Math.floor((performance.now() - esperaDesde) / 1000)
-    $('gc-espera-texto').textContent = `${texto} ${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, '0')}`
+    $('gc-espera-reloj').textContent = `${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, '0')}`
+    // Como en el 1 contra 1: a los 15 s se ofrece la máquina, que es mejor
+    // jugar que mirar una pantalla.
+    if (seg >= 15 && esperaTitulo === 'BUSCANDO RIVAL') {
+      $('gc-espera-pie').textContent = 'Se está haciendo largo. Mientras tanto puedes jugar contra la máquina.'
+      $('gc-espera-maquina').hidden = false
+    }
   }
   pintar()
   esperaTic = setInterval(pintar, 1000)
+}
+function fallar (texto) {
+  clearInterval(esperaTic)
+  $('gc-espera').hidden = false
+  $('gc-espera').classList.add('fallo')
+  $('gc-espera-titulo').textContent = 'NO SE HA PODIDO'
+  $('gc-espera-reloj').textContent = ''
+  $('gc-espera-codigo').hidden = true
+  $('gc-espera-pie').textContent = texto
+  $('gc-espera-maquina').hidden = false
+  $('gc-cancelar').textContent = 'VOLVER'
 }
 function dejarDeEsperar () {
   clearInterval(esperaTic)
   $('gc-espera').hidden = true
 }
+
+async function conectar () {
+  red.ponerYo(datosYo())
+  await red.conectar()
+}
+
 $('gc-rapida').onclick = async () => {
   audio.unlock()
-  if (!await conectarConAviso()) return
+  aviso('')
+  esperar('BUSCANDO RIVAL', { pie: 'Conectando…' })
   try {
+    await conectar()
+    $('gc-espera-pie').textContent = 'Tarda lo que tarde en entrar alguien más.'
     const r = await red.rapida()
-    if (r === 'dentro') esperar('¡Rival encontrado! Preparando…')
-    else esperar('Buscando rival…')
-  } catch (e) { console.warn(e); aviso('No se ha podido buscar partida. Inténtalo otra vez.') }
+    if (r === 'dentro') esperar('¡RIVAL ENCONTRADO!', { pie: 'Preparando el pueblo…' })
+  } catch (e) {
+    console.warn('Sin emparejamiento:', e)
+    red.cancelar()
+    fallar(motivo(e, 'buscar partida'))
+  }
 }
 $('gc-codigo').onclick = () => { $('gc-sala').hidden = !$('gc-sala').hidden }
 $('gc-crear').onclick = async () => {
   audio.unlock()
-  if (!await conectarConAviso()) return
+  aviso('')
+  esperar('ABRIENDO SALA', { pie: 'Conectando…' })
   try {
+    await conectar()
     const codigo = await red.crearSala()
-    esperar('Pásale este código a tu rival. Esperando…', codigo)
-  } catch (e) { console.warn(e); aviso('No se ha podido abrir la sala.') }
+    esperar('TU SALA', { codigo, pie: 'Pásale este código a tu rival. Empieza en cuanto entre.' })
+  } catch (e) {
+    console.warn('Sin sala:', e)
+    red.cancelar()
+    fallar(motivo(e, 'abrir la sala'))
+  }
 }
 $('gc-entrar').onclick = async () => {
   audio.unlock()
   const codigo = $('gc-codigo-campo').value.trim().toUpperCase()
   if (!/^[A-Z2-9]{4}$/.test(codigo)) return aviso('El código son cuatro letras o números.')
-  if (!await conectarConAviso()) return
+  aviso('')
+  esperar('ENTRANDO', { codigo, pie: 'Conectando…' })
   try {
+    await conectar()
     const error = await red.unirse(codigo)
-    if (error) return aviso(error)
-    esperar('Dentro. Empezando…')
-  } catch (e) { console.warn(e); aviso('No se ha podido entrar en la sala.') }
+    if (error) return fallar(error)
+    esperar('DENTRO', { codigo, pie: 'Empezando…' })
+  } catch (e) {
+    console.warn('Sin entrar:', e)
+    red.cancelar()
+    fallar(motivo(e, 'entrar en la sala'))
+  }
 }
 $('gc-cancelar').onclick = () => { red.cancelar(); dejarDeEsperar(); aviso('') }
+$('gc-espera-maquina').onclick = () => { red.cancelar(); dejarDeEsperar(); empezar() }
 
 // --- chat ---------------------------------------------------------------------------
 // Como el del 1 contra 1: frases rápidas, texto libre filtrado, un mensaje cada

@@ -117,7 +117,13 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--fondo)
   color: var(--tinta); font: 900 18px ui-monospace, Menlo, Consolas, monospace; letter-spacing: 0.3em; text-align: center; text-transform: uppercase; }
 .gc-unirse .gc-boton { padding: 10px 16px; }
 .gc-aviso { margin: 0; min-height: 18px; font-size: 13px; color: #ffb3a8; }
-.gc-radar { position: relative; width: 120px; height: 120px; margin: 0 auto 10px; border-radius: 50%;
+.gc-espera-titulo { margin: 0; font-size: 26px; font-weight: 900; letter-spacing: 0.08em; color: #8fffa8; }
+#gc-espera.fallo .gc-espera-titulo { color: #ff9a8a; }
+#gc-espera.fallo .gc-radar { display: none; }
+.gc-espera-reloj { display: block; font: 800 22px ui-monospace, Menlo, Consolas, monospace; color: var(--tenue); }
+.gc-radar span { position: absolute; inset: 22%; border-radius: 50%; border: 1px solid rgba(95, 217, 122, 0.35); }
+.gc-radar span + span { inset: 42%; }
+.gc-radar { position: relative; width: 160px; height: 160px; margin: 6px auto 4px; border-radius: 50%;
   border: 2px solid rgba(95, 217, 122, 0.5); background: radial-gradient(circle, rgba(95,217,122,0.12), transparent 70%); overflow: hidden; }
 .gc-radar i { position: absolute; inset: 0; background: conic-gradient(from 0deg, rgba(95,217,122,0.55), transparent 25%); animation: gc-barrer 1.6s linear infinite; }
 @keyframes gc-barrer { to { transform: rotate(360deg); } }
@@ -137,3 +143,5 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--fondo)
 .gc-escribir { display: flex; gap: 6px; }
 .gc-escribir input { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--borde); background: rgba(255,255,255,0.07); color: var(--tinta); font: 14px inherit; }
 .gc-escribir button { padding: 8px 12px; border-radius: 10px; border: 1px solid var(--borde); background: rgba(255,255,255,0.12); color: var(--tinta); font: 700 13px inherit; }
+/* La capa del radar va encima del menú: opaca, o se leían los dos a la vez. */
+#gc-espera { background: radial-gradient(circle at 50% 35%, #102018, #06090c 70%); z-index: 6; }
