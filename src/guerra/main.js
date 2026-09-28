@@ -128,7 +128,7 @@ function pintarBando (raiz, color, cuanto) {
     const nuevos = lista.map(m => {
       if (!m.color || m.depthTest === false) return m   // la barra de vida no
       const n = m.clone()
-      n.color.lerp(c, cuanto)
+      n.color.lerp(c, m.userData?.ropa ? cuanto * 0.3 : cuanto)
       return n
     })
     o.material = Array.isArray(o.material) ? nuevos : nuevos[0]
@@ -847,6 +847,7 @@ requestAnimationFrame(fotograma)
 if (import.meta.env.DEV) {
   window.__gc = {
     empezar,
+    camera,
     nivel: n => { if (n) { nivelMaquina = n; pintarNivelMenu() } return nivelMaquina },
     estado: () => ({ tiempo: Math.round(tiempo), jugando, azul: bandos && { ...bandos.azul, tengo: [...bandos.azul.tengo] }, rojo: bandos && { ...bandos.rojo, tengo: [...bandos.rojo.tengo] }, unidades: unidades.length }),
     unidades: () => unidades,

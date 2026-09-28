@@ -150,6 +150,152 @@ function mandoDeHueso (hueso, huesoLower, ajuste = null, gan = 1, ganLower = 1) 
 }
 
 // Envolver un modelo con esqueleto en la forma que el juego espera.
+// --- el arquero de la lámina ------------------------------------------------------
+// Isidro mandó una lámina: un arquero de capucha verde oliva, capa hecha
+// jirones, chaleco y brazales de cuero, pantalón de faena y carcaj a la
+// espalda. No hay créditos de Meshy para un modelo nuevo, así que se viste por
+// código el cuerpo que ya lleva (el del tirador): se le tiñe la ropa hacia el
+// oliva y el cuero, y se le cuelgan capucha, capa y carcaj de sus huesos para
+// que anden con él. La capa y el carcaj son lo que más se ve, porque la cámara
+// mira a los soldados por la espalda.
+const OLIVA = 0x55602f
+const OLIVA_OSCURO = 0x3f4724
+const CUERO = 0x6b4228
+
+// Cuelga `pieza` de un hueso anulando su escala y su giro de reposo: dentro se
+// construye en unidades de mundo, con +Y arriba y el soldado mirando a -Z (la
+// espalda queda en +Z), y a partir de ahí sigue al hueso.
+function colgarDeHueso (hueso, pieza) {
+  hueso.updateWorldMatrix(true, false)
+  const p = new THREE.Vector3()
+  const q = new THREE.Quaternion()
+  const e = new THREE.Vector3()
+  hueso.matrixWorld.decompose(p, q, e)
+  const grupo = new THREE.Group()
+  grupo.quaternion.copy(q).invert()
+  grupo.scale.setScalar(1 / e.x)
+  grupo.add(pieza)
+  hueso.add(grupo)
+  return grupo
+}
+
+function telaVieja (color) {
+  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.95, side: THREE.DoubleSide })
+  // `ropa`: la Guerra civil la tiñe poco con el color del bando, o la capa
+  // saldría azul o roja entera y no se reconocería al arquero.
+  m.userData.ropa = true
+  return m
+}
+
+// Bajo deshilachado: cada columna del borde inferior sube un trozo al azar,
+// con alguna punta más larga, como la capa de la lámina.
+function deshilachar (geo, altoTotal, fuerza) {
+  const pos = geo.attributes.position
+  const abajo = -altoTotal / 2
+  for (let i = 0; i < pos.count; i++) {
+    const y = pos.getY(i)
+    if (y < abajo + 1e-4) pos.setY(i, y + Math.random() * fuerza * (Math.random() < 0.25 ? 1.6 : 1))
+  }
+  geo.computeVertexNormals()
+}
+
+function vestirArquero (cuerpo, hueso) {
+  // La ropa del tirador hacia el oliva y el cuero. El material se clona: es el
+  // mismo archivo que lleva el Tirador y no se le puede teñir a él.
+  cuerpo.traverse(o => {
+    if (!o.isMesh || !o.material?.map) return
+    o.material = o.material.clone()
+    o.material.color.set(0xb7ad84)
+  })
+
+  const pecho = hueso('Spine') ?? hueso('Spine01')
+  const cabeza = hueso('Head')
+  if (!pecho || !cabeza) return
+  pecho.updateWorldMatrix(true, false)
+  cabeza.updateWorldMatrix(true, false)
+  const yPecho = new THREE.Vector3().setFromMatrixPosition(pecho.matrixWorld).y
+  const yCabeza = new THREE.Vector3().setFromMatrixPosition(cabeza.matrixWorld).y
+
+  // --- capucha: casquete abierto por delante con su pico atrás ---
+  const capucha = new THREE.Group()
+  const tela = telaVieja(OLIVA)
+  const casco = new THREE.Mesh(
+    // Abierta por delante (-Z): un hueco de unos cien grados para la cara.
+    new THREE.SphereGeometry(0.128, 18, 12, Math.PI * 1.5 + 0.85, Math.PI * 2 - 1.7, 0, Math.PI * 0.64),
+    tela
+  )
+  casco.scale.set(1, 1.1, 1.08)
+  casco.position.set(0, 0.1, 0.02)
+  const pico = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.13, 8), tela)
+  pico.position.set(0, 0.19, 0.1)
+  pico.rotation.x = 0.9
+  capucha.add(casco, pico)
+  colgarDeHueso(cabeza, capucha)
+
+  // --- esclavina: la tela de la capucha cae sobre los hombros ---
+  const hombros = new THREE.Group()
+  const alto = 0.2
+  const cuello = new THREE.CylinderGeometry(0.1, 0.22, alto, 16, 1, true)
+  deshilachar(cuello, alto, 0.05)
+  const esclavina = new THREE.Mesh(cuello, telaVieja(OLIVA_OSCURO))
+  esclavina.scale.set(1, 1, 0.78)
+  esclavina.position.set(0, yCabeza - yPecho - 0.1, 0.02)
+  hombros.add(esclavina)
+
+  // --- capa: de los hombros a media pierna, abierta por delante ---
+  const largo = 0.95
+  const geoCapa = new THREE.CylinderGeometry(0.2, 0.29, largo, 16, 6, true, -1.3, 2.6)
+  deshilachar(geoCapa, largo, 0.16)
+  // Un par de rotos, como en la lámina: se hunden unos vértices hacia dentro.
+  const pos = geoCapa.attributes.position
+  for (let i = 0; i < pos.count; i++) {
+    if (Math.random() < 0.04) pos.setXYZ(i, pos.getX(i) * 0.9, pos.getY(i), pos.getZ(i) * 0.9)
+  }
+  geoCapa.computeVertexNormals()
+  const capa = new THREE.Mesh(geoCapa, telaVieja(OLIVA))
+  capa.position.set(0, yCabeza - yPecho - 0.08 - largo / 2, 0.04)
+  capa.scale.set(1, 1, 0.55)
+  hombros.add(capa)
+
+  // --- carcaj de cuero en diagonal a la espalda, con las flechas asomando ---
+  const carcaj = new THREE.Group()
+  const cuero = new THREE.MeshStandardMaterial({ color: CUERO, roughness: 0.75 })
+  cuero.userData.ropa = true
+  carcaj.add(new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.045, 0.48, 10), cuero))
+  const aro = new THREE.MeshStandardMaterial({ color: 0x3a2616, roughness: 0.8 })
+  for (const y of [0.18, -0.14]) {
+    const a = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.03, 10), aro)
+    a.position.y = y
+    carcaj.add(a)
+  }
+  const astil = new THREE.MeshStandardMaterial({ color: 0x8a6a44, roughness: 0.8 })
+  const pluma = new THREE.MeshStandardMaterial({ color: 0xd9d2c0, roughness: 0.9, side: THREE.DoubleSide })
+  for (let i = 0; i < 5; i++) {
+    const f = new THREE.Group()
+    const vara = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.2, 4), astil)
+    vara.position.y = 0.1
+    const p = new THREE.Mesh(new THREE.PlaneGeometry(0.035, 0.07), pluma)
+    p.position.y = 0.17
+    f.add(vara, p)
+    f.position.set((i - 2) * 0.018, 0.24, (i % 2) * 0.016)
+    f.rotation.z = (i - 2) * 0.08
+    carcaj.add(f)
+  }
+  carcaj.position.set(0.05, 0.02, 0.19)
+  carcaj.rotation.z = -0.55
+  hombros.add(carcaj)
+
+  // Correa del carcaj cruzando el pecho, de cuero como en la lámina.
+  const correa = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.012, 4, 20, Math.PI * 1.1), cuero)
+  correa.rotation.set(0.1, Math.PI / 2, 0.6)
+  correa.position.set(0, 0.02, 0.02)
+  correa.scale.set(1, 1.2, 0.75)
+  hombros.add(correa)
+
+  colgarDeHueso(pecho, hombros)
+  for (const o of [capucha, hombros]) o.traverse(m => { if (m.isMesh) m.castShadow = true })
+}
+
 async function armarPersona (key, spec, urls) {
   const url = Array.isArray(urls) ? urls[Math.floor(Math.random() * urls.length)] : urls
   const gltf = await cargarGLTF(url)
@@ -212,6 +358,10 @@ async function armarPersona (key, spec, urls) {
   // apuntaba adonde cayera el brazo, no adonde miraba el soldado.
   figure.add(arma)
   arma.position.set(0.2, 1.26, -0.42)
+
+  // El arquero se viste encima del cuerpo del tirador (Isidro, 28/09, con una
+  // lámina de referencia: capucha, capa rota, cuero y carcaj).
+  if (key === 'archer') vestirArquero(cuerpo, hueso)
 
   g.add(contactShadow(0.85))
 
