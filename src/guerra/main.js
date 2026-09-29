@@ -46,6 +46,11 @@ const TROPAS = ['archer', 'rifle', 'shotgun', 'sniper', 'flamer', 'gunner', 'mis
 const DEFENSAS = ['sandbags', 'spikes', 'mines', 'erizos', 'torreta']
 // El capitán no se desbloquea en partida: solo lo trae quien lo sacó del cofre.
 const SOLO_COFRE = new Set(['capitan'])
+// De serie en la Guerra civil (Isidro, 29/09): empezando de cero solo había
+// arquero y todo lo demás con candado. Aquí se tiene la mitad de la tropa (las
+// cuatro más baratas) y los sacos, aunque en la campaña no estén comprados.
+// Solo en este modo: la cartera no se toca.
+const DE_SERIE = ['archer', 'rifle', 'shotgun', 'sniper', 'sandbags']
 
 const $ = id => document.getElementById(id)
 const lienzo = $('gc-lienzo')
@@ -689,7 +694,7 @@ red.en('inicio', async sala => {
 const aviso = t => { $('gc-aviso').textContent = t }
 function datosYo () {
   const cartera = cargarCartera()
-  return { alias: nombreCompania(), icono: compania.icono, tengo: [...new Set([...INICIALES, ...cartera.desbloqueadas])].filter(k => CLAVES.includes(k)) }
+  return { alias: nombreCompania(), icono: compania.icono, tengo: [...new Set([...INICIALES, ...DE_SERIE, ...cartera.desbloqueadas])].filter(k => CLAVES.includes(k)) }
 }
 
 // Por qué no se ha podido, en palabras de persona.
@@ -1104,12 +1109,12 @@ async function empezarPartida (rolNuevo) {
   ausencia = 0
   ultimoEstado = performance.now()
   const cartera = cargarCartera()
-  const mio = new Set([...INICIALES, ...cartera.desbloqueadas])
+  const mio = new Set([...INICIALES, ...DE_SERIE, ...cartera.desbloqueadas])
   // La máquina lleva todas las tropas corrientes y las defensas básicas; una
   // persona, lo que tenga desbloqueado en su juego.
   const suyo = rol === 'solo'
     ? ['archer', 'rifle', 'shotgun', 'sniper', 'flamer', 'gunner', 'misil', 'mortar', 'sandbags', 'torreta']
-    : (Array.isArray(rivalRed?.tengo) ? rivalRed.tengo : INICIALES)
+    : (Array.isArray(rivalRed?.tengo) ? rivalRed.tengo : [...INICIALES, ...DE_SERIE])
   bandos = rol === 'invitado'
     ? { azul: nuevoBando('azul', suyo), rojo: nuevoBando('rojo', mio) }
     : { azul: nuevoBando('azul', mio), rojo: nuevoBando('rojo', suyo) }
