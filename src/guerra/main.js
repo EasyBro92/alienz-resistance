@@ -363,6 +363,7 @@ function paso (dt) {
       const otro = rival(u.bando)
       otro.vida = Math.max(0, otro.vida - daño)
       u.bando.dañoHecho += daño
+      u.entro = true
       s.dead = true
       audio.boom()
       effects.burst(tmpA.copy(s.mesh.position).setY(1.2), COLOR[u.bando.nombre], 18, 2)
@@ -370,10 +371,12 @@ function paso (dt) {
     }
   }
 
-  // Limpiar a los caídos.
+  // Limpiar a los caídos. Los que saben morir (el soldado del mapa de prueba)
+  // se quedan un momento en el suelo haciendo su animación.
   unidades = unidades.filter(u => {
     if (!u.s.dead) return true
-    scene.remove(u.s.mesh)
+    if (u.s.animaMuerte && !u.entro) caidos.push({ s: u.s, t: 0 })
+    else scene.remove(u.s.mesh)
     return false
   })
 
@@ -647,6 +650,20 @@ function pasoEspejo (dt) {
   effects.update(dt)
 }
 
+// Los que están cayendo: 1,4 s de animación de morir, y luego se hunden en el
+// suelo y se quitan. Fuera de `unidades`: ya no disparan ni reciben tiros.
+let caidos = []
+function pasoCaidos (dt) {
+  caidos = caidos.filter(c => {
+    c.t += dt
+    c.s.hundir = Math.max(0, c.t - 1.4) * 0.9
+    c.s.update(dt, camera)
+    if (c.t < 2.6) return true
+    scene.remove(c.s.mesh)
+    return false
+  })
+}
+
 function desaparecer (u) {
   const p = u.s.mesh.position
   // Si se ha ido pasada la base del otro, ha entrado: explosión en la base.
@@ -656,6 +673,13 @@ function desaparecer (u) {
   } else {
     effects.burst(tmpA.copy(p).setY(1), u.esDefensa ? 0x9a8a6a : 0x8a1f1f, 8, 1)
     if (u.key === 'mines') { audio.boom(); effects.burst(tmpA.copy(p).setY(0.6), 0xffb03a, 16, 2) }
+    // En el espejo del invitado también se ven caer.
+    if (u.s.animaMuerte) {
+      u.s.dead = true
+      caidos.push({ s: u.s, t: 0 })
+      unidades = unidades.filter(o => o !== u)
+      return
+    }
   }
   scene.remove(u.s.mesh)
   unidades = unidades.filter(o => o !== u)
@@ -1131,6 +1155,8 @@ async function empezarPartida (rolNuevo) {
   for (const u of unidades) scene.remove(u.s.mesh)
   unidades = []
   espejo.clear()
+  for (const c of caidos) scene.remove(c.s.mesh)
+  caidos = []
   pendientes.clear()
   estadoRed = null
   colaOrdenes = []
@@ -1322,6 +1348,7 @@ function fotograma (ahora) {
   antes = ahora
   ultimoFotograma = ahora
   if (rol === 'invitado') { if (jugando) pasoEspejo(dt) } else paso(dt)
+  pasoCaidos(dt)
   vigilarRival(dt)
   if (jugando) {
     hudT -= dt
@@ -1343,6 +1370,7 @@ if (import.meta.env.DEV) {
     camera,
     nivel: n => { if (n) { nivelMaquina = n; pintarNivelMenu() } return nivelMaquina },
     rol: () => rol,
+    caidos: () => caidos,
     red,
     estado: () => ({ tiempo: Math.round(tiempo), jugando, azul: bandos && { ...bandos.azul, tengo: [...bandos.azul.tengo] }, rojo: bandos && { ...bandos.rojo, tengo: [...bandos.rojo.tengo] }, unidades: unidades.length }),
     unidades: () => unidades,

@@ -114,6 +114,9 @@ export async function crearSoldadoPrueba (key, spec) {
     shotsLeft: spec.magazine ?? 8,
     reloading: 0,
     spawnT: 1,
+    // Sabe hacer su animación de morir: main.js lo deja caer en vez de quitarlo.
+    animaMuerte: true,
+    hundir: 0,
 
     get canShoot () { return !this.andando },
     get busy () { return this.reloading > 0 },
@@ -140,6 +143,14 @@ export async function crearSoldadoPrueba (key, spec) {
 
     update (dt, camera) {
       this.bar.face(camera, dt)
+      if (this.dead) {
+        // Cayendo: ni se mueve ni gira, solo la animación y luego se hunde.
+        this.bar.group.visible = false
+        poner('Death', 0.1)
+        mixer.update(dt)
+        mesh.position.set(this.px, -this.hundir, this.pz)
+        return
+      }
       if (this.reloading > 0) this.reloading = Math.max(0, this.reloading - dt)
 
       // Andar hacia su sitio, como el soldado de siempre.
