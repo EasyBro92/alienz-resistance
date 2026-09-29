@@ -2152,7 +2152,7 @@ function start (indice = nivelActual) {
   }
   // Y si nacen muy al fondo, dentro de la niebla, traen prisa hasta salir de
   // ella (ver `velocidad` en zombie.js).
-  FIELD.prisa = nivelDeHoy.entrada?.prisa ?? null
+  FIELD.prisa = nivelDeHoy.entrada?.prisa ?? nivelDeHoy.prisa ?? null
   sinNave = !!dueloEnCurso || !!nivelDeHoy.entrada
   dropship.recolocar()
   if (sinNave) dropship.ocultar()
@@ -3336,22 +3336,31 @@ async function pintarComposicion () {
   const gastado = costeDe(composicion)
   elRetoGastado.textContent = gastado
   elRetoBarra.style.width = `${Math.min(100, gastado / PRESUPUESTO * 100)}%`
+  const pasado = gastado > PRESUPUESTO
+  elRetoGastado.closest('.retos-presu').classList.toggle('pasado', pasado)
+  elRetoBarra.classList.toggle('pasado', pasado)
   // Los contadores pueden no existir aún (la fila de LA MADRE solo sale en modo
   // Mando): se salta la que falte.
   for (const c of catalogoReto) {
     const n = composicion[c.clave] ?? 0
+    if (!document.getElementById('reto-n-' + c.clave)) continue
     const cuenta_ = document.getElementById('reto-n-' + c.clave)
     if (!cuenta_) continue
     cuenta_.textContent = n
     // El botón de sumar se apaga cuando ya no cabe: es más claro que dejarte
     // pulsar y no pasar nada.
     const mas = elRetosLista.querySelector(`[data-mas="${c.clave}"]`)
-    if (mas) mas.disabled = !modoMando && gastado + c.coste > PRESUPUESTO
+    // El + no se apaga al llegar al tope: si te pasas, el contador se pone en
+    // rojo y no deja crear (Isidro: «si se pasa, que salga en rojo y no deje
+    // crear el reto»). Así se ve por cuánto te pasas.
+    if (mas) mas.disabled = false
     elRetosLista.querySelector(`[data-menos="${c.clave}"]`).disabled = n === 0
   }
-  elRetoCrear.disabled = !gastado || !cuenta.usuario || modoMando
+  elRetoCrear.disabled = !gastado || pasado || !cuenta.usuario || modoMando
   const publicar = document.getElementById('mando-publicar')
-  if (publicar) publicar.disabled = !modoMando || !gastado || !document.getElementById('mando-titulo').value.trim()
+  if (publicar) publicar.disabled = !modoMando || !gastado || pasado || !document.getElementById('mando-titulo').value.trim()
+  const avisoMando = document.getElementById('mando-aviso')
+  if (avisoMando && pasado) avisoMando.textContent = `Te pasas de ${PRESUPUESTO} de biomasa: quita alienz para poder publicar.`
 }
 
 elRetosLista?.addEventListener('click', async e => {
@@ -3410,7 +3419,11 @@ document.getElementById('reto-buscar')?.addEventListener('click', async () => {
 function empezarReto (reto, waves) {
   const base = NIVELES[Math.max(0, Math.min(NIVELES.length - 1, reto.escenario ?? 0))]
   // El escenario de la campaña, con las oleadas del reto encima.
-  retoEnCurso = { ...reto, nivel: { ...base, name: reto.mando ? `Reto del Mando: ${reto.titulo}` : `Reto de ${reto.alias ?? 'otro jugador'}`, waves } }
+  // En los retos los alienz bajan de la nave corriendo (2,5 veces su paso) y
+  // frenan hasta el suyo a media calle: el paseo desde la nave era lo que más
+  // tardaba. Milán ya trae su propia entrada con prisa.
+  const prisa = base.entrada ? undefined : { desde: FIELD.spawnZ, hasta: -24, por: 2.5 }
+  retoEnCurso = { ...reto, nivel: { ...base, prisa, name: reto.mando ? `Reto del Mando: ${reto.titulo}` : `Reto de ${reto.alias ?? 'otro jugador'}`, waves } }
   // Un reto del Mando puede pedir jugarse sin las mejoras de la tienda. Se pone
   // antes de empezar: cada soldado lee sus mejoras al crearse.
   ponerSinMejoras(!!reto.sinMejoras)
@@ -3579,13 +3592,13 @@ document.getElementById('mando-titulo')?.addEventListener('input', e => {
 })
 
 // Dificultad: sale en la carta del reto y, si se pide, monta una oleada de
-// su tamaño (de 400 de biomasa la fácil a 2.600 con LA MADRE la extrema), que
+// su tamaño (de 400 de biomasa la fácil a 1.980 con LA MADRE la extrema), que
 // luego se puede retocar con los + y −.
 const DIFICULTADES = {
   facil: { nombre: 'Fácil', color: '#5fd97a', oleada: { walker: 10, runner: 6, spitter: 3 } },
   normal: { nombre: 'Normal', color: '#f0c419', oleada: { walker: 12, runner: 8, armored: 4, spitter: 4, leaper: 3, tank: 1 } },
   dificil: { nombre: 'Difícil', color: '#f08a3c', oleada: { walker: 14, runner: 10, armored: 8, spitter: 5, leaper: 5, bloater: 3, healer: 2, tank: 3 } },
-  extrema: { nombre: 'Extrema', color: '#e8523f', oleada: { walker: 16, runner: 12, armored: 10, spitter: 6, leaper: 6, bloater: 4, healer: 3, burrower: 3, tank: 5, boss: 1 } }
+  extrema: { nombre: 'Extrema', color: '#e8523f', oleada: { walker: 10, runner: 9, armored: 10, spitter: 6, leaper: 6, bloater: 4, healer: 3, burrower: 3, tank: 3, boss: 1 } }
 }
 document.getElementById('mando-sugerir')?.addEventListener('click', () => {
   const d = DIFICULTADES[document.getElementById('mando-dificultad').value] ?? DIFICULTADES.normal
@@ -3607,6 +3620,8 @@ document.getElementById('mando-publicar')?.addEventListener('click', async () =>
   if (!titulo) { aviso.textContent = 'Ponle un título.'; return }
   if (!Object.keys(composicion).length) { aviso.textContent = 'Monta la oleada arriba.'; return }
   if (!premio) { aviso.textContent = 'Pon un premio de al menos 1 billete.'; return }
+  const { costeDe, PRESUPUESTO: TOPE } = await import('./systems/retos.js')
+  if (costeDe(composicion) > TOPE) { aviso.textContent = `Te pasas de ${TOPE} de biomasa.`; return }
   // El premio lo decide el administrador, sin tope; se le pide confirmar para
   // que un cero de más no se cuele sin verlo.
   if (!confirm(`¿Publicar «${titulo}» para todos, con ${premio} billetes para cada uno que lo supere, durante ${duracion}, dificultad ${DIFICULTADES[dificultad].nombre}?`)) return

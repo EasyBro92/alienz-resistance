@@ -3034,3 +3034,6 @@ a.multi-boton { text-decoration: none; }
 .mando-sel { flex: 1; }
 .mando-texto { resize: vertical; font: inherit; }
 .mando-dificultad { padding: 1px 8px; border-radius: 999px; border: 1px solid var(--dif); color: var(--dif); font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; font-size: 10.5px; }
+/* Pasado de biomasa: en rojo, y no deja crear el reto. */
+.retos-presu.pasado, .retos-presu.pasado b { color: var(--red); }
+.retos-barra i.pasado { background: var(--red); }

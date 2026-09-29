@@ -14,7 +14,10 @@ import { aliasActual } from './marcadores.js'
 
 // El presupuesto. Da para una oleada larga de las baratas o para tres Colosos
 // con escolta: suficiente para que elegir signifique renunciar a algo.
-export const PRESUPUESTO = 700
+// Subido a 2.000 (Isidro, 29/09): «la biomasa para poner alienz no pase de
+// 2.000, o sea que tienes 2.000 para crear tu reto». Vale también para los
+// retos del Mando: más de eso a la vez atasca un móvil flojo.
+export const PRESUPUESTO = 2000
 
 // Lo que cuesta cada uno. Se usa lo que suelta al morir, que es la medida que
 // el juego ya tiene de lo que vale cada huésped, y así no hay dos tablas que
@@ -62,7 +65,9 @@ export function oleadasDeReto (composicion) {
       if (cuantos > 0) tandas[t].push({ type: c.clave, count: cuantos, every: RITMO[c.clave] ?? 2 })
     }
   }
-  return tandas.filter(t => t.length).map((spawns, i) => ({ gap: i ? 9 : 6, spawns }))
+  // Poca calma entre tandas (Isidro, 29/09: «entre oleada y oleada se hace
+  // lento»): en un reto no hay campaña que contar, se viene a aguantar.
+  return tandas.filter(t => t.length).map((spawns, i) => ({ gap: i ? 3.5 : 5, spawns }))
 }
 
 // Código corto y legible en voz alta: sin O ni 0, sin I ni 1.
