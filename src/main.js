@@ -187,9 +187,15 @@ const elBilletes = document.getElementById('billetes')
 const elBilletesValor = document.getElementById('billetes-valor')
 function pintarBilletes () { elBilletesValor.textContent = cargarCartera().billetes }
 pintarBilletes()
+// Apagado (Isidro, 29/09): «que al conseguir monedas se gane un billete durante
+// las partidas, desactívalo en todo el juego; solo se gana fuera de las partidas».
+// Los billetes salen ahora del cofre, de los regalos, de los retos del Mando y
+// de cambiar en la tienda las monedas que sobran (100 = 1). Se deja el código
+// por si algún día se quiere volver a encender: basta con poner esto a true.
+const BILLETES_EN_PARTIDA = false
 economy.onBillete(() => {
   // El duelo no da billetes por monedas: su premio es el cofre del ganador.
-  if (!running || dueloEnCurso) return
+  if (!BILLETES_EN_PARTIDA || !running || dueloEnCurso) return
   billetesPartida++
   sumarBilletes(1)
   pintarBilletes()
