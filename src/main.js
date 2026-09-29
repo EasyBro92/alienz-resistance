@@ -3304,12 +3304,21 @@ let composicion = {}
 let catalogoReto = []
 
 async function abrirRetos () {
-  const { CATALOGO, PRESUPUESTO } = await import('./systems/retos.js')
-  catalogoReto = CATALOGO
+  const { CATALOGO, CATALOGO_TODO, PRESUPUESTO } = await import('./systems/retos.js')
+  catalogoReto = modoMando ? CATALOGO_TODO : CATALOGO
   document.getElementById('reto-presu').textContent = PRESUPUESTO
   if (!Object.keys(composicion).length) composicion = {}
   elRetoHecho.hidden = true
   elRetoAviso.textContent = cuenta.usuario ? '' : 'Para montar retos o jugarlos hace falta entrar con tu cuenta.'
+  pintarFilasReto()
+  pintarComposicion()
+  elMultiCapa.classList.add('hidden')
+  elRetosCapa.classList.remove('hidden')
+  pintarMando()
+  montarAdminMando().then(() => { if (esAdmin) pintarMando() })
+}
+
+function pintarFilasReto () {
   elRetosLista.innerHTML = catalogoReto.map(c => `
     <li class="reto-fila" data-clave="${c.clave}">
       <span class="reto-nombre">${c.nombre}</span>
@@ -3320,9 +3329,6 @@ async function abrirRetos () {
         <button type="button" class="reto-mas" data-mas="${c.clave}" aria-label="Añadir un ${c.nombre}">+</button>
       </span>
     </li>`).join('')
-  pintarComposicion()
-  elMultiCapa.classList.add('hidden')
-  elRetosCapa.classList.remove('hidden')
 }
 
 async function pintarComposicion () {
@@ -3330,16 +3336,22 @@ async function pintarComposicion () {
   const gastado = costeDe(composicion)
   elRetoGastado.textContent = gastado
   elRetoBarra.style.width = `${Math.min(100, gastado / PRESUPUESTO * 100)}%`
+  // Los contadores pueden no existir aún (la fila de LA MADRE solo sale en modo
+  // Mando): se salta la que falte.
   for (const c of catalogoReto) {
     const n = composicion[c.clave] ?? 0
-    document.getElementById('reto-n-' + c.clave).textContent = n
+    const cuenta_ = document.getElementById('reto-n-' + c.clave)
+    if (!cuenta_) continue
+    cuenta_.textContent = n
     // El botón de sumar se apaga cuando ya no cabe: es más claro que dejarte
     // pulsar y no pasar nada.
     const mas = elRetosLista.querySelector(`[data-mas="${c.clave}"]`)
-    if (mas) mas.disabled = gastado + c.coste > PRESUPUESTO
+    if (mas) mas.disabled = !modoMando && gastado + c.coste > PRESUPUESTO
     elRetosLista.querySelector(`[data-menos="${c.clave}"]`).disabled = n === 0
   }
-  elRetoCrear.disabled = !gastado || !cuenta.usuario
+  elRetoCrear.disabled = !gastado || !cuenta.usuario || modoMando
+  const publicar = document.getElementById('mando-publicar')
+  if (publicar) publicar.disabled = !modoMando || !gastado || !document.getElementById('mando-titulo').value.trim()
 }
 
 elRetosLista?.addEventListener('click', async e => {
@@ -3398,7 +3410,10 @@ document.getElementById('reto-buscar')?.addEventListener('click', async () => {
 function empezarReto (reto, waves) {
   const base = NIVELES[Math.max(0, Math.min(NIVELES.length - 1, reto.escenario ?? 0))]
   // El escenario de la campaña, con las oleadas del reto encima.
-  retoEnCurso = { ...reto, nivel: { ...base, name: `Reto de ${reto.alias ?? 'otro jugador'}`, waves } }
+  retoEnCurso = { ...reto, nivel: { ...base, name: reto.mando ? `Reto del Mando: ${reto.titulo}` : `Reto de ${reto.alias ?? 'otro jugador'}`, waves } }
+  // Un reto del Mando puede pedir jugarse sin las mejoras de la tienda. Se pone
+  // antes de empezar: cada soldado lee sus mejoras al crearse.
+  ponerSinMejoras(!!reto.sinMejoras)
   elRetosCapa.classList.add('hidden')
   start(nivelActual)
 }
@@ -3408,6 +3423,8 @@ function empezarReto (reto, waves) {
 async function finReto (ganado) {
   const reto = retoEnCurso
   retoEnCurso = null
+  ponerSinMejoras(false)
+  if (reto.mando) return finRetoMando(reto, ganado)
   const porcentaje = ganado ? Math.round(baseHp / BASE.hp * 100) : 0
   ui.banner(ganado ? 'RETO SUPERADO' : 'DESBORDADOS')
   let tabla = ''
@@ -3439,6 +3456,217 @@ document.getElementById('retos-volver')?.addEventListener('click', () => {
   volverAlMulti()
 })
 
+// --- retos del Mando (29/09) ---------------------------------------------------
+// Los publica el administrador para todos, con premio en billetes (ver
+// systems/retosMando.js). Salen arriba del todo en Retos; el botón de Retos del
+// menú multijugador lleva NUEVO mientras haya uno abierto que no hayas visto.
+const CLAVE_MANDO_VISTO = 'alienz-retos-mando-visto-v1'
+let modoMando = false
+let esAdmin = false
+let retosMandoCache = []
+
+async function pintarMando () {
+  const caja = document.getElementById('mando-retos')
+  const lista = document.getElementById('mando-lista')
+  let retos = []
+  try {
+    const { listarRetosMando } = await import('./systems/retosMando.js')
+    retos = await listarRetosMando()
+  } catch (e) {
+    console.warn('Sin retos del Mando:', e)
+  }
+  retosMandoCache = retos
+  const ahora = Date.now()
+  // Cada jugador ve los abiertos; el administrador ve también los cerrados,
+  // para poder retirarlos.
+  const visibles = retos.filter(r => esAdmin || (r.cierra ?? 0) > ahora)
+  caja.hidden = !visibles.length
+  if (!visibles.length) return
+  try { localStorage.setItem(CLAVE_MANDO_VISTO, String(Math.max(...retos.map(r => r.creado ?? 0)))) } catch {}
+  document.getElementById('retos-nuevo').hidden = true
+  const { cuantoQueda, superadosDe, yaLoSupere } = await import('./systems/retosMando.js')
+  const filas = await Promise.all(visibles.map(async r => {
+    const [superados, hecho] = await Promise.all([
+      superadosDe(r.id).catch(() => []),
+      yaLoSupere(cuenta.usuario, r.id).catch(() => false)
+    ])
+    return { r, superados, hecho }
+  }))
+  const N = NIVELES
+  lista.innerHTML = filas.map(({ r, superados, hecho }) => {
+    const cerrado = (r.cierra ?? 0) <= ahora
+    const mapa = N[r.escenario]?.name ?? ''
+    return `<li class="mando-reto ${cerrado ? 'cerrado' : ''}" data-id="${escaparTexto(r.id)}">
+      <div class="mando-cabeza"><b>${escaparTexto(r.titulo)}</b><span class="mando-premio">+${Number(r.premio) || 0} billetes</span></div>
+      ${r.texto ? `<p>${escaparTexto(r.texto)}</p>` : ''}
+      <div class="mando-pie">
+        <span>${escaparTexto(cuantoQueda(r.cierra, ahora))}</span>
+        ${mapa ? `<span>${escaparTexto(mapa)}</span>` : ''}
+        ${r.sinMejoras ? '<span>Sin mejoras</span>' : ''}
+        <span>${superados.length} lo ${superados.length === 1 ? 'ha' : 'han'} superado</span>
+        ${hecho ? '<span class="mando-hecho">✓ Superado y cobrado</span>' : ''}
+        ${cerrado ? '' : `<button type="button" class="chip" data-jugar-mando="${escaparTexto(r.id)}">${hecho ? 'Jugar otra vez' : 'Jugar'}</button>`}
+        ${esAdmin ? `<button type="button" class="chip chip-ghost" data-retirar-mando="${escaparTexto(r.id)}">Retirar</button>` : ''}
+      </div>
+    </li>`
+  }).join('')
+}
+
+document.getElementById('mando-lista')?.addEventListener('click', async e => {
+  const jugar = e.target.closest('[data-jugar-mando]')?.dataset.jugarMando
+  const retirar = e.target.closest('[data-retirar-mando]')?.dataset.retirarMando
+  if (jugar) {
+    const r = retosMandoCache.find(x => x.id === jugar)
+    if (!r) return
+    audio.unlock()
+    const { oleadasDeReto } = await import('./systems/retos.js')
+    empezarReto({ ...r, mando: true, codigo: r.id, alias: 'el Mando' }, oleadasDeReto(r.composicion))
+  } else if (retirar) {
+    if (!confirm('¿Retirar este reto del Mando? Deja de verse para todos.')) return
+    try {
+      const { retirarRetoMando } = await import('./systems/retosMando.js')
+      await retirarRetoMando(retirar)
+      pintarMando()
+    } catch (err) {
+      console.warn('Sin retirar:', err)
+      alert('No se ha podido retirar.')
+    }
+  }
+})
+
+// El panel de publicar: solo para quien esté en `admins/{uid}`.
+async function montarAdminMando () {
+  const panel = document.getElementById('mando-admin')
+  esAdmin = false
+  panel.hidden = true
+  if (!cuenta.usuario) return
+  try {
+    const { soyAdmin } = await import('./systems/retosMando.js')
+    esAdmin = await soyAdmin(cuenta.usuario)
+  } catch { esAdmin = false }
+  panel.hidden = !esAdmin
+  if (!esAdmin) return
+  const sel = document.getElementById('mando-mapa')
+  if (!sel.options.length) {
+    sel.innerHTML = NIVELES.map((n, i) => `<option value="${i}">${i + 1}. ${escaparTexto(n.name)}</option>`).join('')
+    sel.value = String(Math.max(0, Math.min(NIVELES.length - 1, nivelActual)))
+  }
+}
+
+document.getElementById('mando-modo')?.addEventListener('change', async e => {
+  modoMando = e.target.checked
+  document.getElementById('mando-campos').hidden = !modoMando
+  const { CATALOGO, CATALOGO_TODO } = await import('./systems/retos.js')
+  catalogoReto = modoMando ? CATALOGO_TODO : CATALOGO
+  pintarFilasReto()
+  pintarComposicion()
+})
+document.getElementById('mando-titulo')?.addEventListener('input', () => pintarComposicion())
+
+document.getElementById('mando-publicar')?.addEventListener('click', async () => {
+  const aviso = document.getElementById('mando-aviso')
+  const titulo = document.getElementById('mando-titulo').value.trim().slice(0, 40)
+  const texto = document.getElementById('mando-texto').value.trim().slice(0, 140)
+  const premio = Math.max(0, Math.floor(Number(document.getElementById('mando-premio').value) || 0))
+  const dias = Number(document.getElementById('mando-dias').value) || 7
+  const escenario = Number(document.getElementById('mando-mapa').value) || 0
+  const sinMejoras = document.getElementById('mando-sinmejoras').checked
+  if (!titulo) { aviso.textContent = 'Ponle un título.'; return }
+  if (!Object.keys(composicion).length) { aviso.textContent = 'Monta la oleada arriba.'; return }
+  if (!premio) { aviso.textContent = 'Pon un premio de al menos 1 billete.'; return }
+  // El premio lo decide el administrador, sin tope; se le pide confirmar para
+  // que un cero de más no se cuele sin verlo.
+  if (!confirm(`¿Publicar «${titulo}» para todos, con ${premio} billetes para cada uno que lo supere, durante ${dias} ${dias === 1 ? 'día' : 'días'}?`)) return
+  const boton = document.getElementById('mando-publicar')
+  boton.disabled = true
+  aviso.textContent = 'Publicando…'
+  try {
+    const { publicarRetoMando } = await import('./systems/retosMando.js')
+    await publicarRetoMando(cuenta.usuario, {
+      titulo, texto, premio, escenario, sinMejoras,
+      composicion: { ...composicion },
+      cierra: Date.now() + dias * 24 * 60 * 60 * 1000
+    })
+    aviso.textContent = '¡Publicado! Ya lo ve todo el mundo arriba, en Retos del Mando.'
+    composicion = {}
+    document.getElementById('mando-titulo').value = ''
+    document.getElementById('mando-texto').value = ''
+    pintarComposicion()
+    pintarMando()
+  } catch (e) {
+    console.warn('Sin publicar:', e)
+    aviso.textContent = /permission|denied/i.test(String(e?.message ?? e))
+      ? 'El servidor no deja publicar: faltan las reglas nuevas o no estás en administradores.'
+      : 'No se ha podido publicar. Inténtalo otra vez.'
+  } finally {
+    boton.disabled = false
+    pintarComposicion()
+  }
+})
+
+// La marca NUEVO del menú: algún reto abierto más nuevo que el último que viste.
+async function comprobarRetosNuevos () {
+  try {
+    const { listarRetosMando } = await import('./systems/retosMando.js')
+    const retos = await listarRetosMando()
+    let visto = 0
+    try { visto = Number(localStorage.getItem(CLAVE_MANDO_VISTO)) || 0 } catch {}
+    const ahora = Date.now()
+    document.getElementById('retos-nuevo').hidden = !retos.some(r => (r.cierra ?? 0) > ahora && (r.creado ?? 0) > visto)
+  } catch (e) {
+    console.warn('Sin mirar retos nuevos:', e)
+  }
+}
+
+// El final de un reto del Mando: si sobreviviste y tienes cuenta, se cobra (una
+// vez); se enseña quién más lo ha superado.
+async function finRetoMando (reto, ganado) {
+  const porcentaje = ganado ? Math.round(baseHp / BASE.hp * 100) : 0
+  ui.banner(ganado ? 'RETO SUPERADO' : 'DESBORDADOS')
+  let premio = ''
+  let lista = ''
+  try {
+    const mod = await import('./systems/retosMando.js')
+    if (ganado) {
+      if (!cuenta.usuario) {
+        premio = '<p class="tagline">Lo has superado, pero para cobrar los billetes hace falta entrar con tu cuenta (en Ajustes).</p>'
+      } else {
+        const r = await mod.apuntarSuperado(cuenta.usuario, reto)
+        if (r === 'cobrado') {
+          sumarBilletes(Number(reto.premio) || 0)
+          pintarBilletes()
+          audio.billete()
+          premio = `<p class="botin-billetes"><svg aria-hidden="true"><use href="#i-billete"></use></svg><b>+${Number(reto.premio) || 0}</b> billetes del Mando</p>`
+        } else if (r === 'ya') {
+          premio = '<p class="tagline">Superado otra vez. El premio ya lo cobraste la primera.</p>'
+        } else {
+          premio = '<p class="tagline">Superado, pero el reto ya se había cerrado: sin premio.</p>'
+        }
+      }
+    }
+    const superados = await mod.superadosDe(reto.id)
+    lista = superados.length
+      ? `<ol class="marcador-lista">${superados.slice(0, 10).map((f, i) => `
+        <li class="${f.uid === cuenta.usuario?.uid ? 'marcador-yo' : ''}">
+          <span class="marcador-puesto">${i + 1}</span>
+          <span class="marcador-alias">${escaparTexto(f.alias ?? '')}</span>
+          <span class="marcador-marca">✓</span>
+        </li>`).join('')}</ol>`
+      : '<p class="marcador-vacio">Nadie lo ha superado todavía.</p>'
+  } catch (e) {
+    console.warn('Sin cobrar el reto del Mando:', e)
+    premio ||= '<p class="tagline">No se ha podido conectar para cobrar. Vuelve a jugarlo con conexión.</p>'
+  }
+  setTimeout(() => {
+    ui.showOverlay(`
+      <h1 class="${ganado ? 'won' : 'lost'}">${ganado ? 'AGUANTASTE' : 'PERÍMETRO ROTO'}</h1>
+      <p class="tagline">Reto del Mando <b>${escaparTexto(reto.titulo ?? '')}</b>. ${ganado ? `Base al ${porcentaje}%.` : 'Sin base no hay premio: puedes intentarlo las veces que quieras.'}</p>
+      ${premio}
+      <div class="marcador"><p class="retos-tit">Lo han superado</p>${lista}</div>
+      <button class="big-btn" onclick="volverA('mapa')">VOLVER AL MAPA</button>`)
+  }, 900)
+}
+
 // --- menú multijugador y ranking ---------------------------------------------
 //
 // Todo lo que se juega con otros cuelga de un solo botón del mapa.
@@ -3459,6 +3687,7 @@ document.getElementById('mapa-multi')?.addEventListener('click', () => {
 // despues de la primera vez.
 function volverAlMulti () {
   elMultiCapa.classList.remove('hidden')
+  comprobarRetosNuevos()
   pintarVinetas({ retratos: retratosGuardados, amenazas: retratosAlien })
   pintarMiFicha({ cuenta, escapar: escaparTexto }).catch(e => console.warn('Sin ficha:', e))
 }

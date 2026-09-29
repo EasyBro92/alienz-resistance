@@ -24,11 +24,17 @@ export const CATALOGO = Object.entries(ZOMBIES)
   .map(([clave, s]) => ({ clave, nombre: s.name, coste: s.coins }))
   .sort((a, b) => a.coste - b.coste)
 
-const COSTE = Object.fromEntries(CATALOGO.map(c => [c.clave, c.coste]))
+// El de los retos del Mando: sin presupuesto y con LA MADRE, que solo puede
+// poner el administrador.
+export const CATALOGO_TODO = Object.entries(ZOMBIES)
+  .map(([clave, s]) => ({ clave, nombre: s.name, coste: s.coins }))
+  .sort((a, b) => a.coste - b.coste)
+
+const COSTE = Object.fromEntries(CATALOGO_TODO.map(c => [c.clave, c.coste]))
 
 // Cada cuánto baja uno de cada clase. Los caros salen más espaciados: ocho
 // Colosos seguidos no son un reto, son una pared.
-const RITMO = { walker: 1, runner: 1.5, leaper: 2.4, armored: 2.2, burrower: 2.6, spitter: 3, bloater: 3.2, healer: 3, tank: 5.5 }
+const RITMO = { boss: 12, walker: 1, runner: 1.5, leaper: 2.4, armored: 2.2, burrower: 2.6, spitter: 3, bloater: 3.2, healer: 3, tank: 5.5 }
 
 export const costeDe = composicion =>
   Object.entries(composicion).reduce((t, [k, n]) => t + (COSTE[k] ?? 0) * n, 0)
@@ -39,7 +45,7 @@ export const costeDe = composicion =>
 // cierran. Repartido al azar, la mitad de los retos empezaban con un Coloso y
 // se acababan en veinte segundos.
 export function oleadasDeReto (composicion) {
-  const clases = CATALOGO.filter(c => (composicion[c.clave] ?? 0) > 0)
+  const clases = CATALOGO_TODO.filter(c => (composicion[c.clave] ?? 0) > 0)
   const tandas = [[], [], []]
   for (const c of clases) {
     const total = composicion[c.clave]

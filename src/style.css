@@ -3009,3 +3009,27 @@ a.multi-boton { text-decoration: none; }
 .correo-tarjeta .correo-aviso { color: #ff9a8a; }
 .correo-tarjeta .correo-aviso.bien { color: #8fffa8; }
 .bienvenida-tarjeta .bienvenida-correo { background: rgba(255,255,255,0.08); color: #ffffff; border-color: rgba(255,255,255,0.25); }
+
+/* ---------- retos del Mando ---------- */
+.multi-nuevo { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 999px; background: #e8523f; color: #fff;
+  font: 900 9px/1.4 inherit; letter-spacing: 0.08em; font-style: normal; vertical-align: middle; animation: pop .3s ease; }
+.mando-retos { margin-bottom: 14px; }
+.mando-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.mando-reto { padding: 10px 12px; border-radius: 14px; border: 1px solid color-mix(in srgb, #f0c419 55%, transparent);
+  background: linear-gradient(120deg, color-mix(in srgb, #f0c419 16%, transparent), var(--velo-1) 70%); text-align: left; }
+.mando-reto.cerrado { opacity: 0.55; border-color: var(--borde-2); }
+.mando-cabeza { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.mando-cabeza b { font-size: 15px; }
+.mando-premio { flex: none; font-weight: 900; color: #f0c419; white-space: nowrap; }
+.mando-reto p { margin: 4px 0; font-size: 12.5px; color: var(--tinta-3); }
+.mando-pie { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: 11.5px; color: var(--tinta-4); margin-top: 6px; }
+.mando-pie .chip { margin-left: auto; }
+.mando-hecho { color: var(--verde-texto); font-weight: 800; }
+.mando-admin { margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--borde-2); text-align: left; }
+.mando-admin .retos-tit small { font-weight: 600; opacity: 0.7; }
+.mando-campos { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.mando-check { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; }
+.mando-fila { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+.mando-num { width: 110px; }
+.mando-sel { flex: 1; }
+.mando-texto { resize: vertical; font: inherit; }

@@ -503,7 +503,7 @@
           </button>
           <button id="multi-retos" class="multi-boton" type="button" style="--tinte:#e0a83c">
             <i class="multi-vineta" data-arte="retos" aria-hidden="true"></i>
-            <span><b>Retos</b><small>Monta una oleada y pásale el código a otro</small></span>
+            <span><b>Retos <em id="retos-nuevo" class="multi-nuevo" hidden>NUEVO</em></b><small>Monta una oleada y pásale el código a otro</small></span>
             <svg class="multi-flecha" aria-hidden="true"><use href="#i-duelo"></use></svg>
           </button>
           <button id="multi-ranking" class="multi-boton" type="button" style="--tinte:#f0c419">
@@ -664,6 +664,13 @@
         <h2>Retos</h2>
         <p class="retos-intro" id="retos-intro">Monta una oleada con tu presupuesto de biomasa y pásale el código a otro jugador. El que deje la base más entera, gana.</p>
 
+        <!-- Retos del Mando (29/09): los publica el administrador, con premio en
+             billetes para todo el que los supere. Arriba del todo. -->
+        <div id="mando-retos" class="mando-retos" hidden>
+          <p class="retos-tit">Retos del Mando</p>
+          <ul id="mando-lista" class="mando-lista"></ul>
+        </div>
+
         <div class="retos-jugar">
           <label class="retos-label" for="reto-codigo">¿Te han pasado un código?</label>
           <div class="alias-fila">
@@ -682,6 +689,24 @@
           <p>Tu reto está listo. Pásale este código:</p>
           <b class="reto-codigo-grande" id="reto-codigo-nuevo"></b>
           <button id="reto-copiar" class="chip" type="button">Copiar el código</button>
+        </div>
+        <!-- Solo para administración: la misma oleada de arriba, sin tope y con
+             LA MADRE, publicada para todos con su premio. -->
+        <div id="mando-admin" class="mando-admin" hidden>
+          <p class="retos-tit">Publicar un reto del Mando <small>solo administración</small></p>
+          <label class="mando-check"><input type="checkbox" id="mando-modo"> Montar la oleada de arriba sin tope (con LA MADRE) y publicarla para todos</label>
+          <div id="mando-campos" class="mando-campos" hidden>
+            <input id="mando-titulo" class="alias-campo" type="text" maxlength="40" placeholder="Título del reto" aria-label="Título">
+            <textarea id="mando-texto" class="alias-campo mando-texto" maxlength="140" rows="2" placeholder="Texto (opcional)" aria-label="Texto"></textarea>
+            <label class="mando-fila">Premio <input id="mando-premio" class="alias-campo mando-num" type="number" min="1" step="1" value="100" inputmode="numeric"> billetes</label>
+            <label class="mando-fila">Dura <select id="mando-dias" class="alias-campo mando-sel">
+              <option value="1">1 día</option><option value="3">3 días</option><option value="7" selected>7 días</option><option value="14">14 días</option><option value="30">30 días</option>
+            </select></label>
+            <label class="mando-fila">Mapa <select id="mando-mapa" class="alias-campo mando-sel"></select></label>
+            <label class="mando-check"><input type="checkbox" id="mando-sinmejoras"> Sin las mejoras de la tienda (todos iguales)</label>
+            <button id="mando-publicar" class="big-btn" type="button" disabled>PUBLICAR PARA TODOS</button>
+            <p class="ajuste-pie" id="mando-aviso"></p>
+          </div>
         </div>
         <button id="retos-volver" class="chip chip-ghost">Volver</button>
       </div>

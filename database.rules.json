@@ -86,6 +86,23 @@
         }
       }
     },
+    "retosMando": {
+      ".read": true,
+      "$id": {
+        ".write": "auth != null && root.child('admins/' + auth.uid).exists()",
+        ".validate": "!newData.exists() || (newData.hasChildren(['titulo', 'composicion', 'escenario', 'premio', 'cierra']) && newData.child('titulo').isString() && newData.child('titulo').val().length <= 40 && newData.child('premio').isNumber() && newData.child('premio').val() >= 0 && newData.child('cierra').isNumber())"
+      }
+    },
+    "superadosMando": {
+      "$id": {
+        ".read": true,
+        ".write": "auth != null && root.child('admins/' + auth.uid).exists()",
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid && !data.exists() && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('retosMando/' + $id + '/cierra').val() > now",
+          ".validate": "newData.hasChildren(['alias', 'en']) && newData.child('alias').isString() && newData.child('alias').val().length <= 24"
+        }
+      }
+    },
     "colaGuerra": {
       ".read": "auth != null",
       ".write": "auth != null"
