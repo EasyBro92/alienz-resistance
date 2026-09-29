@@ -25,6 +25,7 @@ import { renderPortraits } from '../portraits.js'
 import { cargarCartera, ponerSinMejoras } from '../systems/cartera.js'
 import { crearCampo, CAMPO, carrilX, MITAD, COLOR } from './campo.js'
 import { crearRed } from './red.js'
+import { crearSoldadoPrueba, cargarSoldadoPrueba } from './soldadoPrueba.js'
 import { filtrar, FRASES, MAX_MENSAJE, ESPERA_MENSAJE } from '../systems/duelo.js'
 
 ponerSinMejoras(true)
@@ -54,7 +55,10 @@ const DE_SERIE = ['archer', 'rifle', 'shotgun', 'sniper', 'sandbags']
 
 const $ = id => document.getElementById(id)
 const lienzo = $('gc-lienzo')
-const { renderer, scene, camera, animar, emblema, girar } = crearCampo(lienzo)
+const { renderer, scene, camera, animar, emblema, girar, ponerMapa } = crearCampo(lienzo)
+// 'pueblo' (el de siempre) o 'prueba' (piezas de Kenney y Quaternius). Solo se
+// juega en el de prueba contra la máquina, desde su botón del menú.
+let mapa = 'pueblo'
 const effects = createEffects(scene, camera)
 const audio = createAudio()
 
@@ -95,7 +99,7 @@ const enMiMitad = (bando, z) => bando.dir < 0 ? z > MITAD + 1 : z < MITAD - 1
 async function crearUnidad (bando, key, x, z, orden) {
   const esDefensa = !!DEFENSES[key]
   const spec = esDefensa ? DEFENSES[key] : SOLDIERS[key]
-  const s = await createSoldier(key, spec, 2, 0)
+  const s = mapa === 'prueba' && !esDefensa ? await crearSoldadoPrueba(key, spec) : await createSoldier(key, spec, 2, 0)
   if (!jugando) return null
   s.px = s.destX = x
   s.pz = s.destZ = z
@@ -135,7 +139,10 @@ function pintarBando (raiz, color, cuanto) {
     const nuevos = lista.map(m => {
       if (!m.color || m.depthTest === false) return m   // la barra de vida no
       const n = m.clone()
-      n.color.lerp(c, m.userData?.ropa ? cuanto * 0.3 : cuanto)
+      // `tinte` lo fija quien hizo la figura (el soldado del kit); `ropa` es la
+      // del arquero, que se tiñe poco.
+      const k = typeof m.userData?.tinte === 'number' ? m.userData.tinte : m.userData?.ropa ? cuanto * 0.3 : cuanto
+      n.color.lerp(c, k)
       return n
     })
     o.material = Array.isArray(o.material) ? nuevos : nuevos[0]
@@ -677,6 +684,8 @@ red.en('fin', f => {
 // El anfitrión también se entera si el invitado se rinde.
 red.en('fin', f => { if (jugando && rol === 'anfitrion' && f.r === 'abandono' && f.g === 'azul') mostrarFinal(f) })
 red.en('inicio', async sala => {
+  mapa = 'pueblo'
+  await ponerMapa('pueblo')
   // El nombre y el emblema del otro pueden llegar un pelo después del arranque.
   for (let i = 0; i < 30 && !sala.rival; i++) await new Promise(r => setTimeout(r, 100))
   rivalRed = sala.rival
@@ -1091,6 +1100,25 @@ function pintarHud (forzar = false) {
 
 // --- partida --------------------------------------------------------------------
 async function empezar () {
+  mapa = 'pueblo'
+  await ponerMapa('pueblo')
+  return empezarPartida('solo')
+}
+
+// El mapa de PRUEBA (Isidro, 29/09: «crea un mapa aparte que se llame prueba,
+// solo para probarlo»): contra la máquina, con el pueblo y los soldados de los
+// paquetes nuevos.
+async function empezarPrueba () {
+  $('gc-menu').hidden = true
+  $('gc-carga').hidden = false
+  mapa = 'prueba'
+  try {
+    await Promise.all([ponerMapa('prueba'), cargarSoldadoPrueba()])
+  } catch (e) {
+    console.warn('Sin mapa de prueba:', e)
+    mapa = 'pueblo'
+    await ponerMapa('pueblo')
+  }
   return empezarPartida('solo')
 }
 
@@ -1135,7 +1163,7 @@ async function empezarPartida (rolNuevo) {
   // Las figuras se cargan antes de empezar: el primer soldado no puede tardar
   // dos segundos en salir mientras el rival ya está andando.
   const claves = new Set([...bandos.azul.tengo, ...bandos.rojo.tengo].filter(k => SOLDIERS[k]))
-  await Promise.all([...claves].map(k => buildSoldierMesh(k, SOLDIERS[k]).catch(() => null)))
+  if (mapa !== 'prueba') await Promise.all([...claves].map(k => buildSoldierMesh(k, SOLDIERS[k]).catch(() => null)))
   $('gc-carga').hidden = true
   $('gc-hud').hidden = false
   jugando = true
@@ -1257,8 +1285,9 @@ function pintarNivelMenu () {
 }
 pintarNivelMenu()
 $('gc-maquina').onclick = empezar
+$('gc-prueba').onclick = empezarPrueba
 $('gc-otra').onclick = () => {
-  if (rol === 'solo') return empezar()
+  if (rol === 'solo') return mapa === 'prueba' ? empezarPrueba() : empezar()
   red.salir()
   $('gc-final').hidden = true
   $('gc-menu').hidden = false

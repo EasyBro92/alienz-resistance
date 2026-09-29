@@ -18,6 +18,8 @@
 
 import * as THREE from 'three'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { bake, buildDefensaMesh } from '../assets.js'
 import { texturasDelSuelo } from '../systems/texturas.js'
 import { RESTOS, FLORA } from '../biomas.js'
@@ -90,7 +92,8 @@ export function crearCampo (lienzo) {
   scene.add(fundido)
 
   // El suelo aparte: lleva textura y no se funde.
-  scene.add(sueloConTextura())
+  const sueloTex = sueloConTextura()
+  scene.add(sueloTex)
 
   // Lo que se mueve o viene de fuera va suelto.
   const vivo = new THREE.Group()
@@ -163,7 +166,30 @@ export function crearCampo (lienzo) {
     escudos[bando].material.needsUpdate = true
   }
   const humos = columnasDeHumo(vivo)
-  barricadasDeBlender(vivo)
+  const barricadas = new THREE.Group()
+  vivo.add(barricadas)
+  barricadasDeBlender(barricadas)
+
+  // El mapa de PRUEBA (29/09): el mismo pueblo hecho en Blender con piezas de
+  // Kenney y Quaternius (herramientas/blender/prueba_mapa.py). Se carga la
+  // primera vez que se pide y apaga el pueblo de siempre; las banderas, el humo
+  // y los escudos del suelo se quedan, que valen para los dos.
+  let prueba = null
+  async function ponerMapa (nombre) {
+    const esPrueba = nombre === 'prueba'
+    if (esPrueba && !prueba) {
+      const cargador = new GLTFLoader().setDRACOLoader(
+        new DRACOLoader().setDecoderPath(`${import.meta.env.BASE_URL}draco/`).setDecoderConfig({ type: 'wasm' }))
+      const gltf = await cargador.loadAsync(`${import.meta.env.BASE_URL}models/lugar-prueba.glb`)
+      prueba = gltf.scene
+      prueba.traverse(o => { if (o.isMesh) { o.receiveShadow = true; o.castShadow = true } })
+      scene.add(prueba)
+    }
+    if (prueba) prueba.visible = esPrueba
+    fundido.visible = !esPrueba
+    sueloTex.visible = !esPrueba
+    barricadas.visible = !esPrueba
+  }
 
   // Quien juega de rojo lo ve todo desde su lado: la cámara se pone detrás de
   // la base roja, mirando hacia la azul. Los escudos del suelo se giran con
@@ -217,7 +243,7 @@ export function crearCampo (lienzo) {
     }
   }
 
-  return { renderer, scene, camera, animar, emblema, girar }
+  return { renderer, scene, camera, animar, emblema, girar, ponerMapa }
 }
 
 // --- suelo ---------------------------------------------------------------------
