@@ -233,6 +233,25 @@ export function crearCuenta ({ alCambiar }) {
         else throw e
       }
     },
+    // Correo y contraseña (29/09). En iPhone la ventana de Google no vuelve:
+    // sale de alienz-resistance.firebaseapp.com y Safari no le deja devolver la
+    // sesión a easybro92.github.io. Esto va sin ventanas, así que funciona igual
+    // en Safari, en Chrome y en la app instalada.
+    async entrarConCorreo (correo, clave) {
+      const { auth, sesion } = await cargarFirebase()
+      arrancar()
+      await auth.signInWithEmailAndPassword(sesion, correo.trim(), clave)
+    },
+    async crearConCorreo (correo, clave) {
+      const { auth, sesion } = await cargarFirebase()
+      arrancar()
+      await auth.createUserWithEmailAndPassword(sesion, correo.trim(), clave)
+    },
+    async recordarClave (correo) {
+      const { auth, sesion } = await cargarFirebase()
+      sesion.languageCode = 'es'
+      await auth.sendPasswordResetEmail(sesion, correo.trim())
+    },
     async salir () {
       const { auth, sesion } = await cargarFirebase()
       try { localStorage.removeItem(CLAVE_SESION) } catch {}

@@ -2993,3 +2993,19 @@ a.multi-boton { text-decoration: none; }
 :root[data-tema="claro"] #multi-capa .multi-boton {
   background: linear-gradient(100deg, color-mix(in srgb, var(--tinte) 20%, #ffffff), #ffffff 62%);
 }
+
+/* ---------- entrar con correo ---------- */
+.bienvenida-correo { width: 100%; margin-top: 8px; padding: 11px; border-radius: 12px; border: 1px solid var(--borde-2);
+  background: var(--velo-2); color: var(--tinta); font: inherit; font-weight: 800; cursor: pointer; }
+.correo-tarjeta { display: flex; flex-direction: column; gap: 8px; }
+.correo-tarjeta .alias-campo { width: 100%; }
+.correo-aviso { margin: 0; min-height: 16px; font-size: 12.5px; color: var(--red); }
+.correo-aviso.bien { color: var(--verde-texto); }
+.correo-botones { display: flex; gap: 8px; }
+.correo-botones .chip { flex: 1; justify-content: center; }
+/* La tarjeta es oscura en los dos temas: dentro, colores fijos, o con el tema
+   claro «Crear cuenta» salía con letra oscura sobre oscuro. */
+.correo-tarjeta .chip-ghost { background: transparent; color: #ffffff; border: 1px solid rgba(255,255,255,0.4); }
+.correo-tarjeta .correo-aviso { color: #ff9a8a; }
+.correo-tarjeta .correo-aviso.bien { color: #8fffa8; }
+.bienvenida-tarjeta .bienvenida-correo { background: rgba(255,255,255,0.08); color: #ffffff; border-color: rgba(255,255,255,0.25); }

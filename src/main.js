@@ -2598,6 +2598,7 @@ const cuenta = crearCuenta({
     pintarCuenta(u)
     elCuentaBoton.disabled = false
     elCuentaBoton.textContent = u ? 'Cerrar sesión' : 'Entrar con Google'
+    document.getElementById('cuenta-correo-boton').hidden = !!u
     elCuentaPie.textContent = u
       ? `Progreso guardado en la nube como ${u.displayName ?? u.email}.`
       : 'Guarda tu progreso en la nube y recupéralo en cualquier móvil.'
@@ -2659,6 +2660,77 @@ elCuentaBoton.addEventListener('click', async () => {
     elCuentaBoton.disabled = false
   }
 })
+
+// --- entrar con correo y contraseña (29/09) ------------------------------------
+// Isidro: «en iPhone no deja iniciar sesión con Google». Se abre desde Ajustes
+// y desde la bienvenida. Los errores de Firebase, traducidos: su código en
+// inglés no le dice nada a nadie.
+const elCorreoCapa = document.getElementById('correo-capa')
+const elCorreoAviso = document.getElementById('correo-aviso')
+const elCorreoCampo = document.getElementById('correo-campo')
+const elCorreoClave = document.getElementById('correo-clave')
+function abrirCorreo () {
+  elBienvenida?.classList.add('hidden')
+  elCorreoAviso.textContent = ''
+  elCorreoAviso.classList.remove('bien')
+  elCorreoCapa.classList.remove('hidden')
+  setTimeout(() => elCorreoCampo.focus(), 50)
+}
+function errorDeCorreo (e) {
+  const c = e?.code ?? ''
+  if (/invalid-email/.test(c)) return 'Ese correo no parece válido.'
+  if (/missing-password/.test(c)) return 'Falta la contraseña.'
+  if (/weak-password/.test(c)) return 'La contraseña tiene que tener al menos 6 caracteres.'
+  if (/email-already-in-use/.test(c)) return 'Ya hay una cuenta con ese correo. Pulsa «Entrar».'
+  if (/invalid-credential|wrong-password|user-not-found|invalid-login/.test(c)) return 'Correo o contraseña incorrectos.'
+  if (/too-many-requests/.test(c)) return 'Demasiados intentos. Espera un poco y vuelve a probar.'
+  if (/network/.test(c)) return 'Sin conexión. Revisa la cobertura.'
+  if (/operation-not-allowed/.test(c)) return 'El acceso con correo no está activado en el servidor.'
+  return 'No se ha podido. Inténtalo otra vez.'
+}
+async function conCorreo (hacer, boton) {
+  const correo = elCorreoCampo.value.trim()
+  const clave = elCorreoClave.value
+  if (!correo) { elCorreoAviso.textContent = 'Escribe tu correo.'; return }
+  boton.disabled = true
+  elCorreoAviso.classList.remove('bien')
+  elCorreoAviso.textContent = 'Un momento…'
+  try {
+    await hacer(correo, clave)
+    elCorreoClave.value = ''
+    elCorreoCapa.classList.add('hidden')
+  } catch (e) {
+    console.warn('Correo:', e)
+    elCorreoAviso.textContent = errorDeCorreo(e)
+  } finally {
+    boton.disabled = false
+  }
+}
+document.getElementById('correo-form').addEventListener('submit', e => {
+  e.preventDefault()
+  conCorreo((c, k) => cuenta.entrarConCorreo(c, k), document.getElementById('correo-entrar'))
+})
+document.getElementById('correo-crear').addEventListener('click', e => {
+  if (elCorreoClave.value.length < 6) { elCorreoAviso.textContent = 'La contraseña tiene que tener al menos 6 caracteres.'; return }
+  conCorreo((c, k) => cuenta.crearConCorreo(c, k), e.currentTarget)
+})
+document.getElementById('correo-olvido').addEventListener('click', async e => {
+  const correo = elCorreoCampo.value.trim()
+  if (!correo) { elCorreoAviso.textContent = 'Escribe tu correo y vuelve a pulsar.'; return }
+  e.currentTarget.disabled = true
+  try {
+    await cuenta.recordarClave(correo)
+    elCorreoAviso.classList.add('bien')
+    elCorreoAviso.textContent = 'Te hemos mandado un correo para cambiar la contraseña (mira también en spam).'
+  } catch (err) {
+    elCorreoAviso.textContent = errorDeCorreo(err)
+  } finally {
+    e.currentTarget.disabled = false
+  }
+})
+document.getElementById('correo-cerrar').addEventListener('click', () => elCorreoCapa.classList.add('hidden'))
+document.getElementById('cuenta-correo-boton').addEventListener('click', abrirCorreo)
+document.getElementById('bienvenida-correo').addEventListener('click', abrirCorreo)
 
 // Arriba, junto al engranaje: silueta sin sesión (abre la bienvenida) o la
 // inicial del correo con ella (abre un menú con el correo y cerrar sesión).
