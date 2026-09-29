@@ -3502,6 +3502,7 @@ async function pintarMando () {
       <div class="mando-pie">
         <span>${escaparTexto(cuantoQueda(r.cierra, ahora))}</span>
         ${mapa ? `<span>${escaparTexto(mapa)}</span>` : ''}
+        ${DIFICULTADES[r.dificultad] ? `<span class="mando-dificultad" style="--dif:${DIFICULTADES[r.dificultad].color}">${DIFICULTADES[r.dificultad].nombre}</span>` : ''}
         ${r.sinMejoras ? '<span>Sin mejoras</span>' : ''}
         <span>${superados.length} lo ${superados.length === 1 ? 'ha' : 'han'} superado</span>
         ${hecho ? '<span class="mando-hecho">✓ Superado y cobrado</span>' : ''}
@@ -3551,6 +3552,7 @@ async function montarAdminMando () {
     sel.innerHTML = NIVELES.map((n, i) => `<option value="${i}">${i + 1}. ${escaparTexto(n.name)}</option>`).join('')
     sel.value = String(Math.max(0, Math.min(NIVELES.length - 1, nivelActual)))
   }
+  if (!tituloTocado) ponerTituloDelMapa()
 }
 
 document.getElementById('mando-modo')?.addEventListener('change', async e => {
@@ -3561,7 +3563,36 @@ document.getElementById('mando-modo')?.addEventListener('change', async e => {
   pintarFilasReto()
   pintarComposicion()
 })
-document.getElementById('mando-titulo')?.addEventListener('input', () => pintarComposicion())
+// El título sale solo del mapa (Isidro: «que sea el nombre de la ciudad, que
+// lo coja automático del mapa que le indique»). Si lo escribe a mano, se
+// respeta hasta que lo borre.
+let tituloTocado = false
+function ponerTituloDelMapa () {
+  const n = NIVELES[Number(document.getElementById('mando-mapa').value) || 0]
+  if (n) document.getElementById('mando-titulo').value = `Reto de ${n.name}`.slice(0, 40)
+  pintarComposicion()
+}
+document.getElementById('mando-mapa')?.addEventListener('change', () => { if (!tituloTocado) ponerTituloDelMapa() })
+document.getElementById('mando-titulo')?.addEventListener('input', e => {
+  tituloTocado = !!e.target.value.trim()
+  pintarComposicion()
+})
+
+// Dificultad: sale en la carta del reto y, si se pide, monta una oleada de
+// su tamaño (de 400 de biomasa la fácil a 2.600 con LA MADRE la extrema), que
+// luego se puede retocar con los + y −.
+const DIFICULTADES = {
+  facil: { nombre: 'Fácil', color: '#5fd97a', oleada: { walker: 10, runner: 6, spitter: 3 } },
+  normal: { nombre: 'Normal', color: '#f0c419', oleada: { walker: 12, runner: 8, armored: 4, spitter: 4, leaper: 3, tank: 1 } },
+  dificil: { nombre: 'Difícil', color: '#f08a3c', oleada: { walker: 14, runner: 10, armored: 8, spitter: 5, leaper: 5, bloater: 3, healer: 2, tank: 3 } },
+  extrema: { nombre: 'Extrema', color: '#e8523f', oleada: { walker: 16, runner: 12, armored: 10, spitter: 6, leaper: 6, bloater: 4, healer: 3, burrower: 3, tank: 5, boss: 1 } }
+}
+document.getElementById('mando-sugerir')?.addEventListener('click', () => {
+  const d = DIFICULTADES[document.getElementById('mando-dificultad').value] ?? DIFICULTADES.normal
+  composicion = Object.fromEntries(Object.entries(d.oleada).filter(([k]) => catalogoReto.some(c => c.clave === k)))
+  audio.unlock()
+  pintarComposicion()
+})
 
 document.getElementById('mando-publicar')?.addEventListener('click', async () => {
   const aviso = document.getElementById('mando-aviso')
@@ -3569,6 +3600,8 @@ document.getElementById('mando-publicar')?.addEventListener('click', async () =>
   const texto = document.getElementById('mando-texto').value.trim().slice(0, 140)
   const premio = Math.max(0, Math.floor(Number(document.getElementById('mando-premio').value) || 0))
   const dias = Number(document.getElementById('mando-dias').value) || 7
+  const dificultad = DIFICULTADES[document.getElementById('mando-dificultad').value] ? document.getElementById('mando-dificultad').value : 'normal'
+  const duracion = dias === 365 ? '1 año' : `${dias} ${dias === 1 ? 'día' : 'días'}`
   const escenario = Number(document.getElementById('mando-mapa').value) || 0
   const sinMejoras = document.getElementById('mando-sinmejoras').checked
   if (!titulo) { aviso.textContent = 'Ponle un título.'; return }
@@ -3576,20 +3609,21 @@ document.getElementById('mando-publicar')?.addEventListener('click', async () =>
   if (!premio) { aviso.textContent = 'Pon un premio de al menos 1 billete.'; return }
   // El premio lo decide el administrador, sin tope; se le pide confirmar para
   // que un cero de más no se cuele sin verlo.
-  if (!confirm(`¿Publicar «${titulo}» para todos, con ${premio} billetes para cada uno que lo supere, durante ${dias} ${dias === 1 ? 'día' : 'días'}?`)) return
+  if (!confirm(`¿Publicar «${titulo}» para todos, con ${premio} billetes para cada uno que lo supere, durante ${duracion}, dificultad ${DIFICULTADES[dificultad].nombre}?`)) return
   const boton = document.getElementById('mando-publicar')
   boton.disabled = true
   aviso.textContent = 'Publicando…'
   try {
     const { publicarRetoMando } = await import('./systems/retosMando.js')
     await publicarRetoMando(cuenta.usuario, {
-      titulo, texto, premio, escenario, sinMejoras,
+      titulo, texto, premio, escenario, sinMejoras, dificultad,
       composicion: { ...composicion },
       cierra: Date.now() + dias * 24 * 60 * 60 * 1000
     })
     aviso.textContent = '¡Publicado! Ya lo ve todo el mundo arriba, en Retos del Mando.'
     composicion = {}
-    document.getElementById('mando-titulo').value = ''
+    tituloTocado = false
+    ponerTituloDelMapa()
     document.getElementById('mando-texto').value = ''
     pintarComposicion()
     pintarMando()

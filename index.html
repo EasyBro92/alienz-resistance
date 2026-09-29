@@ -696,13 +696,17 @@
           <p class="retos-tit">Publicar un reto del Mando <small>solo administración</small></p>
           <label class="mando-check"><input type="checkbox" id="mando-modo"> Montar la oleada de arriba sin tope (con LA MADRE) y publicarla para todos</label>
           <div id="mando-campos" class="mando-campos" hidden>
+            <label class="mando-fila">Mapa <select id="mando-mapa" class="alias-campo mando-sel"></select></label>
             <input id="mando-titulo" class="alias-campo" type="text" maxlength="40" placeholder="Título del reto" aria-label="Título">
+            <label class="mando-fila">Dificultad <select id="mando-dificultad" class="alias-campo mando-sel">
+              <option value="facil">Fácil</option><option value="normal" selected>Normal</option><option value="dificil">Difícil</option><option value="extrema">Extrema</option>
+            </select></label>
+            <button id="mando-sugerir" class="chip" type="button">Montar la oleada según la dificultad</button>
             <textarea id="mando-texto" class="alias-campo mando-texto" maxlength="140" rows="2" placeholder="Texto (opcional)" aria-label="Texto"></textarea>
             <label class="mando-fila">Premio <input id="mando-premio" class="alias-campo mando-num" type="number" min="1" step="1" value="100" inputmode="numeric"> billetes</label>
             <label class="mando-fila">Dura <select id="mando-dias" class="alias-campo mando-sel">
-              <option value="1">1 día</option><option value="3">3 días</option><option value="7" selected>7 días</option><option value="14">14 días</option><option value="30">30 días</option>
+              <option value="1">1 día</option><option value="3">3 días</option><option value="7" selected>7 días</option><option value="14">14 días</option><option value="30">30 días</option><option value="365">1 año</option>
             </select></label>
-            <label class="mando-fila">Mapa <select id="mando-mapa" class="alias-campo mando-sel"></select></label>
             <label class="mando-check"><input type="checkbox" id="mando-sinmejoras"> Sin las mejoras de la tienda (todos iguales)</label>
             <button id="mando-publicar" class="big-btn" type="button" disabled>PUBLICAR PARA TODOS</button>
             <p class="ajuste-pie" id="mando-aviso"></p>
