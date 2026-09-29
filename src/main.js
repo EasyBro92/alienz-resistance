@@ -2152,7 +2152,7 @@ function start (indice = nivelActual) {
   }
   // Y si nacen muy al fondo, dentro de la niebla, traen prisa hasta salir de
   // ella (ver `velocidad` en zombie.js).
-  FIELD.prisa = nivelDeHoy.entrada?.prisa ?? nivelDeHoy.prisa ?? null
+  FIELD.prisa = nivelDeHoy.entrada?.prisa ?? null
   sinNave = !!dueloEnCurso || !!nivelDeHoy.entrada
   dropship.recolocar()
   if (sinNave) dropship.ocultar()
@@ -3419,11 +3419,7 @@ document.getElementById('reto-buscar')?.addEventListener('click', async () => {
 function empezarReto (reto, waves) {
   const base = NIVELES[Math.max(0, Math.min(NIVELES.length - 1, reto.escenario ?? 0))]
   // El escenario de la campaña, con las oleadas del reto encima.
-  // En los retos los alienz bajan de la nave corriendo (2,5 veces su paso) y
-  // frenan hasta el suyo a media calle: el paseo desde la nave era lo que más
-  // tardaba. Milán ya trae su propia entrada con prisa.
-  const prisa = base.entrada ? undefined : { desde: FIELD.spawnZ, hasta: -24, por: 2.5 }
-  retoEnCurso = { ...reto, nivel: { ...base, prisa, name: reto.mando ? `Reto del Mando: ${reto.titulo}` : `Reto de ${reto.alias ?? 'otro jugador'}`, waves } }
+  retoEnCurso = { ...reto, nivel: { ...base, name: reto.mando ? `Reto del Mando: ${reto.titulo}` : `Reto de ${reto.alias ?? 'otro jugador'}`, waves } }
   // Un reto del Mando puede pedir jugarse sin las mejoras de la tienda. Se pone
   // antes de empezar: cada soldado lee sus mejoras al crearse.
   ponerSinMejoras(!!reto.sinMejoras)

@@ -65,9 +65,7 @@ export function oleadasDeReto (composicion) {
       if (cuantos > 0) tandas[t].push({ type: c.clave, count: cuantos, every: RITMO[c.clave] ?? 2 })
     }
   }
-  // Poca calma entre tandas (Isidro, 29/09: «entre oleada y oleada se hace
-  // lento»): en un reto no hay campaña que contar, se viene a aguantar.
-  return tandas.filter(t => t.length).map((spawns, i) => ({ gap: i ? 3.5 : 5, spawns }))
+  return tandas.filter(t => t.length).map((spawns, i) => ({ gap: i ? 9 : 6, spawns }))
 }
 
 // Código corto y legible en voz alta: sin O ni 0, sin I ni 1.
