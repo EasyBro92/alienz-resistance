@@ -170,8 +170,8 @@ export function crearCampo (lienzo) {
   vivo.add(barricadas)
   barricadasDeBlender(barricadas)
 
-  // El mapa de PRUEBA (29/09): el mismo pueblo hecho en Blender con piezas de
-  // Kenney y Quaternius (herramientas/blender/prueba_mapa.py). Se carga la
+  // El mapa de PRUEBA (30/09): el mismo pueblo hecho en Blender con texturas
+  // y objetos de Poly Haven (herramientas/blender/prueba_mapa.py). Se carga la
   // primera vez que se pide y apaga el pueblo de siempre; las banderas, el humo
   // y los escudos del suelo se quedan, que valen para los dos.
   let prueba = null

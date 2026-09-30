@@ -25,7 +25,6 @@ import { renderPortraits } from '../portraits.js'
 import { cargarCartera, ponerSinMejoras } from '../systems/cartera.js'
 import { crearCampo, CAMPO, carrilX, MITAD, COLOR } from './campo.js'
 import { crearRed } from './red.js'
-import { crearSoldadoPrueba, cargarSoldadoPrueba } from './soldadoPrueba.js'
 import { filtrar, FRASES, MAX_MENSAJE, ESPERA_MENSAJE } from '../systems/duelo.js'
 
 ponerSinMejoras(true)
@@ -56,7 +55,7 @@ const DE_SERIE = ['archer', 'rifle', 'shotgun', 'sniper', 'sandbags']
 const $ = id => document.getElementById(id)
 const lienzo = $('gc-lienzo')
 const { renderer, scene, camera, animar, emblema, girar, ponerMapa } = crearCampo(lienzo)
-// 'pueblo' (el de siempre) o 'prueba' (piezas de Kenney y Quaternius). Solo se
+// 'pueblo' (el de siempre) o 'prueba' (texturas y objetos de Poly Haven). Solo se
 // juega en el de prueba contra la máquina, desde su botón del menú.
 let mapa = 'pueblo'
 const effects = createEffects(scene, camera)
@@ -99,7 +98,9 @@ const enMiMitad = (bando, z) => bando.dir < 0 ? z > MITAD + 1 : z < MITAD - 1
 async function crearUnidad (bando, key, x, z, orden) {
   const esDefensa = !!DEFENSES[key]
   const spec = esDefensa ? DEFENSES[key] : SOLDIERS[key]
-  const s = mapa === 'prueba' && !esDefensa ? await crearSoldadoPrueba(key, spec) : await createSoldier(key, spec, 2, 0)
+  // Los soldados de siempre también en el mapa de prueba: el de Quaternius
+  // (soldadoPrueba.js) no era el estilo del juego y se guarda para otro.
+  const s = await createSoldier(key, spec, 2, 0)
   if (!jugando) return null
   s.px = s.destX = x
   s.pz = s.destZ = z
@@ -1137,7 +1138,7 @@ async function empezarPrueba () {
   $('gc-carga').hidden = false
   mapa = 'prueba'
   try {
-    await Promise.all([ponerMapa('prueba'), cargarSoldadoPrueba()])
+    await ponerMapa('prueba')
   } catch (e) {
     console.warn('Sin mapa de prueba:', e)
     mapa = 'pueblo'
@@ -1189,7 +1190,7 @@ async function empezarPartida (rolNuevo) {
   // Las figuras se cargan antes de empezar: el primer soldado no puede tardar
   // dos segundos en salir mientras el rival ya está andando.
   const claves = new Set([...bandos.azul.tengo, ...bandos.rojo.tengo].filter(k => SOLDIERS[k]))
-  if (mapa !== 'prueba') await Promise.all([...claves].map(k => buildSoldierMesh(k, SOLDIERS[k]).catch(() => null)))
+  await Promise.all([...claves].map(k => buildSoldierMesh(k, SOLDIERS[k]).catch(() => null)))
   $('gc-carga').hidden = true
   $('gc-hud').hidden = false
   jugando = true
