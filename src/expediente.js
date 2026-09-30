@@ -92,7 +92,7 @@ export const DOCUMENTOS = [
     tipo: 'Telegrama cifrado', de: 'Comité de Contacto', para: 'Estación de Moscú', fecha: '03/12/2025',
     parrafos: [
       'LA RESISTENCIA AVANZA DEMASIADO RÁPIDO STOP',
-      'CORTAD LA FRECUENCIA DE MANDO EN LAS ZONAS PERDIDAS STOP LOS HUÉSPEDES ACTUARÁN POR SU CUENTA STOP',
+      'CORTAD LA FRECUENCIA DE CONTROL EN LAS ZONAS PERDIDAS STOP LOS HUÉSPEDES ACTUARÁN POR SU CUENTA STOP',
       'SI NO PODEMOS CONTROLARLOS QUE AL MENOS NO LOS CONTROLE NADIE STOP',
       'COMPAÑÍA CUERVO SIGUE SIENDO ÚTIL MIENTRAS NO HAGA PREGUNTAS STOP'
     ]
@@ -101,18 +101,18 @@ export const DOCUMENTOS = [
     tipo: 'Informe de campo', de: 'Búnker del Ártico (Alaska)', para: 'Todos los búnkeres', fecha: 'Último envío',
     parrafos: [
       'Hemos descifrado la señal de Moscú. No era de ellos: era nuestra.',
-      'El Mando del búnker de Madrid conoce el acuerdo desde el primer día. Su misión nunca fue liberar el país: es recuperar los campamentos intactos y entregarlos al Consorcio.',
+      'El Estado Mayor del búnker de Madrid conoce el acuerdo desde el primer día. Su misión nunca fue liberar el país: es recuperar los campamentos intactos y entregarlos al Consorcio.',
       'Hemos pedido explicaciones. Nos han contestado que la extracción está en camino.',
       'Si nadie vuelve a leer este canal, ya sabéis por qué.'
     ]
   },
   {
-    tipo: 'Orden reservada', de: 'MANDO DEL BÚNKER', para: 'Enlace del Consorcio', fecha: '11/04/2026',
+    tipo: 'Orden reservada', de: 'ESTADO MAYOR DEL BÚNKER', para: 'Enlace del Consorcio', fecha: '11/04/2026',
     parrafos: [
       'No se destruirá ninguna sala de reescritura. Se informará de su posición antes de cada asalto.',
       'La Compañía Cuervo no debe conocer esta orden.',
       'Las bajas de la compañía se consideran asumibles. Las del material, no.',
-      'Firma y sello del Mando.'
+      'Firma y sello del Estado Mayor.'
     ]
   },
   {

@@ -454,7 +454,7 @@
          desaparecería en cuanto se gana una misión. -->
     <div id="mapa-capa" class="overlay mapa-capa hidden">
       <div class="panel panel-mapa">
-        <p class="eyebrow">Mando del búnker · estado del mundo</p>
+        <p class="eyebrow">Estado Mayor del búnker · estado del mundo</p>
         <h2>El mundo</h2>
         <div class="correo-mando" id="correo-mando" hidden>
           <p id="correo-texto"></p>
@@ -490,7 +490,7 @@
          para que el mapa no se llene de botones. -->
     <div id="multi-capa" class="overlay retos-capa hidden">
       <div class="panel panel-retos">
-        <p class="eyebrow">Mando del búnker · radio abierta</p>
+        <p class="eyebrow">Estado Mayor del búnker · radio abierta</p>
         <h2>Multijugador</h2>
         <div class="multi-yo" id="multi-yo"></div>
         <p class="multi-vivos" id="multi-vivos" hidden></p>
@@ -532,7 +532,7 @@
          la biomasa de lo que matas, alienz que le caen al otro. -->
     <div id="duelo-capa" class="overlay retos-capa hidden">
       <div class="panel panel-retos">
-        <p class="eyebrow">Mando del búnker · frente abierto</p>
+        <p class="eyebrow">Estado Mayor del búnker · frente abierto</p>
         <h2>1 contra 1</h2>
         <div class="duelo-yo" id="duelo-yo"></div>
         <p class="retos-intro">Los dos defendéis la misma horda a la vez. Con la <b>biomasa</b> de lo que matas compras alienz que le caen al otro. Pierde el primero al que le rompen la base; a los seis minutos, muerte súbita.</p>
@@ -597,7 +597,7 @@
     <!-- Usuarios registrados: solo la abre el administrador (desde Ajustes). -->
     <div id="usuarios-capa" class="overlay retos-capa usuarios-capa hidden">
       <div class="panel panel-retos">
-        <p class="eyebrow">Mando del búnker · personal</p>
+        <p class="eyebrow">Estado Mayor del búnker · personal</p>
         <h2>Usuarios</h2>
         <p class="retos-intro" id="usuarios-cuenta"></p>
         <input id="usuarios-buscar" class="alias-campo" type="search" autocomplete="off" spellcheck="false" placeholder="Buscar por nombre o correo" aria-label="Buscar usuario">
@@ -640,7 +640,7 @@
          tramo sin tener que abrirlo en el mapa. -->
     <div id="ranking-capa" class="overlay retos-capa hidden">
       <div class="panel panel-retos">
-        <p class="eyebrow">Mando del búnker · cuadro de honor</p>
+        <p class="eyebrow">Estado Mayor del búnker · cuadro de honor</p>
         <h2>Ranking</h2>
         <div class="ranking-tramo">
           <button id="ranking-antes" class="reto-mas" type="button" aria-label="Tramo anterior"><svg aria-hidden="true"><use href="#i-atras"></use></svg></button>
@@ -660,14 +660,14 @@
          por un código de cinco letras. No hace falta que juguéis a la vez. -->
     <div id="retos-capa" class="overlay retos-capa hidden">
       <div class="panel panel-retos">
-        <p class="eyebrow">Mando del búnker · partes cruzados</p>
+        <p class="eyebrow">Estado Mayor del búnker · partes cruzados</p>
         <h2>Retos</h2>
         <p class="retos-intro" id="retos-intro">Monta una oleada con hasta 2.000 de biomasa y pásale el código a otro jugador. El que deje la base más entera, gana.</p>
 
         <!-- Retos del Mando (29/09): los publica el administrador, con premio en
              billetes para todo el que los supere. Arriba del todo. -->
         <div id="mando-retos" class="mando-retos" hidden>
-          <p class="retos-tit">Retos del Mando</p>
+          <p class="retos-tit">Retos del Líder Supremo</p>
           <ul id="mando-lista" class="mando-lista"></ul>
         </div>
 
@@ -693,7 +693,7 @@
         <!-- Solo para administración: la misma oleada de arriba, sin tope y con
              LA MADRE, publicada para todos con su premio. -->
         <div id="mando-admin" class="mando-admin" hidden>
-          <p class="retos-tit">Publicar un reto del Mando <small>solo administración</small></p>
+          <p class="retos-tit">Publicar un reto del Líder Supremo <small>solo administración</small></p>
           <label class="mando-check"><input type="checkbox" id="mando-modo"> Montar la oleada de arriba sin tope (con LA MADRE) y publicarla para todos</label>
           <div id="mando-campos" class="mando-campos" hidden>
             <label class="mando-fila">Mapa <select id="mando-mapa" class="alias-campo mando-sel"></select></label>
@@ -720,7 +720,7 @@
          sala y lleva la partida; el otro entra con el código. -->
     <div id="coop-capa" class="overlay coop-capa hidden">
       <div class="panel panel-retos">
-        <p class="eyebrow">Mando del búnker · doble turno</p>
+        <p class="eyebrow">Estado Mayor del búnker · doble turno</p>
         <h2>Defender entre dos</h2>
         <p class="retos-intro">Uno abre la sala y el otro entra con el código. Jugáis el mismo tramo a la vez, con la misma caja de monedas: los dos colocáis en la misma línea.</p>
 
@@ -753,7 +753,7 @@
           <span class="saldo saldo-monedas"><svg aria-hidden="true"><use href="#i-moneda"></use></svg><b id="tienda-monedas">0</b><small>monedas</small></span>
         </div>
         <button id="tienda-canjear" class="chip tienda-canjear" type="button"></button>
-        <p class="tienda-pie">Los billetes se ganan fuera de la partida: con el cofre del final, con los retos del Mando y cambiando aquí las monedas que te sobran de cada partida (100 monedas = 1 billete).</p>
+        <p class="tienda-pie">Los billetes se ganan fuera de la partida: con el cofre del final, con los retos del Líder Supremo y cambiando aquí las monedas que te sobran de cada partida (100 monedas = 1 billete).</p>
         <div class="tienda-pestanas" id="tienda-pestanas" role="tablist"></div>
         <div class="tienda-lista" id="tienda-lista"></div>
         <button id="tienda-volver" class="chip chip-ghost" type="button">Volver</button>
@@ -778,7 +778,7 @@
     <!-- Enemigos: cómo se aguanta arriba y las fichas de cada forma debajo. -->
     <div id="enemigos-capa" class="overlay enemigos-capa hidden">
       <div class="panel panel-enemigos">
-        <p class="eyebrow">Mando del búnker · inteligencia</p>
+        <p class="eyebrow">Estado Mayor del búnker · inteligencia</p>
         <h2>Enemigos</h2>
         <!-- Las formas, como una baraja que se pasa como un libro (src/enemigos.js).
              Las reglas van plegadas debajo: la baraja es lo que se viene a ver. -->
@@ -806,7 +806,7 @@
     <!-- Ajustes: calidad, tema, sonido, música y vibración. -->
     <div id="ajustes-capa" class="overlay ajustes-capa hidden">
       <div class="panel panel-ajustes">
-        <p class="eyebrow">Mando del búnker · equipo</p>
+        <p class="eyebrow">Estado Mayor del búnker · equipo</p>
         <h2>Ajustes <i id="ajustes-valor" class="ajustes-valor">Auto</i></h2>
         <div class="ajuste">
           <span class="ajuste-tit">Calidad gráfica</span>
@@ -860,7 +860,7 @@
     <div id="portada-escena" class="portada-escena" aria-hidden="true"></div>
     <div id="overlay" class="overlay">
       <div class="panel panel-portada">
-        <p class="eyebrow">Protocolo de reconquista · Mando del búnker</p>
+        <p class="eyebrow">Protocolo de reconquista · Estado Mayor del búnker</p>
         <h1 class="logo">
           <!-- El emblema es el "toque de nave y zombi a la vez": el platillo
                abre el haz y dentro del haz va el huésped, ya encorvado. Todo en

@@ -2045,7 +2045,7 @@ function win () {
       return `<li><span class="marca-pais">${p.nombre}</span><b>${suyas}</b>&nbsp;<small>/ ${p.misiones.length * 3} ★</small></li>`
     }).join('')
     ui.showOverlay(`
-      <p class="eyebrow">Mando del búnker · informe de cierre</p>
+      <p class="eyebrow">Estado Mayor del búnker · informe de cierre</p>
       <h1>PLANETA LIMPIO</h1>
       <p class="tagline">Trece países. Treinta y nueve campamentos. No queda ninguno en pie.</p>
       ${sello}
@@ -2627,7 +2627,7 @@ async function recogerCorreoDelMando (u) {
     // El regalo, con la lluvia de billetes antes de la nota.
     if (correo.billetes) {
       const { celebrarBilletes } = await import('./lluviaBilletes.js')
-      await celebrarBilletes({ cantidad: correo.billetes, titulo: 'REGALO', subtitulo: 'billetes del Mando', audio })
+      await celebrarBilletes({ cantidad: correo.billetes, titulo: 'REGALO', subtitulo: 'billetes del Líder Supremo', audio })
     }
     pintarBilletes()
     const caja = document.getElementById('correo-mando')
@@ -3426,7 +3426,7 @@ document.getElementById('reto-buscar')?.addEventListener('click', async () => {
 function empezarReto (reto, waves) {
   const base = NIVELES[Math.max(0, Math.min(NIVELES.length - 1, reto.escenario ?? 0))]
   // El escenario de la campaña, con las oleadas del reto encima.
-  retoEnCurso = { ...reto, nivel: { ...base, name: reto.mando ? `Reto del Mando: ${reto.titulo}` : `Reto de ${reto.alias ?? 'otro jugador'}`, waves } }
+  retoEnCurso = { ...reto, nivel: { ...base, name: reto.mando ? `Reto del Líder Supremo: ${reto.titulo}` : `Reto de ${reto.alias ?? 'otro jugador'}`, waves } }
   // Un reto del Mando puede pedir jugarse sin las mejoras de la tienda. Se pone
   // antes de empezar: cada soldado lee sus mejoras al crearse.
   ponerSinMejoras(!!reto.sinMejoras)
@@ -3462,7 +3462,7 @@ async function finReto (ganado) {
   if (cobrado) {
     await new Promise(r => setTimeout(r, 700))
     const { celebrarBilletes } = await import('./lluviaBilletes.js')
-    await celebrarBilletes({ cantidad: cobrado, titulo: 'RETO SUPERADO', subtitulo: 'billetes del Mando', audio })
+    await celebrarBilletes({ cantidad: cobrado, titulo: 'RETO SUPERADO', subtitulo: 'billetes del Líder Supremo', audio })
   }
   setTimeout(() => {
     ui.showOverlay(`
@@ -3544,9 +3544,9 @@ document.getElementById('mando-lista')?.addEventListener('click', async e => {
     if (!r) return
     audio.unlock()
     const { oleadasDeReto } = await import('./systems/retos.js')
-    empezarReto({ ...r, mando: true, codigo: r.id, alias: 'el Mando' }, oleadasDeReto(r.composicion))
+    empezarReto({ ...r, mando: true, codigo: r.id, alias: 'el Líder Supremo' }, oleadasDeReto(r.composicion))
   } else if (retirar) {
-    if (!confirm('¿Retirar este reto del Mando? Deja de verse para todos.')) return
+    if (!confirm('¿Retirar este reto del Líder Supremo? Deja de verse para todos.')) return
     try {
       const { retirarRetoMando } = await import('./systems/retosMando.js')
       await retirarRetoMando(retirar)
@@ -3645,7 +3645,7 @@ document.getElementById('mando-publicar')?.addEventListener('click', async () =>
       composicion: { ...composicion },
       cierra: Date.now() + dias * 24 * 60 * 60 * 1000
     })
-    aviso.textContent = '¡Publicado! Ya lo ve todo el mundo arriba, en Retos del Mando.'
+    aviso.textContent = '¡Publicado! Ya lo ve todo el mundo arriba, en Retos del Líder Supremo.'
     composicion = {}
     tituloTocado = false
     ponerTituloDelMapa()
@@ -3696,7 +3696,7 @@ async function finRetoMando (reto, ganado) {
           sumarBilletes(Number(reto.premio) || 0)
           pintarBilletes()
           cobrado = Number(reto.premio) || 0
-          premio = `<p class="botin-billetes"><svg aria-hidden="true"><use href="#i-billete"></use></svg><b>+${Number(reto.premio) || 0}</b> billetes del Mando</p>`
+          premio = `<p class="botin-billetes"><svg aria-hidden="true"><use href="#i-billete"></use></svg><b>+${Number(reto.premio) || 0}</b> billetes del Líder Supremo</p>`
         } else if (r === 'ya') {
           premio = '<p class="tagline">Superado otra vez. El premio ya lo cobraste la primera.</p>'
         } else {
@@ -3720,7 +3720,7 @@ async function finRetoMando (reto, ganado) {
   setTimeout(() => {
     ui.showOverlay(`
       <h1 class="${ganado ? 'won' : 'lost'}">${ganado ? 'AGUANTASTE' : 'PERÍMETRO ROTO'}</h1>
-      <p class="tagline">Reto del Mando <b>${escaparTexto(reto.titulo ?? '')}</b>. ${ganado ? `Base al ${porcentaje}%.` : 'Sin base no hay premio: puedes intentarlo las veces que quieras.'}</p>
+      <p class="tagline">Reto del Líder Supremo <b>${escaparTexto(reto.titulo ?? '')}</b>. ${ganado ? `Base al ${porcentaje}%.` : 'Sin base no hay premio: puedes intentarlo las veces que quieras.'}</p>
       ${premio}
       <div class="marcador"><p class="retos-tit">Lo han superado</p>${lista}</div>
       <button class="big-btn" onclick="volverA('mapa')">VOLVER AL MAPA</button>`)

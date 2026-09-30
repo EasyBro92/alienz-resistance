@@ -29,7 +29,7 @@ export const TINTE_APOYO = {
   artilleria: 0xc9a66b, dron: 0xb6e35a, misilGuiado: 0xff5a4d, campoMinas: 0xd1a526, botiquin: 0x7dffae
 }
 
-const GRUPO = { soldier: 'Tropa', defense: 'Barreras', strike: 'Apoyo', upgrade: 'Mando' }
+const GRUPO = { soldier: 'Tropa', defense: 'Barreras', strike: 'Apoyo', upgrade: 'Mejoras' }
 const PISTA = {
   soldier: 'toca un carril',
   defense: 'toca un carril',

@@ -2839,7 +2839,7 @@ a.multi-boton { text-decoration: none; }
 .correo-mando[hidden] { display: none; }
 .correo-mando p { margin: 0 0 8px; font-size: 13px; line-height: 1.45; }
 .correo-mando::before {
-  content: 'MANDO DEL BÚNKER'; display: block; margin-bottom: 4px;
+  content: 'LÍDER SUPREMO'; display: block; margin-bottom: 4px;
   font-size: 9.5px; font-weight: 800; letter-spacing: 2px; color: var(--verde-texto);
 }
 

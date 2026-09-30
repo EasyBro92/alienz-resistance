@@ -90,7 +90,7 @@ export async function recogerCorreo (usuario) {
       const { sumarBilletes } = await import('./cartera.js')
       sumarBilletes(billetes)
       regalados = billetes
-      trozos.push(`El Mando te ha enviado ${billetes} billetes.`)
+      trozos.push(`El Líder Supremo te ha enviado ${billetes} billetes.`)
       await rtdb.remove(rtdb.ref(db, `regalos/${usuario.uid}`))
     }
   } catch (e) { console.warn('Sin regalos:', e) }
