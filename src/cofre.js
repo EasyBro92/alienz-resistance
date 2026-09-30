@@ -153,7 +153,12 @@ export function girarCarrusel (caja, premio, audio, retratos) {
       : premio.tipo === 'billetes'
         ? `${sello} · <b>+${premio.cantidad} billetes</b>`
         : `${sello} · <b>+${premio.cantidad} monedas</b> guardadas: cada 100 son un billete en la tienda`
-    if (premio.rareza === 'comun' || premio.rareza === 'poco') audio?.coin?.()
+    // Si son billetes, la lluvia de billetes encima (Isidro, 30/09).
+    if (premio.tipo === 'billetes') {
+      setTimeout(() => import('./lluviaBilletes.js')
+        .then(m => m.celebrarBilletes({ cantidad: premio.cantidad, titulo: 'COFRE', subtitulo: RAREZAS[premio.rareza], audio }))
+        .then(() => document.dispatchEvent(new Event('alienz-billetes'))), 500)
+    } else if (premio.rareza === 'comun' || premio.rareza === 'poco') audio?.coin?.()
     else audio?.desbloqueo?.()
   }
 

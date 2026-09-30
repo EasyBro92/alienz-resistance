@@ -402,6 +402,34 @@ export function createAudio () {
       musicFilter.frequency.setTargetAtTime(parando ? 260 : 20000, t, 0.08)
     },
 
+    // La caja registradora del final de la lluvia de billetes: el golpe seco
+    // del cajón y dos campanillas altas, «ka-ching».
+    caja () {
+      play(() => {
+        const t = ctx.currentTime
+        const o = ctx.createOscillator()
+        o.type = 'square'
+        o.frequency.setValueAtTime(180, t)
+        o.frequency.exponentialRampToValueAtTime(60, t + 0.06)
+        const g = ctx.createGain()
+        env(g, 0.2, 0.002, 0.06)
+        o.connect(g).connect(sfxGain)
+        o.start(t); o.stop(t + 0.08)
+        ;[1318.5, 1760].forEach((hz, i) => {
+          const t0 = t + 0.06 + i * 0.09
+          const c = ctx.createOscillator()
+          c.type = 'sine'
+          c.frequency.setValueAtTime(hz, t0)
+          const gc = ctx.createGain()
+          gc.gain.setValueAtTime(0.0001, t0)
+          gc.gain.exponentialRampToValueAtTime(0.22, t0 + 0.005)
+          gc.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.6)
+          c.connect(gc).connect(sfxGain)
+          c.start(t0); c.stop(t0 + 0.65)
+        })
+      })
+    },
+
     // Arsenal liberado. Un arpegio corto que sube, con la última nota más larga
     // y algo más brillante: tiene que sonar a recompensa y no confundirse con la
     // moneda, que suena veinte veces por oleada.

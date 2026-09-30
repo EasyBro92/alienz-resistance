@@ -69,12 +69,13 @@ async function apuntarInvitado (u) {
 // lista de usuarios. Se recoge al entrar, se aplica y se borra del servidor, que
 // no es un buzón: es una nota que se entrega una vez.
 //
-// Devuelve el texto que hay que enseñar, o nada.
+// Devuelve el texto que hay que enseñar y los billetes regalados, o nada.
 export async function recogerCorreo (usuario) {
   if (!usuario) return null
   const [{ app }, rtdb] = await Promise.all([cargarFirebase(), import('firebase/database')])
   const db = rtdb.getDatabase(app)
   const trozos = []
+  let regalados = 0
   try {
     const aviso = (await rtdb.get(rtdb.ref(db, `avisos/${usuario.uid}`))).val()
     if (aviso?.t) {
@@ -88,11 +89,12 @@ export async function recogerCorreo (usuario) {
     if (billetes) {
       const { sumarBilletes } = await import('./cartera.js')
       sumarBilletes(billetes)
+      regalados = billetes
       trozos.push(`El Mando te ha enviado ${billetes} billetes.`)
       await rtdb.remove(rtdb.ref(db, `regalos/${usuario.uid}`))
     }
   } catch (e) { console.warn('Sin regalos:', e) }
-  return trozos.length ? trozos.join(' ') : null
+  return trozos.length ? { texto: trozos.join(' '), billetes: regalados } : null
 }
 
 const leer = clave => {

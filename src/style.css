@@ -3037,3 +3037,65 @@ a.multi-boton { text-decoration: none; }
 /* Pasado de biomasa: en rojo, y no deja crear el reto. */
 .retos-presu.pasado, .retos-presu.pasado b { color: var(--red); }
 .retos-barra i.pasado { background: var(--red); }
+
+/* ---------- la lluvia de billetes (lluviaBilletes.js) ---------- */
+/* Siempre oscura, en los dos temas: es un momento de premio, como la portada. */
+.lluvia {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at 50% 45%, rgba(20, 60, 30, 0.82), rgba(4, 8, 6, 0.94) 70%);
+  overflow: hidden; perspective: 700px;
+  animation: lluvia-entra 0.25s ease-out;
+  touch-action: none; user-select: none;
+}
+.lluvia-fuera { opacity: 0; transition: opacity 0.35s ease; }
+.lluvia-cielo { position: absolute; inset: 0; transform-style: preserve-3d; pointer-events: none; }
+.lluvia-billete {
+  position: absolute; left: 0; top: 0; width: 64px; height: 32px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #7fd58a, #3f9a52 55%, #2e7a3f);
+  border: 2px solid #1f5a2c;
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.18);
+  backface-visibility: visible; will-change: transform;
+}
+.lluvia-billete i {
+  position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px;
+  border-radius: 50%; border: 2px solid rgba(20, 60, 28, 0.7);
+}
+.lluvia-centro { position: relative; text-align: center; pointer-events: none; z-index: 2; }
+.lluvia-titulo {
+  margin: 0; color: #fff; font-size: clamp(30px, 10vw, 52px); font-weight: 900; letter-spacing: 3px;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.5), 0 0 24px rgba(123, 224, 143, 0.6);
+  animation: lluvia-golpe 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+.lluvia-cifra {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin: 10px 0 0; color: #7be08f; font-size: clamp(56px, 20vw, 104px); font-weight: 900; line-height: 1;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 4px 0 #1f5a2c, 0 0 30px rgba(123, 224, 143, 0.7);
+  animation: lluvia-golpe 0.5s 0.15s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+.lluvia-mas { font-size: 0.6em; }
+.lluvia-cifra svg { width: 0.7em; height: 0.7em; }
+.lluvia-sub { margin: 6px 0 0; color: rgba(255, 255, 255, 0.85); font-size: 16px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; }
+.lluvia-pista { position: absolute; bottom: calc(env(safe-area-inset-bottom) + 24px); left: 0; right: 0; margin: 0; text-align: center; color: rgba(255, 255, 255, 0.5); font-size: 13px; }
+.lluvia-saldo {
+  position: absolute; top: calc(env(safe-area-inset-top) + 14px); right: 14px; z-index: 3;
+  display: flex; align-items: center; gap: 6px; padding: 6px 14px 6px 10px;
+  border-radius: 999px; border: 2px solid #3f9a52; background: rgba(10, 30, 16, 0.9);
+  color: #7be08f; font-size: 20px; font-weight: 900; font-variant-numeric: tabular-nums;
+}
+.lluvia-saldo svg { width: 22px; height: 22px; }
+.lluvia-pop { animation: pop 0.25s ease; }
+/* Más de 500: tormenta dorada. */
+.lluvia-dorada { background: radial-gradient(ellipse at 50% 45%, rgba(90, 70, 10, 0.85), rgba(8, 6, 2, 0.95) 70%); }
+.lluvia-dorada .lluvia-cifra { color: #ffd34d; text-shadow: 0 4px 0 #7a5a00, 0 0 40px rgba(255, 211, 77, 0.8); }
+.lluvia-dorada .lluvia-titulo { text-shadow: 0 3px 0 rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 211, 77, 0.7); }
+.lluvia-dorada::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(circle at 50% 45%, rgba(255, 230, 140, 0.55), transparent 60%);
+  animation: lluvia-destello 0.9s ease-out both;
+}
+@keyframes lluvia-entra { from { opacity: 0 } to { opacity: 1 } }
+@keyframes lluvia-golpe { from { transform: scale(2.4); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+@keyframes lluvia-destello { from { opacity: 1 } to { opacity: 0 } }

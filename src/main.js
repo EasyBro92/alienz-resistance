@@ -187,6 +187,8 @@ const elBilletes = document.getElementById('billetes')
 const elBilletesValor = document.getElementById('billetes-valor')
 function pintarBilletes () { elBilletesValor.textContent = cargarCartera().billetes }
 pintarBilletes()
+// El cofre avisa cuando acaba su lluvia de billetes: el saldo de la partida, al día.
+document.addEventListener('alienz-billetes', pintarBilletes)
 // Apagado (Isidro, 29/09): «que al conseguir monedas se gane un billete durante
 // las partidas, desactívalo en todo el juego; solo se gana fuera de las partidas».
 // Los billetes salen ahora del cofre, de los regalos, de los retos del Mando y
@@ -2620,13 +2622,18 @@ const cuenta = crearCuenta({
 async function recogerCorreoDelMando (u) {
   try {
     const { recogerCorreo } = await import('./systems/cuenta.js')
-    const texto = await recogerCorreo(u)
-    if (!texto) return
+    const correo = await recogerCorreo(u)
+    if (!correo) return
+    // El regalo, con la lluvia de billetes antes de la nota.
+    if (correo.billetes) {
+      const { celebrarBilletes } = await import('./lluviaBilletes.js')
+      await celebrarBilletes({ cantidad: correo.billetes, titulo: 'REGALO', subtitulo: 'billetes del Mando', audio })
+    }
+    pintarBilletes()
     const caja = document.getElementById('correo-mando')
     if (!caja) return
-    document.getElementById('correo-texto').textContent = texto
+    document.getElementById('correo-texto').textContent = correo.texto
     caja.hidden = false
-    pintarBilletes()
   } catch (e) { console.warn('Sin correo:', e) }
 }
 document.getElementById('correo-visto')?.addEventListener('click', () => {
@@ -3450,6 +3457,13 @@ async function finReto (ganado) {
   } catch (err) {
     console.warn('Sin tabla del reto:', err)
   }
+  // Lo cobrado, a lo grande (Isidro: «que se vea más claramente la cantidad
+  // ganada… billetes dando vueltas como en GTA»); la pantalla de siempre, después.
+  if (cobrado) {
+    await new Promise(r => setTimeout(r, 700))
+    const { celebrarBilletes } = await import('./lluviaBilletes.js')
+    await celebrarBilletes({ cantidad: cobrado, titulo: 'RETO SUPERADO', subtitulo: 'billetes del Mando', audio })
+  }
   setTimeout(() => {
     ui.showOverlay(`
       <h1 class="${ganado ? 'won' : 'lost'}">${ganado ? 'AGUANTASTE' : 'PERÍMETRO ROTO'}</h1>
@@ -3670,6 +3684,7 @@ async function finRetoMando (reto, ganado) {
   ui.banner(ganado ? 'RETO SUPERADO' : 'DESBORDADOS')
   let premio = ''
   let lista = ''
+  let cobrado = 0
   try {
     const mod = await import('./systems/retosMando.js')
     if (ganado) {
@@ -3680,7 +3695,7 @@ async function finRetoMando (reto, ganado) {
         if (r === 'cobrado') {
           sumarBilletes(Number(reto.premio) || 0)
           pintarBilletes()
-          audio.billete()
+          cobrado = Number(reto.premio) || 0
           premio = `<p class="botin-billetes"><svg aria-hidden="true"><use href="#i-billete"></use></svg><b>+${Number(reto.premio) || 0}</b> billetes del Mando</p>`
         } else if (r === 'ya') {
           premio = '<p class="tagline">Superado otra vez. El premio ya lo cobraste la primera.</p>'
