@@ -829,4 +829,29 @@ function milanDuomo () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, ...LUGARES }
+// Tarragona: la Platja del Miracle con el anfiteatro, hecha en Blender
+// (herramientas/blender/lugar_tarragona.py, 30/09). Se juega en la arena, el mar
+// a la izquierda y, a la derecha, la vía del tren, el talud y el anfiteatro.
+// Jugando solo se ve la vía y el borde del anfiteatro (en un móvil en vertical
+// no cabe más a ese lado): la llegada lo enseña entero, desde el mar.
+function tarragonaMiracle () {
+  const g = new THREE.Group()
+  g.name = 'lugar:tarragonaMiracle'
+  Object.assign(g.userData, {
+    modelo: 'lugar-tarragona',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    conHitos: true,
+    sinCalzada: true,
+    altoVuelo: 30,
+    // Desde el mar, a la izquierda y más allá del fondo, mirando en diagonal al
+    // anfiteatro: de frente, la base alien y la nave quedaban en medio
+    // (la arena está en x ≈ 28, z = -64, a 2,6 de alto).
+    vista: { desde: [-52, 34, -122], mira: [28, 4, -62], niebla: { cerca: 160, lejos: 460 } },
+    foco: [[16, 0, -100], [62, 22, -28]]
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, ...LUGARES }

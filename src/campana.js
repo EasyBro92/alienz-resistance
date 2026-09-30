@@ -62,8 +62,10 @@ export const PAISES = [
     misiones: [
       {
         name: 'Tarragona', lugar: 'Playa del Miracle · bajo el anfiteatro', mapa: sitio(41.12, 1.25),
-        // La playa al pie del anfiteatro romano. Tarragona no tiene ni una torre.
-        escenario: 'tarragona', suelo: 'playa', tonoSuelo: 0xe4d5b2, hitos: [['tarraco']],
+        // La playa al pie del anfiteatro romano, hecha en Blender con texturas de
+        // verdad (herramientas/blender/lugar_tarragona.py): el anfiteatro viene en el
+        // modelo, así que sin hitos.
+        escenario: 'tarragonaMiracle', suelo: 'playa', tonoSuelo: 0xe4d5b2, hitos: [],
         resumen: 'El primer contacto. Vienen de frente y poco más.',
         parte: ['Doce kilómetros de asfalto entre su campamento y lo que queda de la ciudad. La orden es de una línea: que no pasen.',
           'Los primeros llegan sin método. Caminan hacia el ruido porque es lo único que les dejaron saber hacer.'],
