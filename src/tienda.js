@@ -12,6 +12,7 @@ import { SOLDIERS, DEFENSES, STRIKES, UPGRADES } from './config.js'
 import { buildDefensaMesh } from './assets.js'
 import { figuraDeApoyo } from './systems/golpes.js'
 import { crearBaraja } from './enemigos.js'
+import { CAJAS, verCaja } from './cofre.js'
 import { TINTE_APOYO } from './ui.js'
 import {
   cargarCartera, PRECIOS, comprar, canjear, precioMejora, comprarMejora,
@@ -19,6 +20,7 @@ import {
 } from './systems/cartera.js'
 
 const PESTANAS = [
+  { id: 'cajas', nombre: 'Cajas' },
   { id: 'soldados', nombre: 'Soldados' },
   { id: 'defensas', nombre: 'Defensas' },
   { id: 'apoyo', nombre: 'Apoyo' },
@@ -274,6 +276,22 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
     return barajas[grupo]
   }
 
+  // Las cajas del botín (30/09): se tocan, se ven en grande y se abren.
+  function cajas (c) {
+    const FOTOS = `${import.meta.env.BASE_URL}premios/`
+    const fichas = Object.entries(CAJAS).map(([tipo, def]) => {
+      const n = c.cajas[tipo]
+      return `
+        <button type="button" class="caja-ficha r-${def.rareza}${n ? '' : ' vacia'}" data-caja="${tipo}">
+          <img src="${FOTOS}caja-${tipo}.webp" alt="">
+          <span class="caja-ficha-nombre">${def.nombre}</span>
+          <span class="caja-ficha-cuantas">${n ? `Tienes ${n}` : 'No tienes ninguna'}</span>
+        </button>`
+    }).join('')
+    return `<div class="cajas-lista">${fichas}</div>
+      <p class="tienda-pie">Las cajas salen muy de vez en cuando en el botín de las victorias: la militar, más o menos una de cada cien; la alienígena, muchísimo menos. No se compran.</p>`
+  }
+
   function pintar () {
     const c = cargarCartera()
     elBilletes.textContent = c.billetes
@@ -287,7 +305,7 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
 
     elPestanas.innerHTML = PESTANAS.map(p => `
       <button type="button" class="pestana${p.id === pestana ? ' activa' : ''}" data-pestana="${p.id}"
-              role="tab" aria-selected="${p.id === pestana}">${p.nombre}</button>`).join('')
+              role="tab" aria-selected="${p.id === pestana}">${p.nombre}${p.id === 'cajas' && c.cajas.militar + c.cajas.alien ? ` <span class="pestana-num">${c.cajas.militar + c.cajas.alien}</span>` : ''}</button>`).join('')
 
     elLista.classList.toggle('lista-mejoras', pestana === 'mejoras' || pestana === 'comparar')
     const enBaraja = pestana === 'defensas' || pestana === 'apoyo'
@@ -301,7 +319,9 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
       })
       return
     }
-    elLista.innerHTML = pestana === 'mejoras'
+    elLista.innerHTML = pestana === 'cajas'
+      ? cajas(c)
+      : pestana === 'mejoras'
       ? mejoras(c)
       : pestana === 'comparar'
         ? comparar(c)
@@ -316,6 +336,12 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
   })
 
   elLista.addEventListener('click', e => {
+    const caja = e.target.closest('[data-caja]')
+    if (caja) {
+      audio?.place?.()
+      verCaja(caja.dataset.caja, { audio, retratos: typeof retratos === 'function' ? retratos() : retratos, alCerrar: () => { cambio = true; pintar() } })
+      return
+    }
     const compra = e.target.closest('[data-comprar]')
     if (compra) {
       if (comprar(compra.dataset.comprar)) {

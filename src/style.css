@@ -3099,3 +3099,100 @@ a.multi-boton { text-decoration: none; }
 @keyframes lluvia-entra { from { opacity: 0 } to { opacity: 1 } }
 @keyframes lluvia-golpe { from { transform: scale(2.4); opacity: 0 } to { transform: scale(1); opacity: 1 } }
 @keyframes lluvia-destello { from { opacity: 1 } to { opacity: 0 } }
+
+/* ---------- la ruleta de premios y las cajas (cofre.js, 30/09) ---------- */
+/* Como las cajas de Counter-Strike: la caja desenfocada detrás, cartas grises
+   que bajan al color de su rareza, raya amarilla y la carta de debajo crece.
+   Siempre oscura, en los dos temas. */
+.ruleta {
+  position: fixed; inset: 0; z-index: 150;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+  background: #1b1e24; color: #fff; overflow: hidden;
+  animation: lluvia-entra 0.25s ease-out;
+}
+.ruleta-fuera { opacity: 0; transition: opacity 0.3s ease; }
+.ruleta-fondo {
+  position: absolute; inset: -60px; background: center 45% / min(120vw, 700px) no-repeat;
+  filter: blur(14px) brightness(0.8) saturate(0.9);
+}
+.ruleta::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 50%, transparent 30%, rgba(10, 12, 16, 0.75) 100%);
+}
+.ruleta > :not(.ruleta-fondo):not(.ruleta-final) { position: relative; z-index: 1; }
+.ruleta > .ruleta-final { z-index: 2; }
+.ruleta-cabeza { text-align: center; padding: 0 16px; }
+.ruleta-tit { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 0.5px; color: #e8ecf1; }
+.ruleta-sub { margin: 2px 0 0; font-size: 14px; color: #aab3bf; }
+.ruleta-sub b { color: #fff; }
+.ruleta-nota { margin: 8px 0 0; font-size: 12px; color: #8b95a1; }
+.ruleta-ventana { position: relative; width: 100%; height: 150px; overflow: hidden; }
+.ruleta-tira { display: flex; gap: 6px; height: 100%; align-items: center; will-change: transform; }
+.ruleta-aguja {
+  position: absolute; top: 0; bottom: 0; left: 50%; width: 3px; margin-left: -1.5px;
+  background: #f0c419; box-shadow: 0 0 10px rgba(240, 196, 25, 0.8); z-index: 3;
+}
+.ruleta-carta {
+  flex: 0 0 150px; height: 112px; position: relative; border-radius: 3px; overflow: hidden;
+  background: linear-gradient(180deg, #5d636c 0%, #444a53 55%, color-mix(in srgb, var(--rareza) 45%, #2e3238) 100%);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+  display: flex; align-items: center; justify-content: center;
+  transition: box-shadow 0.2s;
+}
+.ruleta-carta::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 6px; background: var(--rareza); }
+.ruleta-carta img { width: 128px; height: 96px; object-fit: contain; margin-bottom: 8px; filter: drop-shadow(0 6px 6px rgba(0, 0, 0, 0.5)); pointer-events: none; }
+.ruleta-carta svg { width: 56px; height: 56px; color: #e8edf2; }
+.ruleta-nombre {
+  position: absolute; left: 6px; bottom: 9px; right: 6px; font-size: 11px; font-weight: 800;
+  color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ruleta-carta.gana { box-shadow: 0 0 0 2px var(--rareza), 0 0 30px var(--rareza); }
+.ruleta-parada .ruleta-ventana, .ruleta-parada .ruleta-cabeza { opacity: 0.12; transition: opacity 0.4s; }
+.ruleta-final { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 0 16px; text-align: center; }
+.ruleta-final[hidden] { display: none; }
+.ruleta-carta.grande { flex: none; width: 280px; height: 210px; animation: lluvia-golpe 0.45s cubic-bezier(0.2, 1.5, 0.4, 1) both; }
+.ruleta-carta.grande img { width: 250px; height: 188px; }
+.ruleta-carta.grande .ruleta-nombre { display: none; }
+.ruleta-resultado { margin: 0; display: flex; flex-direction: column; gap: 2px; }
+.ruleta-resultado span { font-size: 12px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--rareza); }
+.ruleta-resultado b { font-size: 26px; font-weight: 900; }
+.ruleta-pie { margin: 0; font-size: 13px; color: #aab3bf; max-width: 320px; }
+.ruleta-pie:empty { display: none; }
+.ruleta-recoger { margin-top: 4px; }
+
+/* La caja vista en grande antes de abrirla. */
+.caja-grande { width: min(78vw, 360px); aspect-ratio: 1; object-fit: contain; filter: drop-shadow(0 18px 24px rgba(0, 0, 0, 0.6)); animation: caja-flota 3.2s ease-in-out infinite; }
+@keyframes caja-flota { 50% { transform: translateY(-8px) rotate(-1deg); } }
+.caja-contiene { margin: 0; max-width: 320px; padding: 0 16px; text-align: center; font-size: 13px; line-height: 1.45; color: #c7cfd9; }
+.caja-contiene b { display: block; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #f0c419; margin-bottom: 4px; }
+.caja-abrir { min-width: 200px; background: linear-gradient(180deg, #f0c419, #c99a06); color: #1b1e24; }
+.caja-abrir:disabled { opacity: 0.4; }
+.caja-vista .chip { color: #c7cfd9; }
+
+/* La pestaña Cajas de la tienda. */
+.pestana-num { display: inline-block; min-width: 16px; padding: 0 5px; margin-left: 3px; border-radius: 999px; background: #f0c419; color: #1b1e24; font-size: 10px; font-weight: 900; line-height: 16px; }
+.cajas-lista { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.caja-ficha {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 10px 8px 14px; border: 0; border-radius: 6px; cursor: pointer; color: #fff;
+  background: linear-gradient(180deg, #5d636c 0%, #3e444c 60%, color-mix(in srgb, var(--rareza) 40%, #2e3238) 100%);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35); overflow: hidden;
+}
+.caja-ficha::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: var(--rareza); }
+.caja-ficha img { width: 100%; aspect-ratio: 4 / 3; object-fit: contain; filter: drop-shadow(0 6px 6px rgba(0, 0, 0, 0.5)); }
+.caja-ficha-nombre { font-size: 13px; font-weight: 800; }
+.caja-ficha-cuantas { font-size: 11px; color: #c7cfd9; }
+.caja-ficha.vacia img { filter: grayscale(0.8) brightness(0.6); }
+
+/* Lo que tocó, en el resumen de la partida. */
+.botin-premio {
+  display: flex; align-items: center; gap: 10px; margin: 8px auto 0; max-width: 300px; padding: 6px 12px 6px 6px;
+  border-radius: 6px; border-bottom: 4px solid var(--rareza);
+  background: linear-gradient(180deg, #4b5159, color-mix(in srgb, var(--rareza) 30%, #2e3238));
+  color: #fff; text-align: left;
+}
+.botin-premio img { width: 88px; height: 66px; object-fit: contain; }
+.botin-premio span { display: flex; flex-direction: column; }
+.botin-premio small { font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--rareza); }
+.botin-premio b { font-size: 16px; }
+.botin-premio em { font-style: normal; font-size: 11px; color: #c7cfd9; }

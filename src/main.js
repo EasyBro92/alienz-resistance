@@ -26,7 +26,7 @@ import { crearCabina } from './helicoptero.js'
 import { BIOMAS } from './biomas.js'
 import { pintarVinetas, pintarMiFicha } from './multimenu.js'
 import { oleadasArena, azarConSemilla } from './systems/duelo.js'
-import { tirarCofre, girarCarrusel } from './cofre.js'
+import { abrirBotin, resumenBotin } from './cofre.js'
 import { crearTienda } from './tienda.js'
 import { escenaDe, PAISES, paisDe } from './campana.js'
 import { NIVEL_DETALLE } from './systems/detalle.js'
@@ -3111,10 +3111,14 @@ function htmlBotin () {
 
 // El premio se decide y se GUARDA antes de girar: la tira es solo el espectáculo.
 // Si alguien pulsa seguir a mitad de giro, lo que le tocó ya está en su cartera.
+// La ruleta sale a pantalla completa encima del resultado (como las cajas de
+// Counter-Strike, 30/09) y, al recoger, lo que tocó se queda en el resumen.
 function abrirCofre (gano, estrellas) {
-  const premio = tirarCofre({ gano, estrellas })
-  const caja = document.getElementById('cofre')
-  if (caja) girarCarrusel(caja, premio, audio, retratosGuardados)
+  abrirBotin({ gano, estrellas, audio, retratos: retratosGuardados }).then(premio => {
+    const caja = document.getElementById('cofre')
+    if (caja) caja.innerHTML = resumenBotin(premio)
+    pintarBilletes()
+  })
 }
 
 document.getElementById('ir-mapa').addEventListener('click', () => { audio.unlock(); abrirMapa() })

@@ -155,8 +155,38 @@ export function cargarCartera () {
     billetes: entero(crudo.billetes),
     monedas: entero(crudo.monedas),
     desbloqueadas: [...desbloqueadas],
-    mejoras
+    mejoras,
+    // Las cajas del botín (30/09): se guardan aquí hasta que se abren en la
+    // tienda. `sinCaja` cuenta las victorias seguidas sin caja: es el seguro.
+    cajas: { militar: entero(crudo.cajas?.militar), alien: entero(crudo.cajas?.alien) },
+    sinCaja: entero(crudo.sinCaja)
   }
+}
+
+export function sumarCaja (tipo, n = 1) {
+  const c = cargarCartera()
+  if (!(tipo in c.cajas)) return 0
+  c.cajas[tipo] += entero(n)
+  c.sinCaja = 0
+  guardar(c)
+  return c.cajas[tipo]
+}
+
+// Gasta una caja para abrirla. Falso si no hay.
+export function gastarCaja (tipo) {
+  const c = cargarCartera()
+  if (!c.cajas[tipo]) return false
+  c.cajas[tipo]--
+  guardar(c)
+  return true
+}
+
+// Una victoria más sin caja; devuelve cuántas van.
+export function victoriaSinCaja () {
+  const c = cargarCartera()
+  c.sinCaja++
+  guardar(c)
+  return c.sinCaja
 }
 
 export function sumarBilletes (n) {

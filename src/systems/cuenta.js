@@ -133,6 +133,9 @@ export function fusionar (a, b) {
       monedas: entero(reciente.monedas),
       desbloqueadas: [...new Set([...(ca.desbloqueadas ?? []), ...(cb.desbloqueadas ?? [])])],
       mejoras,
+      // Las cajas se gastan como los billetes: vale el guardado más reciente.
+      cajas: { militar: entero(reciente.cajas?.militar), alien: entero(reciente.cajas?.alien) },
+      sinCaja: entero(reciente.sinCaja),
       actualizado: Math.max(entero(ca.actualizado), entero(cb.actualizado))
     },
     progreso: { superados: Math.max(entero(pa.superados), entero(pb.superados)), rangos }
