@@ -55,7 +55,7 @@ const PROB_MILITAR = 0.01
 const PROB_ALIEN = 0.002
 const SEGURO = 150
 
-// El botín de siempre. Pesos al PERDER; ganando se multiplica lo que no es común.
+// El botín de siempre. Ganando con estrellas se multiplica lo que no es común.
 export const PREMIOS = [
   { tipo: 'monedas', cantidad: 20, rareza: 'comun', peso: 30 },
   { tipo: 'monedas', cantidad: 45, rareza: 'comun', peso: 22 },
@@ -66,6 +66,8 @@ export const PREMIOS = [
   { tipo: 'billetes', cantidad: 30, rareza: 'epico', peso: 1.6 },
   { tipo: 'billetes', cantidad: 120, rareza: 'legendario', peso: 0.4 }
 ]
+// Lo mínimo de cada cosa: lo único que puede tocar al perder.
+const PERDIENDO = [PREMIOS[0], PREMIOS[2]]
 const CAJA_MILITAR = { tipo: 'caja', caja: 'militar', rareza: 'unico' }
 const CAJA_ALIEN = { tipo: 'caja', caja: 'alien', rareza: 'unico' }
 
@@ -93,8 +95,11 @@ export function tirarCofre ({ gano = false, estrellas = 0 } = {}) {
     if (seguro || Math.random() < PROB_MILITAR) { sumarCaja('militar'); return CAJA_MILITAR }
     victoriaSinCaja()
   }
+  // Perdiendo, lo más bajo que hay (Isidro, 30/09: «cuando pierda quiero que
+  // los premios sean los más bajos posibles»): 20 monedas o 2 billetes.
+  const lista = gano ? PREMIOS : PERDIENDO
   const f = gano ? 1 + estrellas * 0.6 : 1
-  const premio = sortear(PREMIOS, PREMIOS.map(p => (p.rareza === 'comun' ? p.peso : p.peso * f)))
+  const premio = sortear(lista, lista.map(p => (p.rareza === 'comun' ? p.peso : p.peso * f)))
   if (premio.tipo === 'billetes') sumarBilletes(premio.cantidad)
   else sumarMonedas(premio.cantidad)
   return premio
@@ -282,7 +287,7 @@ export function abrirBotin ({ gano, estrellas, audio, retratos }) {
     relleno: rellenoBotin,
     titulo: 'Botín de la partida',
     caja: 'cofre de campaña',
-    nota: gano ? 'Ganando salen cosas mejores. Muy de vez en cuando, una caja.' : 'Perdiendo también hay botín. Las cajas solo salen ganando.',
+    nota: gano ? 'Ganando salen cosas mejores. Muy de vez en cuando, una caja.' : 'Perdiendo solo toca lo mínimo. Lo bueno y las cajas salen ganando.',
     fondo: 'militar',
     audio,
     retratos,

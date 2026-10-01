@@ -280,23 +280,53 @@ for piso in range(3):
                  random.uniform(-3, 3))
             k += 1
 
+# Las monedas NO se pueden atravesar (Isidro, 30/09: «se traspasan entre sí»):
+# cada una se coloca a un diámetro de las demás, las que van de canto se apoyan
+# (la altura sale del ángulo) y las pilas no se tocan entre ellas.
+R = 0.24
+sitios = []
+def libre (x, y, r=R):
+    return all(math.hypot(x - a, y - b) >= r + rb + 0.01 for a, b, rb in sitios)
+def apunta (x, y, r=R):
+    sitios.append((x, y, r))
+def apoyada (col, x, y, angulo, giro):
+    # Una moneda inclinada con el canto en el suelo: su centro sube lo que baja el borde.
+    a = math.radians(angulo)
+    moneda(col, (x, y, R * math.sin(a) + 0.0175 * math.cos(a)), (a, 0, giro))
+
 c = coleccion('monedas-1'); premios[c.name] = c           # 20 monedas: tres
-moneda(c, (-0.2, 0, 0.018))
-moneda(c, (0.22, 0.12, 0.018), (0, 0, 1))
-moneda(c, (0.02, -0.02, 0.1), (math.radians(62), 0, math.radians(20)))
+sitios = []
+moneda(c, (-0.27, 0, 0.018)); apunta(-0.27, 0)
+moneda(c, (-0.24, 0.03, 0.054), (0, 0, 0.7))              # encima de la primera
+moneda(c, (0.26, 0.08, 0.018), (0, 0, 1)); apunta(0.26, 0.08)
+apoyada(c, 0.05, -0.42, 18, 0.4)
 
 c = coleccion('monedas-2'); premios[c.name] = c           # 45: una pila y sueltas
-pila(c, 0, 0.05, 9)
-moneda(c, (0.5, -0.1, 0.018))
-moneda(c, (-0.45, -0.2, 0.05), (math.radians(20), 0, 0.3))
+sitios = []
+pila(c, 0, 0.05, 9); apunta(0, 0.05)
+moneda(c, (0.52, -0.1, 0.018)); apunta(0.52, -0.1)
+apoyada(c, -0.55, -0.22, 20, 0.3)
 
 c = coleccion('monedas-3'); premios[c.name] = c           # 90: el montón
-for (x, y, n) in ((-0.5, 0.2, 8), (0, 0.3, 12), (0.5, 0.1, 6), (-0.2, -0.25, 5), (0.35, -0.3, 9)):
-    pila(c, x, y, n)
-for i in range(9):
+sitios = []
+for (x, y, n) in ((-0.55, 0.22, 8), (0, 0.32, 12), (0.55, 0.12, 6), (-0.26, -0.3, 5), (0.3, -0.36, 9)):
+    pila(c, x, y, n); apunta(x, y)
+# Con tope de intentos: buscando hueco al azar sin tope, cuando el anillo se
+# llena el bucle no acaba nunca (así se colgó el render una vez).
+puestas = 0
+intentos = 0
+while puestas < 7 and intentos < 500:
+    intentos += 1
     t = random.uniform(0, 6.3)
-    moneda(c, (math.cos(t) * random.uniform(0.7, 1.0), math.sin(t) * random.uniform(0.5, 0.7), 0.03),
-           (random.uniform(0, 0.4), random.uniform(0, 0.4), random.uniform(0, 6.3)))
+    x, y = math.cos(t) * random.uniform(0.85, 1.3), math.sin(t) * random.uniform(0.7, 1.0)
+    if not libre(x, y):
+        continue
+    apunta(x, y)
+    if puestas % 3 == 2:
+        apoyada(c, x, y, random.uniform(12, 22), random.uniform(0, 6.3))
+    else:
+        moneda(c, (x, y, 0.018), (0, 0, random.uniform(0, 6.3)))
+    puestas += 1
 
 # La caja militar: la de Poly Haven con el emblema pintado en el frente.
 def pintura_emblema (color, brillo=0.0):
