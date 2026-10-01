@@ -3196,3 +3196,6 @@ a.multi-boton { text-decoration: none; }
 .botin-premio small { font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--rareza); }
 .botin-premio b { font-size: 16px; }
 .botin-premio em { font-style: normal; font-size: 11px; color: #c7cfd9; }
+
+/* El fogonazo de las bombas: un velo blanco sobre el juego que se apaga solo. */
+.destello-bomba { position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at 50% 40%, #fff 0%, #ffe9c2 55%, rgba(255, 200, 120, 0.6) 100%); }

@@ -42,6 +42,7 @@ function estrellitas (n, clase = '') {
 }
 import { crearResplandor, marcarBrillo } from './systems/resplandor.js'
 import { crearGolpes } from './systems/golpes.js'
+import { crearFuego } from './systems/fuego.js'
 import { crearCalidad, NIVELES as CALIDADES, leerPreferencia } from './systems/calidad.js'
 
 const canvas = document.getElementById('scene')
@@ -58,6 +59,10 @@ const audio = createAudio()
 // Va después del sonido porque le pasa un aviso por cada tramo de la secuencia.
 const dropship = createDropship(fase => audio.nave(fase))
 scene.add(dropship.group)
+// El fuego de verdad (láminas animadas de un fuego simulado en Blender). Se lo
+// presta a los efectos y a los golpes a través de `effects.fuego`.
+const fuego = crearFuego(scene)
+effects.fuego = fuego
 const golpes = crearGolpes(scene, effects, audio)
 
 // Resplandor selectivo. Se crea después del mundo y la nave para que ya estén
@@ -481,21 +486,26 @@ function useStrike (item, point) {
   }
   golpes.lanzar(item.key, point, (donde, radio) => {
     marcas.poner(donde.x, donde.z, 'quemado', radio * 1.5)
+    // Temblor y fogonazo según lo gordo que sea lo que cae.
+    temblar(item.key === 'airstrike' || item.key === 'misilGuiado' ? 1 : item.key === 'napalm' || item.key === 'artilleria' ? 0.7 : 0.35)
     // Menos daño en el borde: acertar de lleno tiene que valer más que rozar.
     golpe(donde, radio, spec.damage)
     // El napalm no acaba al explotar: deja la calzada ardiendo. Tres focos en
     // vez de uno porque una sola brasa de radio 4,2 es un círculo perfecto y se
     // lee como un decalque; tres solapados se leen como fuego derramado.
+    // Isidro (01/10): «muro de fuego a lo largo», como el de verdad: una
+    // franja de llamas altas siguiendo la pasada del avión, no tres focos.
     if (spec.brasas) {
-      brasaEn(spec.brasas, donde)
-      for (let i = 0; i < 2; i++) {
+      const largo = spec.brasas.largo ?? 0
+      const pasos = largo ? Math.round(largo / (spec.brasas.radio * 1.1)) : 0
+      for (let i = -pasos; i <= pasos; i++) {
         brasaEn(spec.brasas, {
-          x: donde.x + (Math.random() - 0.5) * radio,
-          z: donde.z + (Math.random() - 0.5) * radio
+          x: donde.x + (i ? (Math.random() - 0.5) * 0.8 : 0),
+          z: donde.z + i * spec.brasas.radio * 1.1
         })
       }
     }
-  }, { desde })
+  }, { desde, alTemblar: temblar })
 
   ui.clearSelection()
   world.setSlotsVisible(false)
@@ -826,7 +836,7 @@ function soldierFire (soldier, target) {
   if (spec.projectile === 'arrow') {
     effects.arrow(from, to)
   } else if (spec.flame) {
-    effects.flame(from, -1, spec.range)
+    effects.flame(from, -1, spec.range, soldier.id)
   } else if (spec.misilShot) {
     const impacto = to.clone()
     effects.smoke(from, 3, 0x9a9a9a)
@@ -895,8 +905,45 @@ function soldierFire (soldier, target) {
       if (z === target || z.dead || z.lane !== target.lane) continue
       if (z0 - z.z > spec.range || z.z > z0) continue
       z.hurt(soldier.damage, pierce)
+      prender(z)
     }
+    prender(target)
   }
+}
+
+// Temblor de cámara y fogonazo (Isidro, 01/10). El temblor mueve la cámara
+// solo mientras se dibuja el fotograma y la devuelve a su sitio después: así no
+// se acumula ni pelea con quien la coloque (el vuelo, el asalto). El fogonazo
+// es un velo blanco por encima del juego que se apaga en un cuarto de segundo.
+let temblorT = 0
+let temblorFuerza = 0
+const elDestello = document.createElement('div')
+elDestello.className = 'destello-bomba'
+document.getElementById('app')?.appendChild(elDestello) ?? document.body.appendChild(elDestello)
+function temblar (fuerza = 1) {
+  temblorT = 0.2 + 0.3 * fuerza
+  temblorFuerza = Math.max(temblorFuerza, fuerza)
+  if (fuerza >= 0.6) {
+    elDestello.style.transition = 'none'
+    elDestello.style.opacity = String(0.2 + 0.3 * fuerza)
+    elDestello.getBoundingClientRect()
+    elDestello.style.transition = 'opacity 0.3s ease-out'
+    elDestello.style.opacity = '0'
+  }
+  if (navigator.vibrate && fuerza >= 0.6) try { navigator.vibrate(30 + 40 * fuerza) } catch {}
+}
+// Envuelve el dibujado de un fotograma: desplaza la cámara, dibuja y la repone.
+const camaraQuieta = new THREE.Vector3()
+function conTemblor (dt, dibujar) {
+  if (temblorT <= 0) return dibujar()
+  temblorT -= dt
+  const k = Math.max(0, temblorT) * temblorFuerza * 1.1
+  camaraQuieta.copy(camera.position)
+  camera.position.x += (Math.random() - 0.5) * k
+  camera.position.y += (Math.random() - 0.5) * k * 0.7
+  dibujar()
+  camera.position.copy(camaraQuieta)
+  if (temblorT <= 0) temblorFuerza = 0
 }
 
 // Brasas del lanzallamas: manchas de asfalto ardiendo que siguen cobrando
@@ -906,6 +953,20 @@ function soldierFire (soldier, target) {
 // basura de mallas muertas.
 const brasas = []
 const BRASA_GEO = new THREE.CircleGeometry(1, 14)
+
+// Un bicho en llamas (Isidro, 01/10): al que toca el fuego le quedan llamas
+// encima unos segundos mientras sigue andando. Es solo lo que se ve; el daño
+// es el de siempre.
+const ARDE = 2.6
+function prender (z) {
+  if (z.dead) return
+  if (!z.llama || z.llama.t >= z.llama.vida) {
+    const talla = z.spec.boss ? 3.2 : (z.spec.scale ?? 1)
+    z.llama = fuego.llama(z.mesh.position.x, 0, z.mesh.position.z, {
+      ancho: 1.1 * talla, alto: 1.9 * talla, dura: ARDE, sigue: z.mesh, sube: 0.5 * talla
+    })
+  } else z.llama.t = Math.min(z.llama.t, 0.3)
+}
 
 function prenderBrasas (soldier, target) {
   brasaEn(soldier.spec.brasas, target.mesh.position)
@@ -940,6 +1001,18 @@ function brasaEn (spec, punto) {
   brasa.dura = spec.dura
   brasa.daño = spec.daño
   brasa.radio = spec.radio
+  // Las llamas de encima: unas cuantas repartidas por la mancha, más altas en
+  // el napalm (`alto`) que en el rastro del lanzallamas.
+  brasa.alto = spec.alto ?? 1.5
+  brasa.llamas = []
+  const cuantas = Math.max(2, Math.round(spec.radio * 1.3))
+  for (let i = 0; i < cuantas; i++) {
+    const a = Math.random() * Math.PI * 2
+    const r = Math.sqrt(Math.random()) * spec.radio * 0.8
+    brasa.llamas.push(fuego.llama(punto.x + Math.cos(a) * r, 0, punto.z + Math.sin(a) * r, {
+      ancho: brasa.alto * (0.55 + Math.random() * 0.25), alto: brasa.alto * (0.8 + Math.random() * 0.5), dura: 1.2
+    }))
+  }
 }
 
 function updateBrasas (dt) {
@@ -947,9 +1020,13 @@ function updateBrasas (dt) {
     if (b.t <= 0) continue
     b.t -= dt
     if (b.t <= 0) { b.malla.visible = false; continue }
-    // Late y se va apagando: un disco naranja fijo parecía una calcomanía.
+    // Late y se va apagando. Con las llamas encima, el disco es solo el
+    // resplandor del suelo: mucho más tenue que cuando era todo el fuego.
     const k = b.t / b.dura
-    b.malla.material.opacity = 0.15 + k * 0.4 + Math.sin(b.t * 11) * 0.06
+    b.malla.material.opacity = 0.08 + k * 0.2 + Math.sin(b.t * 11) * 0.04
+    // Las llamas duran lo que la brasa: se reavivan mientras quede, y al final
+    // se dejan apagar solas.
+    if (b.t > 0.5) for (const l of b.llamas) if (l.t > 0.6) l.t = 0.3
     b.malla.scale.setScalar(b.radio * (0.9 + k * 0.15))
     for (const z of zombies) {
       if (z.dead) continue
@@ -959,8 +1036,9 @@ function updateBrasas (dt) {
       // El fuego ignora el blindaje: es lo que hace del lanzallamas la respuesta
       // a los Encostrados y lo que justifica sus doscientas de biomasa.
       z.hurt(b.daño * dt, 1)
+      prender(z)
     }
-    if (Math.random() < dt * 9) effects.smoke(b.malla.position, 1, 0x6b6b6b)
+    if (Math.random() < dt * 9) effects.smoke(b.malla.position, 1, 0x3a3632)
   }
 }
 
@@ -1488,6 +1566,7 @@ function simulate (dt) {
   marcas.update(dt)
   actualizarJefes(dt, performance.now() / 1000)
   golpes.update(dt)
+  fuego.update(dt)
   // Las recargas del apoyo corren con la partida (en pausa no).
   if (running) {
     for (const [clave, r] of recargas) {
@@ -1848,7 +1927,7 @@ function frame (now) {
   last = now
   calidad.medir(real)
   simulate(dt)
-  resplandor.render()
+  conTemblor(dt, () => resplandor.render())
 }
 
 // ---------------------------------------------------------------------------
@@ -2133,6 +2212,7 @@ function limpiarPartida () {
   for (const clave of recargas.keys()) ui.setRecarga(clave, 0, 1)
   recargas.clear()
   for (const b of brasas) { b.t = 0; b.malla.visible = false }
+  fuego.limpiar()
   dropship.ocultar()
   baseHp = BASE.hp
   ui.setBase(1)
@@ -3168,6 +3248,7 @@ if (import.meta.env.DEV) {
     render: () => resplandor.render(),
     // Para medir llamadas de dibujo y triángulos (renderer.info).
     renderer,
+    fuego,
     resplandor,
     camera,
     scene,

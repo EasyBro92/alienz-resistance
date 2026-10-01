@@ -402,6 +402,23 @@ export function createAudio () {
       musicFilter.frequency.setTargetAtTime(parando ? 260 : 20000, t, 0.08)
     },
 
+    // La bomba cayendo: un silbido que baja de tono hasta el impacto.
+    silbido () {
+      play(() => {
+        const t = ctx.currentTime
+        const o = ctx.createOscillator()
+        o.type = 'sine'
+        o.frequency.setValueAtTime(1900, t)
+        o.frequency.exponentialRampToValueAtTime(520, t + 0.6)
+        const g = ctx.createGain()
+        g.gain.setValueAtTime(0.0001, t)
+        g.gain.exponentialRampToValueAtTime(0.11, t + 0.08)
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.62)
+        o.connect(g).connect(sfxGain)
+        o.start(t); o.stop(t + 0.65)
+      })
+    },
+
     // La caja registradora del final de la lluvia de billetes: el golpe seco
     // del cajón y dos campanillas altas, «ka-ching».
     caja () {

@@ -354,6 +354,8 @@ async function armarPersona (key, spec, urls) {
   // el mismo cuerpo sirve para las siete unidades.
   let mano = null
   cuerpo.traverse(o => { if (!mano && o.name === 'RightHand') mano = o })
+  // El lanzallamas de Blender tiene que haber llegado antes de montar el arma.
+  if (key === 'flamer') await lanzallamasListo
   const arma = buildWeapon(key, spec)
   // El arma ya no cuelga de la mano: va en la figura y la coloca `cuerpo.js`
   // cada fotograma, y son las manos las que van a ella. Colgada de la mano
@@ -364,6 +366,16 @@ async function armarPersona (key, spec, urls) {
   // El arquero se viste encima del cuerpo del tirador (Isidro, 28/09, con una
   // lámina de referencia: capucha, capa rota, cuero y carcaj).
   if (key === 'archer') vestirArquero(cuerpo, hueso)
+  // Al del lanzallamas, la mochila de bombonas colgada del pecho: es lo que más
+  // se ve, porque la cámara mira a los soldados por la espalda.
+  if (key === 'flamer' && lanzallamas) {
+    const pecho = hueso('Spine') ?? hueso('Spine01')
+    if (pecho) {
+      const mochila = copiaConGeometria(lanzallamas.bombonas)
+      mochila.position.set(0, -0.1, 0.07)
+      colgarDeHueso(pecho, mochila)
+    }
+  }
 
   g.add(contactShadow(0.85))
 
@@ -884,7 +896,12 @@ function buildWeapon (key) {
     }
     grip(0.2, 0.42)
     piece(w, box(0.07, 0.15, 0.3, 0.03), polymer, 0, -0.02, 0.34)
+  } else if (key === 'flamer' && lanzallamas) {
+    // La lanza hecha en Blender (herramientas/blender/armas.py): protector
+    // térmico, boquilla, encendedor y manguera. Las bombonas van a la espalda.
+    w.add(copiaConGeometria(lanzallamas.lanza))
   } else if (key === 'flamer') {
+    // Si el modelo no ha llegado, la lanza de piezas de siempre.
     // Solo la lanza. Las bombonas viven en la ESPALDA del soldado, no aquí: en
     // el grupo del arma se hundían y se volcaban con ella cada vez que bajaba
     // el arma, y el objeto más grande del modelo se bamboleaba en el aire.
@@ -3340,4 +3357,37 @@ export function buildSandbagsMesh (spec) {
   const g = bake(parts)
   g.add(contactShadow(1.2))
   return g
+}
+
+// --- el lanzallamas de Blender --------------------------------------------------------
+// Isidro, 01/10: «el lanzallamas debería ser más realista como los demás».
+// Se carga una vez al abrir el juego y se hornea (`bake` mete el color de cada
+// material en los vértices: la lanza y la mochila acaban en una o dos llamadas
+// de dibujo cada una). Si no llega, quedan las piezas de siempre.
+let lanzallamas = null
+const lanzallamasListo = moldeDefensa('arma-lanzallamas').then(escena => {
+  const saca = (nombre, hornear) => {
+    const o = escena.getObjectByName(nombre)
+    if (!o) throw new Error('falta ' + nombre)
+    const g = new THREE.Group()
+    g.add(o.clone(true))
+    return hornear ? bake(g, false) : g
+  }
+  // La lanza va SIN hornear: `buildWeapon` hornea el arma entera al final, y
+  // horneada dos veces salía blanca (la segunda lee el material blanco de la
+  // primera). La mochila no pasa por ahí: se hornea aquí.
+  lanzallamas = { lanza: saca('lanza', false), bombonas: saca('bombonas', true) }
+}).catch(e => console.warn('Sin lanzallamas de Blender:', e))
+
+// Cada figura necesita su geometría: al quitarla, la partida la suelta, y
+// compartida dejaría sin ella a las demás.
+function copiaConGeometria (molde) {
+  const c = molde.clone(true)
+  c.traverse(o => { if (o.isMesh) { o.geometry = o.geometry.clone(); o.castShadow = true } })
+  return c
+}
+
+// El cazabombardero del ataque aéreo y del napalm.
+export function cargarAvion () {
+  return moldeDefensa('avion-ataque').then(escena => escena.clone(true))
 }

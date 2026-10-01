@@ -117,8 +117,15 @@ export function createEffects (scene, camera) {
     debris.push({ mesh: m, life: Math.min(0.55, dist / 42), fly: dir.multiplyScalar(1 / Math.max(0.05, Math.min(0.55, dist / 42))) })
   }
 
-  // Cono de llamas: muchas bolas naranjas que salen despedidas y se apagan.
-  function flame (from, dirZ = -1, reach = 7) {
+  // El chorro del lanzallamas. Con el fuego de verdad (`api.fuego`, que pone
+  // main.js) es una lámina animada tendida a lo largo del disparo; sin él
+  // —la Guerra civil— quedan las bolas naranjas de antes.
+  function flame (from, dirZ = -1, reach = 7, id = 0) {
+    if (api.fuego) {
+      api.fuego.chorro(id, from, dirZ, reach)
+      if (Math.random() < 0.3) smoke(from.clone().setZ(from.z + dirZ * reach * 0.85), 1, 0x2e2a26)
+      return
+    }
     const mat = new THREE.MeshBasicMaterial({ color: 0xff8c1a, transparent: true, opacity: 0.85, depthWrite: false })
     for (let i = 0; i < 7; i++) {
       const m = brilla(new THREE.Mesh(smokeGeo, mat))
@@ -219,8 +226,10 @@ export function createEffects (scene, camera) {
     }
   }
 
-  return {
+  const api = {
+    fuego: null,
     tracer, burst, floatText, shell, smoke, arrow, flame, mortar, misil, update,
     setDensidad (v) { densidad = v }
   }
+  return api
 }

@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { brilla } from './resplandor.js'
+import { cargarAvion } from '../assets.js'
 
 // Los golpes de apoyo. Primero fueron la granada y el ataque aéreo; el 27/09
 // Isidro pidió más («dame más opciones típicas de los juegos de resistencia»)
@@ -87,6 +88,20 @@ function construirAvion () {
     deriva.scale.z = 0.5
     g.add(deriva)
   }
+
+  // El cazabombardero de Blender (herramientas/blender/armas.py) sustituye al
+  // de piezas en cuanto llega (Isidro, 01/10), aquí y en la ficha de la tienda.
+  // El de piezas, además, volaba de culo: el morro miraba a -z y avanza a +z.
+  cargarAvion().then(modelo => {
+    g.clear()
+    modelo.traverse(o => {
+      if (!o.isMesh) return
+      o.castShadow = true
+      if (/^brillo/.test(o.material?.name ?? '')) brilla(o)
+    })
+    modelo.scale.setScalar(0.85)
+    g.add(modelo)
+  }).catch(e => console.warn('Sin avión de Blender:', e))
 
   g.visible = false
   return g
@@ -289,6 +304,11 @@ export function figuraDeApoyo (clave) {
 export function crearGolpes (scene, effects, audio) {
   const avion = construirAvion()
   const bomba = construirBomba()
+  // Las otras dos del ataque aéreo (Isidro, 01/10: «que se vean caer varias
+  // bombas en fila»): caen delante y detrás de la principal, escalonadas.
+  const bombasFila = [construirBomba(), construirBomba()]
+  for (const b of bombasFila) { b.visible = false; scene.add(b) }
+  const FILA = [{ dz: -4.6, dt: -0.16 }, { dz: 4.6, dt: 0.16 }]
   const granada = construirGranada()
   scene.add(avion, bomba, granada)
 
@@ -360,10 +380,16 @@ export function crearGolpes (scene, effects, audio) {
   // y una columna de humo que se queda un rato. Es lo que separa "han muerto" de
   // "ha caído algo aquí".
   function reventar (punto, radio, grande) {
-    const bola = tomar(bolas, bolaGeo, FUEGO, false)
-    bola.malla.position.copy(punto).setY(radio * 0.35)
-    bola.t = bola.dura = grande ? 0.65 : 0.45
-    bola.radio = radio
+    // Con el fuego de verdad, la bola es una explosión simulada (fuego.js); la
+    // esfera naranja de antes solo queda si no lo hay.
+    if (effects.fuego) {
+      effects.fuego.explosion(punto.x, 0, punto.z, radio * (grande ? 1.6 : 1.35))
+    } else {
+      const bola = tomar(bolas, bolaGeo, FUEGO, false)
+      bola.malla.position.copy(punto).setY(radio * 0.35)
+      bola.t = bola.dura = grande ? 0.65 : 0.45
+      bola.radio = radio
+    }
 
     const onda = tomar(ondas, ondaGeo, ONDA, true)
     onda.malla.position.copy(punto).setY(0.08)
@@ -454,8 +480,9 @@ export function crearGolpes (scene, effects, audio) {
         // bomba se suelta ANTES de llegar, porque una bomba soltada justo
         // encima del blanco caería detrás: lleva la velocidad del avión.
         vuelos.push({
-          tipo: 'avion', t: 0, destino, alImpacto,
-          entrada: 1.05, caida: 0.62, radio: clave === 'napalm' ? 4.6 : 5.5, marca: true
+          tipo: 'avion', t: 0, destino, alImpacto, alTemblar: extra.alTemblar ?? null,
+          entrada: 1.05, caida: 0.62, radio: clave === 'napalm' ? 4.6 : 5.5, marca: true,
+          fila: clave === 'airstrike' ? FILA.map(f => ({ ...f, hecho: false })) : null
         })
       } else {
         // La tira el soldado más cercano, si hay alguno; si no, llega de detrás
@@ -469,6 +496,7 @@ export function crearGolpes (scene, effects, audio) {
 
     limpiar () {
       vuelos.length = 0
+      for (const b of bombasFila) b.visible = false
       for (const lista of Object.values(reservas)) for (const p of lista) soltarPieza(p)
       minas.length = 0
       aroVerde.visible = false
@@ -650,7 +678,8 @@ export function crearGolpes (scene, effects, audio) {
             bomba.visible = k > 0.45
             bomba.position.copy(avion.position).setY(avion.position.y - 0.55)
             bomba.rotation.set(0, 0, 0)
-          } else {
+          } else if (!v.exploto) {
+            if (!v.silbo) { v.silbo = true; audio.silbido?.() }
             // Caída: parábola desde donde se soltó hasta el blanco.
             const c = Math.min(1, (v.t - v.entrada) / v.caida)
             bomba.visible = true
@@ -662,6 +691,28 @@ export function crearGolpes (scene, effects, audio) {
             )
             // Se va poniendo de morro conforme cae.
             bomba.rotation.x = -c * 1.1
+          }
+          // Las de la fila: la misma parábola, cada una a su sitio y a su hora.
+          if (v.fila && v.t >= v.entrada) {
+            const sueltaZ = z0 + (z1 - z0) * (v.entrada / (v.entrada + 0.5))
+            v.fila.forEach((f, n) => {
+              const b = bombasFila[n]
+              if (f.hecho) { b.visible = false; return }
+              const c = Math.max(0, Math.min(1, (v.t - v.entrada - f.dt) / v.caida))
+              b.visible = true
+              b.position.set(
+                v.destino.x * 0.5 + (v.destino.x - v.destino.x * 0.5) * c,
+                7.6 - 7.6 * c * c,
+                sueltaZ + (v.destino.z + f.dz - sueltaZ) * c
+              )
+              b.rotation.x = -c * 1.1
+              if (c >= 1) {
+                f.hecho = true
+                b.visible = false
+                reventar(new THREE.Vector3(v.destino.x, 0, v.destino.z + f.dz), v.radio * 0.8, true)
+                v.alTemblar?.(0.6)
+              }
+            })
           }
         } else {
           // Granada: sale de detrás de la línea y describe un arco.
@@ -679,11 +730,16 @@ export function crearGolpes (scene, effects, audio) {
           granada.rotation.z += dt * 9
         }
 
-        if (v.t >= total) {
+        if (v.t >= total && !v.exploto) {
+          v.exploto = true
           bomba.visible = false
           granada.visible = false
           reventar(v.destino, v.radio, v.tipo === 'avion')
           v.alImpacto(v.destino, v.radio)
+        }
+        // Con bombas en fila se espera a que caiga la última.
+        if (v.exploto && (!v.fila || v.fila.every(f => f.hecho))) {
+          for (const b of bombasFila) b.visible = false
           vuelos.splice(i, 1)
         }
       }

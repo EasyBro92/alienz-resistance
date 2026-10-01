@@ -230,8 +230,11 @@ export const STRIKES = {
   // y contra un jefe no vale casi nada. Que elija el jugador.
   napalm: {
     name: 'Napalm', cost: 260, damage: 90, radius: 4.6, recarga: 30,
-    brasas: { daño: 46, dura: 20, radio: 4.2 },
-    blurb: 'Poco golpe y mucho rato: deja la calzada ardiendo veinte segundos.'
+    // Un muro de fuego a lo largo del carril (Isidro, 01/10): siete focos de
+    // radio 2,2 en fila son 17 de largo y 4,4 de ancho. Antes eran tres círculos
+    // de 4,2: la misma superficie ardiendo, estirada.
+    brasas: { daño: 46, dura: 20, radio: 2.2, largo: 7.3, alto: 3.4 },
+    blurb: 'Poco golpe y mucho rato: un muro de fuego que arde veinte segundos.'
   },
   // Los cinco del 27/09, elegidos por Isidro entre «opciones típicas de los
   // juegos de resistencia». Cada uno resuelve algo que los otros no.
