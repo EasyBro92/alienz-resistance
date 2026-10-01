@@ -63,6 +63,20 @@ const golpes = crearGolpes(scene, effects, audio)
 // Resplandor selectivo. Se crea después del mundo y la nave para que ya estén
 // marcadas las mallas que emiten luz.
 marcarBrillo(scene)
+
+// La sombra la proyecta el cuerpo y lo grande; las piezas pequeñas (correas,
+// mira, barra de vida, adornos) no. Medido el 01/10: un soldado eran 26 piezas
+// y todas se dibujaban otra vez en la pasada de sombras, unas veinte llamadas
+// por figura para una sombra que no cambia. Con el tablero lleno calentaba el
+// móvil (Isidro: «con muchos alienz se sobrecalienta»).
+function sombraSoloDeLoGrande (raiz) {
+  raiz.traverse(o => {
+    if (!o.isMesh || !o.castShadow || o.isSkinnedMesh) return
+    const g = o.geometry
+    const tris = (g.index ? g.index.count : g.attributes.position?.count ?? 0) / 3
+    if (tris < 600) o.castShadow = false
+  })
+}
 const resplandor = crearResplandor(renderer, scene, camera)
 world.onResize(resplandor.resize)
 
@@ -341,6 +355,7 @@ async function place (item, lane, row) {
   const s = await createSoldier(item.key, spec, lane, row)
   s.mesh.userData.soldierId = s.id
   marcarBrillo(s.mesh)
+  sombraSoloDeLoGrande(s.mesh)
 
   // No aparecen en su casilla: entran por detrás de la línea y suben andando.
   // Las barreras sí aparecen puestas — un saco terrero no camina.
@@ -2131,6 +2146,7 @@ function alAparecer (z) {
   z.mesh.position.y = z.suelo
   marcarBrillo(z.mesh)
   scene.add(z.mesh)
+  sombraSoloDeLoGrande(z.mesh)
   zombies.push(z)
   if (z.spec.boss) entradaJefe(z)
 }
@@ -3150,6 +3166,8 @@ if (import.meta.env.DEV) {
       empezarReto({ codigo: 'PRUEB', alias: 'Prueba', composicion, escenario: nivelActual }, oleadasDeReto(composicion))
     },
     render: () => resplandor.render(),
+    // Para medir llamadas de dibujo y triángulos (renderer.info).
+    renderer,
     resplandor,
     camera,
     scene,
