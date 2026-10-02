@@ -20,3 +20,5 @@ vistas/
 # Paquetes de modelos descargados (Kenney, Quaternius): pesan cientos de MB.
 # Solo entra en el juego lo que se adelgaza y se copia a public/models.
 herramientas/paquetes/
+
+__pycache__/
