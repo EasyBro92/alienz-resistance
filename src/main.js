@@ -1684,24 +1684,51 @@ function empezarVuelo () {
 // Por eso el tramo de entrada cruza z = 10 a y ≈ 44: seis metros por encima del
 // techo y justo por la vertical del hueco. Comprobado lanzando un rayo por cada
 // tramo del recorrido: cero cruces con la geometría del nivel.
-const ESTADIO_VUELO = 5
-// Al repetir el nivel no hace falta la película entera. La segunda vez se
-// empieza directamente en el tercer tiempo —encima del techo— y dura dos
-// segundos: Isidro eligió «entero la primera vez, corto después».
-const ESTADIO_CORTO = { desde: 0.56, dura: 2 }
+// Isidro, 02/10: «la cámara inicial debería verse desde más lejos, porque nada
+// más iniciar atraviesa el estadio y no se entiende nada; que se vea el estadio
+// desde fuera y que dure más». Lo que veía era la versión corta: empezaba ya
+// encima del techo y entraba en dos segundos. Ahora la primera vez son 9 s y
+// las siguientes 5,5, y las dos empiezan FUERA, con el estadio entero a la vista.
+const ESTADIO_VUELO = 9
+const ESTADIO_CORTO = { desde: 0.2, dura: 5.5 }
 const ESTADIO_VISTO = 'alienz-vuelo-madrid-v1'
 const ESTADIO_PLANOS = [
   // El primero no está puesto a ojo: probando las ocho esquinas de la caja del
   // estadio contra la pantalla del móvil, desde aquí ocupa el 86 % del ancho y
   // queda centrado, con sitio de sobra arriba y abajo para que se vea la ciudad.
   { k: 0, pos: [-120, 250, 470], mira: [10, 6, -26] },  // la ciudad, con el estadio en medio
-  { k: 0.34, pos: [-70, 130, 210], mira: [0, 16, -28] },// cayendo por encima de las manzanas
+  // Casi un tercio del plano rodeándolo despacio, sin acercarse apenas: es lo
+  // que deja VER el estadio por fuera antes de echarse encima.
+  { k: 0.3, pos: [-190, 185, 360], mira: [6, 10, -26] },
+  { k: 0.56, pos: [-80, 120, 200], mira: [0, 16, -28] },// cayendo por encima de las manzanas
   // Mirando ALTO y lejos al cruzar el techo: con la mirada puesta en el césped,
   // el techo se comía la pantalla entera y el hueco se iba al borde de arriba.
-  // Con estos números el hueco queda centrado (medido proyectando sus esquinas).
-  { k: 0.62, pos: [-6, 62, 72], mira: [0, 24, -40] },   // rozando el techo
-  { k: 0.82, pos: [0, 44, 6], mira: [0, 4, -24] }       // entrando por el hueco
+  { k: 0.74, pos: [-4, 60, 44], mira: [0, 24, -40] },   // rozando el techo
+  // Ya DENTRO del hueco (va de z = 10 a -62) antes de bajar: la cámara de juego
+  // queda bajo el techo, en z = 22, y bajando desde z = 6 se rozaba el borde.
+  // El hueco lo cruzan cerchas cada 8,5 (z = 1,5, -7, -15,5…, entre y = 33 y
+  // 36): se baja A PLOMO entre las dos primeras, por z ≈ -3, y la bajada a la
+  // cámara de juego pasa ya por debajo de ellas.
+  { k: 0.87, pos: [0, 40, -2.75], mira: [0, 10, -34] }, // sobre el hueco
+  { k: 0.93, pos: [0, 30, -4], mira: [0, 3, -34] }       // entrando por el hueco
 ]
+// El recorrido es una curva que pasa por los planos, no tramos sueltos: con un
+// arranque y un frenazo en cada plano, en nueve segundos la cámara iba a tirones.
+const curvaDe = campo => new THREE.CatmullRomCurve3(
+  ESTADIO_PLANOS.map(p => new THREE.Vector3(...p[campo])), false, 'centripetal')
+const ESTADIO_CAMINO = curvaDe('pos')
+const ESTADIO_MIRADA = curvaDe('mira')
+const tmpVueloPos = new THREE.Vector3()
+// Pone la cámara en el punto k (0-1) del plano, sin la mezcla final.
+function planoEstadio (k) {
+  const P = ESTADIO_PLANOS
+  let i = 0
+  while (i < P.length - 2 && k > P[i + 1].k) i++
+  const f = Math.min(1, Math.max(0, (k - P[i].k) / (P[i + 1].k - P[i].k)))
+  const u = (i + f) / (P.length - 1)
+  camera.position.copy(ESTADIO_CAMINO.getPoint(u, tmpVueloPos))
+  camera.lookAt(ESTADIO_MIRADA.getPoint(u, tmpVueloMira))
+}
 
 function empezarLlegadaEstadio () {
   world.resize()
@@ -1741,28 +1768,8 @@ function actualizarEstadio (dt) {
   const avance = Math.min(1, Math.max(0, v.t / v.dura))
   // En el corto se entra ya empezado, pero por los mismos puntos.
   const k = v.arranca + (1 - v.arranca) * avance
-  // Entre qué dos planos estamos.
   const P = ESTADIO_PLANOS
-  let i = 0
-  while (i < P.length - 1 && k > P[i + 1].k) i++
-  const a = P[i]
-  const b = P[i + 1] ?? null
-  if (b) {
-    const f = suave((k - a.k) / (b.k - a.k))
-    camera.position.set(
-      a.pos[0] + (b.pos[0] - a.pos[0]) * f,
-      a.pos[1] + (b.pos[1] - a.pos[1]) * f,
-      a.pos[2] + (b.pos[2] - a.pos[2]) * f
-    )
-    camera.lookAt(tmpVueloMira.set(
-      a.mira[0] + (b.mira[0] - a.mira[0]) * f,
-      a.mira[1] + (b.mira[1] - a.mira[1]) * f,
-      a.mira[2] + (b.mira[2] - a.mira[2]) * f
-    ))
-  } else {
-    camera.position.set(a.pos[0], a.pos[1], a.pos[2])
-    camera.lookAt(tmpVueloMira.set(a.mira[0], a.mira[1], a.mira[2]))
-  }
+  planoEstadio(k)
   // El último tramo se funde con la posición de juego, como el sobrevuelo.
   const ultimo = P[P.length - 1].k
   const mezcla = k < ultimo ? 0 : suave((k - ultimo) / (1 - ultimo))
@@ -3289,6 +3296,16 @@ if (import.meta.env.DEV) {
     sinVuelo: () => { if (vuelo) terminarVuelo() },
     // Ver una arena del duelo sin montar un duelo: __zr.arena()
     arena: (i = 0) => { const a = ARENAS[i]; world.vestir(a.bioma, [], a.suelo, a.tono) },
+    // El plano de llegada a Madrid en el punto k, con la ciudad encendida.
+    verEstadio: (k = 0) => {
+      world.verCiudad(true)
+      if (scene.fog) { scene.fog.near = ESTADIO_NIEBLA.cerca; scene.fog.far = ESTADIO_NIEBLA.lejos }
+      camera.near = 1; camera.far = 1500; camera.updateProjectionMatrix()
+      planoEstadio(Math.min(k, ESTADIO_PLANOS.at(-1).k))
+      world.renderer.render(scene, camera)
+      return camera.position.toArray().map(n => +n.toFixed(1))
+    },
+    estadioPlanos: ESTADIO_PLANOS,
     // Para capturar el vuelo: pone la cámara donde empieza y dibuja.
     verVuelo: (k = 0) => {
       const v = world.vistaMonumento()
