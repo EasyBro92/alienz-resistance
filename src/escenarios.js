@@ -419,8 +419,9 @@ function valenciaArtes () {
     tapaElMundo: true,
     sinSombra: true,
     sinCalzada: true,
-    baseX: -10.5,
-    baseZ: -35.5
+    // Dentro del estanque, en su plataforma (los mismos números que el guion).
+    baseX: -12.6,
+    baseZ: -44
   })
   return g
 }

@@ -128,11 +128,16 @@ while z > Z_PUERTA:
     if fin > Z_PUERTA:
         rect('S', LOSA_GRIS, -7.6, 7.6, max(Z_PUERTA, fin - 0.6), fin, 0.0, baldosa=4.0)
     z = fin - 0.6
-BASE = (-10.5, -35.5)
-disco = [(BASE[0] + 4.6 * math.cos(2 * math.pi * i / 20), BASE[1] + 4.6 * math.sin(2 * math.pi * i / 20)) for i in range(20)]
+# Isidro (02/10): «ponla un poco más dentro del agua, aquí no queda bien
+# ajustada»: el aro de la base (radio 3,9) se salía de la plataforma y pisaba el
+# canto y una farola. Ahora va más adentro y más al fondo —donde la pantalla del
+# móvil es más ancha y sigue viéndose—, con la plataforma a su medida y sin
+# canto, banco ni farola en ese tramo.
+BASE, R_BASE = (-12.6, -44.0), 4.9
+disco = [(BASE[0] + R_BASE * math.cos(2 * math.pi * i / 24), BASE[1] + R_BASE * math.sin(2 * math.pi * i / 24)) for i in range(24)]
 cara('S', LOSA, [P(x, z, 0.02) for x, z in disco], hacia=ARRIBA, baldosa=4.0)
-for i in range(20):                      # el canto de la plataforma
-    (ax, az), (bx, bz) = disco[i], disco[(i + 1) % 20]
+for i in range(24):                      # el canto de la plataforma
+    (ax, az), (bx, bz) = disco[i], disco[(i + 1) % 24]
     if min(ax, bx) > -BORDE:
         continue
     cara('E', BLANCO, [P(ax, az, -0.3), P(bx, bz, -0.3), P(bx, bz, 0.02), P(ax, az, 0.02)],
@@ -143,7 +148,11 @@ POZA_X, POZA_Z = 58.0, -104.0
 for lado in (-1, 1):
     rect('E', AGUA, lado * BORDE, lado * POZA_X, POZA_Z, 26, -0.25, baldosa=14.0)
     # el canto blanco, por dentro (junto al paseo) y por fuera
-    caja('E', BLANCO, lado * PASEO, lado * BORDE, POZA_Z, Z_CERCA, -0.3, 0.3, baldosa=4)
+    if lado < 0:                         # el canto se abre donde la plataforma se une al paseo
+        caja('E', BLANCO, -BORDE, -PASEO, POZA_Z, BASE[1] - 3.0, -0.3, 0.3, baldosa=4)
+        caja('E', BLANCO, -BORDE, -PASEO, BASE[1] + 3.0, Z_CERCA, -0.3, 0.3, baldosa=4)
+    else:
+        caja('E', BLANCO, lado * PASEO, lado * BORDE, POZA_Z, Z_CERCA, -0.3, 0.3, baldosa=4)
     caja('E', BLANCO, lado * POZA_X, lado * (POZA_X + 1.2), POZA_Z - 1.2, 27.2, -0.3, 0.25, baldosa=4)
     caja('E', BLANCO, lado * BORDE, lado * POZA_X, 26, 27.2, -0.3, 0.25, baldosa=4)
     caja('E', BLANCO, lado * BORDE, lado * POZA_X, POZA_Z - 1.2, POZA_Z, -0.3, 0.25, baldosa=4)
@@ -183,11 +192,11 @@ for (x, y) in ((19.2 + DX, 5.2), (17.8 + DX, 10.4)):
 # Bancos de trencadís y farolas a lo largo de los cantos, fuera del paso.
 for z in np.arange(22.0, -118.0, -14.0):
     for lado in (-1, 1):
-        if lado < 0 and abs(z - BASE[1]) < 7:
-            continue
-        caja('E', BLANCO, lado * 7.75, lado * 8.7, z - 2.2, z + 2.2, 0, 0.5, baldosa=4)
-        barra('EV', BLANCO, P(lado * 9.05, z - 7, 0.3), P(lado * 9.05, z - 7, 5.2), 0.16)
-        barra('EV', BLANCO, P(lado * 9.05, z - 7, 5.2), P(lado * 8.2, z - 7, 5.5), 0.14)
+        if not (lado < 0 and abs(z - BASE[1]) < 8.5):
+            caja('E', BLANCO, lado * 7.75, lado * 8.7, z - 2.2, z + 2.2, 0, 0.5, baldosa=4)
+        if not (lado < 0 and abs(z - 7 - BASE[1]) < 8.5):
+            barra('EV', BLANCO, P(lado * 9.05, z - 7, 0.3), P(lado * 9.05, z - 7, 5.2), 0.16)
+            barra('EV', BLANCO, P(lado * 9.05, z - 7, 5.2), P(lado * 8.2, z - 7, 5.5), 0.14)
 
 # --- l'Hemisfèric: el ojo, a la izquierda ------------------------------------------
 HC, HA, HB, HH = (-25.0, -70.0), 25.0, 13.0, 12.5
