@@ -73,9 +73,17 @@ export const PAISES = [
         waves: OLEADAS.avanzadilla
       },
       {
-        name: 'Valencia', lugar: 'Ciudad de las Artes · entre las láminas de agua', mapa: sitio(39.47, -0.38), bioma: 'costa',
-        // Hormigón blanco y el agua turquesa de los estanques.
-        escenario: 'valencia', suelo: 'losas', tonoSuelo: 0xe8e5dc,
+        name: 'Valencia', llegada: 'valencia', lugar: 'Ciudad de las Artes · entre las láminas de agua', mapa: sitio(39.47, -0.38), bioma: 'costa',
+        // La Ciudad de las Artes y las Ciencias hecha en Blender
+        // (herramientas/blender/lugar_valencia.py): hormigón blanco y agua turquesa.
+        escenario: 'valenciaArtes', suelo: 'losas', tonoSuelo: 0xe8e5dc, hitos: [],
+        // Salen por la puerta del Palau de les Arts (z = -124) y vienen andando
+        // por el paseo, sin nave: nacen detrás de la puerta y hasta pasar el puente
+        // vienen a cuatro veces su paso, como en Milán.
+        entrada: { z: -127, fondo: 6, prisa: { desde: -118, hasta: -70, por: 4 } },
+        // De día y con el aire limpio: la bruma del juego lavaba el Palau.
+        fondo: { hora: 'dia', cielo: 0x8fc0ee, niebla: 0xcfe2f0, nieblaCerca: 140, nieblaLejos: 460 },
+        sinPajaros: true, sinNubes: true,
         resumen: 'Ya no vienen todos iguales.',
         parte: ['El puerto era una de sus zonas de descarga. Aquí llegaban los camiones con la gente que desaparecía.',
           'Hay quien escupe y quien salta. El experimento va más avanzado de lo que creíamos.'],

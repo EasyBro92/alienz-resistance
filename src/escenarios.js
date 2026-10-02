@@ -401,4 +401,28 @@ function tarragonaMiracle () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, ...LUGARES }
+// Valencia: la Ciudad de las Artes y las Ciencias, hecha en Blender con la luz
+// horneada como Madrid (herramientas/blender/lugar_valencia.py, 02/10). Se juega
+// en el paseo entre los dos estanques: el Hemisfèric a la izquierda, las costillas
+// del Museo a la derecha y, al fondo, el puente de Monteolivete y la puerta del
+// Palau de les Arts, por donde salen los alienz andando (`entrada` en la misión).
+// La base alien va en una plataforma metida en el estanque, a un lado, como en
+// Milán: en el eje, los que vienen del fondo la atravesarían.
+function valenciaArtes () {
+  const g = new THREE.Group()
+  g.name = 'lugar:valenciaArtes'
+  Object.assign(g.userData, {
+    modelo: 'lugar-valencia',
+    modeloCiudad: 'lugar-valencia-ciudad',
+    luz: 'lugar-valencia',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    baseX: -10.5,
+    baseZ: -35.5
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, ...LUGARES }

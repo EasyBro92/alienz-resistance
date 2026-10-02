@@ -1623,7 +1623,7 @@ function empezarVuelo () {
   // Vladivostok. El resto vuelven al sobrevuelo del monumento de siempre.
   const llegada = nivelActivo().llegada
   if (llegada === 'helicoptero') return empezarLlegadaHeli()
-  if (llegada === 'estadio') return empezarLlegadaEstadio()
+  if (LLEGADAS[llegada]) return empezarLlegadaEstadio(LLEGADAS[llegada])
   const foco = world.focoMonumento()
   if (!foco || foco.isEmpty()) return
   world.resize()
@@ -1689,9 +1689,6 @@ function empezarVuelo () {
 // desde fuera y que dure más». Lo que veía era la versión corta: empezaba ya
 // encima del techo y entraba en dos segundos. Ahora la primera vez son 9 s y
 // las siguientes 5,5, y las dos empiezan FUERA, con el estadio entero a la vista.
-const ESTADIO_VUELO = 9
-const ESTADIO_CORTO = { desde: 0.2, dura: 5.5 }
-const ESTADIO_VISTO = 'alienz-vuelo-madrid-v1'
 const ESTADIO_PLANOS = [
   // El primero no está puesto a ojo: probando las ocho esquinas de la caja del
   // estadio contra la pantalla del móvil, desde aquí ocupa el 86 % del ancho y
@@ -1714,47 +1711,69 @@ const ESTADIO_PLANOS = [
   { k: 0.87, pos: [0, 40, -2.75], mira: [0, 10, -34] }, // sobre el hueco
   { k: 0.93, pos: [0, 30, -4], mira: [0, 3, -34] }       // entrando por el hueco
 ]
+// Valencia (02/10): la Ciudad de las Artes y las Ciencias desde el sureste, cauce
+// arriba —el Àgora y el puente del mástil delante, el Museo, el Hemisfèric y el
+// Palau detrás—; el giro sobre el Àgora, el paso por ENCIMA del abanico de
+// cables del puente (llega a y ≈ 40 sobre el eje) y la bajada al paseo.
+const VALENCIA_PLANOS = [
+  { k: 0, pos: [130, 200, 480], mira: [0, 10, -70] },
+  { k: 0.3, pos: [-95, 135, 340], mira: [5, 14, -70] },
+  { k: 0.56, pos: [-28, 92, 205], mira: [0, 12, -80] },
+  { k: 0.76, pos: [4, 68, 118], mira: [0, 8, -70] },    // por encima del puente
+  { k: 0.9, pos: [0, 36, 62], mira: [0, 3, -34] }
+]
+// Las llegadas «de película»: un recorrido por planos, largo la primera vez y
+// más corto (pero empezando también fuera) las siguientes. Cada una abre la
+// niebla y el corte de lejos a su medida, y enciende el modelo de la ciudad.
+const LLEGADAS = {
+  estadio: { dura: 9, corto: { desde: 0.2, dura: 5.5 }, visto: 'alienz-vuelo-madrid-v1', niebla: { cerca: 700, lejos: 2400 }, lejos: 4200, planos: ESTADIO_PLANOS },
+  valencia: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-valencia-v1', niebla: { cerca: 900, lejos: 3200 }, lejos: 4200, planos: VALENCIA_PLANOS }
+}
 // El recorrido es una curva que pasa por los planos, no tramos sueltos: con un
 // arranque y un frenazo en cada plano, en nueve segundos la cámara iba a tirones.
-const curvaDe = campo => new THREE.CatmullRomCurve3(
-  ESTADIO_PLANOS.map(p => new THREE.Vector3(...p[campo])), false, 'centripetal')
-const ESTADIO_CAMINO = curvaDe('pos')
-const ESTADIO_MIRADA = curvaDe('mira')
+function curvasDe (cfg) {
+  const curva = campo => new THREE.CatmullRomCurve3(
+    cfg.planos.map(p => new THREE.Vector3(...p[campo])), false, 'centripetal')
+  cfg.camino ??= curva('pos')
+  cfg.mirada ??= curva('mira')
+  return cfg
+}
 const tmpVueloPos = new THREE.Vector3()
 // Pone la cámara en el punto k (0-1) del plano, sin la mezcla final.
-function planoEstadio (k) {
-  const P = ESTADIO_PLANOS
+function planoLlegada (cfg, k) {
+  const P = curvasDe(cfg).planos
   let i = 0
   while (i < P.length - 2 && k > P[i + 1].k) i++
   const f = Math.min(1, Math.max(0, (k - P[i].k) / (P[i + 1].k - P[i].k)))
   const u = (i + f) / (P.length - 1)
-  camera.position.copy(ESTADIO_CAMINO.getPoint(u, tmpVueloPos))
-  camera.lookAt(ESTADIO_MIRADA.getPoint(u, tmpVueloMira))
+  camera.position.copy(cfg.camino.getPoint(u, tmpVueloPos))
+  camera.lookAt(cfg.mirada.getPoint(u, tmpVueloMira))
 }
 
-function empezarLlegadaEstadio () {
+function empezarLlegadaEstadio (cfg) {
   world.resize()
   let visto = false
-  try { visto = localStorage.getItem(ESTADIO_VISTO) === '1' } catch { /* modo privado */ }
+  try { visto = localStorage.getItem(cfg.visto) === '1' } catch { /* modo privado */ }
   vuelo = {
     estadio: true,
+    cfg,
     t: 0,
     corto: visto,
-    dura: visto ? ESTADIO_CORTO.dura : ESTADIO_VUELO,
-    arranca: visto ? ESTADIO_CORTO.desde : 0,
+    dura: visto ? cfg.corto.dura : cfg.dura,
+    arranca: visto ? cfg.corto.desde : 0,
     fin: { pos: camera.position.clone(), rot: camera.quaternion.clone() },
     niebla: scene.fog ? { cerca: scene.fog.near, lejos: scene.fog.far } : null,
     lente: { cerca: camera.near, lejos: camera.far }
   }
-  try { localStorage.setItem(ESTADIO_VISTO, '1') } catch { /* modo privado */ }
+  try { localStorage.setItem(cfg.visto, '1') } catch { /* modo privado */ }
   // La ciudad de alrededor solo existe durante el plano.
   world.verCiudad(true)
-  if (scene.fog) { scene.fog.near = ESTADIO_NIEBLA.cerca; scene.fog.far = ESTADIO_NIEBLA.lejos }
+  if (scene.fog) { scene.fog.near = cfg.niebla.cerca; scene.fog.far = cfg.niebla.lejos }
   // La cámara del juego corta a 200 y la ciudad, desde el primer plano, llega a
   // 600: sin abrirle el corte no se ve NADA, sale la pantalla vacía. Se abre
   // para el plano y se le devuelve lo suyo al acabar.
   camera.near = 1
-  camera.far = 4200
+  camera.far = cfg.lejos
   camera.updateProjectionMatrix()
   ui.banner(nivelActivo().name.toUpperCase())
   ui.rotulo(nivelActivo().name.toUpperCase(), nivelActivo().lugar, vuelo?.dura ?? VUELO)
@@ -1773,8 +1792,8 @@ function actualizarEstadio (dt) {
   const avance = Math.min(1, Math.max(0, v.t / v.dura))
   // En el corto se entra ya empezado, pero por los mismos puntos.
   const k = v.arranca + (1 - v.arranca) * avance
-  const P = ESTADIO_PLANOS
-  planoEstadio(k)
+  const P = v.cfg.planos
+  planoLlegada(v.cfg, k)
   // El último tramo se funde con la posición de juego, como el sobrevuelo.
   const ultimo = P[P.length - 1].k
   const mezcla = k < ultimo ? 0 : suave((k - ultimo) / (1 - ultimo))
@@ -1784,13 +1803,11 @@ function actualizarEstadio (dt) {
   }
   // Y la niebla vuelve a la suya en ese mismo tramo, para que no dé el salto.
   if (v.niebla && scene.fog) {
-    scene.fog.near = ESTADIO_NIEBLA.cerca + (v.niebla.cerca - ESTADIO_NIEBLA.cerca) * mezcla
-    scene.fog.far = ESTADIO_NIEBLA.lejos + (v.niebla.lejos - ESTADIO_NIEBLA.lejos) * mezcla
+    scene.fog.near = v.cfg.niebla.cerca + (v.niebla.cerca - v.cfg.niebla.cerca) * mezcla
+    scene.fog.far = v.cfg.niebla.lejos + (v.niebla.lejos - v.cfg.niebla.lejos) * mezcla
   }
   if (avance >= 1) terminarVuelo()
 }
-
-const ESTADIO_NIEBLA = { cerca: 700, lejos: 2400 }
 
 // --- llegada en helicóptero -------------------------------------------------
 // Vas sentado dentro, con la puerta lateral abierta: el paisaje pasa fuera, el
@@ -3303,14 +3320,16 @@ if (import.meta.env.DEV) {
     arena: (i = 0) => { const a = ARENAS[i]; world.vestir(a.bioma, [], a.suelo, a.tono) },
     // El plano de llegada a Madrid en el punto k, con la ciudad encendida.
     verEstadio: (k = 0) => {
+      const cfg = LLEGADAS[nivelActivo().llegada]
+      if (!cfg) return null
       world.verCiudad(true)
-      if (scene.fog) { scene.fog.near = ESTADIO_NIEBLA.cerca; scene.fog.far = ESTADIO_NIEBLA.lejos }
-      camera.near = 1; camera.far = 4200; camera.updateProjectionMatrix()
-      planoEstadio(Math.min(k, ESTADIO_PLANOS.at(-1).k))
+      if (scene.fog) { scene.fog.near = cfg.niebla.cerca; scene.fog.far = cfg.niebla.lejos }
+      camera.near = 1; camera.far = cfg.lejos; camera.updateProjectionMatrix()
+      planoLlegada(cfg, Math.min(k, cfg.planos.at(-1).k))
       world.renderer.render(scene, camera)
       return camera.position.toArray().map(n => +n.toFixed(1))
     },
-    estadioPlanos: ESTADIO_PLANOS,
+    get estadioPlanos () { return LLEGADAS[nivelActivo().llegada]?.planos },
     // Para capturar el vuelo: pone la cámara donde empieza y dibuja.
     verVuelo: (k = 0) => {
       const v = world.vistaMonumento()
