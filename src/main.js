@@ -64,6 +64,8 @@ scene.add(dropship.group)
 const fuego = crearFuego(scene)
 effects.fuego = fuego
 const golpes = crearGolpes(scene, effects, audio)
+// El avión solo se ve si su pasada no atraviesa nada del mapa.
+golpes.alCielo(puntos => world.pasoDeAvion(puntos))
 
 // Resplandor selectivo. Se crea después del mundo y la nave para que ya estén
 // marcadas las mallas que emiten luz.

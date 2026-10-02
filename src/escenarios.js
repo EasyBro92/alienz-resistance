@@ -206,6 +206,8 @@ function estadio () {
     // El prefijo de los mapas de luz: lugar-madrid-luzE.webp, -luzC y -luzG.
     luz: 'lugar-madrid',
     carriles: 5,
+    // Bajo techo: el avión de los apoyos no se ve (las bombas caen igual).
+    sinAvion: true,
     tapaElMundo: true,
     sinSombra: true,
     // El césped es el del modelo, con sus franjas de siega y sus rayas.

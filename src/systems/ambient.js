@@ -541,6 +541,11 @@ export function createAmbient (scene) {
     // de paso. `alturaEn(zMin, zMax)` la da el mundo.
     vestir (destino = {}, alturaEn = null) {
       const { bioma, suelo, hitos = [] } = destino
+      // Los trapos van atados a los postes de la valla, y la valla solo existe en
+      // los tramos de carretera. Isidro (02/10) preguntó qué eran esos cuadraditos
+      // granates: en el estadio o en una plaza se quedaban flotando en el aire.
+      const conValla = (suelo ?? 'carretera') === 'carretera' && !destino.arena
+      for (const r of rags) r.mesh.visible = conValla
       sinNaves = !!destino.entrada
       sinPajaros = !!destino.sinPajaros
       if (sinPajaros) {

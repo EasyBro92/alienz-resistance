@@ -100,6 +100,8 @@ function construirAvion () {
       if (/^brillo/.test(o.material?.name ?? '')) brilla(o)
     })
     modelo.scale.setScalar(0.85)
+    // El modelo trae el morro hacia +z y ahora vuela hacia -z, hacia el enemigo.
+    modelo.rotation.y = Math.PI
     g.add(modelo)
   }).catch(e => console.warn('Sin avión de Blender:', e))
 
@@ -308,7 +310,58 @@ export function crearGolpes (scene, effects, audio) {
   // bombas en fila»): caen delante y detrás de la principal, escalonadas.
   const bombasFila = [construirBomba(), construirBomba()]
   for (const b of bombasFila) { b.visible = false; scene.add(b) }
-  const FILA = [{ dz: -4.6, dt: -0.16 }, { dz: 4.6, dt: 0.16 }]
+  // De cerca a lejos, que es como va el avión: primero la más próxima a ti.
+  const FILA = [{ dz: 4.6, dt: -0.16 }, { dz: -4.6, dt: 0.16 }]
+
+  // --- la pasada del avión ----------------------------------------------------
+  //
+  // Isidro (02/10): «los ataques aéreos tienen más sentido si vienen desde mi
+  // lado hacia el de ellos», y «no debe chocar en ningún mapa con los objetos,
+  // estadios, etc.; solo se ve en mapas abiertos, como Tarragona».
+  //
+  // El avión entra por detrás de la cámara (z ≥ 24, fuera del encuadre), vuela
+  // hacia el fondo a ocho de altura, suelta cinco metros ANTES del blanco —la
+  // bomba lleva su velocidad— y rompe hacia un lado subiendo, que es lo que hace
+  // un avión de verdad y además lo saca del camino de la base alien, que está en
+  // el eje. Antes de salir se pregunta al mundo (`cielo`) si esa pasada está
+  // libre: se prueba rompiendo hacia el lado del blanco, hacia el otro y recto, y
+  // si ninguna cabe (un estadio, una galería, un arco) el avión NO SE VE: las
+  // bombas caen igual.
+  const ALTO_AVION = 8
+  const U_SUELTA = 1.05 / 1.55          // en qué punto de la pasada suelta
+  let cielo = null
+  const puntoDePasada = (v, u, lado, hacia) => {
+    const s = Math.max(0, (u - U_SUELTA) / (1 - U_SUELTA))
+    return hacia.set(
+      v.destino.x * 0.5 + lado * 13 * s * s,
+      ALTO_AVION + 7 * s * s,
+      v.z0 + (v.z1 - v.z0) * u
+    )
+  }
+  function trazarPasada (v) {
+    v.z0 = Math.max(v.destino.z + 50, 24)
+    v.z1 = v.z0 + (v.destino.z + 5.3 - v.z0) / U_SUELTA
+    v.sueltaZ = v.destino.z + 5.3
+    const hacia = Math.sign(v.destino.x) || 1
+    v.lado = hacia
+    v.conAvion = true
+    if (!cielo) return v
+    for (const lado of [hacia, -hacia, 0]) {
+      const puntos = []
+      for (let i = 0; i <= 10; i++) puntos.push(puntoDePasada(v, i / 10, lado, new THREE.Vector3()))
+      if (cielo(puntos)) { v.lado = lado; return v }
+    }
+    v.conAvion = false
+    return v
+  }
+  function moverAvion (v) {
+    const u = v.t / (v.entrada + 0.5)
+    avion.visible = v.conAvion && u < 1
+    puntoDePasada(v, Math.min(1, u), v.lado, avion.position)
+    const s = Math.max(0, (Math.min(1, u) - U_SUELTA) / (1 - U_SUELTA))
+    // Se ladea hacia donde rompe y levanta el morro.
+    avion.rotation.set(-0.06 - s * 0.35, -v.lado * s * 0.5, Math.sin(v.t * 3) * 0.05 - v.lado * s * 0.9)
+  }
   const granada = construirGranada()
   scene.add(avion, bomba, granada)
 
@@ -458,11 +511,11 @@ export function crearGolpes (scene, effects, audio) {
           const r = k === 0 ? 0 : 1.4 + Math.random() * 2.1
           sitios.push(new THREE.Vector3(destino.x + Math.cos(a) * r, 0, destino.z + Math.sin(a) * r))
         }
-        vuelos.push({
+        vuelos.push(trazarPasada({
           tipo: 'siembra', t: 0, destino, alImpacto, entrada: 1.05, caida: 0.7, radio: 3.6,
           marca: true, sitios, sueltas: [], cercano: extra.cercano, dura: extra.dura ?? 45,
           radioMina: extra.radio ?? 2
-        })
+        }))
         return
       }
       if (clave === 'botiquin') {
@@ -476,14 +529,12 @@ export function crearGolpes (scene, effects, audio) {
       // El napalm también lo trae el avión —es una bomba incendiaria, no algo
       // que se tire a mano—, con el mismo radio de aro que su explosión.
       if (clave === 'airstrike' || clave === 'napalm') {
-        // El avión entra desde el fondo de la carretera y pasa por encima. La
-        // bomba se suelta ANTES de llegar, porque una bomba soltada justo
-        // encima del blanco caería detrás: lleva la velocidad del avión.
-        vuelos.push({
+        // El avión entra desde TU lado y pasa por encima (ver `trazarPasada`).
+        vuelos.push(trazarPasada({
           tipo: 'avion', t: 0, destino, alImpacto, alTemblar: extra.alTemblar ?? null,
           entrada: 1.05, caida: 0.62, radio: clave === 'napalm' ? 4.6 : 5.5, marca: true,
           fila: clave === 'airstrike' ? FILA.map(f => ({ ...f, hecho: false })) : null
-        })
+        }))
       } else {
         // La tira el soldado más cercano, si hay alguno; si no, llega de detrás
         // de la línea como antes.
@@ -493,6 +544,9 @@ export function crearGolpes (scene, effects, audio) {
         })
       }
     },
+
+    // Quién dice si una pasada está libre: recibe los puntos del recorrido.
+    alCielo (fn) { cielo = fn },
 
     limpiar () {
       vuelos.length = 0
@@ -625,11 +679,7 @@ export function crearGolpes (scene, effects, audio) {
         if (v.tipo === 'siembra') {
           // El mismo avión que el ataque aéreo, pero en vez de una bomba suelta
           // las minas una a una mientras pasa por encima de la zona.
-          const z0 = v.destino.z - 44
-          const z1 = v.destino.z + 22
-          avion.visible = v.t < v.entrada + 0.5
-          avion.position.set(v.destino.x * 0.5, 8, z0 + (z1 - z0) * (v.t / (v.entrada + 0.5)))
-          avion.rotation.set(0.06, 0, Math.sin(v.t * 3) * 0.05)
+          moverAvion(v)
           v.sitios.forEach((s, k) => {
             const sale = v.entrada * 0.55 + k * 0.08
             if (v.t < sale || v.sueltas[k]) return
@@ -659,23 +709,17 @@ export function crearGolpes (scene, effects, audio) {
 
         if (v.tipo === 'avion') {
           const k = Math.min(1, v.t / v.entrada)
-          // Vuela recto por el carril del blanco, desde la niebla hacia la base.
+          // Vuela por el carril del blanco, de tu línea hacia el fondo.
           //
           // A 11,5 de altura no se veía: la cámara va inclinada 25° y el borde
           // superior del encuadre queda por debajo del horizonte, así que
           // cualquier cosa por encima de unos ocho metros sale detrás del
-          // marcador. Y entrando desde 62 pasaba media pasada dentro de la
-          // niebla. Vuela bajo y entra cerca: es un ataque a ras, no un
-          // bombardeo de altura.
-          const z0 = v.destino.z - 44
-          const z1 = v.destino.z + 22
-          avion.visible = v.t < v.entrada + 0.5
-          avion.position.set(v.destino.x * 0.5, 8, z0 + (z1 - z0) * (v.t / (v.entrada + 0.5)))
-          avion.rotation.set(0.06, 0, Math.sin(v.t * 3) * 0.05)
+          // marcador. Vuela bajo: es un ataque a ras, no un bombardeo de altura.
+          moverAvion(v)
 
           if (v.t < v.entrada) {
             // La bomba viaja con el avión hasta que se suelta.
-            bomba.visible = k > 0.45
+            bomba.visible = v.conAvion && k > 0.45
             bomba.position.copy(avion.position).setY(avion.position.y - 0.55)
             bomba.rotation.set(0, 0, 0)
           } else if (!v.exploto) {
@@ -683,18 +727,18 @@ export function crearGolpes (scene, effects, audio) {
             // Caída: parábola desde donde se soltó hasta el blanco.
             const c = Math.min(1, (v.t - v.entrada) / v.caida)
             bomba.visible = true
-            const sueltaZ = z0 + (z1 - z0) * (v.entrada / (v.entrada + 0.5))
+            const sueltaZ = v.sueltaZ
             bomba.position.set(
               v.destino.x * 0.5 + (v.destino.x - v.destino.x * 0.5) * c,
               7.6 - 7.6 * c * c,
               sueltaZ + (v.destino.z - sueltaZ) * c
             )
             // Se va poniendo de morro conforme cae.
-            bomba.rotation.x = -c * 1.1
+            bomba.rotation.x = c * 1.1
           }
           // Las de la fila: la misma parábola, cada una a su sitio y a su hora.
           if (v.fila && v.t >= v.entrada) {
-            const sueltaZ = z0 + (z1 - z0) * (v.entrada / (v.entrada + 0.5))
+            const sueltaZ = v.sueltaZ
             v.fila.forEach((f, n) => {
               const b = bombasFila[n]
               if (f.hecho) { b.visible = false; return }
@@ -705,7 +749,7 @@ export function crearGolpes (scene, effects, audio) {
                 7.6 - 7.6 * c * c,
                 sueltaZ + (v.destino.z + f.dz - sueltaZ) * c
               )
-              b.rotation.x = -c * 1.1
+              b.rotation.x = c * 1.1
               if (c >= 1) {
                 f.hecho = true
                 b.visible = false

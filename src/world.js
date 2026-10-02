@@ -2185,6 +2185,38 @@ export function createWorld (canvas) {
       if (e.userData.ciudad?.isObject3D) e.userData.ciudad.visible = encendida
       return true
     },
+    // Si el avión de los apoyos puede hacer esta pasada sin atravesar nada
+    // (Isidro, 02/10: «no debe chocar en ningún mapa con los objetos, estadios,
+    // etc.; solo se ve en mapas abiertos»). Se lanzan rayos a lo largo del
+    // recorrido, por las dos puntas de las alas, contra todo lo macizo que se
+    // está viendo: el sitio, el decorado, la arena y la base alien. Un sitio
+    // cerrado por arriba lo dice con `sinAvion` y ni se mira.
+    pasoDeAvion (puntos, ala = 3.2) {
+      if (escenarioVisto?.userData.sinAvion) return false
+      const macizo = []
+      const visto = o => { for (let p = o; p; p = p.parent) if (!p.visible) return false; return true }
+      for (const raiz of [escenarioVisto, bosqueVisible, arenaVista, baseVisible]) {
+        raiz?.traverse?.(o => {
+          if (o.isMesh && !o.material.transparent && !/^cielo/.test(o.material.name ?? '') && visto(o)) macizo.push(o)
+        })
+      }
+      if (!macizo.length) return true
+      const origen = new THREE.Vector3()
+      const dir = new THREE.Vector3()
+      for (let i = 1; i < puntos.length; i++) {
+        for (const lado of [-1, 1]) {
+          origen.copy(puntos[i - 1]); origen.x += lado * ala
+          dir.copy(puntos[i]).sub(puntos[i - 1])
+          const largo = dir.length()
+          rayo.set(origen, dir.normalize())
+          rayo.far = largo
+          const toca = rayo.intersectObjects(macizo, false).length > 0
+          rayo.far = Infinity
+          if (toca) return false
+        }
+      }
+      return true
+    },
     // Si el modelo del sitio (y sus mapas de luz) ya han llegado.
     escenarioListo: () => escenarioVisto?.userData.listo !== false,
     vitorear: (fuerza = 1) => { vitoreo = Math.min(1, vitoreo + fuerza) },
