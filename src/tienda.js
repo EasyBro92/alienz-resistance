@@ -9,7 +9,7 @@
 // lo que cuesta desbloquearlo en billetes y lo que cuesta ponerlo en partida.
 
 import { SOLDIERS, DEFENSES, STRIKES, UPGRADES } from './config.js'
-import { buildDefensaMesh } from './assets.js'
+import { buildDefensaMesh, buildSoldierMesh } from './assets.js'
 import { figuraDeApoyo } from './systems/golpes.js'
 import { crearBaraja } from './enemigos.js'
 import { CAJAS, verCaja } from './cofre.js'
@@ -40,20 +40,19 @@ const COLUMNAS = [
   { id: 'cost', nombre: 'Monedas', valor: s => s.cost, bajoMejor: true }
 ]
 
-const GRUPOS = {
-  soldados: [SOLDIERS],
-  defensas: [DEFENSES],
-  apoyo: [STRIKES, UPGRADES]
-}
-
 const hex = n => '#' + n.toString(16).padStart(6, '0')
 
-// --- las fichas de Defensas y Apoyo -------------------------------------------------
+// --- las fichas de Soldados, Defensas y Apoyo ---------------------------------------
 // Isidro, 27/09: «fichas con la figura en 3D, como la baraja de Enemigos». Son
 // la misma baraja (enemigos.js) con otra ficha: cada artículo con su figura
 // girando, su papel, sus números en barras, lo que tiene de especial y, al pie,
-// lo que cuesta y el botón de comprar.
+// lo que cuesta y el botón de comprar. Los Soldados eran todavía un mosaico de
+// retratos, y el 03/10 Isidro pidió «déjalos todos tipo tarjeta, como los
+// misiles»: ahora son la misma baraja, con su figura de pie respirando.
 const ROL = {
+  archer: 'El más barato', rifle: 'Constante', shotgun: 'Cuerpo a cuerpo', sniper: 'Matajefes',
+  flamer: 'Fuego', gunner: 'Frena la horda', misil: 'Atraviesa la fila', mortar: 'Contra grupos',
+  capitan: 'Anima a los suyos',
   sandbags: 'Aguanta el golpe', spikes: 'Devuelve el mordisco', mines: 'Revienta', erizos: 'Frena sin parar',
   torreta: 'Dispara sola',
   grenade: 'A mano', airstrike: 'Desde el aire', napalm: 'Incendiario', artilleria: 'Un carril entero',
@@ -66,8 +65,11 @@ const danoDefensa = s => s.dispara ? s.damage * s.fireRate : s.revienta ? s.revi
 const textoDanoDefensa = s => s.dispara ? `${Math.round(s.damage * s.fireRate)}/s` : s.revienta ? String(s.revienta.daño) : s.thorns ? String(s.thorns) : '—'
 const tope = (lista, f) => Math.max(...lista.map(f))
 
+const danoPorSegundo = s => s.damage * (s.pellets ?? 1) * s.fireRate
+
 function fichaTienda (grupo) {
-  const specs = grupo === 'defensas' ? DEFENSES : { ...STRIKES, ...UPGRADES }
+  const soldados = grupo === 'soldados'
+  const specs = soldados ? SOLDIERS : grupo === 'defensas' ? DEFENSES : { ...STRIKES, ...UPGRADES }
   const todas = Object.values(specs)
   const maxVida = tope(Object.values(DEFENSES), s => s.hp)
   const maxDanoDef = tope(Object.values(DEFENSES), danoDefensa)
@@ -78,10 +80,20 @@ function fichaTienda (grupo) {
   const monedas = s => ['Monedas', s.cost, maxCoste, s.cost]
   return {
     specs,
-    etiqueta: grupo === 'defensas' ? 'Barrera' : 'Apoyo',
+    etiqueta: soldados ? 'Soldado' : grupo === 'defensas' ? 'Barrera' : 'Apoyo',
     tinte: (clave, s) => s.color ?? TINTE_APOYO[clave] ?? 0x8fbf5a,
     rol: clave => ROL[clave] ?? '',
     barras (clave, s) {
+      if (soldados) {
+        const lista = Object.values(SOLDIERS)
+        const dps = danoPorSegundo(s)
+        return [
+          ['Daño/s', dps, tope(lista, danoPorSegundo), Math.round(dps)],
+          ['Alcance', s.range, tope(lista, x => x.range), `${s.range} m`],
+          ['Vida', s.hp, tope(lista, x => x.hp), s.hp],
+          monedas(s)
+        ]
+      }
       if (grupo === 'defensas') {
         return [['Vida', s.hp, maxVida, s.hp], ['Daño', danoDefensa(s), maxDanoDef, textoDanoDefensa(s)], monedas(s)]
       }
@@ -93,6 +105,17 @@ function fichaTienda (grupo) {
     texto: (clave, s) => s.blurb ?? '',
     dones (s) {
       const d = []
+      if (s.clava) d.push('Deja la flecha clavada')
+      if (s.asienta) d.push('Se asienta en el blanco')
+      if (s.pellets) d.push(`${s.pellets} perdigones`)
+      if (s.empuja) d.push('Los echa para atrás')
+      if (s.buscaDuro) d.push('Apunta al más duro')
+      if (s.suprime) d.push('Frena lo que tiene delante')
+      if (s.estela) d.push('Daña la fila de detrás')
+      if (s.buscaCorro) d.push('Apunta al corro')
+      if (s.anima) d.push('Acelera a sus vecinos')
+      if (soldados && s.splash) d.push(`Salpica ${String(s.splash).replace('.', ',')} m`)
+      if (soldados && s.armorPierce >= 0.8) d.push('Atraviesa blindaje')
       if (s.blocker) d.push('Para al bicho')
       if (s.paso) d.push('Se cruza, pero frena')
       if (s.thorns) d.push('Devuelve cada mordisco')
@@ -109,9 +132,23 @@ function fichaTienda (grupo) {
       : '',
     pie: true,
     crecer: true,
-    giraEntero: true,
-    construir: (clave, s) => grupo === 'defensas' ? buildDefensaMesh(clave, s) : figuraDeApoyo(clave),
+    giraEntero: !soldados,
+    construir: (clave, s) => soldados ? buildSoldierMesh(clave, s) : grupo === 'defensas' ? buildDefensaMesh(clave, s) : figuraDeApoyo(clave),
     animar (figura, dt, t, s, alturaBase) {
+      if (soldados) {
+        // De cara, girando despacio a un lado y a otro como los huéspedes de la
+        // baraja de Enemigos, y con el cuerpo vivo: respira y sostiene el arma.
+        figura.rotation.y = Math.PI + Math.sin(t * 0.55) * 0.75
+        figura.position.y = alturaBase
+        const cuerpo = figura.userData.cuerpo
+        if (cuerpo) {
+          figura.updateMatrixWorld(true)
+          // Todos los campos: uno sin poner (el encogido) es un NaN que deja la
+          // figura sin medio cuerpo. De pie, aunque sea de los que se arrodillan.
+          cuerpo.actualizar(dt, { andando: false, velocidad: 0, modo: null, forzarPie: true, apuntar: 0.25, objetivo: null, retroceso: 0, recarga: 0, encogido: 0, mirar: null, t })
+        }
+        return
+      }
       // Da la vuelta entera, despacio: de una barrera importa también lo que ve
       // el bicho, que es el otro lado.
       figura.rotation.y = t * 0.55
@@ -164,21 +201,6 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
       ? `<span class="articulo-tuyo">${precio == null ? 'De serie' : 'Tuyo'}</span>`
       : `<button type="button" class="articulo-comprar" data-comprar="${clave}" ${puede ? '' : 'disabled'}>${billete}${precio}</button>
          ${falta > 0 ? `<span class="articulo-falta">Te faltan ${billete}${falta}</span>` : ''}`
-  }
-
-  function articulo (clave, spec, c) {
-    const tuya = c.desbloqueadas.includes(clave)
-    const premio = !tuya && PRECIOS[clave] == null
-    const tinte = spec.color != null ? hex(spec.color) : 'var(--verde-texto)'
-    const pie = pieCompra(clave, c)
-    return `
-      <div class="articulo${tuya ? ' propio' : ''}${premio ? ' bloqueado' : ''}" style="--u-tint:${tinte}">
-        <div class="articulo-cara">${cara(clave)}</div>
-        <b>${spec.name}</b>
-        <p>${spec.blurb ?? ''}</p>
-        <small>En partida: ${spec.cost} monedas${spec.recarga ? ` · recarga ${spec.recarga} s` : ''}</small>
-        ${pie}
-      </div>`
   }
 
   // El número de partida de cada mejora: daño por disparo (o por mordisco en la
@@ -308,7 +330,7 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
               role="tab" aria-selected="${p.id === pestana}">${p.nombre}${p.id === 'cajas' && c.cajas.militar + c.cajas.alien ? ` <span class="pestana-num">${c.cajas.militar + c.cajas.alien}</span>` : ''}</button>`).join('')
 
     elLista.classList.toggle('lista-mejoras', pestana === 'mejoras' || pestana === 'comparar')
-    const enBaraja = pestana === 'defensas' || pestana === 'apoyo'
+    const enBaraja = pestana === 'soldados' || pestana === 'defensas' || pestana === 'apoyo'
     elLista.classList.toggle('lista-baraja', enBaraja)
     if (enBaraja) {
       const b = baraja(pestana)
@@ -322,10 +344,8 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
     elLista.innerHTML = pestana === 'cajas'
       ? cajas(c)
       : pestana === 'mejoras'
-      ? mejoras(c)
-      : pestana === 'comparar'
-        ? comparar(c)
-        : GRUPOS[pestana].flatMap(g => Object.entries(g)).map(([k, s]) => articulo(k, s, c)).join('')
+        ? mejoras(c)
+        : comparar(c)
   }
 
   elPestanas.addEventListener('click', e => {
