@@ -77,6 +77,14 @@ Publicado en https://easybro92.github.io/alienz-resistance/ (repo `EasyBro92/ali
 | `herramientas/navegador/donde-la-base.js` | Mide cuánto se ve la base alien en cada mapa y busca dónde plantarla. Va DENTRO de la página (`fetch(...).then(r => r.text()).then(eval)`) porque necesita la cámara de verdad, el decorado ya fundido y el monumento ya recolocado. No usa rayos: dibuja la escena en una textura de 188×406 y **compara imágenes** —con base y sin base, y la base sola contra la pantalla vacía—, así que un píxel de la torre es un píxel que CAMBIA. Tres trampas que cuestan una tarde: (1) buscando un color en vez de comparar, los neones magenta de Times Square contaban como torre y salía un 135 % de visibilidad; (2) hay que exigir además que el píxel sea del color pintado, porque el suelo donde cae la SOMBRA de la base también cambia; (3) hay que comprobar que la torre cabe entera en la pantalla, o «gana» una posición medio fuera del encuadre en la que solo asoma una esquina. `__baseALaVista(indices)` mide sin buscar: es lo que hay que pasar después de tocar un mapa |
 | `herramientas/` | `meshy.mjs` (generar; `--realista` para monumentos, `--minimo N` no empieza si el saldo no llega), `adelgazar.mjs` (reducir texturas; `--color 1024` en monumentos), `revisar-glb.mjs` (revisar un .glb de cualquier sitio antes de meterlo) y `arreglar-glb.mjs` (corregirlo: quita el `mixamorig:` de los huesos, da media vuelta al que viene mirando a -Z y aplana la zancada que desplaza la cadera; solo toca lo que hace falta y deja intactos los 39 modelos publicados) |
 
+## En un PC nuevo
+
+Lo que no está en git (`herramientas/paquetes`, `.env.local`, `node_modules`) hay que traerlo o rehacerlo. La guía entera está en `TRASLADO.md`, en la carpeta de arriba.
+
+- `node herramientas/comprobar-pc.mjs` dice qué falta (Node 22, git, Blender, dependencias, clave de Meshy, paquetes) y cómo se arregla; con `--blender` hace además una prueba de horneado (`herramientas/blender/prueba_pc.py`) y calcula cuánto tardaría un mapa entero en ese equipo. Referencia: 4,5 s en el i5-1335U donde se hicieron Madrid y Valencia, que tardaban 8 minutos.
+- `node herramientas/polyhaven.mjs` vuelve a bajar las 22 texturas y los 19 objetos de Poly Haven (150 MB); `mirar` solo dice qué falta. Para usar uno nuevo se añade su nombre a la lista.
+- Los `.npy` de `herramientas/paquetes/polyhaven/_reducidas` son las luces de Madrid y Valencia en crudo: sin ellos, `-- --reusar` no funciona y retocar la luz obliga a calcularla entera.
+
 ## Capturas de revisión
 
 `vite.config.js` monta en desarrollo (`apply: serve`, no entra en la versión publicada) la ruta `/__foto`: la página le manda `{nombre, datos}` con un JPEG del lienzo y se escribe en `vistas/`, que está fuera de git. Sin eso no hay forma de sacar del navegador la captura de cada mapa.
