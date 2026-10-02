@@ -1674,16 +1674,16 @@ function empezarVuelo () {
 // estadio en medio, la caída por encima de las manzanas, el roce sobre el techo
 // y la entrada por el hueco hasta la posición de juego.
 //
-// Los números salen de la geometría (`escenarios.js`), no de mirar a ojo:
+// Los números salen del modelo (`herramientas/blender/lugar_madrid.py`):
 //
-//   · la carcasa plateada es un rectángulo redondeado de 144 x 192 y llega a
-//     y = 36, con el techo encima hasta y = 37,3;
-//   · el hueco del techo va de x = -24 a x = 24 y de z = 10 a z = -62;
-//   · el graderío de dentro remata en y = 33.
+//   · la piel de lamas es un rectángulo redondeado de 144 x 192 y llega a
+//     y = 36; la cubierta sube a 39,5 y las vigas de la retráctil a 40,6;
+//   · el hueco del techo va de x = -24 a x = 24 y de z = 10 a z = -62, con el
+//     videomarcador y los focos colgando de su borde hasta y = 27,8;
+//   · el graderío de dentro remata en y = 35.
 //
-// Por eso el tramo de entrada cruza z = 10 a y ≈ 44: seis metros por encima del
-// techo y justo por la vertical del hueco. Comprobado lanzando un rayo por cada
-// tramo del recorrido: cero cruces con la geometría del nivel.
+// Por eso la entrada baja a plomo por el centro del hueco. Comprobado lanzando
+// un rayo entre cada dos puntos del recorrido: cero cruces con el nivel.
 // Isidro, 02/10: «la cámara inicial debería verse desde más lejos, porque nada
 // más iniciar atraviesa el estadio y no se entiende nada; que se vea el estadio
 // desde fuera y que dure más». Lo que veía era la versión corta: empezaba ya
@@ -1696,19 +1696,21 @@ const ESTADIO_PLANOS = [
   // El primero no está puesto a ojo: probando las ocho esquinas de la caja del
   // estadio contra la pantalla del móvil, desde aquí ocupa el 86 % del ancho y
   // queda centrado, con sitio de sobra arriba y abajo para que se vea la ciudad.
-  { k: 0, pos: [-120, 250, 470], mira: [10, 6, -26] },  // la ciudad, con el estadio en medio
+  // Desde el sur, alto, con la Castellana subiendo a la izquierda hasta las
+  // Cuatro Torres: es la foto aérea de siempre del Bernabéu.
+  { k: 0, pos: [60, 260, 600], mira: [-55, 60, -90] },
   // Casi un tercio del plano rodeándolo despacio, sin acercarse apenas: es lo
   // que deja VER el estadio por fuera antes de echarse encima.
-  { k: 0.3, pos: [-190, 185, 360], mira: [6, 10, -26] },
+  { k: 0.3, pos: [-150, 170, 380], mira: [0, 20, -30] },
   { k: 0.56, pos: [-80, 120, 200], mira: [0, 16, -28] },// cayendo por encima de las manzanas
   // Mirando ALTO y lejos al cruzar el techo: con la mirada puesta en el césped,
   // el techo se comía la pantalla entera y el hueco se iba al borde de arriba.
   { k: 0.74, pos: [-4, 60, 44], mira: [0, 24, -40] },   // rozando el techo
   // Ya DENTRO del hueco (va de z = 10 a -62) antes de bajar: la cámara de juego
   // queda bajo el techo, en z = 22, y bajando desde z = 6 se rozaba el borde.
-  // El hueco lo cruzan cerchas cada 8,5 (z = 1,5, -7, -15,5…, entre y = 33 y
-  // 36): se baja A PLOMO entre las dos primeras, por z ≈ -3, y la bajada a la
-  // cámara de juego pasa ya por debajo de ellas.
+  // Del borde del hueco cuelgan el videomarcador y los focos (hasta y = 27,8):
+  // se baja A PLOMO por dentro, por z ≈ -3, y la bajada a la cámara de juego
+  // cruza el borde (z ≈ 9) a y ≈ 22, cinco metros por debajo de ellos.
   { k: 0.87, pos: [0, 40, -2.75], mira: [0, 10, -34] }, // sobre el hueco
   { k: 0.93, pos: [0, 30, -4], mira: [0, 3, -34] }       // entrando por el hueco
 ]
@@ -1752,7 +1754,7 @@ function empezarLlegadaEstadio () {
   // 600: sin abrirle el corte no se ve NADA, sale la pantalla vacía. Se abre
   // para el plano y se le devuelve lo suyo al acabar.
   camera.near = 1
-  camera.far = 1500
+  camera.far = 4200
   camera.updateProjectionMatrix()
   ui.banner(nivelActivo().name.toUpperCase())
   ui.rotulo(nivelActivo().name.toUpperCase(), nivelActivo().lugar, vuelo?.dura ?? VUELO)
@@ -1762,6 +1764,9 @@ function empezarLlegadaEstadio () {
 function actualizarEstadio (dt) {
   void dt
   const v = vuelo
+  // El estadio y el barrio son dos modelos que llegan un momento después: hasta
+  // entonces el plano se queda en su primer fotograma, sin gastar su tiempo.
+  if (!world.escenarioListo()) v.t = 0
   // Con tope por abajo: el primer fotograma de un nivel llega a veces con el
   // reloj descolocado, y con k negativa la cámara salía ESTIRADA hacia atrás,
   // más lejos todavía que el primer plano.
@@ -3300,7 +3305,7 @@ if (import.meta.env.DEV) {
     verEstadio: (k = 0) => {
       world.verCiudad(true)
       if (scene.fog) { scene.fog.near = ESTADIO_NIEBLA.cerca; scene.fog.far = ESTADIO_NIEBLA.lejos }
-      camera.near = 1; camera.far = 1500; camera.updateProjectionMatrix()
+      camera.near = 1; camera.far = 4200; camera.updateProjectionMatrix()
       planoEstadio(Math.min(k, ESTADIO_PLANOS.at(-1).k))
       world.renderer.render(scene, camera)
       return camera.position.toArray().map(n => +n.toFixed(1))

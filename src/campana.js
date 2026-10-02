@@ -88,6 +88,13 @@ export const PAISES = [
         // cerrando los cuatro lados. Es el campo mas ancho del juego: los cinco
         // carriles enteros.
         bioma: 'ciudad', suelo: 'parque', tonoSuelo: 0x3f7a3a, escenario: 'estadio',
+        // Al atardecer (Isidro, 02/10): el cielo y la bruma, del color de la luz
+        // que lleva horneada el modelo.
+        // La bruma, lejos: dentro del estadio no hay aire que lave las gradas.
+        fondo: { cielo: 0xeaa56f, niebla: 0xeeae78, nieblaCerca: 130, nieblaLejos: 380 },
+        // Ni pájaros ni nubes del juego: cruzaban por dentro del estadio y por
+        // delante de la cámara en el vuelo de llegada.
+        sinPajaros: true, sinNubes: true,
         resumen: 'Llegan deprisa. Hay que aguantar hasta que abran el búnker.',
         parte: ['El búnker del gobierno está debajo. Para abrir la trampilla hay que dejar la superficie limpia durante una hora entera.',
           'Todo lo que tienen en la zona viene hacia aquí, y viene deprisa.'],

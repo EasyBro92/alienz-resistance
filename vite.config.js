@@ -94,11 +94,13 @@ export default defineConfig({
         // segunda partida están en el aparato y la aplicación sigue funcionando
         // entera sin red, que es de lo que va ser una PWA.
         runtimeCaching: [{
-          urlPattern: /.glb$/,
+          // Los .webp también: son los mapas de luz de Madrid, las tiras del
+          // fuego y las fotos de los premios, que sin red se quedaban sin llegar.
+          urlPattern: /\.(glb|webp)$/,
           handler: 'CacheFirst',
           options: {
             cacheName: 'modelos-3d',
-            expiration: { maxEntries: 40, maxAgeSeconds: 60 * 60 * 24 * 90 },
+            expiration: { maxEntries: 120, maxAgeSeconds: 60 * 60 * 24 * 90 },
             cacheableResponse: { statuses: [0, 200] }
           }
         }],

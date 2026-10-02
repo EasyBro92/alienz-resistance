@@ -7,7 +7,7 @@ import { bake } from './assets.js'
 import { BIOMAS, FLORA, HITOS, RESTOS, baseAlien } from './biomas.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
-import { apagarEmision } from './systems/resplandor.js'
+import { apagarEmision, brilla } from './systems/resplandor.js'
 import { crearRelieve } from './relieve.js'
 import { ESCENARIOS } from './escenarios.js'
 
@@ -1670,6 +1670,76 @@ export function createWorld (canvas) {
   // abiertos. Se construye una vez y se guarda, como las arenas.
   const escenariosHechos = new Map()
   let escenarioVisto = null
+
+  // --- modelos con la luz horneada (Madrid, 02/10) ----------------------------
+  //
+  // El guion de Blender calcula la luz del atardecer con Cycles y la guarda: en
+  // mapas de luz (segundo juego de UV) o en el color de los vértices. Aquí esos
+  // materiales pasan a ser `MeshBasicMaterial`, que no calcula luz ninguna: es
+  // lo más barato que hay y se ve como el render. Lo dice el NOMBRE de la malla:
+  //   luzE, luzC, luzG  → textura × mapa de luz (lugar-…-luzE.webp, etc.)
+  //   vertT             → textura × color de vértice
+  //   plano…            → sin luz; lo que se llama brillo-* además resplandece
+  //   suelo…            → material normal del juego: recibe las sombras
+  const cargadorLuz = new THREE.TextureLoader()
+  const mapasDeLuz = new Map()
+  function mapaDeLuz (ruta) {
+    if (!mapasDeLuz.has(ruta)) {
+      mapasDeLuz.set(ruta, cargadorLuz.loadAsync(ruta).then(t => {
+        t.flipY = false                      // como las texturas de un .glb
+        t.colorSpace = THREE.SRGBColorSpace
+        t.channel = 1                        // el segundo juego de UV
+        return t
+      }))
+    }
+    return mapasDeLuz.get(ruta)
+  }
+  // Solo resplandece lo de DENTRO del estadio: el halo se dibuja sin tapar con
+  // lo demás, y un farol de la calle brillaría a través de los edificios.
+  const RESPLANDECE = /^brillo-(focos|video|cinta)/
+  function conLuzHorneada (raiz, prefijo) {
+    const esperas = []
+    const hechos = new Map()
+    raiz.traverse(o => {
+      if (!o.isMesh) return
+      o.castShadow = false
+      const nombre = /^(luz[A-Z]|vert|plano|suelo)/.exec(o.name)?.[1] ?? /^(luz[A-Z]|vert|plano|suelo)/.exec(o.parent?.name ?? '')?.[1]
+      const viejo = o.material
+      if (nombre === 'suelo') {
+        apagarEmision(o)
+        o.receiveShadow = true
+        return
+      }
+      o.receiveShadow = false
+      const clave = nombre + '|' + viejo.uuid
+      if (!hechos.has(clave)) {
+        const brillo = /^brillo/.test(viejo.name)
+        const m = new THREE.MeshBasicMaterial({
+          name: viejo.name,
+          map: brillo ? (viejo.emissiveMap ?? viejo.map) : viejo.map,
+          color: brillo && !viejo.emissiveMap && !viejo.map ? viejo.emissive : viejo.color,
+          transparent: viejo.transparent,
+          opacity: viejo.opacity,
+          depthWrite: !viejo.transparent,
+          side: viejo.side,
+          vertexColors: nombre === 'vert',
+          // La cúpula del cielo no se va con la bruma, ni tapa nada.
+          fog: !/^cielo/.test(viejo.name)
+        })
+        if (nombre?.startsWith('luz')) {
+          // El mapa guarda la mitad de la luz (para que quepa lo más brillante)
+          // y el sombreador de three la divide entre π: se deshacen las dos cosas.
+          // La piel de acero, un tercio más: es lo que más luz devuelve.
+          m.lightMapIntensity = Math.PI * 2 * (viejo.name === 'piel' ? 1.35 : 1)
+          esperas.push(mapaDeLuz(`${prefijo}-${nombre}.webp`).then(t => { m.lightMap = t; m.needsUpdate = true }))
+        }
+        hechos.set(clave, m)
+      }
+      o.material = hechos.get(clave)
+      if (RESPLANDECE.test(viejo.name)) brilla(o)
+    })
+    return Promise.all(esperas)
+  }
   // Si el escenario se come el horizonte. Lo miran el bosque, los cerros y el
   // mobiliario de la carretera al final de `vestir`.
   let escenarioTapa = false
@@ -1708,23 +1778,49 @@ export function createWorld (canvas) {
       // vez y se cuelga dentro del grupo: llega un momento después, como las
       // arenas del duelo, y hasta entonces se ve la plaza vacía.
       if (crudo.userData.modelo) {
-        cargadorArenas.loadAsync(`${import.meta.env.BASE_URL}models/${crudo.userData.modelo}.glb`).then(gltf => {
-          gltf.scene.traverse(o => {
-            if (!o.isMesh) return
-            // Solo brilla lo que se llama brillo-*: los escaparates de la
-            // galería, los faroles y el oro de las agujas.
-            if (!/^(foco|brillo)/.test(o.material?.name ?? '')) apagarEmision(o)
-            o.receiveShadow = /suelo/.test(o.name)
-            o.castShadow = false
-          })
-          g.add(gltf.scene)
-        }).catch(e => console.warn('Sin modelo del lugar:', e))
+        const ruta = n => `${import.meta.env.BASE_URL}models/${n}`
+        const esperas = []
+        const montar = gltf => {
+          if (crudo.userData.luz) esperas.push(conLuzHorneada(gltf.scene, ruta(crudo.userData.luz)))
+          else {
+            gltf.scene.traverse(o => {
+              if (!o.isMesh) return
+              // Solo brilla lo que se llama brillo-*: los escaparates de la
+              // galería, los faroles y el oro de las agujas.
+              if (!/^(foco|brillo)/.test(o.material?.name ?? '')) apagarEmision(o)
+              o.receiveShadow = /suelo/.test(o.name)
+              o.castShadow = false
+            })
+          }
+          return gltf.scene
+        }
+        const cargas = [cargadorArenas.loadAsync(ruta(crudo.userData.modelo) + '.glb').then(gltf => { g.add(montar(gltf)) })]
+        // El barrio de alrededor (Madrid): otro modelo, que solo se enciende
+        // durante el vuelo de llegada. Si el vuelo lo pidió antes de que
+        // llegara, se enciende al llegar.
+        if (crudo.userData.modeloCiudad) {
+          cargas.push(cargadorArenas.loadAsync(ruta(crudo.userData.modeloCiudad) + '.glb').then(gltf => {
+            const ciudad = montar(gltf)
+            ciudad.name = 'ciudad'
+            ciudad.visible = !!g.userData.ciudadPedida
+            g.add(ciudad)
+            g.userData.ciudad = ciudad
+          }))
+        }
+        // `listo` lo mira el vuelo de llegada para no arrancar con el mundo vacío.
+        g.userData.listo = false
+        Promise.all(cargas).then(() => Promise.all(esperas))
+          .catch(e => console.warn('Sin modelo del lugar:', e))
+          .then(() => { g.userData.listo = true })
       }
     }
     escenarioVisto = nombre ? escenariosHechos.get(nombre) ?? null : null
     // Al cambiar de escenario la ciudad se apaga siempre: solo la enciende el
     // vuelo de llegada, y solo en la historia.
-    for (const [, e] of escenariosHechos) if (e.userData.ciudad) e.userData.ciudad.visible = false
+    for (const [, e] of escenariosHechos) {
+      e.userData.ciudadPedida = false
+      if (e.userData.ciudad?.isObject3D) e.userData.ciudad.visible = false
+    }
     // El campo se estrecha a lo que pida el escenario, y vuelve a los cinco
     // carriles en cuanto se sale de él.
     estrecharCampo(escenarioVisto?.userData.carriles ?? FIELD.lanes)
@@ -2083,11 +2179,14 @@ export function createWorld (canvas) {
     // y apagada el resto del tiempo (jugando estás dentro y no se ve ni una
     // ventana). Devuelve si había ciudad que encender.
     verCiudad (encendida) {
-      const ciudad = escenarioVisto?.userData.ciudad
-      if (!ciudad) return false
-      ciudad.visible = encendida
+      const e = escenarioVisto
+      if (!e || !(e.userData.ciudad || e.userData.modeloCiudad)) return false
+      e.userData.ciudadPedida = encendida
+      if (e.userData.ciudad?.isObject3D) e.userData.ciudad.visible = encendida
       return true
     },
+    // Si el modelo del sitio (y sus mapas de luz) ya han llegado.
+    escenarioListo: () => escenarioVisto?.userData.listo !== false,
     vitorear: (fuerza = 1) => { vitoreo = Math.min(1, vitoreo + fuerza) },
     // La base del fondo de esta misión: el asalto final la hace reventar.
     baseActual: () => baseVisible,
