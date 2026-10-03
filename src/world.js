@@ -1774,6 +1774,12 @@ export function createWorld (canvas) {
       g.traverse(o => { if (o.isMesh) { o.receiveShadow = true; o.castShadow = sombra } })
       scene.add(g)
       escenariosHechos.set(nombre, g)
+      // Columnas de humo de lo que sigue ardiendo (Marsella, tras la guerra).
+      if (crudo.userData.humos) {
+        const h = humareda(crudo.userData.humos)
+        g.add(h)
+        g.userData.humo = h
+      }
       // Los lugares hechos en Blender traen su decorado en un .glb. Se carga una
       // vez y se cuelga dentro del grupo: llega un momento después, como las
       // arenas del duelo, y hasta entonces se ve la plaza vacía.
@@ -2000,7 +2006,106 @@ export function createWorld (canvas) {
 
   // El público: cada grupo se mece a su ritmo, y cuando pasa algo gordo
   // (vitorear) saltan todos un rato.
+  // --- el humo de lo que arde -------------------------------------------------
+  //
+  // Isidro, de Marsella: «añade pequeños detalles como si hubiera habido una
+  // guerra en esta zona, un poco de humo…». Cada columna es una fila de bocanadas
+  // que suben, engordan, se las lleva el viento y se apagan; TODAS las columnas
+  // van en un solo `Points` con su sombreador (tamaño y transparencia por punto),
+  // así que el humo entero es una llamada de dibujo. Lleva la niebla del juego,
+  // o las columnas del fondo saldrían recortadas contra el cielo.
+  // `humos`: [[x, z, ancho, alto, y0?], …] en coordenadas del juego.
+  const POR_COLUMNA = 22
+  let texHumo = null
+  function humareda (humos) {
+    if (!texHumo) {
+      const lienzo = document.createElement('canvas')
+      lienzo.width = lienzo.height = 64
+      const c = lienzo.getContext('2d')
+      // Una bola blanda con grumos: tres manchas radiales que se pisan.
+      for (const [x, y, r, a] of [[32, 32, 30, 0.85], [24, 28, 18, 0.5], [40, 36, 16, 0.45]]) {
+        const gr = c.createRadialGradient(x, y, 0, x, y, r)
+        gr.addColorStop(0, `rgba(255,255,255,${a})`)
+        gr.addColorStop(1, 'rgba(255,255,255,0)')
+        c.fillStyle = gr
+        c.fillRect(0, 0, 64, 64)
+      }
+      texHumo = new THREE.CanvasTexture(lienzo)
+    }
+    const n = humos.length * POR_COLUMNA
+    const geo = new THREE.BufferGeometry()
+    const pos = new Float32Array(n * 3)
+    const tam = new Float32Array(n)
+    const alfa = new Float32Array(n)
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3))
+    geo.setAttribute('aTam', new THREE.BufferAttribute(tam, 1))
+    geo.setAttribute('aAlfa', new THREE.BufferAttribute(alfa, 1))
+    const mat = new THREE.ShaderMaterial({
+      uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
+        mapa: { value: texHumo }, color: { value: new THREE.Color(0x2c2926) }, escala: { value: 400 }
+      }]),
+      vertexShader: `
+        attribute float aTam;
+        attribute float aAlfa;
+        uniform float escala;
+        varying float vAlfa;
+        #include <fog_pars_vertex>
+        void main () {
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          gl_PointSize = min(aTam * escala / -mvPosition.z, 512.0);
+          gl_Position = projectionMatrix * mvPosition;
+          vAlfa = aAlfa;
+          #include <fog_vertex>
+        }`,
+      fragmentShader: `
+        uniform sampler2D mapa;
+        uniform vec3 color;
+        varying float vAlfa;
+        #include <fog_pars_fragment>
+        void main () {
+          float a = texture2D(mapa, gl_PointCoord).a * vAlfa;
+          if (a < 0.01) discard;
+          gl_FragColor = vec4(color * (0.8 + 0.4 * (1.0 - gl_PointCoord.y)), a);
+          #include <fog_fragment>
+        }`,
+      transparent: true,
+      depthWrite: false,
+      fog: true
+    })
+    const humo = new THREE.Points(geo, mat)
+    humo.frustumCulled = false
+    // Que no lo vean los rayos (el avión de los apoyos, el vuelo): el humo no
+    // es un obstáculo.
+    humo.raycast = () => {}
+    const fases = Float32Array.from({ length: n }, (_, i) => (i % POR_COLUMNA) / POR_COLUMNA + Math.random() * 0.04)
+    const giro = Float32Array.from({ length: n }, () => Math.random() * 6.3)
+    const tamaño = new THREE.Vector2()
+    humo.userData.animar = dt => {
+      renderer.getDrawingBufferSize(tamaño)
+      mat.uniforms.escala.value = tamaño.y * 0.5 * camera.projectionMatrix.elements[5]
+      humos.forEach(([x, z, ancho, alto, y0 = 0], c) => {
+        for (let k = 0; k < POR_COLUMNA; k++) {
+          const i = c * POR_COLUMNA + k
+          fases[i] = (fases[i] + dt * 0.055 * (14 / alto) ** 0.5) % 1
+          const v = fases[i]
+          // Sube frenando y el viento (hacia +x) la tumba cuanto más arriba.
+          pos[i * 3] = x + Math.sin(v * 5 + giro[i]) * ancho * 0.25 + v * v * alto * 0.16
+          pos[i * 3 + 1] = y0 + 0.3 + v * alto
+          pos[i * 3 + 2] = z + Math.cos(v * 4 + giro[i]) * ancho * 0.2
+          tam[i] = ancho * (0.9 + v * 3.2)
+          alfa[i] = Math.min(1, v * 14) * (1 - v) ** 0.6
+        }
+      })
+      geo.attributes.position.needsUpdate = true
+      geo.attributes.aTam.needsUpdate = true
+      geo.attributes.aAlfa.needsUpdate = true
+    }
+    humo.userData.animar(0)
+    return humo
+  }
+
   function animarArena (dt) {
+    escenarioVisto?.userData.humo?.userData.animar(Math.min(dt, 0.1))
     const g = arenaVista
     if (!g) return
     const t = performance.now() / 1000

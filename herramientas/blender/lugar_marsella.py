@@ -181,6 +181,14 @@ PINTURA = material('pintura-calle', color=(0.86, 0.86, 0.83), rug=0.8)
 CHAPAS = [material(f'chapa-coche-{i}', color=c, rug=0.35) for i, c in enumerate([(0.85, 0.85, 0.84), (0.1, 0.1, 0.11), (0.55, 0.57, 0.6), (0.5, 0.08, 0.07), (0.12, 0.2, 0.42), (0.85, 0.85, 0.84)])]
 BUS = material('bus-rtm', color=(0.9, 0.9, 0.88), rug=0.4)
 BUS_FRANJA = material('bus-franja', color=(0.1, 0.35, 0.62), rug=0.4)
+# Lo de la guerra (Isidro: «pequeños detalles como si hubiera habido una guerra
+# en esta zona: un poco de humo, alguna cosa rota»).
+CARBON = material('carbon', color=(0.06, 0.055, 0.05), rug=0.95)
+OXIDO = material('oxido', color=(0.2, 0.1, 0.055), rug=0.95)
+HOLLIN = material('hollin', color=(0.07, 0.06, 0.05), alfa=0.42)   # a capas: más oscuro hacia el centro
+MANCHA = material('mancha-aceite', color=(0.03, 0.05, 0.06))
+BRASA = material('brillo-brasa', color=(1.0, 0.42, 0.08), emite=3.0)
+SACO = material('saco', color=(0.55, 0.49, 0.36), rug=1.0)
 F_POUILLON = material('f-pouillon', tex_postigos('pouillon', (0.83, 0.77, 0.65), (0.42, 0.36, 0.3)))
 F_PISOS = [material(f'f-pisos-{i}', tex_postigos(f'pisos-{i}', b, p)) for i, (b, p) in enumerate([
     ((0.86, 0.74, 0.55), (0.3, 0.45, 0.38)), ((0.9, 0.84, 0.72), (0.35, 0.47, 0.6)),
@@ -368,6 +376,13 @@ for z in np.arange(19.0, Z_ATRAS, -9.0):
         mesa(17.3, z + dz)
         mesa(FX + 1.6, z + dz - 1.1)
     lona = random.choice(LONA[:3])
+    if random.random() < 0.3:             # la guerra: sombrilla tumbada en el suelo
+        c0, a = P(17.0, z - 1.4, 0.12), random.random() * 6.3
+        for i in range(6):
+            a0, a1 = a + 2 * math.pi * i / 6, a + 2 * math.pi * (i + 1) / 6
+            cara('EV', lona, [c0 + V((0, 0, 0.25)), c0 + V((1.5 * math.cos(a0), 1.5 * math.sin(a0), 0)), c0 + V((1.5 * math.cos(a1), 1.5 * math.sin(a1), 0))], hacia=ARRIBA)
+        barra('EV', METAL, c0 + V((0, 0, 0.1)), c0 + V((2.2 * math.cos(a + 0.4), 2.2 * math.sin(a + 0.4), 0.05)), 0.07)
+        continue
     centro = P(17.3, z - 1.1, 2.4)
     for i in range(6):
         a0, a1 = 2 * math.pi * i / 6, 2 * math.pi * (i + 1) / 6
@@ -391,9 +406,16 @@ def coche_fino (x, z):
         cubo('EP', FAROLA, P(x + s * 0.6, z0 + 0.02, 0.68), (0.32, 0.06, 0.12))                       # los faros
         cubo('EV', CHAPAS[3], P(x + s * 0.65, z1 - 0.02, 0.7), (0.26, 0.06, 0.14))                    # los pilotos
 
+# Tramos de calzada que se quedan para la guerra (el coche y el autobús
+# quemados, el cráter y la barricada): ahí no se para nadie.
+LIBRE_CALLE = [(-114.0, -98.0), (-74.0, -66.0), (-40.0, -30.0), (-27.0, -13.0)]
+ocupada = lambda a, b: any(c < b and a < d for c, d in LIBRE_CALLE)
 z = 14.0
 while z > Z_ATRAS:
     carril = random.choice((CALLE0 + 1.75, CALLE1 - 1.75))
+    if ocupada(z - 12.5, z):
+        z -= 2.0
+        continue
     if random.random() < 0.12:
         caja('EV', BUS, carril - 1.25, carril + 1.25, z - 12.0, z, 0.35, 3.2, baldosa=4)
         caja('EV', BUS_FRANJA, carril - 1.27, carril + 1.27, z - 12.0, z, 0.9, 1.3, baldosa=4)
@@ -408,6 +430,8 @@ while z > Z_ATRAS:
 for z in np.arange(17.0, Z_ATRAS, -11.0):
     for k in range(random.randint(1, 3)):                                              # las motos
         zm = z - k * 0.9
+        if ocupada(zm - 1.0, zm + 1.0):
+            continue
         cubo('EV', random.choice(CHAPAS), P(CALLE1 + 0.3, zm, 0.55), (1.7, 0.3, 0.5), giro=math.pi / 2)
         cubo('EV', NEGRO_BARCO, P(CALLE1 + 0.3, zm, 0.3), (1.6, 0.12, 0.6), giro=math.pi / 2)
 for z in np.arange(12.0, Z_ATRAS, -22.0):                                              # las farolas de la calle
@@ -425,7 +449,7 @@ for z in np.arange(20.0, Z_ATRAS, -5.0):
     cubo('EV', METAL, P(ORILLA + 0.3, z, 0.25), (0.34, 0.34, 0.5))                                # bolardo
 
 # --- los barcos: veleros y lanchas amarrados de popa, entre pantalanes --------------------
-def barco_fino (grupo, xp, z, largo, rumbo=-1):
+def barco_fino (grupo, xp, z, largo, rumbo=-1, quemado=False):
     """El barco de cerca, el que se ve jugando (Isidro: «¿podrías detallar más
     las barcas?»): casco en V con la borda que sube hacia la proa, fondo de
     color, verduguillo, cubierta de teca, bañera, cabina con ventanas,
@@ -437,6 +461,9 @@ def barco_fino (grupo, xp, z, largo, rumbo=-1):
     casco = random.choice(CASCOS)
     fondo = random.choice(FONDOS)
     velero = random.random() < 0.7
+    if quemado:                           # la guerra: ardió amarrado y sigue humeando
+        casco = fondo = CARBON
+        velero = True
     X = lambda f: xp + (xb - xp) * f
     semi = lambda f: ancho / 2 * (0.9 + 0.1 * min(1.0, f / 0.2)) * (1 - max(0.0, (f - 0.55) / 0.45) ** 1.8)
     borda = lambda f: AGUA_Y + 0.85 + 0.4 * max(0.0, (f - 0.45) / 0.55) ** 2
@@ -493,10 +520,12 @@ def barco_fino (grupo, xp, z, largo, rumbo=-1):
         barra(grupo, CABO, pt(0.02, s, 0.85, borda(0.02) + 0.05), P(ORILLA + 0.3, z + s * 1.1, 0.35), 0.04)
     if velero:
         mx, h0 = X(0.55), yt_
-        top = h0 + largo * 1.25
+        top = h0 + largo * (0.45 if quemado else 1.25)   # al quemado se le partió el mástil
         barra(grupo, MASTIL, P(mx, z, h0 - alto), P(mx, z, top), 0.13)                    # el mástil
         barra(grupo, MASTIL, P(mx, z, h0 + 0.5), P(X(0.06), z, h0 + 0.35), 0.09)          # la botavara
-        barra(grupo, random.choice(LONA[:3]), P(mx, z, h0 + 0.72), P(X(0.1), z, h0 + 0.55), 0.3)   # la vela en su funda
+        barra(grupo, CARBON if quemado else random.choice(LONA[:3]), P(mx, z, h0 + 0.72), P(X(0.1), z, h0 + 0.55), 0.3)   # la vela en su funda
+        if quemado:
+            cubo('EP', BRASA, P(X(0.18), z, y0 + 0.08), (largo * 0.2, semi(0.18) * 1.2, 0.06))   # las brasas de la bañera
         barra(grupo, MASTIL, P(mx, z, top), pt(1.0, 0, 0, borda(1.0)), 0.03)              # el estay
         barra(grupo, MASTIL, P(mx, z, top), pt(0.0, 0, 0, borda(0.0)), 0.03)              # el backstay
         hc = h0 + largo * 0.65
@@ -514,11 +543,11 @@ def barco_fino (grupo, xp, z, largo, rumbo=-1):
         cubo(grupo, NEGRO_BARCO, P(X(-0.035), z, AGUA_Y + 0.75), (0.45, 0.55, 0.95))     # el motor
         cubo(grupo, CUBIERTA, P(X(-0.02), z, AGUA_Y + 0.2), (0.35, semi(0) * 1.6, 0.08))  # la plataforma de baño
 
-def barco (grupo, x_popa, z, largo, rumbo=-1):
+def barco (grupo, x_popa, z, largo, rumbo=-1, quemado=False):
     """Un barco amarrado: la popa en x_popa y la proa hacia `rumbo` (±x). Los de
     cerca, con detalle (`barco_fino`); los del vuelo, en cuatro caras."""
     if grupo == 'EV':
-        return barco_fino(grupo, x_popa, z, largo, rumbo)
+        return barco_fino(grupo, x_popa, z, largo, rumbo, quemado)
     ancho = largo * 0.32
     casco = random.choice(CASCOS)
     xp, xb = x_popa, x_popa + rumbo * largo
@@ -593,6 +622,21 @@ def barco_lado (grupo, x, z_pantalan, lado, largo):
 
 # Junto al muelle donde se juega, los barcos van amarrados de popa al canto,
 # apuntando al agua: son lo que se ve a la izquierda toda la partida.
+def hundido (xp, z, largo):
+    """Un velero hundido en su amarre: la regala y el techo de la cabina a flor
+    de agua, el mástil inclinado, la mancha de gasoil y tablas flotando."""
+    xb = xp - largo
+    cubo('EV', CARBON, P(xp - largo * 0.45, z, AGUA_Y - 0.25), (largo * 0.8, largo * 0.3, 0.4), giro=0.06)
+    cubo('EV', random.choice(CASCOS), P(xp - largo * 0.42, z, AGUA_Y + 0.08), (largo * 0.3, largo * 0.18, 0.2), giro=0.06)
+    barra('EV', MASTIL, P(xp - largo * 0.55, z, AGUA_Y), P(xp - largo * 0.55 - 3.5, z + 2.0, AGUA_Y + largo * 1.0), 0.12)
+    barra('EV', CABO, P(xp - largo * 0.02, z, 0.3), P(xp + 1.0, z, 0.35), 0.04)               # la amarra, tensa
+    mancha = [(xp - largo * 0.5 + (largo * 0.7 + random.uniform(-1, 1)) * math.cos(2 * math.pi * i / 12),
+               z + (largo * 0.45 + random.uniform(-0.6, 0.6)) * math.sin(2 * math.pi * i / 12)) for i in range(12)]
+    cara('EP', MANCHA, [P(x, zz, AGUA_Y + 0.02) for x, zz in mancha], hacia=ARRIBA)
+    for _ in range(5):
+        cubo('EV', MADERA, P(xp - random.uniform(1, largo + 3), z + random.uniform(-3, 3), AGUA_Y + 0.03),
+             (random.uniform(0.6, 1.6), 0.2, 0.08), giro=random.random() * 3)
+hundido_hecho = False
 n_barcos = 0
 # Cada barco ocupa su manga más las defensas y deja un palmo al siguiente: así
 # no se meten unos en otros (a paso fijo, los grandes se montaban).
@@ -606,7 +650,11 @@ while z > Z_BOCANA:
         continue
     if random.random() < 0.85:
         g = 'EV' if c > Z_ATRAS else 'T'
-        barco(g, ORILLA - 1.2, c, largo, -1)          # la popa en el canto, la proa al agua
+        if -3.0 < c < 9.0 and not hundido_hecho:     # la guerra: uno hundido, solo asoma
+            hundido(ORILLA - 1.2, c, largo)
+            hundido_hecho = True
+        else:
+            barco(g, ORILLA - 1.2, c, largo, -1, quemado=-36.0 < c < -24.0)   # la popa en el canto, la proa al agua
         n_barcos += 1
     z = c - medio - 0.35
 # Los dos barcos de al lado de la barcaza de la antena, a 1,2 de su casco.
@@ -617,6 +665,71 @@ for z in np.arange(60.0, -440.0, -24.0):
     pantalan('T', -42.0, -88.0, z)
     pantalan('T', -175.0 + 1.0, -130.0, z - 12)
 print('BARCOS cerca', n_barcos)
+
+# --- la guerra: lo que dejó el combate en el muelle -----------------------------------
+# Todo fuera del pasillo salvo las quemaduras, que son planas. Donde sale humo lo
+# pone el juego (`humos` de `marsellaPuerto`, con estas mismas coordenadas giradas).
+def escombros (cx, cz, r, n, y=0.0):
+    for _ in range(n):
+        a, d = random.random() * 6.3, r * math.sqrt(random.random())
+        t = random.uniform(0.25, 0.9) * (1.1 - d / r * 0.5)
+        cubo('EV', random.choice((SILLAR, SILLAR_OSCURO, CARBON, LOSA_GRIS)),
+             P(cx + d * math.cos(a), cz + d * math.sin(a), y + t * 0.3 + (r - d) / r * 0.35), (t, t * random.uniform(0.6, 1.5), t * 0.7), giro=random.random() * 3)
+
+def quemadura (cx, cz, r, y=0.025, grupo='EP'):
+    """La mancha de una explosión: tres capas de hollín semitransparente, cada
+    una más pequeña, para que se oscurezca hacia el centro y se pierda en el borde."""
+    for k, f in enumerate((1.0, 0.68, 0.38)):
+        pts = [(cx + r * f * random.uniform(0.6, 1.15) * math.cos(2 * math.pi * i / 16), cz + r * f * random.uniform(0.6, 1.15) * math.sin(2 * math.pi * i / 16)) for i in range(16)]
+        cara(grupo, HOLLIN, [P(x, z, y + k * 0.004) for x, z in pts], hacia=ARRIBA)
+
+def coche_quemado (x, z, giro_z=0.0):
+    """Calcinado: la chapa negra y oxidada sobre las llantas, sin cristales, con
+    los montantes al aire y las brasas dentro."""
+    cubo('EV', CARBON, P(x, z, 0.42), (1.75, 4.2, 0.6), giro=giro_z)
+    cubo('EV', OXIDO, P(x, z - 1.4, 0.74), (1.6, 1.2, 0.05), giro=giro_z)                       # el capó
+    for s in (-1, 1):
+        for dz in (-0.8, 0.9):
+            barra('EV', CARBON, P(x + s * 0.75, z + dz, 0.72), P(x + s * 0.65, z + dz * 0.8, 1.25), 0.07)
+    cubo('EV', OXIDO, P(x, z + 0.05, 1.27), (1.4, 1.5, 0.05), giro=giro_z)                      # el techo hundido
+    for _ in range(5):                                                                        # rescoldos sueltos
+        cubo('EP', BRASA, P(x + random.uniform(-0.5, 0.5), z + random.uniform(-0.9, 1.0), 0.73), (0.22, 0.3, 0.04), giro=random.random() * 3)
+    quemadura(x, z, 3.2, 0.03, 'EP')
+
+coche_quemado(CALLE0 + 1.75, -70.0, 0.25)                         # en el juego (-11, -30)
+# el autobús calcinado, cruzado en la calzada
+bx, bz = CALLE1 - 1.75, -20.0                                     # en el juego (-14,6, -80)
+cubo('EV', CARBON, P(bx, bz, 1.7), (2.5, 12.0, 2.7), giro=0.18)
+cubo('EV', OXIDO, P(bx, bz - 2.5, 3.1), (2.0, 4.0, 0.1), giro=0.18)
+cubo('EV', NEGRO_BARCO, P(bx, bz, 2.15), (2.56, 11.2, 1.05), giro=0.18)          # las ventanas reventadas
+for zr in (bz - 3.6, bz + 3.6):
+    cubo('EV', NEGRO_BARCO, P(bx, zr, 0.45), (2.6, 0.95, 0.9), giro=0.18)         # las llantas
+for _ in range(6):
+    cubo('EP', BRASA, P(bx + random.uniform(-0.8, 0.8), bz + random.uniform(-4, 5), 1.0), (0.3, 0.4, 0.05), giro=random.random() * 3)
+quemadura(bx, bz, 7.0, 0.03)
+# el cráter de un obús en la calzada, con el asfalto levantado alrededor
+quemadura(CALLE0 + 3.5, -35.0, 3.4, 0.035)
+escombros(CALLE0 + 3.5, -35.0, 3.6, 22)
+# escombros caídos de las fachadas, junto a los soportales
+for (cz, r, n) in ((-60.0, 2.4, 16), (-8.0, 2.0, 12), (48.0, 2.6, 16), (-118.0, 1.8, 10)):
+    escombros(FX - 1.2, cz, r, n)
+# la barricada de sacos de los soldados, en la calzada junto a su línea
+for fila in range(3):
+    for zz in np.arange(-113.5, -99.0, 0.62):
+        cubo('EV', SACO, P(CALLE0 + 0.5 + (fila % 2) * 0.05, zz + (fila % 2) * 0.31, 0.15 + fila * 0.27), (0.5, 0.6, 0.28), giro=random.uniform(-0.08, 0.08))
+    for xx in np.arange(CALLE0 + 1.0, CALLE0 + 4.2, 0.62):
+        cubo('EV', SACO, P(xx + (fila % 2) * 0.31, -113.8, 0.15 + fila * 0.27), (0.6, 0.5, 0.28), giro=random.uniform(-0.08, 0.08))
+# quemaduras planas en el muelle, donde cayeron los primeros disparos
+for (cx, cz, r) in ((-3.0, -80.0, 1.8), (4.0, -46.0, 2.3), (-1.0, -12.0, 1.6), (6.5, 6.0, 1.4)):
+    quemadura(cx, cz, r)                                          # planas: los bichos pasan por encima
+# boquetes en las fachadas con el hollín encima
+for (cz, y) in ((-85.0, 12.0), (-42.0, 18.0), (2.0, 9.0), (36.0, 15.0), (-110.0, 15.0)):
+    xf = FX - 0.34
+    hueco = [(cz + 1.6 * random.uniform(0.6, 1.2) * math.cos(2 * math.pi * i / 10), y + 1.4 * random.uniform(0.6, 1.2) * math.sin(2 * math.pi * i / 10)) for i in range(10)]
+    cara('EP', NEGRO, [P(xf, z_, y_) for z_, y_ in hueco], hacia=V((-1, 0, 0)))
+    hollin = [(cz - 2.2, y - 0.6), (cz - 3.0, y + 2.5), (cz - 1.8, y + 5.0), (cz + 0.2, y + 5.8), (cz + 2.2, y + 4.6), (cz + 3.0, y + 2.0), (cz + 2.0, y - 0.8)]
+    for k in range(2):                                        # dos capas: más negro junto al boquete
+        cara('EP', HOLLIN, [P(xf + 0.01 - k * 0.005, cz + (z_ - cz) * (1 - k * 0.4), y + (y_ - y) * (1 - k * 0.4)) for z_, y_ in hollin], hacia=V((-1, 0, 0)))
 
 comprobar_paso(('E', 'EP', 'S', 'EV'))
 

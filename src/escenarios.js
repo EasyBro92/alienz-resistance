@@ -450,6 +450,11 @@ function marsellaPuerto () {
     // fondo del puerto (el Quai des Belges y la ciudad de detrás) en el modelo
     // de juego.
     lejos: 470,
+    // Lo que sigue ardiendo después del combate (lugar_marsella.py, «la
+    // guerra»): el coche y el autobús calcinados, el velero quemado, el boquete
+    // de una fachada y dos incendios de la ciudad, al fondo. [x, z, ancho, alto, y0]
+    humos: [[-11.2, -30, 2.6, 18], [-14.6, -80, 3.6, 28], [12.6, -70, 2.8, 22],
+      [-19.6, -15, 2.2, 12, 13], [17, -138, 4, 40, 3], [40, -280, 16, 80], [-70, -230, 12, 60]],
     // En la cubierta de su barcaza (BASE del guion, ya girada).
     baseX: 13,
     baseZ: -44
