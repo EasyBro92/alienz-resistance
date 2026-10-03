@@ -297,6 +297,9 @@
         <div class="wave-label" id="wave-label">Preparados</div>
         <div class="base-bar"><div class="base-fill" id="base-fill"></div></div>
       </div>
+      <!-- Velocidad de la partida (×1 / ×2). Solo en campaña: en el duelo y el
+           cooperativo los dos campos tienen que ir al mismo reloj. -->
+      <button class="icon-btn velocidad" id="velocidad" aria-label="Velocidad de la partida" aria-pressed="false"><span>×1</span></button>
       <button class="icon-btn" id="pausa" aria-label="Pausa">
         <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-pause"/></svg>
       </button>
@@ -368,7 +371,7 @@
       <div class="inspector-title" id="inspector-title"></div>
       <div class="inspector-actions">
         <button id="act-upgrade" class="chip chip-up"></button>
-        <button id="act-move" class="chip">Mover</button>
+        <button id="act-move" class="chip chip-retirar">Retirar</button>
         <button id="act-close" class="chip chip-ghost">Cerrar</button>
       </div>
     </div>

@@ -15,7 +15,8 @@ import { crearMarcas } from './systems/marcas.js'
 import { crearCuenta, haySesionGuardada } from './systems/cuenta.js'
 import { createAmbient } from './systems/ambient.js'
 import { createAudio } from './audio.js'
-import { createUI } from './ui.js'
+import { createUI, devolucion } from './ui.js'
+import { crearGuia } from './guia.js'
 import { renderPortraits } from './portraits.js'
 import { pintarMapa } from './mapa.js'
 import { montarZoomMapa } from './mapaZoom.js'
@@ -154,15 +155,12 @@ const ui = createUI({
     const cost = upgradeCost(soldier)
     if (!economy.spend(cost)) return audio.denied()
     soldier.upgrade()
+    soldier.invertido = (soldier.invertido ?? soldier.spec.cost ?? 0) + cost   // lo que devuelve retirarlo
     audio.place()
     effects.floatText(soldier.mesh.position, `NV ${soldier.level}`, '#5fd97a', 52)
     ui.refreshInspector(soldier, economy.coins)
   },
-  onMove (soldier) {
-    moving = soldier
-    ui.clearSelection()
-    world.setSlotsVisible(true)
-  },
+  onRetirar (soldier) { retirarSoldado(soldier) },
   onDeselect () { world.setSlotsVisible(false) },
 
   // Llevar una carta directamente a su casilla, sin pasar por la colocación
@@ -196,6 +194,16 @@ const ui = createUI({
     place(item, c.lane, c.row)
   }
 })
+
+// La guía de la primera partida (guia.js): solo en la campaña, con la partida
+// en marcha y fuera del vuelo y de la pausa.
+const guia = crearGuia(() => ({
+  jugando: running && !vuelo && !pausado && !dueloEnCurso && !coop,
+  soldados: soldiers.length,
+  monedas: economy.pickups.length,
+  recolector: economy.autoCollect,
+  apoyoListo: ui.catalog.some(c => c.type === 'strike' && economy.coins >= c.cost && !((recargas.get(c.key)?.resto ?? 0) > 0))
+}))
 
 economy.onChange(v => ui.setCoins(v))
 
@@ -383,10 +391,56 @@ async function place (item, lane, row) {
   scene.add(s.mesh)
   soldiers.push(s)
   occupied.set(key, s)
+  s.invertido = item.cost
   audio.place()
+  guia.hecho('carta')
 
   if (!economy.canAfford(item.cost)) { ui.clearSelection(); world.setSlotsVisible(false) }
 }
+
+// --- retirar un soldado ----------------------------------------------------------
+// Isidro (03/10) eligió poder quitar un soldado mal puesto: se va con un
+// destello y devuelve la mitad de lo invertido en él (compra y mejoras; la
+// cuenta está en `devolucion` de ui.js, que es lo que enseña el botón). De
+// invitado en el cooperativo no: la partida es del anfitrión.
+function retirarSoldado (s) {
+  if (!running || s.dead || modoInvitado()) return audio.denied()
+  const i = soldiers.indexOf(s)
+  if (i < 0) return
+  const vuelve = devolucion(s)
+  soldiers.splice(i, 1)
+  if (occupied.get(slotKey(s.lane, s.row)) === s) occupied.delete(slotKey(s.lane, s.row))
+  s.dead = true                       // por si algo lo tenía apuntado
+  s.bar.group.visible = false
+  scene.remove(s.mesh)
+  effects.burst(s.mesh.position, 0xffffff, 8, 0.8)
+  if (vuelve > 0) {
+    economy.add(vuelve)
+    effects.floatText(s.mesh.position, `+${vuelve}`, '#f3cf62', 52)
+  }
+  audio.coin()
+}
+
+// --- velocidad ×2 ------------------------------------------------------------------
+// Isidro (03/10) la eligió para cuando las oleadas van tranquilas. No se dobla
+// el paso de tiempo —con 0,1 s de golpe las balas atravesarían a los bichos—:
+// se simula DOS veces por fotograma. Solo en campaña: en el duelo y en el
+// cooperativo los dos campos van al mismo reloj.
+let velocidad = 1
+const elVelocidad = document.getElementById('velocidad')
+function pintarVelocidad () {
+  const vale = !dueloEnCurso && !coop
+  elVelocidad.hidden = !vale
+  if (!vale) velocidad = 1
+  elVelocidad.firstElementChild.textContent = `×${velocidad}`
+  elVelocidad.setAttribute('aria-pressed', velocidad > 1 ? 'true' : 'false')
+}
+elVelocidad.addEventListener('click', () => {
+  velocidad = velocidad > 1 ? 1 : 2
+  pintarVelocidad()
+  audio.unlock()
+  try { navigator.vibrate?.(6) } catch {}
+})
 
 // La recarga de cada apoyo: segundos que le faltan y los que dura entera. La
 // lleva la partida (no la tarjeta) y se vacía al empezar una.
@@ -396,6 +450,7 @@ function useStrike (item, point) {
   const spec = STRIKES[item.key]
   if ((recargas.get(item.key)?.resto ?? 0) > 0) return audio.denied()
   if (!economy.spend(item.cost)) return audio.denied()
+  guia.hecho('apoyo')
   const total = (spec.recarga ?? 0) * factorMejora(item.key, 'recarga')
   if (total > 0) {
     recargas.set(item.key, { resto: total, total })
@@ -605,7 +660,7 @@ canvas.addEventListener('pointerdown', e => {
       let total = 0
       const donde = alcanzadas[0].mesh.position.clone()
       for (const p of alcanzadas) total += economy.collect(p)
-      if (total) { audio.coin(); effects.floatText(donde, `+${total}`) }
+      if (total) { audio.coin(); effects.floatText(donde, `+${total}`); guia.hecho('monedas') }
       return
     }
   }
@@ -673,6 +728,7 @@ function mandarA (soldado, c) {
   occupied.set(destino, soldado)
   audio.place()
   soldadoEnCamino = soldado
+  guia.hecho('mover')
   return true
 }
 
@@ -694,12 +750,49 @@ const flechaSel = (() => {
   scene.add(g)
   return g
 })()
+// --- el alcance del soldado tocado ------------------------------------------
+// Isidro (03/10) eligió verlo al tocarlo. Un círculo no dice nada (con 15 a 44
+// de alcance cubre el tablero entero); lo que decide es CÓMO dispara: su carril
+// hasta donde llega (la franja, con una raya al final) y, a los lados, solo lo
+// que tiene cerca (`FUERA_DE_CARRIL` del alcance: el medio disco tenue).
+const alcanceSel = (() => {
+  const g = new THREE.Group()
+  const mat = new THREE.MeshBasicMaterial({ color: 0x3ddc6a, transparent: true, opacity: 0.16, depthWrite: false, fog: false })
+  const franja = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat)
+  franja.rotation.x = -Math.PI / 2
+  const tope = new THREE.Mesh(new THREE.PlaneGeometry(1, 0.22), new THREE.MeshBasicMaterial({ color: 0x3ddc6a, transparent: true, opacity: 0.7, depthWrite: false, fog: false }))
+  tope.rotation.x = -Math.PI / 2
+  const lados = new THREE.Mesh(new THREE.CircleGeometry(1, 40, 0, Math.PI), new THREE.MeshBasicMaterial({ color: 0x3ddc6a, transparent: true, opacity: 0.08, depthWrite: false, fog: false }))
+  lados.rotation.x = -Math.PI / 2
+  g.add(franja, tope, lados)
+  g.userData = { franja, tope, lados }
+  g.traverse(o => { o.renderOrder = 3 })
+  g.visible = false
+  scene.add(g)
+  return g
+})()
+function pintarAlcance (s) {
+  if (!s || !s.spec.range || (s.spec.fija && !s.spec.dispara)) { alcanceSel.visible = false; return }
+  const { franja, tope, lados } = alcanceSel.userData
+  const ancho = Math.abs(laneX(1) - laneX(0)) * 0.92
+  // Hasta donde llega, sin pasar de donde nacen: más allá no hay nada que ver.
+  const largo = Math.min(s.spec.range, s.pz - FIELD.spawnZ + 4)
+  alcanceSel.visible = true
+  alcanceSel.position.set(laneX(s.lane), 0.05, s.pz)
+  franja.scale.set(ancho, largo, 1)
+  franja.position.set(0, 0, -largo / 2)
+  tope.scale.set(ancho, 1, 1)
+  tope.position.set(0, 0.01, -largo)
+  const r = s.spec.range * FUERA_DE_CARRIL
+  lados.scale.set(r, r, 1)
+  lados.position.set(0, -0.01, 0)
+}
 const cajaSel = new THREE.Box3()
 let altoSel = { soldado: null, alto: 2 }
 function actualizarFlecha (t) {
   if (soldadoEnCamino && (soldadoEnCamino.dead || !soldadoEnCamino.andando)) soldadoEnCamino = null
   const s = arrastre?.soldado ?? moving ?? ui.inspected ?? soldadoEnCamino
-  if (!s || s.dead || !running) { flechaSel.visible = false; return }
+  if (!s || s.dead || !running) { flechaSel.visible = false; pintarAlcance(null); return }
   // La altura de la figura se mide una vez por soldado: medirla cada fotograma
   // con sus huesos sería caro, y no cambia.
   if (altoSel.soldado !== s) {
@@ -707,6 +800,7 @@ function actualizarFlecha (t) {
     altoSel = { soldado: s, alto: Math.max(1.2, cajaSel.max.y - s.mesh.position.y) }
   }
   flechaSel.visible = true
+  pintarAlcance(s === soldadoEnCamino && s !== ui.inspected && s !== arrastre?.soldado ? null : s)
   flechaSel.position.set(s.mesh.position.x, s.mesh.position.y + altoSel.alto + 0.1 + Math.sin(t * 5) * 0.08, s.mesh.position.z)
 }
 
@@ -2067,7 +2161,11 @@ function frame (now) {
   const dt = Math.min(0.05, real / 1000)
   last = now
   calidad.medir(real)
-  simulate(dt)
+  // ×2: dos pasos de simulación por fotograma (ver `velocidad`). Nunca en el
+  // vuelo de llegada ni en pausa.
+  const pasos = running && !vuelo && !pausado ? velocidad : 1
+  for (let k = 0; k < pasos; k++) simulate(dt)
+  guia.mirar()
   actualizarFlecha(now / 1000)
   conTemblor(dt, () => resplandor.render())
 }
@@ -2441,6 +2539,7 @@ function start (indice = nivelActual) {
   last = performance.now()
   empezarVuelo()
   pintarAtras()
+  pintarVelocidad()
 }
 
 // --- pausa --------------------------------------------------------------------

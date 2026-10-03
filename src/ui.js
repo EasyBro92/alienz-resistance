@@ -61,7 +61,10 @@ export function buildCatalog (abiertas = cartasAbiertas()) {
   return items
 }
 
-export function createUI ({ onSelect, onUpgrade, onMove, onDeselect, onArrastreCarta }) {
+// Lo que devuelve retirar a un soldado: la mitad de lo invertido (compra y mejoras).
+export const devolucion = s => Math.floor((s.invertido ?? s.spec.cost ?? 0) * 0.5)
+
+export function createUI ({ onSelect, onUpgrade, onRetirar, onDeselect, onArrastreCarta }) {
   const el = {
     coins: document.getElementById('coins'),
     coinValue: document.getElementById('coin-value'),
@@ -274,7 +277,26 @@ export function createUI ({ onSelect, onUpgrade, onMove, onDeselect, onArrastreC
 
   el.actClose.addEventListener('click', () => api.closeInspector())
   el.actUpgrade.addEventListener('click', () => inspected && onUpgrade(inspected))
-  el.actMove.addEventListener('click', () => { if (inspected) { onMove(inspected); api.closeInspector(true) } })
+  // Retirar (03/10, Isidro eligió «retirar soldado»): devuelve la mitad de lo
+  // invertido en él. Pide un segundo toque —el botón cambia a «¿Seguro?» dos
+  // segundos y medio— porque un soldado bueno perdido por un roce no se recupera.
+  // «Mover» ya no hace falta aquí: se arrastra, o se toca el suelo con la ficha
+  // abierta.
+  let confirmando = null
+  el.actMove.addEventListener('click', () => {
+    if (!inspected) return
+    if (confirmando !== inspected) {
+      confirmando = inspected
+      el.actMove.textContent = `¿Seguro? +${devolucion(inspected)}`
+      el.actMove.classList.add('confirmar')
+      setTimeout(() => { if (confirmando) { confirmando = null; if (inspected) api.refreshInspector(inspected, purse) } }, 2500)
+      return
+    }
+    confirmando = null
+    const s = inspected
+    api.closeInspector()
+    onRetirar(s)
+  })
 
   const api = {
     el,
@@ -384,10 +406,14 @@ export function createUI ({ onSelect, onUpgrade, onMove, onDeselect, onArrastreC
       el.inspectorTitle.textContent = `${soldier.spec.name} · nivel ${soldier.level}`
       el.actUpgrade.textContent = `Mejorar ${cost}`
       el.actUpgrade.disabled = coins < cost
-      el.actMove.style.display = soldier.spec.fija ? 'none' : ''
+      if (confirmando !== soldier) {
+        el.actMove.textContent = `Retirar +${devolucion(soldier)}`
+        el.actMove.classList.remove('confirmar')
+      }
     },
 
     closeInspector (keepTarget = false) {
+      confirmando = null
       el.inspector.classList.add('hidden')
       if (!keepTarget) { inspected = null; onDeselect?.() }
     },
