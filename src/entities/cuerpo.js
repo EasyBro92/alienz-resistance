@@ -15,11 +15,13 @@ import * as THREE from 'three'
 //
 // Posturas decididas con Isidro:
 //   - tirador: de rodilla mientras espera, cuerpo a tierra al empezar a
-//     disparar, a gatas al cambiar de casilla y de pie para el asalto final;
+//     disparar y de pie para moverse (se levanta, anda y vuelve a su postura;
+//     antes iba a gatas y a Isidro le parecía que se arrastraba) y en el asalto;
 //   - fusilero: de pie, al hombro; escopetero: desde la cadera;
 //   - lanzallamas: de pie, bien plantado y echado hacia delante;
-//   - para moverse: agachados a la casilla de al lado, corriendo si es lejos o
-//     si entran desde atrás.
+//   - para moverse (03/10): de pie siempre, andando a la casilla de al lado y
+//     corriendo si es lejos o si entran desde atrás. Agachados se les doblaban
+//     las piernas.
 //
 // Se escribe en huesos por espacio de mundo, sin suponer hacia dónde apuntan
 // sus ejes locales: el montador de Meshy no es simétrico y adivinar signos fue
@@ -77,6 +79,8 @@ const IDENTIDAD = new THREE.Quaternion()
 // Cuánto baja la cadera agachado y de rodilla, y cuánto se inclina tumbado.
 const BAJADA_AGACHADO = 0.2
 const BAJADA_RODILLA = 0.46
+// Cuánto se sube la cadera al andar para estirar la pierna de apoyo (ver paso 3).
+const ESTIRA_ANDANDO = 0.06
 // Algo menos de horizontal: apoyado en los codos, como tira un francotirador. Del
 // todo plano la cabeza y el pecho se hundían en el suelo.
 const TUMBADO = 1.35
@@ -370,6 +374,8 @@ export function crearCuerpo ({ figure, cuerpo, arma, key, clips = [] }) {
   const deseo = new THREE.Vector3()
   const dirMundo = new THREE.Vector3()
   const pieActual = new THREE.Vector3()
+  const pisaL = new THREE.Vector3()
+  const pisaR = new THREE.Vector3()
   const sitioPie = new THREE.Vector3()
   const poloPie = new THREE.Vector3()
   const mundoPie = new THREE.Vector3()
@@ -378,7 +384,10 @@ export function crearCuerpo ({ figure, cuerpo, arma, key, clips = [] }) {
   const acercar = (v, obj, vel, dt) => v + THREE.MathUtils.clamp(obj - v, -dt * vel, dt * vel)
 
   return {
-    // e: { andando, velocidad, modo ('correr' | 'agachado' | 'gatear'),
+    // A qué velocidad (m/s) anda el ciclo del modelo tal cual: para elegir los
+    // pasos sin que los pies patinen.
+    get pasoNatural () { return pasoNatural },
+    // e: { andando, velocidad, modo ('correr' | 'andar' | 'agachado' | 'gatear'),
     //      apuntar (0-1), objetivo (mundo o null), retroceso, recarga,
     //      encogido, mirar, t, forzarPie }
     actualizar (dt, e) {
@@ -404,7 +413,10 @@ export function crearCuerpo ({ figure, cuerpo, arma, key, clips = [] }) {
       andar += ((moviendose && modo !== 'gatear' ? 1 : 0) - andar) * Math.min(1, dt * 7)
       const deRodilla = rodilla * (1 - tumbado)
       const agachado = agache * (1 - tumbado)
-      const carrera = THREE.MathUtils.clamp((e.velocidad - 3) / 3.4, 0, 1)
+      // Cuánto de carrera lleva el paso: lo dice el MODO, no la velocidad. Con
+      // la velocidad, a 3,4 m/s salía un 0,1 y la carrera era un andar
+      // acelerado (Isidro: «corren y caminan poco natural»).
+      const carrera = modo === 'correr' ? 1 : modo === 'trote' ? 0.6 : 0
 
       // Aquí estaba el escopetero doblado por la mitad: quieto, sin ciclo de
       // andar que sobrescribiera la columna, la inclinación se sumaba fotograma
@@ -414,10 +426,13 @@ export function crearCuerpo ({ figure, cuerpo, arma, key, clips = [] }) {
       // --- 2. ciclo de andar (no tumbado) --------------------------------------
       if (accion) {
         const peso = andar * (1 - tumbado)
-        const amplitud = 1 + carrera * 0.25
+        // Corriendo, zancada más larga (el muslo abre un 30 % más) y el ciclo
+        // a la velocidad que cuadra con ella: velocidad / (paso natural ×
+        // zancada). Así el pie pisa y no patina.
+        const amplitud = 1 + carrera * 0.3
         accion.setEffectiveWeight(peso)
         if (peso > 0.01) {
-          accion.timeScale = THREE.MathUtils.clamp(Math.max(e.velocidad, 1.5) / (pasoNatural * amplitud), 0.5, 2.6)
+          accion.timeScale = THREE.MathUtils.clamp(Math.max(e.velocidad, 0.8) / (pasoNatural * amplitud), 0.5, 2.4)
           mixer.update(dt)
           if (amplitud > 1.01) {
             for (const h of [b.musloL, b.musloR]) if (h) amplificar(h, reposo.get(h).q, 1 + (amplitud - 1) * peso)
@@ -444,11 +459,26 @@ export function crearCuerpo ({ figure, cuerpo, arma, key, clips = [] }) {
       }
       figure.rotation.y = -0.38 * apunta * (1 - tumbado)
       figure.updateMatrixWorld(true)
+      // El ciclo de andar de Meshy va con las rodillas dobladas: medido, la
+      // pierna que pisa a 150° de mediana (130° en lo peor) y la cadera 8 cm
+      // más baja que de pie (Isidro: «caminan como si se les doblaran las
+      // piernas»). Al andar de verdad la de apoyo va casi recta. Se apuntan dónde
+      // pone los pies el ciclo, se sube la cadera y luego (paso 5) cada pierna
+      // vuelve a llevar el pie a ese mismo sitio: la rodilla se estira y el pie
+      // no se mueve del suelo.
+      const levanta = conPiernas ? ESTIRA_ANDANDO * andar * (1 - tumbado) * (1 - agachado) * (1 - deRodilla) : 0
+      if (levanta > 0.001) {
+        figure.worldToLocal(b.pieL.getWorldPosition(pisaL))
+        figure.worldToLocal(b.pieR.getWorldPosition(pisaR))
+        cuerpo.position.y += levanta
+        figure.updateMatrixWorld(true)
+      }
 
       // --- 4. tronco -----------------------------------------------------------------
       if (b.columna) {
         const respira = Math.sin(e.t * 1.3) * 0.015
-        const inclina = andar * (0.08 + carrera * 0.22) + agachado * 0.25 + apunta * estilo.inclina + deRodilla * 0.05
+        // Andando, casi recto (0,05); corriendo, echado hacia delante (0,27).
+        const inclina = andar * (0.05 + carrera * 0.22) + agachado * 0.25 + apunta * estilo.inclina + deRodilla * 0.05
         inclinar(b.columna, figure, (inclina + respira - e.encogido * 0.3) * (1 - tumbado * 0.8))
       }
 
@@ -473,6 +503,14 @@ export function crearCuerpo ({ figure, cuerpo, arma, key, clips = [] }) {
             if (lado > 0 && deRodilla > 0.3) poloPie.set(pie0.x, -0.3, -1)
             else poloPie.set(pie0.x + lado * 0.1, 0.9, -1.2)
             figure.localToWorld(mundoPie.copy(sitioPie))
+            figure.localToWorld(mundoPolo.copy(poloPie))
+            dosHuesos(muslo, rod, pie, mundoPie, mundoPolo)
+          }
+        } else if (levanta > 0.001) {
+          // Andando: cada pie a donde lo ponía el ciclo antes de subir la cadera.
+          for (const [lado, muslo, rod, pie, pie0, pisa] of [[-1, b.musloL, b.rodillaL, b.pieL, pieL0, pisaL], [1, b.musloR, b.rodillaR, b.pieR, pieR0, pisaR]]) {
+            poloPie.set(pie0.x + lado * 0.1, 0.9, -1.2)
+            figure.localToWorld(mundoPie.copy(pisa))
             figure.localToWorld(mundoPolo.copy(poloPie))
             dosHuesos(muslo, rod, pie, mundoPie, mundoPolo)
           }

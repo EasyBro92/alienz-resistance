@@ -89,11 +89,18 @@ const GESTURE_KEYS = Object.keys(GESTURES)
 // por menos de un segundo, y el peor caso —de esquina a esquina— por algo más de
 // tres, que es lo que debe costar mover una pieza sin que deje de compensar.
 const PASO = 3.2
-// Cómo cruza el campo, según lo que decidió Isidro: corriendo si viene de atrás
-// o va lejos, agachado a la casilla de al lado, y el tirador a gatas.
-// El trote es el del asalto final: más lento que la carrera, a un paso en el que
-// la animación de las figuras de Meshy llega a pisar y los pies no patinan.
-const VELOCIDAD_PASO = { correr: 1.7, trote: 1.15, agachado: 0.75, gatear: 0.42 }
+// Cómo cruza el campo. Al principio era corriendo si viene de atrás o va lejos,
+// agachado a la casilla de al lado y el tirador a gatas; Isidro (03/10): «siguen
+// caminando como si se les doblaran las piernas, corren y caminan poco natural,
+// y el francotirador se mueve arrastrándose en vez de levantarse». Medido: el
+// ciclo de andar de las nueve figuras de Meshy avanza 1,34-1,55 m/s tal cual, y
+// se les pedía 2,4 agachados (con la cadera bajada y los pies forzados al suelo
+// encima del ciclo: las rodillas dobladas) y 5,4 corriendo (el ciclo a ×3, topado
+// en ×2,6: los pies patinaban). Ahora, de pie siempre: ANDAR a la de al lado a
+// 1,9 (el ciclo a ×1,3, un paso vivo) y CORRER lejos a 3,4, con zancada y tronco
+// de carrera (cuerpo.js) para que el ciclo vaya a ×1,9 sin patinar. El trote es
+// el del asalto final.
+const VELOCIDAD_PASO = { correr: 1.06, trote: 0.94, andar: 0.6, agachado: 0.75, gatear: 0.42 }
 
 // --- el paso de las figuras de piezas ---------------------------------------
 // Aquí estaba lo de "las piernas se deforman al caminar", y no era la geometría
@@ -110,12 +117,12 @@ const VELOCIDAD_PASO = { correr: 1.7, trote: 1.15, agachado: 0.75, gatear: 0.42 
 // todo el rato: una persona que corre pasa parte del ciclo con los dos pies en
 // el aire, y es ese vuelo el que da la zancada larga. `APOYO` es la parte del
 // ciclo que cada pie pasa pisando; por debajo de 0,5 hay vuelo.
-const APOYO = { correr: 0.34, trote: 0.36, agachado: 0.56, gatear: 0.62 }
+const APOYO = { correr: 0.34, trote: 0.36, andar: 0.58, agachado: 0.56, gatear: 0.62 }
 // Lo que el pie recorre hacia atrás mientras pisa. Lo manda la pierna, no el
 // gusto: más de esto y el tramo se queda corto y habría que estirarlo.
-const RECORRIDO_PIE = { correr: 0.62, trote: 0.58, agachado: 0.4, gatear: 0.26 }
+const RECORRIDO_PIE = { correr: 0.62, trote: 0.58, andar: 0.5, agachado: 0.4, gatear: 0.26 }
 // Cuánto levanta la bota al volver hacia delante.
-const ALTURA_PIE = { correr: 0.17, trote: 0.14, agachado: 0.07, gatear: 0.05 }
+const ALTURA_PIE = { correr: 0.17, trote: 0.14, andar: 0.1, agachado: 0.07, gatear: 0.05 }
 
 const _cajaPierna = new THREE.Box3()
 const _inversa = new THREE.Matrix4()
@@ -365,8 +372,10 @@ export async function createSoldier (key, spec, lane, row) {
     // posición real tarda lo que tarde en llegar.
     moveTo (newLane, newRow, entrando = false) {
       const celdas = Math.abs(newLane - this.lane) + Math.abs(newRow - this.row)
-      this.modoPaso = entrando || celdas > 1 ? 'correr' : 'agachado'
-      if (this.key === 'sniper' && !entrando) this.modoPaso = 'gatear'
+      this.modoPaso = entrando || celdas > 1 ? 'correr' : 'andar'
+      // El tirador está de rodilla o tumbado: primero se levanta (medio segundo
+      // en el sitio) y luego anda como los demás; al llegar vuelve a su postura.
+      if (this.key === 'sniper' && !entrando && !this.andando) this.espera = Math.max(this.espera, 0.55)
       this.lane = newLane
       this.row = newRow
       this.destX = laneX(newLane)
@@ -763,10 +772,12 @@ export async function createSoldier (key, spec, lane, row) {
       if (ud.cuerpo) {
         this.mesh.updateMatrixWorld(true)
         ud.cuerpo.actualizar(dt, {
-          andando: this.andando,
+          // Mientras espera para arrancar no anda en el sitio: solo se pone de pie
+          // (`forzarPie`), que es lo que le da tiempo al tirador a levantarse.
+          andando: this.andando && this.espera <= 0,
           velocidad: this.andando && this.espera <= 0 ? PASO * (VELOCIDAD_PASO[this.modoPaso] ?? 1) * this.ritmo : 0,
           modo: this.modoPaso,
-          forzarPie: this.enAsalto,
+          forzarPie: this.enAsalto || this.andando,
           apuntar: this.aim,
           objetivo: this.targetPos,
           retroceso: this.recoil,
