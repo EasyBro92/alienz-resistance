@@ -368,6 +368,23 @@ def caja (grupo, mat, x0, x1, z0, z1, y0, y1, techo=None, baldosa=12.0, tapa_aba
     if tapa_abajo:
         cara(grupo, mat, [P(x0, z1, y0), P(x1, z1, y0), P(x1, z0, y0), P(x0, z0, y0)], hacia=ABAJO, baldosa=24.0)
 
+def tejado (grupo, mat, x0, x1, z0, z1, y, alto, piñon=None, baldosa=6.0):
+    """Tejado a dos aguas con la cumbrera a lo largo del lado largo; `piñon` es el
+    material de los dos triángulos de los extremos (por defecto, el del tejado)."""
+    x0, x1 = min(x0, x1), max(x0, x1); z0, z1 = min(z0, z1), max(z0, z1)
+    if (x1 - x0) >= (z1 - z0):
+        zm = (z0 + z1) / 2
+        cara(grupo, mat, [P(x0, z1, y), P(x1, z1, y), P(x1, zm, y + alto), P(x0, zm, y + alto)], hacia=V((0, -1, 1)), baldosa=baldosa)
+        cara(grupo, mat, [P(x0, z0, y), P(x1, z0, y), P(x1, zm, y + alto), P(x0, zm, y + alto)], hacia=V((0, 1, 1)), baldosa=baldosa)
+        cara(grupo, piñon or mat, [P(x0, z0, y), P(x0, z1, y), P(x0, zm, y + alto)], hacia=V((-1, 0, 0)), baldosa=baldosa)
+        cara(grupo, piñon or mat, [P(x1, z0, y), P(x1, z1, y), P(x1, zm, y + alto)], hacia=V((1, 0, 0)), baldosa=baldosa)
+    else:
+        xm = (x0 + x1) / 2
+        cara(grupo, mat, [P(x0, z0, y), P(x0, z1, y), P(xm, z1, y + alto), P(xm, z0, y + alto)], hacia=V((-1, 0, 1)), baldosa=baldosa)
+        cara(grupo, mat, [P(x1, z0, y), P(x1, z1, y), P(xm, z1, y + alto), P(xm, z0, y + alto)], hacia=V((1, 0, 1)), baldosa=baldosa)
+        cara(grupo, piñon or mat, [P(x0, z1, y), P(x1, z1, y), P(xm, z1, y + alto)], hacia=V((0, -1, 0)), baldosa=baldosa)
+        cara(grupo, piñon or mat, [P(x0, z0, y), P(x1, z0, y), P(xm, z0, y + alto)], hacia=V((0, 1, 0)), baldosa=baldosa)
+
 def prisma (grupo, mat, planta, y0, y1, techo=None, baldosa=12.0):
     """planta: lista de (x, z) en orden; paredes y tapa."""
     cx = sum(p[0] for p in planta) / len(planta); cz = sum(p[1] for p in planta) / len(planta)

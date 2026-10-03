@@ -123,9 +123,16 @@ export const PAISES = [
     cierre: 'París responde por fin con otra frase. Es la primera vez en dieciocho meses que dice algo distinto.',
     misiones: [
       {
-        name: 'Marsella', lugar: 'Vieux Port · muelle de los pescadores', mapa: sitio(43.30, 5.37),
-        // El puerto viejo, con los barcos amarrados de proa al muelle.
-        escenario: 'marsella', suelo: 'losas', tonoSuelo: 0xc9c2b2, hitos: [['notreDameGarde']],
+        name: 'Marsella', llegada: 'marsella', lugar: 'Vieux Port · muelle de los pescadores', mapa: sitio(43.30, 5.37),
+        // El Vieux-Port hecho en Blender (herramientas/blender/lugar_marsella.py):
+        // el muelle norte con los barcos a la izquierda y los soportales a la
+        // derecha, por la mañana.
+        escenario: 'marsellaPuerto', suelo: 'losas', tonoSuelo: 0xc9c2b2, hitos: [],
+        // Desembarcan: nacen dentro de las barcazas varadas en la dársena del
+        // fondo y bajan por la rampa al muelle (z = -124), deprisa hasta -74.
+        entrada: { z: -130, fondo: 7, prisa: { desde: -120, hasta: -74, por: 4 } },
+        fondo: { hora: 'dia', cielo: 0x8fc0ee, niebla: 0xd3e2ee, nieblaCerca: 140, nieblaLejos: 460 },
+        sinPajaros: true, sinNubes: true,
         resumen: 'Escupen a distancia, saltan las barreras y revientan al caer.',
         parte: ['El campamento del puerto lleva más tiempo montado, y se nota: los huéspedes ya no vienen todos iguales.',
           'No están improvisando. Están probando qué funciona contra nosotros.'],
