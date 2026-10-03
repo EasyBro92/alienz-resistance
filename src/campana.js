@@ -125,11 +125,12 @@ export const PAISES = [
       {
         name: 'Marsella', llegada: 'marsella', lugar: 'Vieux Port · muelle de los pescadores', mapa: sitio(43.30, 5.37),
         // El Vieux-Port hecho en Blender (herramientas/blender/lugar_marsella.py):
-        // el muelle norte con los barcos a la izquierda y los soportales a la
-        // derecha, por la mañana.
+        // el muelle norte mirando al fondo del puerto, con la bocana a la
+        // espalda: los barcos a la derecha y los soportales a la izquierda, por
+        // la mañana.
         escenario: 'marsellaPuerto', suelo: 'losas', tonoSuelo: 0xc9c2b2, hitos: [],
         // Desembarcan: nacen dentro de las barcazas varadas en la dársena del
-        // fondo y bajan por la rampa al muelle (z = -124), deprisa hasta -74.
+        // fondo, junto al Quai des Belges, y bajan por la rampa al muelle (z = -124), deprisa hasta -74.
         entrada: { z: -130, fondo: 7, prisa: { desde: -120, hasta: -74, por: 4 } },
         fondo: { hora: 'dia', cielo: 0x8fc0ee, niebla: 0xd3e2ee, nieblaCerca: 140, nieblaLejos: 460 },
         sinPajaros: true, sinNubes: true,

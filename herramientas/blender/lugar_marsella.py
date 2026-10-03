@@ -20,6 +20,18 @@
 #     Garde con la Bonne Mère dorada. A la espalda, el Quai des Belges con la
 #     Ombrière, la marquesina de espejo.
 #
+# DADO LA VUELTA (03/10). Isidro, después de verlo: «quiero invertir de dónde
+# vienen los aliens por el lado que vienen los soldados, lo mismo para los
+# soldados; la antena tiene que quedar a un lado, pero bien integrada en el mar,
+# junto a alguna barca, sin que se traspasen». Así que el guion sigue escrito
+# como arriba (x = la derecha mirando a la bocana, z hacia el este), pero todo
+# gira media vuelta alrededor de z = VUELTA (`dar_la_vuelta`): en el juego se
+# mira al ESTE, al fondo del puerto, con la bocana y el mar a la espalda de los
+# soldados; el agua queda a la DERECHA y las fachadas a la IZQUIERDA. Las
+# barcazas han varado en la esquina del Quai des Belges, al fondo, y la antena
+# va en una barcaza alienígena amarrada de popa al muelle entre los barcos.
+# Cuentas: juego (x, z) = guion (-x, 2·VUELTA - z).
+#
 # Jugando, en un móvil en vertical, solo cabe hasta x ≈ 12 a mitad del campo y 20
 # al fondo, y nada alto a lo lejos: Notre-Dame no se ve desde el muelle (está
 # demasiado lejos y demasiado arriba para el encuadre); la enseña el vuelo.
@@ -30,7 +42,10 @@ import numpy as np
 from horneado import *
 import horneado as H
 
-SOL = (-0.45, 0.52, 0.75)               # mañana: del este (a la espalda) y algo del sur (izquierda)
+SOL = (-0.45, 0.52, 0.75)               # mañana: del este y algo del sur (en el guion, sin girar)
+VUELTA = -50.0
+dar_la_vuelta(VUELTA)
+SOL_JUEGO = (-SOL[0], SOL[1], -SOL[2])  # el mismo sol visto desde el juego: de frente y por la derecha
 iniciar('marsella', 1599, eje=(-60.0, -150.0), encendidas=0.0, reflejo=(0.05, 0.1, 0.18))
 
 # ==================================================================================
@@ -179,55 +194,72 @@ print('TEXTURAS', round(time.time() - H.E.t0, 1), 's')
 # cercano (barcos, farolas, bolardos) · EP lo que no lleva luz (el agua, la
 # bodega negra). Y para el vuelo: C, G, T y CP.
 config_suelo(-1600, 1600, -1700, 1300, (-360, 260), (-560, 260))
-ORILLA, DERECHA = -9.2, 13.5             # el canto del agua y el pie de los soportales
-Z_CERCA, Z_FIN = 34.0, -124.0            # el muelle; pasado Z_FIN, la dársena
+ORILLA, DERECHA = -8.4, 13.5             # el canto del agua y el pie de los soportales
+# El muelle: Z_FONDO es donde acaba por el lado de las barcazas (en el juego,
+# z = -124, el fondo) y Z_ATRAS donde deja de verse jugando (a la espalda de la
+# cámara); más allá sigue, solo para el vuelo, hasta el fuerte Saint-Jean.
+Z_FONDO, Z_ATRAS, Z_BOCANA = 24.0, -140.0, -400.0
 AGUA_Y = -1.6
 
 # --- el muelle: losas claras, cenefa de granito y el canto de piedra -------------------
-rect('S', LOSA, ORILLA + 1.0, 9.0, Z_FIN, Z_CERCA, 0.0, baldosa=4.0)
-rect('S', LOSA_GRIS, 9.0, DERECHA + 2.0, Z_FIN, Z_CERCA, 0.0, baldosa=4.0)      # el paseo de las terrazas
-rect('S', GRANITO, ORILLA, ORILLA + 1.0, Z_FIN, Z_CERCA, 0.0, baldosa=3.0)    # la cenefa del canto
-BASE = (-12.6, -44.0)                    # la base alien, en un pantalán redondo
-disco = [(BASE[0] + 4.9 * math.cos(2 * math.pi * i / 24), BASE[1] + 4.9 * math.sin(2 * math.pi * i / 24)) for i in range(24)]
-cara('S', LOSA_GRIS, [P(x, z, 0.02) for x, z in disco], hacia=ARRIBA, baldosa=4.0)
-for i in range(24):
-    (ax, az), (bx, bz) = disco[i], disco[(i + 1) % 24]
-    cara('E', SILLAR_OSCURO, [P(ax, az, AGUA_Y), P(bx, bz, AGUA_Y), P(bx, bz, 0.02), P(ax, az, 0.02)],
-         hacia=V((ax + bx - 2 * BASE[0], -(az + bz - 2 * BASE[1]), 0)), baldosa=3)
+rect('S', LOSA, ORILLA + 1.0, 9.0, Z_ATRAS, Z_FONDO, 0.0, baldosa=4.0)
+rect('S', LOSA_GRIS, 9.0, DERECHA + 2.0, Z_ATRAS, Z_FONDO, 0.0, baldosa=4.0)      # el paseo de las terrazas
+rect('S', GRANITO, ORILLA, ORILLA + 1.0, Z_ATRAS, Z_FONDO, 0.0, baldosa=3.0)    # la cenefa del canto
+suelo('GN', LOSA, ORILLA + 1.0, 9.0, Z_BOCANA, Z_ATRAS, 0.0, 4.0)
+suelo('GN', GRANITO, ORILLA, ORILLA + 1.0, Z_BOCANA, Z_ATRAS, 0.0, 3.0)
+suelo('GN', LOSA_GRIS, 9.0, 60, Z_BOCANA, Z_ATRAS, 0.0, 4.0)
+suelo('GN', LOSA_GRIS, 9.0, 60, Z_FONDO, 75, 0.0, 4.0)                          # junto a la dársena
+suelo('GN', LOSA, -175, 60, 75, 122, 0.0, 4.0)                                  # la explanada del Quai des Belges
 
-# El muro del muelle, del agua al canto (abierto donde se une la plataforma).
-def muro (x, z0, z1):
-    cara('E', SILLAR_OSCURO, [P(x, z0, AGUA_Y), P(x, z1, AGUA_Y), P(x, z1, 0), P(x, z0, 0)], hacia=V((-1, 0, 0)), baldosa=3)
-muro(ORILLA, BASE[1] + 3.0, Z_CERCA)
-muro(ORILLA, Z_FIN, BASE[1] - 3.0)
-cara('E', SILLAR_OSCURO, [P(ORILLA, Z_FIN, AGUA_Y), P(DERECHA + 2.0, Z_FIN, AGUA_Y), P(DERECHA + 2.0, Z_FIN, 0), P(ORILLA, Z_FIN, 0)], hacia=V((0, 1, 0)), baldosa=3)
+# El muro del muelle, del agua al canto, y los de la dársena del fondo.
+def muro (grupo, x, z0, z1):
+    cara(grupo, SILLAR_OSCURO, [P(x, z0, AGUA_Y), P(x, z1, AGUA_Y), P(x, z1, 0), P(x, z0, 0)], hacia=V((-1, 0, 0)), baldosa=3)
+muro('E', ORILLA, Z_ATRAS, Z_FONDO)
+muro('C', ORILLA, Z_BOCANA, Z_ATRAS)
+muro('E', 9.0, Z_FONDO, 75)
+cara('E', SILLAR_OSCURO, [P(ORILLA, Z_FONDO, AGUA_Y), P(9.0, Z_FONDO, AGUA_Y), P(9.0, Z_FONDO, 0), P(ORILLA, Z_FONDO, 0)], hacia=V((0, -1, 0)), baldosa=3)
+cara('E', SILLAR_OSCURO, [P(-175, 75, AGUA_Y), P(9.0, 75, AGUA_Y), P(9.0, 75, 0), P(-175, 75, 0)], hacia=V((0, 1, 0)), baldosa=3)
 
 # --- el agua: todo el puerto y la dársena del fondo ---------------------------------
 rect('EP', AGUA, -175, ORILLA, -470, 75, AGUA_Y, baldosa=18.0)
-rect('EP', AGUA, ORILLA, 9.0, -175, Z_FIN, AGUA_Y, baldosa=18.0)
-# El muelle sigue por la derecha de la dársena hacia la bocana.
-cara('E', SILLAR_OSCURO, [P(9.0, -175, AGUA_Y), P(9.0, Z_FIN, AGUA_Y), P(9.0, Z_FIN, 0), P(9.0, -175, 0)], hacia=V((-1, 0, 0)), baldosa=3)
-suelo('GN', LOSA_GRIS, 9.0, 60, -175, Z_FIN, 0.0, 4.0)
+rect('EP', AGUA, ORILLA, 9.0, Z_FONDO, 75, AGUA_Y, baldosa=18.0)
 
 # --- las barcazas alienígenas, varadas en la dársena con la rampa echada ------------
+# La proa en z0, sobre el canto del muelle; el casco hacia el fondo (+z).
 def barcaza (cx, z0, largo=17.0, ancho=8.6):
-    z1 = z0 - largo
+    z1 = z0 + largo
     x0, x1 = cx - ancho / 2, cx + ancho / 2
     # el casco: fondo, costados altos con la borda y la popa con su torre
-    caja('E', CHAPA_ALIEN, x0, x0 + 0.6, z1, z0, AGUA_Y - 0.3, 3.6, baldosa=4)
-    caja('E', CHAPA_ALIEN, x1 - 0.6, x1, z1, z0, AGUA_Y - 0.3, 3.6, baldosa=4)
-    caja('E', CHAPA_ALIEN, x0, x1, z1, z1 + 0.6, AGUA_Y - 0.3, 3.6, baldosa=4)
-    caja('E', CHAPA_ALIEN_2, x0 + 0.6, x1 - 0.6, z1 + 0.6, z0, -0.2, 0.0, baldosa=4)            # la cubierta
-    caja('E', CHAPA_ALIEN_2, x0 + 1.4, x1 - 1.4, z1 + 0.6, z1 + 4.6, 0.0, 6.4, baldosa=4)        # la torre de popa
+    caja('E', CHAPA_ALIEN, x0, x0 + 0.6, z0, z1, AGUA_Y - 0.3, 3.6, baldosa=4)
+    caja('E', CHAPA_ALIEN, x1 - 0.6, x1, z0, z1, AGUA_Y - 0.3, 3.6, baldosa=4)
+    caja('E', CHAPA_ALIEN, x0, x1, z1 - 0.6, z1, AGUA_Y - 0.3, 3.6, baldosa=4)
+    caja('E', CHAPA_ALIEN_2, x0 + 0.6, x1 - 0.6, z0, z1 - 0.6, -0.2, 0.0, baldosa=4)            # la cubierta
+    caja('E', CHAPA_ALIEN_2, x0 + 1.4, x1 - 1.4, z1 - 4.6, z1 - 0.6, 0.0, 6.4, baldosa=4)        # la torre de popa
     for lado in (x0, x1):                                                                        # el reborde que brilla
-        caja('EP', LUZ_ALIEN, lado - 0.05, lado + 0.05, z1, z0, 3.3, 3.5)
-    caja('EP', LUZ_ALIEN, x0 + 1.3, x1 - 1.3, z1 + 4.55, z1 + 4.7, 4.6, 5.2)
+        caja('EP', LUZ_ALIEN, lado - 0.05, lado + 0.05, z0, z1, 3.3, 3.5)
+    caja('EP', LUZ_ALIEN, x0 + 1.3, x1 - 1.3, z1 - 4.7, z1 - 4.55, 4.6, 5.2)
     # la rampa de proa, echada sobre el canto del muelle
-    cara('E', CHAPA_ALIEN_2, [P(x0 + 0.7, z0, 0.0), P(x1 - 0.7, z0, 0.0), P(x1 - 0.7, z0 + 4.2, 0.06), P(x0 + 0.7, z0 + 4.2, 0.06)], hacia=ARRIBA, baldosa=3)
-    cara('E', CHAPA_ALIEN, [P(x0 + 0.7, z0 + 4.2, 0.06), P(x1 - 0.7, z0 + 4.2, 0.06), P(x1 - 0.7, z0 + 4.2, -0.3), P(x0 + 0.7, z0 + 4.2, -0.3)], hacia=V((0, -1, 0)), baldosa=3)
-for cx in (-5.0, 4.6):
-    barcaza(cx, Z_FIN - 1.6)
-barcaza(-17.0, Z_FIN - 6.0, 15.0, 7.8)                                           # otra llegando, en el agua
+    cara('E', CHAPA_ALIEN_2, [P(x0 + 0.7, z0, 0.0), P(x1 - 0.7, z0, 0.0), P(x1 - 0.7, z0 - 4.2, 0.06), P(x0 + 0.7, z0 - 4.2, 0.06)], hacia=ARRIBA, baldosa=3)
+    cara('E', CHAPA_ALIEN, [P(x0 + 0.7, z0 - 4.2, 0.06), P(x1 - 0.7, z0 - 4.2, 0.06), P(x1 - 0.7, z0 - 4.2, -0.3), P(x0 + 0.7, z0 - 4.2, -0.3)], hacia=V((0, 1, 0)), baldosa=3)
+for cx in (-3.9, 4.4):
+    barcaza(cx, Z_FONDO + 1.6)
+barcaza(-17.0, Z_FONDO + 6.0, 15.0, 7.8)                                         # otra llegando, en el agua
+
+# --- la barcaza de la antena, amarrada de popa al muelle entre los barcos ----------------
+# La base alien se planta encima (baseX/baseZ de `marsellaPuerto`, ya girados).
+# En el juego mide 0,059 × su distancia a la cámara de radio: unos 4,1 aquí, así
+# que la cubierta mide 10 × 10 y la base queda a medio metro del canto y a más
+# de uno de la borda; los dos barcos de al lado, a algo más de un metro.
+BASE = (-13.0, -56.0)                    # en el juego (13, -44)
+BX0, BX1 = ORILLA - 0.2, ORILLA - 10.2
+BZ0, BZ1 = BASE[1] - 5.0, BASE[1] + 5.0
+caja('E', CHAPA_ALIEN, BX1, BX0, BZ0, BZ1, AGUA_Y - 0.4, 0.0, techo=CHAPA_ALIEN_2, baldosa=4)   # el casco, la cubierta a ras del muelle
+for (a0, a1, c0, c1) in ((BX1, BX1 + 0.3, BZ0, BZ1), (BX1, BX0, BZ0, BZ0 + 0.3), (BX1, BX0, BZ1 - 0.3, BZ1)):
+    caja('E', CHAPA_ALIEN, a0, a1, c0, c1, 0.0, 0.35, baldosa=4)                                   # la borda, abierta hacia el muelle
+caja('EP', LUZ_ALIEN, BX1 - 0.05, BX0, BZ0 - 0.05, BZ1 + 0.05, -0.75, -0.6)                       # la línea que brilla sobre el agua
+for (x, z) in ((BX0 - 0.6, BZ0 + 0.8), (BX0 - 0.6, BZ1 - 0.8)):
+    cubo('EV', METAL, P(x, z, 0.2), (0.3, 0.3, 0.4))                                               # las bitas de las amarras
+    barra('EV', METAL, P(x, z, 0.3), P(ORILLA + 0.3, z, 0.3), 0.05)                                # la amarra al bolardo
 
 # --- los soportales y las fachadas del Quai du Port --------------------------------
 FX = DERECHA + 2.0                        # la línea de fachada
@@ -237,19 +269,36 @@ def bloque_pouillon (z0, z1, plantas=7, fondo=16.0, fach=None):
     caja('E', fach or F_POUILLON, FX + 0.6, FX + fondo, z1, z0, 4.5, alto, techo=AZOTEA)
     caja('E', SILLAR, FX - 0.2, FX + 0.9, z1, z0, 4.4, 4.9, baldosa=4)                          # la cornisa del soportal
     tejado('E', TEJA, FX + 0.6, FX + fondo, z1, z0, alto, 2.6)
-z = Z_CERCA
-for largo in (44.0, 14.0, 46.0, 40.0, 50.0):
+z = 120.0                                 # desde la esquina del Quai des Belges
+for largo in (44.0, 14.0, 46.0, 40.0, 50.0, 44.0):
     if largo == 14.0:                     # el Hôtel de Ville: bajo, de piedra, con su frontón
         caja('E', F_AYUNTAMIENTO, FX - 1.5, FX + 14, z - largo, z, 0.0, 13.0, techo=AZOTEA)
         tejado('E', TEJA, FX - 1.5, FX + 14, z - largo, z, 13.0, 3.0)
     else:
         bloque_pouillon(z, z - largo, plantas=random.choice([6, 7, 8]))
     z -= largo + 10.0                     # una calle que sube al Panier
-for zz in np.arange(-2.0, -240.0, -56.0):
-    suelo('GN', CALZADA, FX - 1, FX + 40, zz - 5, zz + 5, 0.02, carriles=(zz - 5, 5.0, 'x'))
+    suelo('GN', CALZADA, FX - 1, FX + 40, z, z + 10, 0.02, carriles=(z, 5.0, 'x'))
+
+# --- el fondo: las fachadas del Quai des Belges, que cierran el puerto -------------------
+# En el juego quedan al final del agua, a unos 200 de la cámara: lo que cierra
+# la vista. Casas de cinco a siete plantas con tejado de teja; el hueco de la
+# Canebière se deja abierto.
+def casa (x0, x1, z0, z1, plantas, grupo='T'):
+    alto = plantas * 3.0
+    caja(grupo, random.choice(F_PISOS), x0, x1, z0, z1, 0.0, alto, techo=AZOTEA)
+    tejado(grupo, TEJA, x0, x1, z0, z1, alto, random.uniform(1.8, 3.2))
+x = -130.0
+while x < FX:
+    ancho = random.uniform(11.0, 17.0)
+    if not (x + ancho < -40 or x >= -22):  # la Canebière
+        x = -22.0
+        continue
+    casa(x, min(x + ancho, FX) - 0.6, 122.0, 150.0, random.choice([5, 6, 6, 7]), 'E')
+    x += ancho
+suelo('GN', CALZADA, -40, -22, 122, 300, 0.04, carriles=(-40, 4.5, 'z'))       # la Canebière
 
 # --- terrazas, farolas, bolardos y árboles del paseo ----------------------------------
-for z in np.arange(26.0, Z_FIN + 4, -9.0):
+for z in np.arange(19.0, Z_ATRAS, -9.0):
     # la terraza: mesas y sombrillas, entre las farolas y los soportales
     for dx in (10.6, 12.6):
         cubo('EV', METAL, P(dx, z, 0.37), (0.75, 0.75, 0.06))
@@ -260,16 +309,16 @@ for z in np.arange(26.0, Z_FIN + 4, -9.0):
         a0, a1 = 2 * math.pi * i / 6, 2 * math.pi * (i + 1) / 6
         cara('EV', lona, [centro, centro + V((1.6 * math.cos(a0), 1.6 * math.sin(a0), -0.45)), centro + V((1.6 * math.cos(a1), 1.6 * math.sin(a1), -0.45))], hacia=ARRIBA)
     barra('EV', METAL, P(11.6, z - 1.6, 0), centro, 0.07)
-for z in np.arange(30.0, Z_FIN, -14.0):
-    if abs(z - BASE[1]) < 7:
+for z in np.arange(20.0, Z_ATRAS, -14.0):
+    if abs(z - BASE[1]) < 9.5:           # ninguna delante de la antena
         continue
     barra('EV', METAL, P(ORILLA + 0.7, z, 0), P(ORILLA + 0.7, z, 4.6), 0.14)                      # farola del canto
     cubo('EP', FAROLA, P(ORILLA + 0.7, z, 4.75), (0.4, 0.4, 0.35))
-for z in np.arange(32.0, Z_FIN, -5.0):
-    if abs(z - BASE[1]) < 5.5:
+for z in np.arange(20.0, Z_ATRAS, -5.0):
+    if abs(z - BASE[1]) < 6.5:
         continue
     cubo('EV', METAL, P(ORILLA + 0.3, z, 0.25), (0.34, 0.34, 0.5))                                # bolardo
-for z in np.arange(20.0, Z_FIN, -18.0):
+for z in np.arange(16.0, Z_ATRAS, -18.0):
     arbol('EV', TRONCO, HOJAS, 10.4, z + 4.5, 0.8, fino=True)
 
 # --- los barcos: veleros y lanchas amarrados de popa, entre pantalanes --------------------
@@ -350,14 +399,17 @@ def barco_lado (grupo, x, z_pantalan, lado, largo):
 # Junto al muelle donde se juega, los barcos van amarrados de popa al canto,
 # apuntando al agua: son lo que se ve a la izquierda toda la partida.
 n_barcos = 0
-for z in np.arange(30.0, Z_FIN - 40, -3.5):
-    if abs(z - BASE[1]) < 7.5 or z < Z_FIN + 2 and z > Z_FIN - 26:
+for z in np.arange(20.0, Z_BOCANA, -3.5):
+    if abs(z - BASE[1]) < 11.5:          # deja sitio a la barcaza de la antena y a sus dos barcos
         continue
     if random.random() < 0.85:
         largo = random.uniform(7.0, 11.5)
-        g = 'EV' if z > -150 else 'T'
+        g = 'EV' if z > Z_ATRAS else 'T'
         barco(g, ORILLA - 1.2, z, largo, -1)          # la popa en el canto, la proa al agua
         n_barcos += 1
+# Los dos barcos de al lado de la barcaza de la antena, a 1,2 de su casco.
+for z in (BZ0 - 2.64, BZ1 + 2.64):
+    barco('EV', ORILLA - 1.2, z, 9.0, -1)
 # Y más allá, los pantalanes del resto del puerto (solo en el vuelo).
 for z in np.arange(60.0, -440.0, -24.0):
     pantalan('T', -42.0, -88.0, z)
@@ -370,15 +422,14 @@ comprobar_paso(('E', 'EP', 'S', 'EV'))
 # 3. LO QUE SOLO SE VE EN EL VUELO
 # ==================================================================================
 # --- el Quai des Belges y la Ombrière, a la espalda ---------------------------------
-suelo('G', ACERA, -1600, 1600, 75, 1300, 0.0, 6.0)                     # tierra: al este del puerto
-suelo('G', ACERA, 9.0, 1600, -560, 75, 0.0, 6.0)                       # al norte (el Panier, la Joliette)
-suelo('G', ACERA, -1600, -175, -560, 75, 0.0, 6.0)                     # al sur (Rive Neuve y la colina)
+suelo('G', ACERA, -1600, 1600, 75, 1300, -0.03, 6.0)                     # tierra: al este del puerto
+suelo('G', ACERA, 9.0, 1600, -560, 75, -0.03, 6.0)                       # al norte (el Panier, la Joliette)
+suelo('G', ACERA, -1600, -175, -560, 75, -0.03, 6.0)                     # al sur (Rive Neuve y la colina)
 # Pasada la bocana, el Mediterráneo: el puerto se abre al oeste.
 rect('CP', AGUA, -1700, 1700, -1800, -560, AGUA_Y, baldosa=30.0)
 rect('CP', AGUA, -175, 9.0, -560, -470, AGUA_Y, baldosa=30.0)
-suelo('G', LOSA, -175, 9.0, 75, 120, 0.02, 4.0)                        # la explanada del Quai des Belges
 suelo('G', LOSA, -190, -175, -470, 75, 0.02, 4.0)                      # el muelle de Rive Neuve
-suelo('G', CALZADA, -40, -22, 120, 1300, 0.04, carriles=(-40, 4.5, 'z'))   # la Canebière
+suelo('G', CALZADA, -40, -22, 300, 1300, 0.04, carriles=(-40, 4.5, 'z'))   # la Canebière
 caja('C', ESPEJO, -95, -50, 82, 106, 6.0, 6.4, tapa_abajo=True, baldosa=6)  # la Ombrière: espejo por debajo
 for x in (-92, -72.5, -53):
     for z in (85, 103):
@@ -425,10 +476,6 @@ prisma('C', RAYADO, [(NC[0] + 3 * math.cos(2 * math.pi * i / 8), NC[1] + 16 + 3 
 barra('T', ORO, P(NC[0], NC[1] + 16, NY + 39), P(NC[0], NC[1] + 16, NY + 49), 1.6)               # la Bonne Mère
 
 # --- Rive Neuve y la ciudad: casas de piedra clara con tejado de teja ------------------------
-def casa (x0, x1, z0, z1, plantas, grupo='T'):
-    alto = plantas * 3.0
-    caja(grupo, random.choice(F_PISOS), x0, x1, z0, z1, 0.0, alto, techo=AZOTEA)
-    tejado(grupo, TEJA, x0, x1, z0, z1, alto, random.uniform(1.8, 3.2))
 for z in np.arange(70.0, -470.0, -14.0):                                 # la fachada de Rive Neuve, frente al agua
     if random.random() < 0.9:
         casa(-206, -192, z - 13, z - 0.5, random.choice([5, 6, 6, 7]), 'C')
@@ -439,7 +486,7 @@ for x in np.arange(-1500.0, 1500.0, PASO):
         cx, cz = x + PASO / 2, z + PASO / 2
         if cz < -530:                                                    # el mar
             continue
-        if -215 < cx < 75 and -480 < cz < 125:                          # el puerto y sus muelles
+        if -215 < cx < 75 and -480 < cz < 170:                          # el puerto y sus muelles
             continue
         if math.hypot(cx - NC[0], cz - NC[1]) < NR + 10:                  # la colina
             continue
@@ -491,5 +538,5 @@ terminar(
         'CP': ('planoC', 'plano', None),
     },
     exportes=[('lugar-marsella', ['S', 'E', 'GN', 'EV', 'EP']), ('lugar-marsella-ciudad', ['C', 'G', 'T', 'CP'])],
-    sol_hacia=SOL, sol_color=(1.0, 0.94, 0.84), sol_fuerza=3.6, cielo_fuerza=0.55, cielo_altura=32, cielo_giro=-160,
+    sol_hacia=SOL_JUEGO, sol_color=(1.0, 0.94, 0.84), sol_fuerza=3.6, cielo_fuerza=0.55, cielo_altura=32, cielo_giro=20,
     escala=0.42, satura=0.8, no_alumbran=('CP',))

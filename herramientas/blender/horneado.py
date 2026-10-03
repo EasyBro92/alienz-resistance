@@ -53,6 +53,7 @@ class _Estado:
     nombre = 'lugar'
     rng = None
     eje = V((0, 0, 0))
+    vuelta = None                # z del eje de la media vuelta, o nada
     encendidas = 0.14            # cuántas ventanas hay con la luz dada
     reflejo = (0.10, 0.06, 0.02) # el color que devuelve el cristal (el del cielo)
     t0 = 0.0
@@ -72,7 +73,19 @@ def iniciar (nombre, semilla, eje=(0.0, 0.0), encendidas=0.14, reflejo=(0.10, 0.
     lotes.clear(); mats.clear()
 
 def P (x, z, y=0.0):
+    if E.vuelta is not None:             # el sitio entero girado media vuelta (ver `dar_la_vuelta`)
+        x, z = -x, 2 * E.vuelta - z
     return V((x, -z, y))
+
+def dar_la_vuelta (z_eje):
+    """Gira todo lo que se construya después media vuelta alrededor de (0, z_eje):
+    el guion sigue escrito en sus coordenadas y el juego lo ve al revés. Así se
+    cambia qué extremo queda a la espalda de los soldados sin rehacer el mapa.
+    Llamarlo ANTES de `iniciar`; el sol de `terminar` hay que darlo ya girado."""
+    E.vuelta = z_eje
+
+def _girado (d):
+    return d if E.vuelta is None else V((-d.x, -d.y, d.z))
 
 def rgb (h):
     return [((h >> s) & 255) / 255 for s in (16, 8, 0)]
@@ -363,7 +376,7 @@ def cara (grupo, mat, pts, uvs=None, hacia=None, baldosa=None):
         if isinstance(hacia, str):
             d = V((c.x - E.eje.x, c.y - E.eje.y, 0)) * (1 if hacia == 'fuera' else -1)
         else:
-            d = hacia
+            d = _girado(hacia)           # las direcciones escritas a mano giran con el sitio
         if f.normal.dot(d) < 0:
             f.normal_flip()
     if uvs is not None:
@@ -397,7 +410,7 @@ def caja (grupo, mat, x0, x1, z0, z1, y0, y1, techo=None, baldosa=12.0, tapa_aba
         pts = [P(ax, az, y0), P(bx, bz, y0), P(bx, bz, y1), P(ax, az, y1)]
         medio = (pts[0] + pts[2]) / 2
         cara(grupo, mat, pts, uvs=[(0, 0), (largo / baldosa, 0), (largo / baldosa, (y1 - y0) / baldosa), (0, (y1 - y0) / baldosa)],
-             hacia=V((medio.x - centro.x, medio.y - centro.y, 0)))
+             hacia=_girado(V((medio.x - centro.x, medio.y - centro.y, 0))))   # ya girada: que no gire dos veces
     cara(grupo, techo or mat, [P(x0, z1, y1), P(x1, z1, y1), P(x1, z0, y1), P(x0, z0, y1)], hacia=ARRIBA, baldosa=24.0)
     if tapa_abajo:
         cara(grupo, mat, [P(x0, z1, y0), P(x1, z1, y0), P(x1, z0, y0), P(x0, z0, y0)], hacia=ABAJO, baldosa=24.0)
@@ -430,7 +443,7 @@ def prisma (grupo, mat, planta, y0, y1, techo=None, baldosa=12.0):
         pts = [P(ax, az, y0), P(bx, bz, y0), P(bx, bz, y1), P(ax, az, y1)]
         medio = (pts[0] + pts[2]) / 2
         cara(grupo, mat, pts, uvs=[(u, 0), (u + largo / baldosa, 0), (u + largo / baldosa, (y1 - y0) / baldosa), (u, (y1 - y0) / baldosa)],
-             hacia=V((medio.x - c.x, medio.y - c.y, 0)))
+             hacia=_girado(V((medio.x - c.x, medio.y - c.y, 0))))
         u += largo / baldosa
     cara(grupo, techo or mat, [P(x, z, y1) for x, z in planta], hacia=ARRIBA, baldosa=24.0)
 
@@ -492,7 +505,7 @@ def malla (grupo, mat, filas, hacia, u_rep=1.0, v_rep=1.0, cerrada_u=False, gira
                 pts, uvs = [a, c, d], [uvs[0], uvs[2], uvs[3]]
             elif (c - d).length < 1e-5:
                 pts, uvs = [a, b, c], [uvs[0], uvs[1], uvs[2]]
-            h = hacia(sum(pts, V((0, 0, 0))) / len(pts)) if callable(hacia) else hacia
+            h = _girado(hacia(sum(pts, V((0, 0, 0))) / len(pts))) if callable(hacia) else hacia
             cara(grupo, mat, pts, uvs=uvs, hacia=h)
 
 def cubo (grupo, mat, centro, tam, giro=0.0):

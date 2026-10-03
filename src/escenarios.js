@@ -429,11 +429,12 @@ function valenciaArtes () {
 }
 
 // Marsella: el Vieux-Port, hecho en Blender con la luz horneada
-// (herramientas/blender/lugar_marsella.py, 03/10). Se juega en el Quai du Port:
-// el agua y los barcos a la izquierda, los soportales a la derecha y, al fondo,
-// las barcazas alienígenas varadas en la dársena con la rampa sobre el muelle,
-// de donde bajan (`entrada` en la misión). La base alien flota en un pantalán
-// redondo en el agua, a un lado, como en Valencia.
+// (herramientas/blender/lugar_marsella.py, 03/10). Se juega en el Quai du Port
+// mirando al fondo del puerto (el mapa se dio la vuelta: la bocana queda a la
+// espalda de los soldados): los soportales a la izquierda, el agua y los barcos
+// a la derecha y, al fondo, las barcazas alienígenas varadas en la dársena con
+// la rampa sobre el muelle, de donde bajan (`entrada` en la misión). La base
+// alien va encima de otra barcaza amarrada de popa al muelle, entre los barcos.
 function marsellaPuerto () {
   const g = new THREE.Group()
   g.name = 'lugar:marsellaPuerto'
@@ -445,7 +446,8 @@ function marsellaPuerto () {
     tapaElMundo: true,
     sinSombra: true,
     sinCalzada: true,
-    baseX: -12.6,
+    // En la cubierta de su barcaza (BASE del guion, ya girada).
+    baseX: 13,
     baseZ: -44
   })
   return g

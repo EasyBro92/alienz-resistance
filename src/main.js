@@ -1724,15 +1724,16 @@ const VALENCIA_PLANOS = [
   { k: 0.76, pos: [4, 68, 118], mira: [0, 8, -70] },    // por encima del puente
   { k: 0.9, pos: [0, 36, 62], mira: [0, 3, -34] }
 ]
-// Marsella (03/10): desde el mar, sobre la bocana —los fuertes, el MuCEM y
-// Notre-Dame en su colina a la derecha—, por encima del agua del puerto y, al
-// final, dando la vuelta sobre el Quai des Belges para bajar al muelle.
+// Marsella (03/10, dada la vuelta): desde el mar, entrando por la bocana —el
+// fuerte Saint-Jean y el MuCEM a la izquierda, Notre-Dame en su colina a la
+// derecha— y siguiendo el agua del puerto hasta bajar al muelle, mirando al
+// fondo, donde han varado las barcazas.
 const MARSELLA_PLANOS = [
-  { k: 0, pos: [-520, 220, -640], mira: [-230, 30, -200] },
-  { k: 0.3, pos: [-200, 125, -260], mira: [-40, 10, -60] },
-  { k: 0.56, pos: [-110, 80, 60], mira: [0, 8, -60] },
-  { k: 0.76, pos: [-30, 45, 70], mira: [0, 5, -60] },
-  { k: 0.9, pos: [-4, 24, 42], mira: [0, 3, -40] }
+  { k: 0, pos: [40, 190, 900], mira: [170, 40, 220] },
+  { k: 0.3, pos: [60, 120, 520], mira: [50, 10, 60] },
+  { k: 0.56, pos: [28, 80, 260], mira: [0, 8, -60] },
+  { k: 0.76, pos: [6, 45, 120], mira: [0, 5, -60] },
+  { k: 0.9, pos: [2, 24, 50], mira: [0, 3, -40] }
 ]
 // Lyon (03/10): desde la Presqu'île, mirando al oeste a Fourvière por encima del
 // Saona y del Viejo Lyon; luego gira río abajo y baja al muelle.
