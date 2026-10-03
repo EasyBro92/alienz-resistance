@@ -1971,8 +1971,24 @@ window.addEventListener('pointerdown', e => {
   e.preventDefault()
 }, true)
 
+// La cortina de los lugares hechos en Blender: la primera vez que se abre uno
+// tarda medio segundo en llegar (modelos, mapas de luz, texturas a la tarjeta) y
+// se veía montarse a trozos. Mientras `world.escenarioListo()` diga que no, la
+// pantalla queda tapada; se pone de golpe y se quita fundiendo. Va por debajo de
+// los menús, así que en la portada no estorba aunque se esté cargando detrás.
+const cortinaLugar = document.createElement('div')
+cortinaLugar.className = 'cortina-lugar'
+cortinaLugar.innerHTML = '<span>Cargando…</span>'
+document.getElementById('app').appendChild(cortinaLugar)
+let cortinaPuesta = false
+
 function frame (now) {
   requestAnimationFrame(frame)
+  const tapar = !world.escenarioListo()
+  if (tapar !== cortinaPuesta) {
+    cortinaPuesta = tapar
+    cortinaLugar.classList.toggle('puesta', tapar)
+  }
   // El tiempo REAL del fotograma, sin recortar, es el que mide la calidad: con
   // el recorte de 50 ms un móvil ahogado parecería ir siempre a veinte justos.
   const real = now - last

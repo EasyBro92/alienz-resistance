@@ -1800,7 +1800,12 @@ export function createWorld (canvas) {
           }
           return gltf.scene
         }
-        const cargas = [cargadorArenas.loadAsync(ruta(crudo.userData.modelo) + '.glb').then(gltf => { g.add(montar(gltf)) })]
+        // Nada se cuelga según llega: el modelo del sitio aparecía antes que sus
+        // mapas de luz y que la ciudad, y la primera vez que se abría un mapa se
+        // veía montarse a trozos durante medio segundo (Isidro: «se ve como va
+        // cargando todo primero»). Se guarda todo aquí y entra a la vez.
+        const piezas = []
+        const cargas = [cargadorArenas.loadAsync(ruta(crudo.userData.modelo) + '.glb').then(gltf => { piezas.push(montar(gltf)) })]
         // El barrio de alrededor (Madrid): otro modelo, que solo se enciende
         // durante el vuelo de llegada. Si el vuelo lo pidió antes de que
         // llegara, se enciende al llegar.
@@ -1808,14 +1813,30 @@ export function createWorld (canvas) {
           cargas.push(cargadorArenas.loadAsync(ruta(crudo.userData.modeloCiudad) + '.glb').then(gltf => {
             const ciudad = montar(gltf)
             ciudad.name = 'ciudad'
-            ciudad.visible = !!g.userData.ciudadPedida
-            g.add(ciudad)
+            piezas.push(ciudad)
             g.userData.ciudad = ciudad
           }))
         }
-        // `listo` lo mira el vuelo de llegada para no arrancar con el mundo vacío.
+        // `listo` lo mira el vuelo de llegada para no arrancar con el mundo vacío,
+        // y main.js para tapar la pantalla mientras tanto.
         g.userData.listo = false
         Promise.all(cargas).then(() => Promise.all(esperas))
+          .then(async () => {
+            for (const p of piezas) g.add(p)
+            // Antes de enseñarlo, las texturas subidas a la tarjeta y los
+            // sombreadores compilados: si no, el primer fotograma que los dibuja
+            // se atasca y aún se ve cómo entran. La ciudad también, encendida
+            // un momento solo para esto.
+            const ciudad = g.userData.ciudad
+            if (ciudad?.isObject3D) ciudad.visible = true
+            g.traverse(o => {
+              for (const m of [o.material ?? []].flat()) {
+                for (const t of [m.map, m.lightMap, m.emissiveMap]) if (t) renderer.initTexture(t)
+              }
+            })
+            if (renderer.compileAsync) await renderer.compileAsync(g, camera, scene)
+            if (ciudad?.isObject3D) ciudad.visible = !!g.userData.ciudadPedida
+          })
           .catch(e => console.warn('Sin modelo del lugar:', e))
           .then(() => { g.userData.listo = true })
       }
