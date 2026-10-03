@@ -174,6 +174,12 @@ METAL = material('metal', color=(0.2, 0.21, 0.22), rug=0.5)
 MASTIL = material('mastil', color=(0.82, 0.83, 0.85), rug=0.4)
 CASCOS = [material(f'casco-{i}', color=c, rug=0.4) for i, c in enumerate([(0.93, 0.93, 0.92), (0.93, 0.93, 0.92), (0.9, 0.9, 0.88), (0.1, 0.17, 0.32), (0.6, 0.12, 0.1), (0.2, 0.32, 0.4)])]
 CUBIERTA = material('cubierta-barco', color=(0.6, 0.48, 0.34), rug=0.7)
+FONDOS = [material(f'fondo-barco-{i}', color=c, rug=0.6) for i, c in enumerate([(0.42, 0.09, 0.08), (0.08, 0.11, 0.2), (0.07, 0.07, 0.08)])]
+VERDUGO = material('verduguillo', color=(0.22, 0.2, 0.19), rug=0.5)
+TECA_OSCURA = material('teca-oscura', color=(0.42, 0.33, 0.24), rug=0.8)
+DEFENSA = material('defensa', color=(0.14, 0.24, 0.52), rug=0.5)
+CABO = material('cabo', color=(0.78, 0.72, 0.6), rug=0.9)
+NEGRO_BARCO = material('negro-barco', color=(0.08, 0.08, 0.09), rug=0.4)
 LONA = [material(f'lona-{i}', color=c, rug=0.9) for i, c in enumerate([(0.9, 0.9, 0.86), (0.75, 0.2, 0.15), (0.2, 0.4, 0.55), (0.9, 0.8, 0.3)])]
 CHAPA_ALIEN = material('chapa-alien', color=(0.13, 0.15, 0.14), rug=0.5)
 CHAPA_ALIEN_2 = material('chapa-alien-2', color=(0.2, 0.23, 0.21), rug=0.5)
@@ -322,8 +328,100 @@ for z in np.arange(16.0, Z_ATRAS, -18.0):
     arbol('EV', TRONCO, HOJAS, 10.4, z + 4.5, 0.8, fino=True)
 
 # --- los barcos: veleros y lanchas amarrados de popa, entre pantalanes --------------------
+def barco_fino (grupo, xp, z, largo, rumbo=-1):
+    """El barco de cerca, el que se ve jugando (Isidro: «¿podrías detallar más
+    las barcas?»): casco en V con la borda que sube hacia la proa, fondo de
+    color, verduguillo, cubierta de teca, bañera, cabina con ventanas,
+    candeleros y guardamancebos, púlpito, defensas y amarras al muelle; el
+    velero con jarcia (estay, backstay, obenques y cruceta) y la vela en su
+    funda, y la lancha con parabrisas, toldo y motor. Unas 200 caras."""
+    xb = xp + rumbo * largo
+    ancho = largo * 0.34
+    casco = random.choice(CASCOS)
+    fondo = random.choice(FONDOS)
+    velero = random.random() < 0.7
+    X = lambda f: xp + (xb - xp) * f
+    semi = lambda f: ancho / 2 * (0.9 + 0.1 * min(1.0, f / 0.2)) * (1 - max(0.0, (f - 0.55) / 0.45) ** 1.8)
+    borda = lambda f: AGUA_Y + 0.85 + 0.4 * max(0.0, (f - 0.45) / 0.55) ** 2
+    pt = lambda f, s, k, y: P(X(f), z + s * semi(f) * k, y)
+    # El casco por tramos: obra viva (quilla → pantoque), obra muerta y verduguillo.
+    est = [0.0, 0.12, 0.3, 0.5, 0.66, 0.8, 0.91, 1.0]
+    capas = [(fondo, 0.15, AGUA_Y - 0.35, 0.9, lambda f: AGUA_Y + 0.08),
+             (casco, 0.9, lambda f: AGUA_Y + 0.08, 1.0, lambda f: borda(f) - 0.12),
+             (VERDUGO, 1.0, lambda f: borda(f) - 0.12, 1.03, borda)]
+    for a, b in zip(est, est[1:]):
+        for s in (-1, 1):
+            for mat, k0, y0, k1, y1 in capas:
+                ya0, yb0 = (y0(a), y0(b)) if callable(y0) else (y0, y0)
+                ya1, yb1 = y1(a), y1(b)
+                cara(grupo, mat, [pt(a, s, k0, ya0), pt(b, s, k0, yb0), pt(b, s, k1, yb1), pt(a, s, k1, ya1)], hacia=V((0, -s, 0)))
+        cara(grupo, CUBIERTA, [pt(a, -1, 1.0, borda(a)), pt(b, -1, 1.0, borda(b)), pt(b, 1, 1.0, borda(b)), pt(a, 1, 1.0, borda(a))], hacia=ARRIBA)
+    espejo = [pt(0, -1, 0.15, AGUA_Y - 0.35), pt(0, -1, 0.9, AGUA_Y + 0.08), pt(0, -1, 1.0, borda(0)),
+              pt(0, 1, 1.0, borda(0)), pt(0, 1, 0.9, AGUA_Y + 0.08), pt(0, 1, 0.15, AGUA_Y - 0.35)]
+    cara(grupo, casco, espejo, hacia=V((-rumbo, 0, 0)))                                   # el espejo de popa
+    y0 = borda(0.3)
+    # la bañera: suelo más oscuro y la brazola alrededor
+    cara(grupo, TECA_OSCURA, [pt(0.04, -1, 0.72, y0 + 0.01), pt(0.3, -1, 0.72, y0 + 0.01), pt(0.3, 1, 0.72, y0 + 0.01), pt(0.04, 1, 0.72, y0 + 0.01)], hacia=ARRIBA)
+    for s in (-1, 1):
+        cubo(grupo, casco, P(X(0.17), z + s * semi(0.17) * 0.76, y0 + 0.13), (largo * 0.26, 0.07, 0.26))
+    # la cabina: paredes que se estrechan hacia el techo, con la franja de ventanas
+    alto = 0.9 if not velero else 0.55
+    fa, fb = 0.3, 0.6 if velero else 0.62
+    base = [(fa, -0.72), (fb, -0.6), (fb, 0.6), (fa, 0.72)]
+    techo = [(fa + 0.02, -0.6), (fb - 0.04, -0.48), (fb - 0.04, 0.48), (fa + 0.02, 0.6)]
+    yb_, yt_ = borda(fb) + 0.0, borda(fb) + alto
+    centro = P(X((fa + fb) / 2), z, yb_)
+    for i in range(4):
+        (f0, k0), (f1, k1) = base[i], base[(i + 1) % 4]
+        (g0, j0), (g1, j1) = techo[i], techo[(i + 1) % 4]
+        q = [pt(f0, 1, k0, yb_), pt(f1, 1, k1, yb_), pt(g1, 1, j1, yt_), pt(g0, 1, j0, yt_)]
+        cara(grupo, casco, q, hacia=H._girado((q[0] + q[2]) / 2 - centro))   # ya girada: que no gire dos veces
+    cara(grupo, casco, [pt(g, 1, j, yt_) for g, j in techo], hacia=ARRIBA)
+    for s in (-1, 1):                                                                    # las ventanas
+        k = 0.7 - 0.1 * (alto - 0.55)
+        cara(grupo, VIDRIO, [pt(fa + 0.05, s, k + 0.03, yb_ + alto * 0.4), pt(fb - 0.08, s, k - 0.05, yb_ + alto * 0.4),
+                             pt(fb - 0.08, s, k - 0.06, yb_ + alto * 0.75), pt(fa + 0.05, s, k + 0.02, yb_ + alto * 0.75)], hacia=V((0, -s, 0)))
+    # candeleros y guardamancebos, el púlpito de proa y el balcón de popa
+    yr = 0.6
+    for s in (-1, 1):
+        for f in (0.04, 0.3, 0.55, 0.8):
+            barra(grupo, MASTIL, pt(f, s, 0.95, borda(f)), pt(f, s, 0.95, borda(f) + yr), 0.035)
+        barra(grupo, MASTIL, pt(0.04, s, 0.95, borda(0.04) + yr), pt(0.8, s, 0.95, borda(0.8) + yr), 0.025)
+        barra(grupo, MASTIL, pt(0.8, s, 0.95, borda(0.8) + yr), pt(0.98, s, 0.3, borda(0.98) + yr), 0.035)
+    barra(grupo, MASTIL, pt(0.04, -1, 0.95, borda(0.04) + yr), pt(0.04, 1, 0.95, borda(0.04) + yr), 0.035)
+    # las defensas colgadas por la borda y las amarras de popa al muelle
+    for s in (-1, 1):
+        for f in (0.32, 0.6):
+            cubo(grupo, DEFENSA, P(X(f), z + s * (semi(f) + 0.13), AGUA_Y + 0.5), (0.22, 0.22, 0.55))
+        barra(grupo, CABO, pt(0.02, s, 0.85, borda(0.02) + 0.05), P(ORILLA + 0.3, z + s * 1.1, 0.35), 0.04)
+    if velero:
+        mx, h0 = X(0.55), yt_
+        top = h0 + largo * 1.25
+        barra(grupo, MASTIL, P(mx, z, h0 - alto), P(mx, z, top), 0.13)                    # el mástil
+        barra(grupo, MASTIL, P(mx, z, h0 + 0.5), P(X(0.06), z, h0 + 0.35), 0.09)          # la botavara
+        barra(grupo, random.choice(LONA[:3]), P(mx, z, h0 + 0.72), P(X(0.1), z, h0 + 0.55), 0.3)   # la vela en su funda
+        barra(grupo, MASTIL, P(mx, z, top), pt(1.0, 0, 0, borda(1.0)), 0.03)              # el estay
+        barra(grupo, MASTIL, P(mx, z, top), pt(0.0, 0, 0, borda(0.0)), 0.03)              # el backstay
+        hc = h0 + largo * 0.65
+        barra(grupo, MASTIL, P(mx, z - semi(0.55) * 0.9, hc), P(mx, z + semi(0.55) * 0.9, hc), 0.05)   # la cruceta
+        for s in (-1, 1):                                                                 # los obenques
+            barra(grupo, MASTIL, P(mx, z, top - 0.6), P(mx, z + s * semi(0.55) * 0.9, hc), 0.025)
+            barra(grupo, MASTIL, P(mx, z + s * semi(0.55) * 0.9, hc), pt(0.55, s, 1.0, borda(0.55)), 0.025)
+    else:
+        # el parabrisas inclinado, el toldo sobre la bañera y el fueraborda
+        cara(grupo, VIDRIO, [pt(fb, -1, 0.55, yt_), pt(fb, 1, 0.55, yt_), pt(fb - 0.08, 1, 0.5, yt_ + 0.45), pt(fb - 0.08, -1, 0.5, yt_ + 0.45)], hacia=V((rumbo, 0, 0.5)))
+        cubo(grupo, random.choice(LONA[:3]), P(X(0.18), z, y0 + 1.75), (largo * 0.3, semi(0.18) * 1.7, 0.06))
+        for s in (-1, 1):
+            for f in (0.05, 0.31):
+                barra(grupo, MASTIL, pt(f, s, 0.85, borda(f)), pt(f, s, 0.85, y0 + 1.72), 0.035)
+        cubo(grupo, NEGRO_BARCO, P(X(-0.035), z, AGUA_Y + 0.75), (0.45, 0.55, 0.95))     # el motor
+        cubo(grupo, CUBIERTA, P(X(-0.02), z, AGUA_Y + 0.2), (0.35, semi(0) * 1.6, 0.08))  # la plataforma de baño
+
 def barco (grupo, x_popa, z, largo, rumbo=-1):
-    """Un barco amarrado: la popa en x_popa y la proa hacia `rumbo` (±x)."""
+    """Un barco amarrado: la popa en x_popa y la proa hacia `rumbo` (±x). Los de
+    cerca, con detalle (`barco_fino`); los del vuelo, en cuatro caras."""
+    if grupo == 'EV':
+        return barco_fino(grupo, x_popa, z, largo, rumbo)
     ancho = largo * 0.32
     casco = random.choice(CASCOS)
     xp, xb = x_popa, x_popa + rumbo * largo
@@ -399,14 +497,21 @@ def barco_lado (grupo, x, z_pantalan, lado, largo):
 # Junto al muelle donde se juega, los barcos van amarrados de popa al canto,
 # apuntando al agua: son lo que se ve a la izquierda toda la partida.
 n_barcos = 0
-for z in np.arange(20.0, Z_BOCANA, -3.5):
-    if abs(z - BASE[1]) < 11.5:          # deja sitio a la barcaza de la antena y a sus dos barcos
+# Cada barco ocupa su manga más las defensas y deja un palmo al siguiente: así
+# no se meten unos en otros (a paso fijo, los grandes se montaban).
+z = 20.0
+while z > Z_BOCANA:
+    largo = random.uniform(7.0, 11.5)
+    medio = largo * 0.34 / 2 + 0.25
+    c = z - medio
+    if c + medio > BZ0 - 4.7 and c - medio < BZ1 + 4.7:   # la barcaza de la antena y sus dos barcos
+        z = BZ0 - 4.7
         continue
     if random.random() < 0.85:
-        largo = random.uniform(7.0, 11.5)
-        g = 'EV' if z > Z_ATRAS else 'T'
-        barco(g, ORILLA - 1.2, z, largo, -1)          # la popa en el canto, la proa al agua
+        g = 'EV' if c > Z_ATRAS else 'T'
+        barco(g, ORILLA - 1.2, c, largo, -1)          # la popa en el canto, la proa al agua
         n_barcos += 1
+    z = c - medio - 0.35
 # Los dos barcos de al lado de la barcaza de la antena, a 1,2 de su casco.
 for z in (BZ0 - 2.64, BZ1 + 2.64):
     barco('EV', ORILLA - 1.2, z, 9.0, -1)
