@@ -218,6 +218,40 @@ def tex_nervios (nombre, blanco, hueco, paso=32, ancho=14, forjado=True):
             a[f:f + 10] = np.array(blanco) * 0.92
     return guardar(nombre, a)
 
+# Fachada mediterránea con contraventanas (Marsella, Lyon): ver tex_postigos.
+def tex_postigos (nombre, base, postigo, plantas_bajo=False):
+    """Fachada marsellesa: piedra clara, ventanas altas con contraventanas de
+    color, algunas cerradas, y balcones de hierro."""
+    a = lienzo(512, 512, base) + ruido(512, 512, 0.05)[..., None]
+    for f in range(4):
+        for c in range(4):
+            x0, y0 = c * 128, f * 128
+            cris = np.array((0.08, 0.1, 0.13)) * (0.8 + 0.5 * random.random())
+            v = a[y0 + 16:y0 + 104, x0 + 40:x0 + 88]
+            v[:] = (0.86, 0.84, 0.8)                                  # el marco
+            grad = np.linspace(1.6, 0.8, 80, dtype=np.float32)[:, None, None]
+            v[4:-4, 4:-4] = np.clip(cris * grad + np.array(E.reflejo) * (grad - 0.8), 0, 1)
+            cerrada = random.random()
+            pc = np.array(postigo) * (0.85 + 0.3 * random.random())
+            if cerrada < 0.3:                                       # cerrada del todo
+                v[2:-2, 2:-2] = pc
+                for k in range(8, 84, 6):
+                    v[k:k + 1, 2:-2] *= 0.7                          # las lamas
+            else:
+                for lado in (0, 1):                                  # abiertas, a los lados
+                    x = x0 + (16 if lado == 0 else 90)
+                    a[y0 + 16:y0 + 104, x:x + 22] = pc
+                    for k in range(y0 + 20, y0 + 100, 6):
+                        a[k:k + 1, x:x + 22] *= 0.72
+            if random.random() < 0.45:                              # balcón de hierro
+                a[y0 + 98:y0 + 101, x0 + 30:x0 + 98] = (0.1, 0.1, 0.11)
+                for k in range(x0 + 30, x0 + 98, 5):
+                    a[y0 + 80:y0 + 101, k:k + 1] = (0.1, 0.1, 0.11)
+                a[y0 + 101:y0 + 106, x0 + 26:x0 + 102] = np.array(base) * 0.75
+            a[y0 + 104:y0 + 108, x0 + 36:x0 + 92] = np.array(base) * 0.8   # el alféizar
+        a[f * 128 + 124:f * 128 + 128] = np.array(base) * 0.85        # la imposta
+    return guardar(nombre, a)
+
 def tex_azotea (base=(0.36, 0.34, 0.32)):
     a = lienzo(256, 256, base) + ruido(256, 256, 0.1)[..., None]
     for _ in range(9):

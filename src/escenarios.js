@@ -451,4 +451,27 @@ function marsellaPuerto () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, ...LUGARES }
+// Lyon: el muelle del Saona bajo Fourvière, hecho en Blender con la luz horneada
+// (herramientas/blender/lugar_lyon.py, 03/10). Se juega en el muelle de la
+// Presqu'île mirando río abajo: el parapeto con los plátanos a la derecha, la
+// calzada y las mansardas a la izquierda y, al fondo, la pasarela Saint-Georges,
+// por la que entran los que bajan de Fourvière (`entrada` en la misión). La base
+// alien va en una isleta de la calzada, a un lado.
+function lyonSaona () {
+  const g = new THREE.Group()
+  g.name = 'lugar:lyonSaona'
+  Object.assign(g.userData, {
+    modelo: 'lugar-lyon',
+    modeloCiudad: 'lugar-lyon-ciudad',
+    luz: 'lugar-lyon',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    baseX: -12.6,
+    baseZ: -44
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, ...LUGARES }

@@ -140,9 +140,15 @@ export const PAISES = [
         waves: OLEADAS.formas
       },
       {
-        name: 'Lyon', lugar: 'Muelles del Ródano · la confluencia', mapa: sitio(45.76, 4.84),
-        // La ribera del Ródano y los tejados rojos, con Fourvière arriba.
-        escenario: 'lyon', suelo: 'adoquin', tonoSuelo: 0xbdb5a4, hitos: [['fourviere']],
+        name: 'Lyon', llegada: 'lyon', lugar: 'Muelle del Saona · bajo Fourvière', mapa: sitio(45.76, 4.84),
+        // El muelle del Saona hecho en Blender (herramientas/blender/lugar_lyon.py):
+        // el Viejo Lyon y Fourvière al otro lado del río, de día.
+        escenario: 'lyonSaona', suelo: 'adoquin', tonoSuelo: 0xbdb5a4, hitos: [],
+        // Bajan de Fourvière y cruzan la pasarela: nacen donde llega al muelle
+        // (z = -133) y vienen deprisa hasta -80.
+        entrada: { z: -131, fondo: 4, prisa: { desde: -128, hasta: -80, por: 3 } },
+        fondo: { hora: 'dia', cielo: 0x8fc0ee, niebla: 0xd3e2ee, nieblaCerca: 140, nieblaLejos: 460 },
+        sinPajaros: true, sinNubes: true,
         resumen: 'Se cosen entre ellos mientras les disparas.',
         parte: ['Encontramos la primera sala de experimentos entera. Camillas, correas, y un olor que no se va de la ropa.',
           'Los de aquí se curan unos a otros. Hay que elegir a quién matar primero.'],

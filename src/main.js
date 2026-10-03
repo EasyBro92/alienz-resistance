@@ -1734,12 +1734,22 @@ const MARSELLA_PLANOS = [
   { k: 0.76, pos: [-30, 45, 70], mira: [0, 5, -60] },
   { k: 0.9, pos: [-4, 24, 42], mira: [0, 3, -40] }
 ]
+// Lyon (03/10): desde la Presqu'île, mirando al oeste a Fourvière por encima del
+// Saona y del Viejo Lyon; luego gira río abajo y baja al muelle.
+const LYON_PLANOS = [
+  { k: 0, pos: [-260, 160, 120], mira: [120, 40, -60] },
+  { k: 0.3, pos: [-150, 120, 230], mira: [60, 20, -60] },
+  { k: 0.56, pos: [-50, 72, 130], mira: [20, 8, -60] },
+  { k: 0.76, pos: [-8, 42, 74], mira: [0, 5, -60] },
+  { k: 0.9, pos: [-3, 24, 42], mira: [0, 3, -40] }
+]
 // Las llegadas «de película»: un recorrido por planos, largo la primera vez y
 // más corto (pero empezando también fuera) las siguientes. Cada una abre la
 // niebla y el corte de lejos a su medida, y enciende el modelo de la ciudad.
 const LLEGADAS = {
   estadio: { dura: 9, corto: { desde: 0.2, dura: 5.5 }, visto: 'alienz-vuelo-madrid-v1', niebla: { cerca: 700, lejos: 2400 }, lejos: 4200, planos: ESTADIO_PLANOS },
   valencia: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-valencia-v1', niebla: { cerca: 900, lejos: 3200 }, lejos: 4200, planos: VALENCIA_PLANOS },
+  lyon: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-lyon-v1', niebla: { cerca: 900, lejos: 3200 }, lejos: 4200, planos: LYON_PLANOS },
   marsella: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-marsella-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: MARSELLA_PLANOS }
 }
 // El recorrido es una curva que pasa por los planos, no tramos sueltos: con un
