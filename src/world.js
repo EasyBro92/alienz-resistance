@@ -1832,6 +1832,13 @@ export function createWorld (canvas) {
     escenarioTapa = !!escenarioVisto?.userData.tapaElMundo
     sand.visible = !escenarioTapa
     decoradoFijo.visible = !escenarioTapa
+    // Hasta dónde dibuja la cámara jugando. 200 vale donde la niebla cierra antes
+    // (z ≈ -130), pero un sitio que abre su niebla más lejos tiene que dibujar
+    // hasta ahí, o lo de más allá de 200 se corta de golpe a medio velar y deja
+    // ver el cielo liso (Isidro, en Marsella: «se ven de fondo espacios en
+    // blanco»). La cúpula del cielo no escribe profundidad, así que no estorba.
+    camera.far = escenarioVisto?.userData.lejos ?? 200
+    camera.updateProjectionMatrix()
   }
 
   // --- la escalera de la grada -----------------------------------------------

@@ -84,6 +84,22 @@ def tex_postigos (nombre, base, postigo, plantas_bajo=False):
         a[f * 128 + 124:f * 128 + 128] = np.array(base) * 0.85        # la imposta
     return guardar(nombre, a)
 
+def tex_tiendas ():
+    """El fondo de los soportales de Pouillon: escaparates con su rótulo y la
+    puerta, cuatro tiendas por baldosa, cada una de un color."""
+    a = lienzo(256, 512, (0.74, 0.69, 0.6)) + ruido(256, 512, 0.04)[..., None]
+    for c in range(4):
+        x0 = c * 128
+        rot = np.array(random.choice([(0.55, 0.12, 0.1), (0.12, 0.25, 0.4), (0.15, 0.3, 0.2), (0.2, 0.18, 0.16), (0.6, 0.45, 0.15)]))
+        a[30:62, x0 + 8:x0 + 120] = rot                                         # el rótulo
+        a[36:56, x0 + 20:x0 + 108] = rot * 1.6                                  # las letras, a bulto
+        a[70:246, x0 + 8:x0 + 120] = (0.2, 0.19, 0.18)                          # el marco
+        vid = np.linspace(0.75, 0.35, 168, dtype=np.float32)[:, None, None] * np.array((0.55, 0.5, 0.4))
+        a[74:242, x0 + 12:x0 + 82] = vid                                        # el escaparate con luz
+        a[74:242, x0 + 88:x0 + 116] = (0.1, 0.09, 0.08)                         # la puerta
+    a[246:] = (0.52, 0.5, 0.46)
+    return guardar('tiendas', a)
+
 def tex_soportal ():
     """Los soportales de la planta baja: arcos oscuros con escaparates."""
     a = lienzo(256, 512, (0.78, 0.72, 0.6)) + ruido(256, 512, 0.04)[..., None]
@@ -159,6 +175,12 @@ ACERA = material('acera', de_polyhaven('pavement_02', 512, 0xa49d92), rug=0.9)
 TEJA = material('teja', de_polyhaven('ceramic_roof_01', 512, 0xa8583a, contraste=0.9), rug=0.9)
 AZOTEA = material('azotea', tex_azotea((0.52, 0.47, 0.42)))
 SOPORTAL = material('soportal', tex_soportal())
+TIENDAS = material('tiendas', tex_tiendas())
+TECHO_SOPORTAL = material('techo-soportal', color=(0.55, 0.52, 0.47), rug=0.9)
+PINTURA = material('pintura-calle', color=(0.86, 0.86, 0.83), rug=0.8)
+CHAPAS = [material(f'chapa-coche-{i}', color=c, rug=0.35) for i, c in enumerate([(0.85, 0.85, 0.84), (0.1, 0.1, 0.11), (0.55, 0.57, 0.6), (0.5, 0.08, 0.07), (0.12, 0.2, 0.42), (0.85, 0.85, 0.84)])]
+BUS = material('bus-rtm', color=(0.9, 0.9, 0.88), rug=0.4)
+BUS_FRANJA = material('bus-franja', color=(0.1, 0.35, 0.62), rug=0.4)
 F_POUILLON = material('f-pouillon', tex_postigos('pouillon', (0.83, 0.77, 0.65), (0.42, 0.36, 0.3)))
 F_PISOS = [material(f'f-pisos-{i}', tex_postigos(f'pisos-{i}', b, p)) for i, (b, p) in enumerate([
     ((0.86, 0.74, 0.55), (0.3, 0.45, 0.38)), ((0.9, 0.84, 0.72), (0.35, 0.47, 0.6)),
@@ -200,7 +222,15 @@ print('TEXTURAS', round(time.time() - H.E.t0, 1), 's')
 # cercano (barcos, farolas, bolardos) · EP lo que no lleva luz (el agua, la
 # bodega negra). Y para el vuelo: C, G, T y CP.
 config_suelo(-1600, 1600, -1700, 1300, (-360, 260), (-560, 260))
-ORILLA, DERECHA = -8.4, 13.5             # el canto del agua y el pie de los soportales
+# Como es el Quai du Port de verdad, del agua a las casas: el muelle ancho de
+# losas claras (donde se juega), el bordillo, la calzada de dos carriles con su
+# tráfico, la acera con las terrazas y los soportales de Pouillon, de pilares
+# cuadrados, con las tiendas al fondo.
+ORILLA = -8.4                            # el canto del agua
+CALLE0, CALLE1 = 9.4, 16.4               # la calzada: dos carriles de 3,5
+FX = 19.5                                # la línea de los pilares de los soportales
+HONDO = 3.2                              # lo que se mete el soportal hasta las tiendas
+DERECHA = FX - 2.0
 # El muelle: Z_FONDO es donde acaba por el lado de las barcazas (en el juego,
 # z = -124, el fondo) y Z_ATRAS donde deja de verse jugando (a la espalda de la
 # cámara); más allá sigue, solo para el vuelo, hasta el fuerte Saint-Jean.
@@ -209,13 +239,23 @@ AGUA_Y = -1.6
 
 # --- el muelle: losas claras, cenefa de granito y el canto de piedra -------------------
 rect('S', LOSA, ORILLA + 1.0, 9.0, Z_ATRAS, Z_FONDO, 0.0, baldosa=4.0)
-rect('S', LOSA_GRIS, 9.0, DERECHA + 2.0, Z_ATRAS, Z_FONDO, 0.0, baldosa=4.0)      # el paseo de las terrazas
 rect('S', GRANITO, ORILLA, ORILLA + 1.0, Z_ATRAS, Z_FONDO, 0.0, baldosa=3.0)    # la cenefa del canto
+rect('S', GRANITO, 9.0, CALLE0, Z_ATRAS, Z_FONDO, 0.0, baldosa=3.0)            # el bordillo
+uv_calle = lambda x0, x1, z0, z1: [((x - CALLE0) / 3.5, zz / 12) for x, zz in ((x0, z1), (x1, z1), (x1, z0), (x0, z0))]
+rect('S', CALZADA, CALLE0, CALLE1, Z_ATRAS, Z_FONDO, 0.0, uvs=uv_calle(CALLE0, CALLE1, Z_ATRAS, Z_FONDO))
+rect('S', LOSA_GRIS, CALLE1, FX + HONDO, Z_ATRAS, Z_FONDO, 0.0, baldosa=4.0)    # la acera y el suelo del soportal
 suelo('GN', LOSA, ORILLA + 1.0, 9.0, Z_BOCANA, Z_ATRAS, 0.0, 4.0)
 suelo('GN', GRANITO, ORILLA, ORILLA + 1.0, Z_BOCANA, Z_ATRAS, 0.0, 3.0)
 suelo('GN', LOSA_GRIS, 9.0, 60, Z_BOCANA, Z_ATRAS, 0.0, 4.0)
 suelo('GN', LOSA_GRIS, 9.0, 60, Z_FONDO, 75, 0.0, 4.0)                          # junto a la dársena
 suelo('GN', LOSA, -175, 60, 75, 122, 0.0, 4.0)                                  # la explanada del Quai des Belges
+# La calzada sigue por detrás de la cámara hacia la bocana y, por el fondo, junto a
+# la dársena hasta el Quai des Belges, donde tuerce delante de sus casas.
+suelo('GN', CALZADA, CALLE0, CALLE1, Z_BOCANA, Z_ATRAS, 0.02, carriles=(CALLE0, 3.5, 'z'))
+suelo('GN', CALZADA, CALLE0, CALLE1, Z_FONDO, 108, 0.02, carriles=(CALLE0, 3.5, 'z'))
+suelo('GN', CALZADA, -175, CALLE1, 108, 119, 0.02, carriles=(108, 5.5, 'x'))
+# El fondo del juego: el suelo de la ciudad que asoma detrás del Quai des Belges.
+suelo('GN', ACERA, -175, 200, 119, 400, -0.01, 6.0)
 
 # El muro del muelle, del agua al canto, y los de la dársena del fondo.
 def muro (grupo, x, z0, z1):
@@ -268,13 +308,21 @@ for (x, z) in ((BX0 - 0.6, BZ0 + 0.8), (BX0 - 0.6, BZ1 - 0.8)):
     barra('EV', METAL, P(x, z, 0.3), P(ORILLA + 0.3, z, 0.3), 0.05)                                # la amarra al bolardo
 
 # --- los soportales y las fachadas del Quai du Port --------------------------------
-FX = DERECHA + 2.0                        # la línea de fachada
 def bloque_pouillon (z0, z1, plantas=7, fondo=16.0, fach=None):
-    caja('E', SOPORTAL, FX, FX + fondo, z1, z0, 0.0, 4.5, baldosa=8)
+    """Un bloque de Pouillon: la planta baja abierta en soportal (pilares
+    cuadrados cada cuatro metros, techo y las tiendas al fondo) y encima la
+    fachada de piedra que vuela sobre él."""
+    z0, z1 = max(z0, z1), min(z0, z1)
+    caja('E', TIENDAS, FX + HONDO, FX + fondo, z1, z0, 0.0, 4.5, baldosa=8)          # las tiendas
     alto = 4.5 + plantas * 3.0
-    caja('E', fach or F_POUILLON, FX + 0.6, FX + fondo, z1, z0, 4.5, alto, techo=AZOTEA)
-    caja('E', SILLAR, FX - 0.2, FX + 0.9, z1, z0, 4.4, 4.9, baldosa=4)                          # la cornisa del soportal
-    tejado('E', TEJA, FX + 0.6, FX + fondo, z1, z0, alto, 2.6)
+    caja('E', fach or F_POUILLON, FX - 0.3, FX + fondo, z1, z0, 4.5, alto, techo=AZOTEA, tapa_abajo=True)
+    cara('E', TECHO_SOPORTAL, [P(FX - 0.3, z0, 4.49), P(FX + HONDO, z0, 4.49), P(FX + HONDO, z1, 4.49), P(FX - 0.3, z1, 4.49)], hacia=ABAJO)
+    n = max(2, round((z0 - z1) / 4.0))
+    for i in range(n + 1):                                                            # los pilares
+        zp = z1 + 0.35 + (z0 - z1 - 0.7) * i / n
+        caja('E', SILLAR, FX - 0.3, FX + 0.4, zp - 0.35, zp + 0.35, 0.0, 4.5, baldosa=4)
+    caja('E', SILLAR, FX - 0.45, FX + 0.5, z1, z0, 4.5, 5.0, baldosa=4)                       # la imposta del soportal
+    tejado('E', TEJA, FX - 0.3, FX + fondo, z1, z0, alto, 2.6)
 z = 120.0                                 # desde la esquina del Quai des Belges
 for largo in (44.0, 14.0, 46.0, 40.0, 50.0, 44.0):
     if largo == 14.0:                     # el Hôtel de Ville: bajo, de piedra, con su frontón
@@ -283,7 +331,11 @@ for largo in (44.0, 14.0, 46.0, 40.0, 50.0, 44.0):
     else:
         bloque_pouillon(z, z - largo, plantas=random.choice([6, 7, 8]))
     z -= largo + 10.0                     # una calle que sube al Panier
-    suelo('GN', CALZADA, FX - 1, FX + 40, z, z + 10, 0.02, carriles=(z, 5.0, 'x'))
+    suelo('GN', CALZADA, CALLE1, FX + 40, z, z + 10, 0.02, carriles=(z, 5.0, 'x'))
+    if Z_ATRAS < z < Z_FONDO:             # el paso de cebra en la boca de la calle
+        for k in range(6):                # las bandas, a lo largo de la calzada
+            xx = CALLE0 + 0.25 + k * 1.15
+            rect('EP', PINTURA, xx, xx + 0.6, z + 3.0, z + 7.0, 0.03)
 
 # --- el fondo: las fachadas del Quai des Belges, que cierran el puerto -------------------
 # En el juego quedan al final del agua, a unos 200 de la cámara: lo que cierra
@@ -304,17 +356,64 @@ while x < FX:
 suelo('GN', CALZADA, -40, -22, 122, 300, 0.04, carriles=(-40, 4.5, 'z'))       # la Canebière
 
 # --- terrazas, farolas, bolardos y árboles del paseo ----------------------------------
+def mesa (x, z):
+    cubo('EV', METAL, P(x, z, 0.74), (0.7, 0.7, 0.04))
+    barra('EV', METAL, P(x, z, 0), P(x, z, 0.74), 0.06)
+    for s in (-1, 1):                                                                   # dos sillas
+        cubo('EV', MADERA, P(x, z + s * 0.62, 0.45), (0.42, 0.42, 0.05))
+        cubo('EV', MADERA, P(x, z + s * 0.84, 0.72), (0.42, 0.05, 0.5))
 for z in np.arange(19.0, Z_ATRAS, -9.0):
-    # la terraza: mesas y sombrillas, entre las farolas y los soportales
-    for dx in (10.6, 12.6):
-        cubo('EV', METAL, P(dx, z, 0.37), (0.75, 0.75, 0.06))
-        barra('EV', METAL, P(dx, z, 0), P(dx, z, 0.37), 0.06)
+    # la terraza del café: mesas en la acera con su sombrilla y otras bajo el soportal
+    for dz in (0.0, -2.2):
+        mesa(17.3, z + dz)
+        mesa(FX + 1.6, z + dz - 1.1)
     lona = random.choice(LONA[:3])
-    centro = P(11.6, z - 1.6, 2.5)
+    centro = P(17.3, z - 1.1, 2.4)
     for i in range(6):
         a0, a1 = 2 * math.pi * i / 6, 2 * math.pi * (i + 1) / 6
-        cara('EV', lona, [centro, centro + V((1.6 * math.cos(a0), 1.6 * math.sin(a0), -0.45)), centro + V((1.6 * math.cos(a1), 1.6 * math.sin(a1), -0.45))], hacia=ARRIBA)
-    barra('EV', METAL, P(11.6, z - 1.6, 0), centro, 0.07)
+        cara('EV', lona, [centro, centro + V((1.5 * math.cos(a0), 1.5 * math.sin(a0), -0.4)), centro + V((1.5 * math.cos(a1), 1.5 * math.sin(a1), -0.4))], hacia=ARRIBA)
+    barra('EV', METAL, P(17.3, z - 1.1, 0), centro, 0.07)
+# El tráfico parado del Quai du Port: coches en los dos carriles, un autobús y
+# motos aparcadas junto al bordillo de la acera.
+def coche_fino (x, z):
+    """Un utilitario a lo largo de z: chasis, capó y maletero más bajos, la
+    cabina de cristal con su techo, ruedas, faros y pilotos."""
+    chapa = random.choice(CHAPAS)
+    largo, ancho = random.uniform(3.8, 4.4), 1.75
+    z0, z1 = z - largo / 2, z + largo / 2
+    caja('EV', chapa, x - ancho / 2, x + ancho / 2, z0, z1, 0.3, 0.85, baldosa=4)                     # la carrocería
+    caja('EV', VIDRIO, x - ancho / 2 + 0.08, x + ancho / 2 - 0.08, z0 + largo * 0.3, z1 - largo * 0.22, 0.85, 1.3, baldosa=4)  # las lunas
+    caja('EV', chapa, x - ancho / 2 + 0.1, x + ancho / 2 - 0.1, z0 + largo * 0.33, z1 - largo * 0.25, 1.3, 1.38, baldosa=4)    # el techo
+    for zr in (z0 + 0.75, z1 - 0.75):
+        for s in (-1, 1):
+            cubo('EV', NEGRO_BARCO, P(x + s * (ancho / 2 - 0.08), zr, 0.32), (0.26, 0.64, 0.64))     # las ruedas
+    for s in (-1, 1):
+        cubo('EP', FAROLA, P(x + s * 0.6, z0 + 0.02, 0.68), (0.32, 0.06, 0.12))                       # los faros
+        cubo('EV', CHAPAS[3], P(x + s * 0.65, z1 - 0.02, 0.7), (0.26, 0.06, 0.14))                    # los pilotos
+
+z = 14.0
+while z > Z_ATRAS:
+    carril = random.choice((CALLE0 + 1.75, CALLE1 - 1.75))
+    if random.random() < 0.12:
+        caja('EV', BUS, carril - 1.25, carril + 1.25, z - 12.0, z, 0.35, 3.2, baldosa=4)
+        caja('EV', BUS_FRANJA, carril - 1.27, carril + 1.27, z - 12.0, z, 0.9, 1.3, baldosa=4)
+        caja('EV', VIDRIO, carril - 1.27, carril + 1.27, z - 11.6, z - 0.4, 1.6, 2.7, baldosa=4)
+        for zr in (z - 2.2, z - 9.4):
+            for s in (-1, 1):
+                cubo('EV', NEGRO_BARCO, P(carril + s * 1.12, zr, 0.45), (0.3, 0.95, 0.95))
+        z -= 12.0 + random.uniform(4, 9)
+    else:
+        coche_fino(carril, z - 2.2)
+        z -= 4.4 + random.uniform(2, 14)
+for z in np.arange(17.0, Z_ATRAS, -11.0):
+    for k in range(random.randint(1, 3)):                                              # las motos
+        zm = z - k * 0.9
+        cubo('EV', random.choice(CHAPAS), P(CALLE1 + 0.3, zm, 0.55), (1.7, 0.3, 0.5), giro=math.pi / 2)
+        cubo('EV', NEGRO_BARCO, P(CALLE1 + 0.3, zm, 0.3), (1.6, 0.12, 0.6), giro=math.pi / 2)
+for z in np.arange(12.0, Z_ATRAS, -22.0):                                              # las farolas de la calle
+    barra('EV', METAL, P(CALLE1 + 0.3, z, 0), P(CALLE1 + 0.3, z, 7.5), 0.16)
+    barra('EV', METAL, P(CALLE1 + 0.3, z, 7.4), P(CALLE1 - 1.2, z, 7.6), 0.1)
+    cubo('EP', FAROLA, P(CALLE1 - 1.3, z, 7.45), (0.7, 0.35, 0.18))
 for z in np.arange(20.0, Z_ATRAS, -14.0):
     if abs(z - BASE[1]) < 9.5:           # ninguna delante de la antena
         continue
@@ -324,8 +423,6 @@ for z in np.arange(20.0, Z_ATRAS, -5.0):
     if abs(z - BASE[1]) < 6.5:
         continue
     cubo('EV', METAL, P(ORILLA + 0.3, z, 0.25), (0.34, 0.34, 0.5))                                # bolardo
-for z in np.arange(16.0, Z_ATRAS, -18.0):
-    arbol('EV', TRONCO, HOJAS, 10.4, z + 4.5, 0.8, fino=True)
 
 # --- los barcos: veleros y lanchas amarrados de popa, entre pantalanes --------------------
 def barco_fino (grupo, xp, z, largo, rumbo=-1):
@@ -606,7 +703,10 @@ for x in np.arange(-1500.0, 1500.0, PASO):
         for k in range(partes):
             a0 = x + 6 + (PASO - 12) * k / partes
             a1 = x + 6 + (PASO - 12) * (k + 1) / partes
-            casa(a0, a1 - 1.0, z + 6, z + PASO - 6, random.choice([4, 5, 5, 6, 7]), 'C' if dist < 340 else 'T')
+            # Lo que se ve jugando por detrás del Quai des Belges va en el modelo de
+            # juego (EF): sin eso, al acabar el vuelo la ciudad se apagaba de golpe.
+            fondo_juego = -170 < cx < 170 and 140 < cz < 400
+            casa(a0, a1 - 1.0, z + 6, z + PASO - 6, random.choice([4, 5, 5, 6, 7]), 'EF' if fondo_juego else 'C' if dist < 340 else 'T')
             n_ed += 1
 for x in np.arange(-1500.0, 1500.0, PASO):                                # las calles
     suelo('G', CALZADA, x - 6, x + 6, -560, 1300, 0.03, carriles=(x - 6, 6.0, 'z')) if not -215 < x < 75 else None
@@ -636,12 +736,13 @@ terminar(
         'E': ('luzE', 'atlas', 'luzE'),
         'GN': ('luzG-cerca', 'planta', 'luzG'),
         'EV': ('vert-cerca', 'vert', None),
+        'EF': ('vert-fondo', 'vert', None),
         'EP': ('planoE', 'plano', None),
         'C': ('luzC', 'atlas', 'luzC'),
         'G': ('luzG', 'planta', 'luzG'),
         'T': ('vertT', 'vert', None),
         'CP': ('planoC', 'plano', None),
     },
-    exportes=[('lugar-marsella', ['S', 'E', 'GN', 'EV', 'EP']), ('lugar-marsella-ciudad', ['C', 'G', 'T', 'CP'])],
+    exportes=[('lugar-marsella', ['S', 'E', 'GN', 'EV', 'EF', 'EP']), ('lugar-marsella-ciudad', ['C', 'G', 'T', 'CP'])],
     sol_hacia=SOL_JUEGO, sol_color=(1.0, 0.94, 0.84), sol_fuerza=3.6, cielo_fuerza=0.55, cielo_altura=32, cielo_giro=20,
     escala=0.42, satura=0.8, no_alumbran=('CP',))

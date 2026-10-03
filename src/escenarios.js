@@ -446,6 +446,10 @@ function marsellaPuerto () {
     tapaElMundo: true,
     sinSombra: true,
     sinCalzada: true,
+    // La niebla de la misión cierra a 460: jugando se dibuja hasta ahí, con el
+    // fondo del puerto (el Quai des Belges y la ciudad de detrás) en el modelo
+    // de juego.
+    lejos: 470,
     // En la cubierta de su barcaza (BASE del guion, ya girada).
     baseX: 13,
     baseZ: -44
