@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import './style.css'
 import { FIELD, BASE, NIVELES, SOLDIERS, DEFENSES, STRIKES, ZOMBIES, ECONOMY, carrilAbierto, carrilesAbiertos, estrecharCampo, entrarPorElFondo } from './config.js'
 import { createWorld, rowZ, laneX } from './world.js'
-import { createSoldier, upgradeCost, muzzleWorld, ejectorWorld } from './entities/soldier.js'
+import { createSoldier, upgradeCost, muzzleWorld, ejectorWorld, ponerVecinos } from './entities/soldier.js'
 // El invitado del cooperativo crea copias de los huéspedes que le manda el
 // anfitrión; la campaña los crea dentro del director de oleadas.
 import { createZombie } from './entities/zombie.js'
@@ -99,6 +99,8 @@ const calidad = crearCalidad({
 })
 
 const soldiers = []
+// Los que andan miran a los demás para no atravesarlos (soldier.js).
+ponerVecinos(() => soldiers)
 const zombies = []
 const occupied = new Map()            // "carril-fila" -> soldado
 const slotKey = (lane, row) => `${lane}-${row}`
@@ -568,6 +570,21 @@ canvas.addEventListener('pointerdown', e => {
     }
   }
 
+  // 2b. con un soldado tocado (su ficha abierta y la flecha encima), tocar el
+  // suelo es mandarlo a la casilla libre más cercana a ese punto. Tocar a otro
+  // soldado lo cambia por ese (lo resuelve el paso 4), y tocar lejos de toda
+  // casilla libre sigue siendo cerrar la ficha.
+  const elegido = ui.inspected
+  if (elegido && !elegido.dead && !elegido.spec.fija && !item && ground &&
+      !raycaster.intersectObjects(soldiers.map(s => s.mesh), true).length) {
+    const c = casillaCercana(ground, elegido)
+    if (c && occupied.get(slotKey(c.lane, c.row)) !== elegido) {
+      ui.closeInspector()
+      mandarA(elegido, c)
+      return
+    }
+  }
+
   // 3. biomasa del suelo, por cercanía en pantalla
   //
   // Con trazado de rayos había que acertar la geometría de la moneda, que en un
@@ -620,12 +637,77 @@ canvas.addEventListener('pointerdown', e => {
 const UMBRAL_ARRASTRE = 12
 let arrastre = null
 
-function casillaBajoDedo (e, rect) {
+// Isidro (03/10): «me gustaría poder mover a los soldados arrastrándolos a la
+// posición deseada». Antes había que soltar el dedo justo encima de una casilla,
+// que en el móvil son cuadritos de un centímetro: ahora vale soltar en cualquier
+// sitio y se busca la casilla LIBRE más cercana a ese punto del suelo (la suya
+// cuenta como libre). Más allá de `ALCANCE_CASILLA` no se mueve.
+const ALCANCE_CASILLA = 3.5
+function casillaBajoDedo (e, rect, soldado) {
   pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
   pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
   raycaster.setFromCamera(pointer, camera)
-  const hits = raycaster.intersectObjects(world.slots.children, false)
-  return hits.length ? hits[0].object.userData : null
+  const suelo = raycaster.ray.intersectPlane(groundPlane, new THREE.Vector3())
+  return suelo ? casillaCercana(suelo, soldado) : null
+}
+function casillaCercana (punto, soldado) {
+  let mejor = null
+  let dMejor = ALCANCE_CASILLA
+  for (const c of world.slots.children) {
+    if (!c.visible) continue                                   // carril cerrado
+    const { lane, row } = c.userData
+    const ocupante = occupied.get(slotKey(lane, row))
+    if (ocupante && ocupante !== soldado) continue
+    const d = Math.hypot(c.position.x - punto.x, c.position.z - punto.z)
+    if (d < dMejor) { dMejor = d; mejor = c.userData }
+  }
+  return mejor
+}
+// Mandarlo andando a una casilla (la suya es no hacer nada).
+function mandarA (soldado, c) {
+  if (!c || soldado.dead) return false
+  const destino = slotKey(c.lane, c.row)
+  if (occupied.get(destino) === soldado) return false
+  occupied.delete(slotKey(soldado.lane, soldado.row))
+  soldado.moveTo(c.lane, c.row)
+  occupied.set(destino, soldado)
+  audio.place()
+  soldadoEnCamino = soldado
+  return true
+}
+
+// --- la flecha verde del seleccionado -----------------------------------------
+// Encima del soldado que tienes tocado (con su ficha abierta), del que arrastras
+// o del que va de camino a su sitio; se quita al llegar. Sin profundidad, para
+// que no la tape nada, y meciéndose para que se vea que está viva.
+let soldadoEnCamino = null
+const flechaSel = (() => {
+  const g = new THREE.Group()
+  const mat = new THREE.MeshBasicMaterial({ color: 0x3ddc6a, depthTest: false, transparent: true, opacity: 0.95, fog: false })
+  const punta = new THREE.Mesh(new THREE.ConeGeometry(0.26, 0.42, 14), mat)
+  punta.rotation.x = Math.PI                                  // apuntando abajo
+  const asta = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.34, 10), mat)
+  asta.position.y = 0.36
+  g.add(punta, asta)
+  g.traverse(o => { o.renderOrder = 20 })
+  g.visible = false
+  scene.add(g)
+  return g
+})()
+const cajaSel = new THREE.Box3()
+let altoSel = { soldado: null, alto: 2 }
+function actualizarFlecha (t) {
+  if (soldadoEnCamino && (soldadoEnCamino.dead || !soldadoEnCamino.andando)) soldadoEnCamino = null
+  const s = arrastre?.soldado ?? moving ?? ui.inspected ?? soldadoEnCamino
+  if (!s || s.dead || !running) { flechaSel.visible = false; return }
+  // La altura de la figura se mide una vez por soldado: medirla cada fotograma
+  // con sus huesos sería caro, y no cambia.
+  if (altoSel.soldado !== s) {
+    cajaSel.setFromObject(s.mesh)
+    altoSel = { soldado: s, alto: Math.max(1.2, cajaSel.max.y - s.mesh.position.y) }
+  }
+  flechaSel.visible = true
+  flechaSel.position.set(s.mesh.position.x, s.mesh.position.y + altoSel.alto + 0.1 + Math.sin(t * 5) * 0.08, s.mesh.position.z)
 }
 
 canvas.addEventListener('pointermove', e => {
@@ -641,11 +723,9 @@ canvas.addEventListener('pointermove', e => {
     world.setSlotsVisible(true)
   }
 
-  const c = casillaBajoDedo(e, rect)
-  if (!c) return
-  const ocupante = occupied.get(slotKey(c.lane, c.row))
-  // Su propia casilla cuenta como libre: soltar donde estaba es cancelar.
-  world.resaltarSlot(c.lane, c.row, !ocupante || ocupante === arrastre.soldado)
+  // Se ilumina la casilla libre más cercana al dedo: es a la que irá.
+  const c = casillaBajoDedo(e, rect, arrastre.soldado)
+  if (c) world.resaltarSlot(c.lane, c.row, true)
 })
 
 function soltarArrastre (e) {
@@ -655,25 +735,17 @@ function soltarArrastre (e) {
 
   if (!activo) {
     // No se movió: era un toque, y un toque sobre un soldado es consultarlo.
-    if (!soldado.dead) ui.openInspector(soldado, economy.coins)
+    // y se enseñan las casillas: tocando una, va allí andando.
+    if (!soldado.dead) { ui.openInspector(soldado, economy.coins); world.setSlotsVisible(true) }
     return
   }
 
   world.setSlotsVisible(false)
   if (soldado.dead) return
 
-  const c = casillaBajoDedo(e, canvas.getBoundingClientRect())
-  if (!c) return
-  const destino = slotKey(c.lane, c.row)
-  if (occupied.has(destino)) {
-    // Si es la suya, no hay nada que hacer y tampoco es un error.
-    if (occupied.get(destino) !== soldado) audio.denied()
-    return
-  }
-  occupied.delete(slotKey(soldado.lane, soldado.row))
-  soldado.moveTo(c.lane, c.row)
-  occupied.set(destino, soldado)
-  audio.place()
+  const c = casillaBajoDedo(e, canvas.getBoundingClientRect(), soldado)
+  if (!c) { audio.denied(); return }
+  mandarA(soldado, c)
 }
 
 canvas.addEventListener('pointerup', soltarArrastre)
@@ -1996,6 +2068,7 @@ function frame (now) {
   last = now
   calidad.medir(real)
   simulate(dt)
+  actualizarFlecha(now / 1000)
   conTemblor(dt, () => resplandor.render())
 }
 

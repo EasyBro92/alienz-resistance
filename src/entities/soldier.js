@@ -185,6 +185,58 @@ function pisada (fase, apoyo, recorrido, altura) {
   return { z: recorrido / 2 - v * recorrido, alto: Math.sin(v * Math.PI) * altura }
 }
 
+// --- no atravesarse al andar ---------------------------------------------------
+// Isidro (03/10): «que los soldados no se traspasen entre ellos, que se muevan
+// pero se pasen por el lado y luego se coloquen en sus casillas». Quien anda
+// mira a los demás (`vecinos`, que pone main.js con la lista de la partida): si
+// tiene a alguien DELANTE en su camino, se abre por su derecha lo justo para
+// rodearlo, y si aun así se arrima demasiado, el empujón lo separa. Los quietos
+// no se apartan: son ellos los que están en su casilla. La regla de la derecha
+// es la de siempre entre peatones: dos que se cruzan se abren hacia lados
+// opuestos y no se bloquean.
+let vecinos = () => []
+export function ponerVecinos (fn) { vecinos = fn }
+const RADIO_CUERPO = 0.95                // de centro a centro, lo mínimo entre dos
+const MIRA_DELANTE = 2.2                 // hasta dónde mira si hay alguien en el camino
+const _rumboEsquiva = { x: 0, z: 0 }
+function rumboConEsquiva (yo, dx, dz, falta) {
+  let ux = dx / falta
+  let uz = dz / falta
+  let lado = 0
+  let empujeX = 0
+  let empujeZ = 0
+  for (const o of vecinos()) {
+    if (o === yo || o.dead) continue
+    const ox = o.px - yo.px
+    const oz = o.pz - yo.pz
+    const d = Math.hypot(ox, oz)
+    if (d < 1e-4 || d > MIRA_DELANTE + RADIO_CUERPO) continue
+    // Si el otro está justo en mi destino, ya me pararé antes: no se esquiva.
+    if (Math.hypot(o.px - yo.destX, o.pz - yo.destZ) < 0.3) continue
+    const delante = ox * ux + oz * uz                         // a lo largo de mi camino
+    const costado = ox * -uz + oz * ux                        // positivo: a mi izquierda
+    if (delante > 0 && delante < Math.min(MIRA_DELANTE, falta) && Math.abs(costado) < RADIO_CUERPO) {
+      // Delante y en mi carril: me abro hacia el lado contrario a donde está
+      // (si lo tengo a la izquierda, a la derecha), y si está justo enfrente, a
+      // la derecha. Más fuerte cuanto más cerca. `lado` positivo es derecha.
+      const fuerza = (1 - delante / MIRA_DELANTE) * (1 - Math.abs(costado) / RADIO_CUERPO)
+      lado += (costado < -0.05 ? -1 : 1) * (0.6 + fuerza * 1.6)
+    }
+    if (d < RADIO_CUERPO) {
+      const k = (RADIO_CUERPO - d) / RADIO_CUERPO * 2.5
+      empujeX -= ox / d * k
+      empujeZ -= oz / d * k
+    }
+  }
+  // La derecha de mi rumbo es (-uz, ux) girada: (uz, -ux).
+  let rx = ux + uz * lado + empujeX
+  let rz = uz - ux * lado + empujeZ
+  const l = Math.hypot(rx, rz) || 1
+  _rumboEsquiva.x = rx / l
+  _rumboEsquiva.z = rz / l
+  return _rumboEsquiva
+}
+
 export async function createSoldier (key, spec, lane, row) {
   const mesh = spec.fija ? await buildDefensaMesh(key, spec) : await buildSoldierMesh(key, spec)
   mesh.position.set(laneX(lane), 0, rowZ(row))
@@ -378,8 +430,10 @@ export async function createSoldier (key, spec, lane, row) {
           this.andando = false
           this.entrando = false
         } else {
-          this.px += (dx / falta) * avance
-          this.pz += (dz / falta) * avance
+          // Cerca del final ya no se esquiva: es su casilla y nadie la ocupa.
+          const r = falta > 0.6 ? rumboConEsquiva(this, dx, dz, falta) : { x: dx / falta, z: dz / falta }
+          this.px += r.x * avance
+          this.pz += r.z * avance
           // El ciclo sale de la zancada, no al revés. Un ciclo entero avanza
           // `recorrido / apoyo`: el pie solo cubre su parte pisando y el vuelo
           // cubre el resto. Así la zancada casa con la velocidad sola, a
@@ -387,7 +441,7 @@ export async function createSoldier (key, spec, lane, row) {
           const apoyo = APOYO[this.modoPaso] ?? 0.4
           const recorrido = RECORRIDO_PIE[this.modoPaso] ?? 0.58
           this.pasoFase += dt * vel * 2 * Math.PI * apoyo / recorrido
-          rumbo = Math.atan2(-dx / falta, -dz / falta)
+          rumbo = Math.atan2(-r.x, -r.z)                // mira hacia donde va, también al esquivar
         }
         this.hasTarget = false
         this.targetPos = null
