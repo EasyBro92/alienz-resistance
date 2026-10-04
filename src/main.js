@@ -1399,7 +1399,10 @@ let last = performance.now()
 // graderío en la arena. Las dos devuelven cero donde no hay nada, así que se
 // puede preguntar siempre sin comprobar en qué modo estamos.
 function alturaBajoElPie (z) {
-  return Math.max(dropship.alturaRampa(z.z), world.alturaGrada(z.mesh.position.x, z.mesh.position.z))
+  // El hueco (el túnel de París) se SUMA: es negativo, y con el máximo de los
+  // otros dos, que valen cero fuera de la rampa y la grada, se perdería.
+  return Math.max(dropship.alturaRampa(z.z), world.alturaGrada(z.mesh.position.x, z.mesh.position.z)) +
+    world.alturaHueco(z.mesh.position.x, z.mesh.position.z)
 }
 
 function simulate (dt) {
@@ -1901,6 +1904,16 @@ const MARSELLA_PLANOS = [
   { k: 0.76, pos: [6, 45, 120], mira: [0, 5, -60] },
   { k: 0.9, pos: [2, 24, 50], mira: [0, 3, -40] }
 ]
+// París (04/10): la postal desde el Trocadero, por encima del Sena; luego rodea
+// la torre por su izquierda a media altura (sin cruzar su celosía), sobrevuela el
+// Campo de Marte y vuelve la vista a la torre para bajar al paseo.
+const PARIS_PLANOS = [
+  { k: 0, pos: [-150, 105, -380], mira: [0, 38, -116] },
+  { k: 0.3, pos: [-120, 80, -140], mira: [0, 32, -116] },
+  { k: 0.56, pos: [-70, 62, 60], mira: [0, 20, -100] },
+  { k: 0.76, pos: [-16, 38, 70], mira: [0, 8, -80] },
+  { k: 0.9, pos: [-3, 24, 45], mira: [0, 3, -40] }
+]
 // Lyon (03/10): desde la Presqu'île, mirando al oeste a Fourvière por encima del
 // Saona y del Viejo Lyon; luego gira río abajo y baja al muelle.
 const LYON_PLANOS = [
@@ -1917,6 +1930,7 @@ const LLEGADAS = {
   estadio: { dura: 9, corto: { desde: 0.2, dura: 5.5 }, visto: 'alienz-vuelo-madrid-v1', niebla: { cerca: 700, lejos: 2400 }, lejos: 4200, planos: ESTADIO_PLANOS },
   valencia: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-valencia-v1', niebla: { cerca: 900, lejos: 3200 }, lejos: 4200, planos: VALENCIA_PLANOS },
   lyon: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-lyon-v1', niebla: { cerca: 900, lejos: 3200 }, lejos: 4200, planos: LYON_PLANOS },
+  paris: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-paris-v1', niebla: { cerca: 900, lejos: 3200 }, lejos: 4200, planos: PARIS_PLANOS },
   marsella: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-marsella-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: MARSELLA_PLANOS }
 }
 // El recorrido es una curva que pasa por los planos, no tramos sueltos: con un

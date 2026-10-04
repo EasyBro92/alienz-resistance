@@ -610,6 +610,46 @@ def libre (x0, x1, z0, z1):
 def reservar (x0, x1, z0, z1):
     ocupado.append((min(x0, x1), max(x0, x1), min(z0, z1), max(z0, z1)))
 
+importados = {}
+def importar (ruta, grupo, altura, x, z, giro=0.0):
+    """Mete un modelo ya hecho (un .glb, por ejemplo de Meshy) en un grupo, con
+    la base en el suelo, centrado en (x, z) y escalado a `altura`. Se hornea con
+    lo demás: en un grupo `vert` su textura se queda y le cae la luz del sitio
+    (sombras, oclusión) en los vértices. El metal se quita: horneado a oscuras
+    (trampa 3 de la cabecera)."""
+    antes = set(bpy.context.scene.objects)
+    bpy.ops.import_scene.gltf(filepath=ruta)
+    nuevos = [o for o in bpy.context.scene.objects if o not in antes]
+    mallas = [o for o in nuevos if o.type == 'MESH']
+    bpy.ops.object.select_all(action='DESELECT')
+    for o in mallas:
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = mallas[0]
+    if len(mallas) > 1:
+        bpy.ops.object.join()
+    o = bpy.context.view_layer.objects.active
+    o.parent = None
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    for v in nuevos:
+        if v != o and v.name in bpy.data.objects:
+            bpy.data.objects.remove(v)
+    vs = np.array([v.co[:] for v in o.data.vertices])
+    lo, hi = vs.min(axis=0), vs.max(axis=0)
+    k = altura / (hi[2] - lo[2])
+    c = P(x, z, 0)
+    m = M.Translation((c.x, c.y, 0)) @ M.Rotation(giro, 4, 'Z') @ M.Diagonal((k, k, k, 1)) @ M.Translation((-(lo[0] + hi[0]) / 2, -(lo[1] + hi[1]) / 2, -lo[2]))
+    o.data.transform(m)
+    o.data.update()
+    for s in o.material_slots:
+        if s.material and s.material.use_nodes:
+            b = s.material.node_tree.nodes.get('Principled BSDF')
+            if b:
+                b.inputs['Metallic'].default_value = 0.0
+                for l in list(b.inputs['Metallic'].links):
+                    s.material.node_tree.links.remove(l)
+    importados.setdefault(grupo, []).append(o)
+    return o
+
 def comprobar_paso (grupos, salvo=(), ancho=7.4, z_lejos=-60, z_cerca=5):
     """Nada macizo donde andan los bichos."""
     malos = set()
@@ -652,6 +692,9 @@ def terminar (grupos, exportes, sol_hacia, sol_color=(1.0, 0.96, 0.88), sol_fuer
         bpy.context.collection.objects.link(o)
         sueltos.setdefault(grupo, []).append(o)
     lotes.clear()
+    for grupo, lista in importados.items():                   # los modelos ya hechos (`importar`)
+        sueltos.setdefault(grupo, []).extend(lista)
+    importados.clear()
     objetos = {}
     for grupo, lista in sueltos.items():
         if grupo not in grupos:

@@ -2352,6 +2352,14 @@ export function createWorld (canvas) {
     },
     // Si el modelo del sitio (y sus mapas de luz) ya han llegado.
     escenarioListo: () => escenarioVisto?.userData.listo !== false,
+    // La altura del suelo dentro del `hueco` de un escenario (el túnel de París):
+    // negativa, de `-hondo` al fondo a cero en el borde de la rampa. Cero fuera.
+    alturaHueco (x, z) {
+      const h = escenarioVisto?.userData.hueco
+      if (!h || Math.abs(x) > h.x || z > h.zBorde) return 0
+      if (z <= h.zFondo) return -h.hondo
+      return -h.hondo * (h.zBorde - z) / (h.zBorde - h.zFondo)
+    },
     vitorear: (fuerza = 1) => { vitoreo = Math.min(1, vitoreo + fuerza) },
     // La base del fondo de esta misión: el asalto final la hace reventar.
     baseActual: () => baseVisible,

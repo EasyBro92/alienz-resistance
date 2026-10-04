@@ -157,9 +157,16 @@ export const PAISES = [
         waves: OLEADAS.colmena
       },
       {
-        name: 'París', lugar: 'Campo de Marte · al pie de la torre', mapa: sitio(48.86, 2.35), bioma: 'parque',
-        // Gravilla, setos recortados y los plátanos del Campo de Marte. La explanada la pone el lugar, así que el hito es solo la torre.
-        escenario: 'paris', suelo: 'tierra', tonoSuelo: 0xc4b79c, hitos: [['eiffelFondo']],
+        name: 'París', llegada: 'paris', lugar: 'Campo de Marte · al pie de la torre', mapa: sitio(48.86, 2.35), bioma: 'parque',
+        // El Campo de Marte hecho en Blender (herramientas/blender/lugar_paris.py):
+        // el paseo de gravilla entre los céspedes, los castaños y la torre al
+        // fondo, de día. La torre va dentro del modelo.
+        escenario: 'parisMarte', suelo: 'tierra', tonoSuelo: 0xc4b79c, hitos: [],
+        // Salen del túnel de debajo de la torre: nacen dentro de la boca, bajo
+        // el suelo, y suben por la rampa (el `hueco` de parisMarte).
+        entrada: { z: -127, fondo: 3 },
+        fondo: { hora: 'dia', cielo: 0x8fc0ee, niebla: 0xd3e2ee, nieblaCerca: 160, nieblaLejos: 460 },
+        sinPajaros: true, sinNubes: true,
         resumen: 'El primer jefe. Le llaman LA MADRE.',
         parte: ['Todo lo que hemos visto en Francia salió de algo que vive debajo de la ciudad.',
           'Detrás de la horda viene algo que nadie ha visto entero. Le llaman LA MADRE porque no supieron llamarla de otra forma.'],

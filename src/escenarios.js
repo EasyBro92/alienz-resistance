@@ -485,4 +485,31 @@ function lyonSaona () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, ...LUGARES }
+// París: el Campo de Marte al pie de la torre, hecho en Blender con la luz
+// horneada (herramientas/blender/lugar_paris.py, 04/10). Se mira por el eje del
+// campo hacia la torre de Meshy, horneada con el sitio. Los alienz salen de un
+// túnel entre sus patas: nacen dentro, tres metros bajo el suelo, y suben por
+// la rampa (`hueco`, que world.js convierte en altura bajo los pies). La base
+// alien va en una glorieta del césped izquierdo.
+function parisMarte () {
+  const g = new THREE.Group()
+  g.name = 'lugar:parisMarte'
+  Object.assign(g.userData, {
+    modelo: 'lugar-paris',
+    modeloCiudad: 'lugar-paris-ciudad',
+    luz: 'lugar-paris',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    // La zanja del túnel (los mismos números que el guion): de ancho ±x, con
+    // el fondo a `hondo` bajo el suelo en zFondo y la rampa subiendo hasta zBorde.
+    hueco: { x: 7.6, zFondo: -124, zBorde: -106, hondo: 3 },
+    baseX: -13,
+    baseZ: -50
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, ...LUGARES }
