@@ -89,7 +89,7 @@ Lo que no está en git (`herramientas/paquetes`, `.env.local`, `node_modules`) h
 
 - `node herramientas/comprobar-pc.mjs` dice qué falta (Node 22, git, Blender, dependencias, clave de Meshy, paquetes) y cómo se arregla; con `--blender` hace además una prueba de horneado (`herramientas/blender/prueba_pc.py`) y calcula cuánto tardaría un mapa entero en ese equipo. Referencia: 4,5 s en el i5-1335U donde se hicieron Madrid y Valencia, que tardaban 8 minutos.
 - `node herramientas/polyhaven.mjs` vuelve a bajar las 22 texturas y los 19 objetos de Poly Haven (150 MB); `mirar` solo dice qué falta. Para usar uno nuevo se añade su nombre a la lista.
-- Los `.npy` de `herramientas/paquetes/polyhaven/_reducidas` son las luces de Madrid y Valencia en crudo: sin ellos, `-- --reusar` no funciona y retocar la luz obliga a calcularla entera.
+- Los `.npy` de `herramientas/paquetes/polyhaven/_reducidas` son las luces de Madrid, Valencia, Marsella, Lyon y París en crudo (990 MB; las `*-512-*` son de las pruebas rápidas y sobran): sin ellos, `-- --reusar` no funciona y retocar la luz obliga a calcularla entera.
 
 ## Capturas de revisión
 
