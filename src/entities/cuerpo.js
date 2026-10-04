@@ -509,6 +509,15 @@ export function crearCuerpo ({ figure, cuerpo, arma, key, clips = [] }) {
         } else if (levanta > 0.001) {
           // Andando: cada pie a donde lo ponía el ciclo antes de subir la cadera.
           for (const [lado, muslo, rod, pie, pie0, pisa] of [[-1, b.musloL, b.rodillaL, b.pieL, pieL0, pisaL], [1, b.musloR, b.rodillaR, b.pieR, pieR0, pisaR]]) {
+            // Corriendo, el pie que va por el aire sube más y se va atrás (el
+            // talón hacia el glúteo): es lo que separa correr de andar deprisa.
+            // Solo hay ciclo de andar en los modelos (Meshy da el de correr al
+            // montar el esqueleto, pero rehacerlo cuesta créditos).
+            if (carrera > 0) {
+              const enAire = Math.max(0, pisa.y - pie0.y)
+              pisa.y += enAire * 1.3 * carrera
+              pisa.z += enAire * 1.1 * carrera
+            }
             poloPie.set(pie0.x + lado * 0.1, 0.9, -1.2)
             figure.localToWorld(mundoPie.copy(pisa))
             figure.localToWorld(mundoPolo.copy(poloPie))
