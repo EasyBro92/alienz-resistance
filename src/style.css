@@ -2297,6 +2297,14 @@ html, body {
 }
 .carta-pie small { flex-basis: 100%; opacity: 0.8; }
 .carta-pie .articulo-comprar { margin: 0; }
+/* Chico o chica: el rótulo sobre la figura del soldado, que se toca para cambiar. */
+.baraja-tienda .carta.activa .carta-ventana:has(.carta-sexo) { cursor: pointer; }
+.carta-sexo {
+  position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%); z-index: 2;
+  padding: 3px 10px; border-radius: 999px; white-space: nowrap; pointer-events: none;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.4px; color: #ffffff;
+  background: rgba(8, 14, 18, 0.62);
+}
 /* Las mejoras de lo que ya es tuyo, dentro de su carta. */
 .carta-mejoras {
   flex-basis: 100%; text-align: left;

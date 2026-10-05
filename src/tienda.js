@@ -9,7 +9,7 @@
 // lo que cuesta desbloquearlo en billetes y lo que cuesta ponerlo en partida.
 
 import { SOLDIERS, DEFENSES, STRIKES, UPGRADES } from './config.js'
-import { buildDefensaMesh, buildSoldierMesh } from './assets.js'
+import { buildDefensaMesh, buildSoldierMesh, sexoDe, cambiarSexo } from './assets.js'
 import { figuraDeApoyo } from './systems/golpes.js'
 import { crearBaraja } from './enemigos.js'
 import { CAJAS, verCaja } from './cofre.js'
@@ -65,6 +65,7 @@ const textoDanoDefensa = s => s.dispara ? `${Math.round(s.damage * s.fireRate)}/
 const tope = (lista, f) => Math.max(...lista.map(f))
 
 const danoPorSegundo = s => s.damage * (s.pellets ?? 1) * s.fireRate
+const rotuloSexo = clave => `${sexoDe(clave) ? 'Chico' : 'Chica'} · toca para cambiar`
 
 function fichaTienda (grupo) {
   const soldados = grupo === 'soldados'
@@ -132,6 +133,15 @@ function fichaTienda (grupo) {
     pie: true,
     crecer: true,
     giraEntero: !soldados,
+    // De la cabeza a medio muslo: de cuerpo entero no se les ve la cara.
+    plano: soldados ? 0.6 : 0,
+    // Chico o chica: se cambia tocando la figura y se queda guardado, también
+    // para las partidas (`sexoDe` en assets.js).
+    insignia: clave => soldados ? `<span class="carta-sexo">${rotuloSexo(clave)}</span>` : '',
+    alTocar (clave, carta) {
+      if (!soldados || cambiarSexo(clave) == null) return false
+      carta.ventana.querySelector('.carta-sexo').textContent = rotuloSexo(clave)
+    },
     construir: (clave, s) => soldados ? buildSoldierMesh(clave, s) : grupo === 'defensas' ? buildDefensaMesh(clave, s) : figuraDeApoyo(clave),
     animar (figura, dt, t, s, alturaBase) {
       if (soldados) {

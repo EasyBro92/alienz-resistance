@@ -39,7 +39,8 @@ import { seg as lados, CON_OCLUSION, CON_ADORNOS } from './systems/detalle.js'
 // hecha pieza a pieza (`buildWeapon`), y su complexión.
 //
 // Cada uno hereda el cuerpo que le pega:
-//   · el Arquero y el Mortero, el del Tirador: ligeros, de tropa suelta;
+//   · el Arquero, el del Tirador: ligero, de tropa suelta; el Mortero, el
+//     del Escopetero;
 //   · el Ametrallador y la Misilera, el del Lanzallamas: cargan peso a la
 //     espalda y ese cuerpo ya viene con su mochila;
 //   · el Capitán, el del Fusilero, que es el soldado de línea.
@@ -49,10 +50,38 @@ export const MODELS = {
   sniper: ['models/soldado-tirador-f.glb', 'models/soldado-tirador-m.glb'],
   flamer: ['models/soldado-lanzallamas-f.glb', 'models/soldado-lanzallamas-m.glb'],
   archer: ['models/soldado-tirador-f.glb', 'models/soldado-tirador-m.glb'],
-  mortar: ['models/soldado-tirador-m.glb', 'models/soldado-escopeta-m.glb'],
+  mortar: ['models/soldado-escopeta-f.glb', 'models/soldado-escopeta-m.glb'],
   gunner: ['models/soldado-lanzallamas-f.glb', 'models/soldado-lanzallamas-m.glb'],
-  misil: ['models/soldado-lanzallamas-m.glb', 'models/soldado-escopeta-m.glb'],
+  misil: ['models/soldado-lanzallamas-f.glb', 'models/soldado-lanzallamas-m.glb'],
   capitan: ['models/soldado-fusil-f.glb', 'models/soldado-fusil-m.glb']
+}
+
+// Chico o chica, y SIEMPRE el mismo.
+//
+// Antes se sorteaba en cada soldado que se construía: la carta de la tienda
+// enseñaba un hombre, se pasaba la página y al volver era una mujer (Isidro,
+// 05/10: «una cara que no cambie cada rato, porque a veces es un chico o a
+// veces una chica; que al tocar la foto en la tienda se cambie»). Ahora cada
+// unidad tiene el suyo, el jugador lo cambia tocando la figura en la tienda y
+// se guarda en el aparato. Por eso las dos casillas de cada fila de `MODELS`
+// son siempre [chica, chico]: el Mortero y la Misilera sorteaban entre dos
+// hombres y no tenían chica que enseñar.
+const CLAVE_SEXO = 'alienz-sexo-v1'
+const SEXO_DE_SERIE = { archer: 1, rifle: 1, shotgun: 0, sniper: 0, flamer: 1, gunner: 1, misil: 0, mortar: 1, capitan: 1 }
+function sexosGuardados () {
+  try { return JSON.parse(localStorage.getItem(CLAVE_SEXO)) ?? {} } catch { return {} }
+}
+// 0 = chica, 1 = chico.
+export function sexoDe (key) {
+  const v = sexosGuardados()[key]
+  return v === 0 || v === 1 ? v : (SEXO_DE_SERIE[key] ?? 1)
+}
+export function cambiarSexo (key) {
+  if (!MODELS[key]) return null
+  const todos = sexosGuardados()
+  todos[key] = sexoDe(key) ? 0 : 1
+  try { localStorage.setItem(CLAVE_SEXO, JSON.stringify(todos)) } catch { /* sin almacén no se guarda: sale el de serie */ }
+  return todos[key]
 }
 
 const loader = new GLTFLoader()
@@ -299,7 +328,7 @@ function vestirArquero (cuerpo, hueso) {
 }
 
 async function armarPersona (key, spec, urls) {
-  const url = Array.isArray(urls) ? urls[Math.floor(Math.random() * urls.length)] : urls
+  const url = Array.isArray(urls) ? urls[sexoDe(key)] : urls
   const gltf = await cargarGLTF(url)
   const cuerpo = await loadModel(url)
 

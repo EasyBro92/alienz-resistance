@@ -130,6 +130,7 @@ export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos, f
           <div class="carta-halo"></div>
           ${F.icono?.(clave) ?? ''}
           <img class="carta-cara" alt="${spec.name}" hidden>
+          ${F.insignia?.(clave) ?? ''}
         </div>
         <h3 class="carta-nombre">${spec.name}</h3>
         <p class="carta-rol">${F.rol(clave, spec)}</p>
@@ -290,7 +291,7 @@ export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos, f
     clearTimeout(seguro)
     bucleMuelle = 0
     muelle.ultimo = undefined
-    arrastre = { x0: e.clientX, y0: e.clientY, pos0: pos, id: e.pointerId, historia: [[performance.now(), pos]], horizontal: null }
+    arrastre = { x0: e.clientX, y0: e.clientY, pos0: pos, id: e.pointerId, historia: [[performance.now(), pos]], horizontal: null, blanco: e.target }
   })
   pila.addEventListener('pointermove', e => {
     if (!arrastre || e.pointerId !== arrastre.id) return
@@ -321,8 +322,20 @@ export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos, f
     const [t1, p1] = h[h.length - 1]
     const v = t1 > t0 ? ((p1 - p0) / (t1 - t0)) * 1000 : 0
     const eraHorizontal = arrastre.horizontal
+    // Un toque es soltar sin haber movido el dedo: ni pasar página ni scroll.
+    const toque = arrastre.horizontal === null && e.type === 'pointerup' ? arrastre.blanco : null
     arrastre = null
-    if (!eraHorizontal) { ir(Math.round(pos)); return }
+    if (!eraHorizontal) {
+      ir(Math.round(pos))
+      // Tocar la figura de la carta de arriba (en la tienda: chico o chica).
+      // La ficha hace lo suyo y, si no dice que no, la figura se rehace.
+      const carta = cartas[activa]
+      if (toque && F.alTocar && carta?.ventana.contains(toque) && F.alTocar(carta.clave, carta) !== false) {
+        claveViva = null
+        mostrarVivo(carta)
+      }
+      return
+    }
     // Un golpe rápido pasa la página aunque no se haya arrastrado hasta la mitad.
     let destino = Math.round(pos)
     if (Math.abs(v) > 1.2) destino = v > 0 ? Math.floor(pos) + 1 : Math.ceil(pos) - 1
@@ -428,6 +441,17 @@ export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos, f
     if (!isFinite(alto) || alto <= 0) return
     // Lo que se ve a la distancia de la cámara, con un margen.
     const visibleAlto = 2 * Math.tan((camara.fov * Math.PI / 180) / 2) * camara.position.z
+    // Plano medio (los soldados de la tienda): de la cabeza a medio muslo. De
+    // cuerpo entero la cabeza son veinte píxeles y la cara no se ve; así se le
+    // ve la cara y el equipo, y las piernas se salen por abajo. `plano` es la
+    // parte de la persona que entra, y la persona mide 1,7 por su escala.
+    if (F.plano) {
+      const escala = (visibleAlto * 0.8) / (1.7 * F.plano)
+      figura.scale.multiplyScalar(escala / figura.scale.y)
+      // La coronilla arriba, con aire para lo que asome por encima (la antena).
+      figura.position.y = 0.95 + visibleAlto * 0.38 - 1.7 * escala
+      return
+    }
     // Los huéspedes solo se encogen; lo de la tienda (una granada, una mina)
     // también crece, o se quedaba en un punto en medio de la carta.
     const k = Math.min(F.crecer ? Infinity : 1, (visibleAlto * 0.86) / alto, (visibleAlto * camara.aspect * 0.86) / Math.max(ancho, 1e-3))
