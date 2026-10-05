@@ -327,10 +327,103 @@ function vestirArquero (cuerpo, hueso) {
   for (const o of [capucha, hombros]) o.traverse(m => { if (m.isMesh) m.castShadow = true })
 }
 
+// --- las cabezas de Blender --------------------------------------------------------
+// Isidro, 05/10: «son algo falsos; quiero que sus caras sean más reconocibles».
+// Eligió hacerlo solo con Blender, en el estilo de ahora y con el casco abierto.
+// Los cuerpos de Meshy traen la cara en una textura de 512, medio tapada por
+// barboquejos y máscaras; `herramientas/blender/cabezas.py` hace una cabeza
+// nueva por soldado y sexo (`models/cabeza-<clave>-<f|m>.glb`: cráneo modelado,
+// ojos, cejas, boca, pelo, barba y casco, con el color en los vértices).
+//
+// Aquí se le quita al cuerpo la cabeza vieja y se cuelga la nueva del hueso
+// `Head`. Va RÍGIDA, como hija del hueso: no necesita pesos, la geometría la
+// comparten todas las copias y cuesta una llamada de dibujado por soldado.
+const CON_CABEZA = new Set(['archer', 'rifle', 'shotgun', 'sniper', 'flamer', 'gunner', 'misil', 'mortar', 'capitan'])
+const cuerposSinCabeza = new Map()
+const matCabeza = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8 })
+// La Guerra civil tiñe los materiales con el color del bando: a la cara, casi nada.
+matCabeza.userData.tinte = 0.12
+
+// La malla del cuerpo sin los triángulos de la cabeza y el cuello viejos: los
+// que mandan `Head` o `neck`, y lo que quede por encima del arranque del cuello
+// pegado a su eje (la piel del cuello, que cuelga del pecho). La MISMA regla que
+// `sin_cabeza` en cabezas.py, o las fotos de Blender no serían lo que se ve aquí.
+function quitarCabeza (original) {
+  const geo = original.geometry
+  const { bones } = original.skeleton
+  const fuera = new Set(['Head', 'head_end', 'headfront', 'neck'].map(n => bones.findIndex(b => b.name === n)))
+  const cuello = new THREE.Vector3().setFromMatrixPosition(bones.find(b => b.name === 'neck').matrixWorld)
+  const indices = geo.attributes.skinIndex
+  const pesos = geo.attributes.skinWeight
+  const n = geo.attributes.position.count
+  const quita = new Uint8Array(n)
+  const v = new THREE.Vector3()
+  for (let i = 0; i < n; i++) {
+    let mayor = 0
+    for (let k = 1; k < 4; k++) if (pesos.getComponent(i, k) > pesos.getComponent(i, mayor)) mayor = k
+    original.getVertexPosition(i, v).applyMatrix4(original.matrixWorld)
+    const lejos = Math.hypot(v.x - cuello.x, v.z - cuello.z)
+    // Dos escalones: pegado al eje, todo lo que suba del arranque del cuello;
+    // algo más lejos, solo lo que suba mucho (capuchas y cuellos altos que
+    // rodeaban la cabeza vieja), para no morder los hombros.
+    const sobra = (lejos < 0.1 && v.y > cuello.y + 0.008) || (lejos < 0.2 && v.y > cuello.y + 0.075)
+    quita[i] = fuera.has(indices.getComponent(i, mayor)) || sobra ? 1 : 0
+  }
+  const viejo = geo.index.array
+  const nuevo = []
+  for (let t = 0; t < viejo.length; t += 3) {
+    if (!(quita[viejo[t]] && quita[viejo[t + 1]] && quita[viejo[t + 2]])) nuevo.push(viejo[t], viejo[t + 1], viejo[t + 2])
+  }
+  // Los mismos atributos, sin copiarlos: solo cambia qué triángulos se dibujan.
+  const g = new THREE.BufferGeometry()
+  for (const a in geo.attributes) g.setAttribute(a, geo.attributes[a])
+  g.setIndex(nuevo)
+  g.boundingBox = geo.boundingBox
+  g.boundingSphere = geo.boundingSphere
+  return g
+}
+async function ponerCabeza (key, cuerpo, url) {
+  if (!CON_CABEZA.has(key)) return
+  let escena
+  try {
+    escena = await moldeDefensa(`cabeza-${key}-${url.includes('-f.glb') ? 'f' : 'm'}`)
+  } catch {
+    return   // sin la cabeza nueva, el soldado sale con la suya de siempre
+  }
+  let molde = null
+  escena.traverse(o => { if (!molde && o.isMesh) molde = o })
+  const original = (await cargarGLTF(url)).scene
+  original.updateMatrixWorld(true)
+  let mallaOriginal = null
+  original.traverse(o => { if (!mallaOriginal && o.isSkinnedMesh) mallaOriginal = o })
+  let malla = null
+  let hueso = null
+  cuerpo.traverse(o => {
+    if (!malla && o.isSkinnedMesh) malla = o
+    if (!hueso && o.name === 'Head') hueso = o
+  })
+  if (!molde || !mallaOriginal || !malla || !hueso) return
+  if (!cuerposSinCabeza.has(url)) cuerposSinCabeza.set(url, quitarCabeza(mallaOriginal))
+  malla.geometry = cuerposSinCabeza.get(url)
+  // La cabeza está medida en el mundo del modelo en reposo: como hija del
+  // hueso, su matriz es la inversa de la del hueso en ese reposo.
+  let reposo = null
+  original.traverse(o => { if (!reposo && o.name === 'Head') reposo = o })
+  escena.updateMatrixWorld(true)
+  const cabeza = new THREE.Mesh(molde.geometry, matCabeza)
+  cabeza.name = 'cabeza'
+  cabeza.applyMatrix4(molde.matrixWorld)
+  cabeza.applyMatrix4(reposo.matrixWorld.clone().invert())
+  cabeza.castShadow = true
+  cabeza.receiveShadow = true
+  hueso.add(cabeza)
+}
+
 async function armarPersona (key, spec, urls) {
   const url = Array.isArray(urls) ? urls[sexoDe(key)] : urls
   const gltf = await cargarGLTF(url)
   const cuerpo = await loadModel(url)
+  await ponerCabeza(key, cuerpo, url)
 
   const g = new THREE.Group()
   const figure = new THREE.Group()
