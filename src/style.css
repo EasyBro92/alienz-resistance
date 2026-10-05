@@ -2288,33 +2288,9 @@ html, body {
 
 /* La tienda usa la misma baraja para Defensas y Apoyo, con el precio al pie. */
 .tienda-lista.lista-baraja { display: block; }
-/* La carta de la tienda es APAISADA por dentro (Isidro, 05/10: «más pequeñas
-   para que quepa todo en una sola pantalla, que la gente no tenga que bajar»;
-   eligió no tocar la cabecera, no quitar nada y que manden los números y las
-   mejoras). Con la cabecera tal cual quedan unos 350 px de alto en un móvil de
-   812, y en columna la figura se quedaba en una rendija: va a la izquierda, con
-   el nombre y las barras a su lado, y debajo el texto, las etiquetas y las
-   mejoras. 462 es lo que ocupan la cabecera, los mandos y el botón de volver. */
-.baraja-tienda .baraja-pila { height: clamp(330px, calc(100dvh - 462px), 440px); margin-top: 0; }
-.baraja-tienda .carta-marco {
-  display: grid; grid-template-columns: 37% minmax(0, 1fr); gap: 4px 10px;
-  grid-template-rows: auto auto auto minmax(0, 1fr) auto auto auto;
-  grid-template-areas: "cab cab" "ventana nombre" "ventana rol" "ventana stats" "texto texto" "dones dones" "pie pie";
-  padding: 9px 11px 10px;
-}
-.baraja-tienda .carta-cab { grid-area: cab; font-size: 9.5px; }
-.baraja-tienda .carta-ventana { grid-area: ventana; border-radius: 12px; }
-.baraja-tienda .carta-nombre { grid-area: nombre; margin: 0; text-align: left; font-size: 17px; }
-.baraja-tienda .carta-rol { grid-area: rol; text-align: left; font-size: 9.5px; letter-spacing: 1.4px; }
-.baraja-tienda .carta-stats { grid-area: stats; margin: 2px 0 0; align-content: center; gap: 5px; }
-.baraja-tienda .carta-stats li { grid-template-columns: 52px 1fr auto; font-size: 10.5px; }
-.baraja-tienda .carta-stats em { min-width: 26px; white-space: nowrap; }
-.baraja-tienda .carta-texto { grid-area: texto; margin: 0; font-size: 11px; line-height: 1.3; }
-.baraja-tienda .carta-dones { grid-area: dones; }
-.baraja-tienda .carta-dones span { font-size: 9.5px; padding: 2px 7px; }
-.baraja-tienda .carta-pie { grid-area: pie; margin: 0; gap: 3px 8px; font-size: 10.5px; }
-.baraja-tienda .carta-mejoras .mejora-pista { padding: 2px 0; }
-.baraja-tienda .carta-pie .articulo-comprar { padding: 4px 10px; }
+/* Más alta que la de Enemigos: al pie lleva las mejoras, y sin ese alto de más
+   se lo comían a la ventana de la figura. */
+.baraja-tienda .baraja-pila { height: clamp(480px, 68dvh, 620px); }
 .carta-pie {
   display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 8px;
   margin-top: 2px; font-size: 11px; text-align: center;
