@@ -1328,12 +1328,6 @@ html, body {
 
 .tienda-lista { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0 0 14px; }
 .tienda-lista.lista-mejoras { grid-template-columns: 1fr; }
-.mejoras-grupo {
-  grid-column: 1 / -1; margin: 10px 2px 2px; font-size: 11px; font-weight: 800;
-  letter-spacing: 0.12em; text-transform: uppercase; color: var(--tinta-3);
-}
-.mejoras-grupo:first-child { margin-top: 0; }
-.tienda-vacia { grid-column: 1 / -1; text-align: center; font-size: 12px; color: var(--tinta-3); }
 
 .articulo {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
@@ -2294,13 +2288,24 @@ html, body {
 
 /* La tienda usa la misma baraja para Defensas y Apoyo, con el precio al pie. */
 .tienda-lista.lista-baraja { display: block; }
-.baraja-tienda .baraja-pila { height: clamp(430px, 62dvh, 560px); }
+/* Más alta que la de Enemigos: al pie lleva las mejoras, y sin ese alto de más
+   se lo comían a la ventana de la figura. */
+.baraja-tienda .baraja-pila { height: clamp(480px, 68dvh, 620px); }
 .carta-pie {
   display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 8px;
   margin-top: 2px; font-size: 11px; text-align: center;
 }
 .carta-pie small { flex-basis: 100%; opacity: 0.8; }
 .carta-pie .articulo-comprar { margin: 0; }
+/* Las mejoras de lo que ya es tuyo, dentro de su carta. */
+.carta-mejoras {
+  flex-basis: 100%; text-align: left;
+  padding: 2px 10px; border-radius: 11px;
+  border: 1px solid color-mix(in srgb, var(--a-tinte) 35%, transparent);
+  background: color-mix(in srgb, var(--a-tinte) 10%, transparent);
+}
+.carta-mejoras .mejora-pista { padding: 3px 0; }
+.carta-mejoras .mejora-pista + .mejora-pista { border-top: 1px solid color-mix(in srgb, var(--a-tinte) 22%, transparent); }
 .carta-icono {
   position: absolute; left: 50%; top: 50%; width: 46%; height: 46%;
   transform: translate(-50%, -50%);

@@ -1,9 +1,9 @@
 // La tienda: lo que se compra con billetes y se queda para siempre.
 //
-// Cuatro pestañas. Soldados, defensas y apoyo se DESBLOQUEAN: una vez comprados
-// aparecen en la armería de todas las partidas, donde se siguen pagando con las
-// monedas de la partida para colocarlos. Mejoras sube para siempre el daño y la
-// cadencia de cada soldado que ya tengas.
+// Soldados, defensas y apoyo se DESBLOQUEAN: una vez comprados aparecen en la
+// armería de todas las partidas, donde se siguen pagando con las monedas de la
+// partida para colocarlos. Lo que ya es tuyo se mejora para siempre desde su
+// misma carta (daño y cadencia los soldados, vida las defensas, recarga el apoyo).
 //
 // Hay dos monedas y es fácil liarse, así que cada artículo dice las dos cosas:
 // lo que cuesta desbloquearlo en billetes y lo que cuesta ponerlo en partida.
@@ -24,7 +24,6 @@ const PESTANAS = [
   { id: 'soldados', nombre: 'Soldados' },
   { id: 'defensas', nombre: 'Defensas' },
   { id: 'apoyo', nombre: 'Apoyo' },
-  { id: 'mejoras', nombre: 'Mejoras' },
   { id: 'comparar', nombre: 'Comparar' }
 ]
 
@@ -176,15 +175,6 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
   // monta al arrancar con lo que había abierto.
   let cambio = false
 
-  // La cara del artículo: el retrato de la figura si ya está hecho, el icono si
-  // no, y nada si tampoco hay icono.
-  function cara (clave) {
-    const url = retratos?.()?.get?.(clave)
-    if (url) return `<img src="${url}" alt="">`
-    if (document.getElementById('i-' + clave)) return `<svg aria-hidden="true"><use href="#i-${clave}"></use></svg>`
-    return ''
-  }
-
   function pieCompra (clave, c) {
     const tuya = c.desbloqueadas.includes(clave)
     const precio = PRECIOS[clave]
@@ -210,48 +200,33 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
       : tipo === 'recarga' ? spec.recarga
         : (spec.damage ?? spec.thorns ?? spec.revienta?.daño ?? spec.cura ?? 0)
 
-  function mejoras (c) {
-    const soldados = Object.entries(SOLDIERS).filter(([k]) => c.desbloqueadas.includes(k))
-    const defensas = Object.entries(DEFENSES).filter(([k]) => c.desbloqueadas.includes(k))
-    const apoyo = Object.entries(STRIKES).filter(([k]) => c.desbloqueadas.includes(k))
-    if (!soldados.length && !defensas.length && !apoyo.length) return '<p class="tienda-vacia">Desbloquea soldados, defensas o apoyo para poder mejorarlos.</p>'
-    const grupo = (titulo, lista) => lista.length
-      ? `<h3 class="mejoras-grupo">${titulo}</h3>` + lista.map(ficha).join('')
-      : ''
-    return grupo('Soldados', soldados) + grupo('Defensas', defensas) + grupo('Apoyo', apoyo)
-
-    function ficha ([clave, spec]) {
-      const pistas = pistasMejora(clave).map(tipo => [tipo, MEJORAS[tipo]]).map(([tipo, m]) => {
-        const nivel = c.mejoras[clave]?.[tipo] ?? 0
-        const precio = precioMejora(clave, tipo)
-        const pips = Array.from({ length: NIVEL_MAX }, (_, i) => `<i class="${i < nivel ? 'on' : ''}"></i>`).join('')
-        const boton = precio == null
-          ? '<span class="mejora-max">Máximo</span>'
-          : `<button type="button" class="articulo-comprar" data-mejora="${clave}:${tipo}" ${c.billetes >= precio ? '' : 'disabled'}>${billete}${precio}</button>`
-        // Lo que se gana, en el número que importa: daño por disparo y disparos
-        // por segundo. Un "+15%" no dice nada; "9,5 → 10,9" sí.
-        const base = valorBase(spec, tipo)
-        const val = n => (base * (1 + n * m.paso)).toFixed(base < 10 ? 1 : 0).replace('.', ',')
-        const salto = precio == null
-          ? `<span class="mejora-salto">${val(nivel)}</span>`
-          : `<span class="mejora-salto">${val(nivel)} <i>→</i> <b>${val(nivel + 1)}</b></span>`
-        return `
-          <div class="mejora-pista">
-            <span class="mejora-nombre">${tipo === 'dano' && spec.cura ? 'Curación' : m.nombre}</span>
-            ${salto}
-            <span class="pips">${pips}</span>
-            ${boton}
-          </div>`
-      }).join('')
+  // Las mejoras de un artículo, una fila por cosa que se le puede subir. Van AL
+  // PIE DE SU CARTA (Isidro, 05/10: «que las mejoras estén dentro de la tarjeta
+  // de cada personaje»): antes eran una pestaña aparte con una lista, y había
+  // que buscar ahí al soldado que se acababa de mirar en la baraja.
+  function pistas (clave, spec, c) {
+    return pistasMejora(clave).map(tipo => [tipo, MEJORAS[tipo]]).map(([tipo, m]) => {
+      const nivel = c.mejoras[clave]?.[tipo] ?? 0
+      const precio = precioMejora(clave, tipo)
+      const pips = Array.from({ length: NIVEL_MAX }, (_, i) => `<i class="${i < nivel ? 'on' : ''}"></i>`).join('')
+      const boton = precio == null
+        ? '<span class="mejora-max">Máximo</span>'
+        : `<button type="button" class="articulo-comprar" data-mejora="${clave}:${tipo}" ${c.billetes >= precio ? '' : 'disabled'}>${billete}${precio}</button>`
+      // Lo que se gana, en el número que importa: daño por disparo y disparos
+      // por segundo. Un "+15%" no dice nada; "9,5 → 10,9" sí.
+      const base = valorBase(spec, tipo)
+      const val = n => (base * (1 + n * m.paso)).toFixed(base < 10 ? 1 : 0).replace('.', ',')
+      const salto = precio == null
+        ? `<span class="mejora-salto">${val(nivel)}</span>`
+        : `<span class="mejora-salto">${val(nivel)} <i>→</i> <b>${val(nivel + 1)}</b></span>`
       return `
-        <div class="mejora" style="--u-tint:${spec.color != null ? hex(spec.color) : 'var(--verde-texto)'}">
-          <div class="mejora-cabeza">
-            <div class="articulo-cara mini">${cara(clave)}</div>
-            <b>${spec.name}</b>
-          </div>
-          ${pistas}
+        <div class="mejora-pista">
+          <span class="mejora-nombre">${tipo === 'dano' && spec.cura ? 'Curación' : m.nombre}</span>
+          ${salto}
+          <span class="pips">${pips}</span>
+          ${boton}
         </div>`
-    }
+    }).join('')
   }
 
   // La tabla de comparar. Cada columna pinta una barra sobre el mejor de todos,
@@ -329,7 +304,7 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
       <button type="button" class="pestana${p.id === pestana ? ' activa' : ''}" data-pestana="${p.id}"
               role="tab" aria-selected="${p.id === pestana}">${p.nombre}${p.id === 'cajas' && c.cajas.militar + c.cajas.alien ? ` <span class="pestana-num">${c.cajas.militar + c.cajas.alien}</span>` : ''}</button>`).join('')
 
-    elLista.classList.toggle('lista-mejoras', pestana === 'mejoras' || pestana === 'comparar')
+    elLista.classList.toggle('lista-mejoras', pestana === 'comparar')
     const enBaraja = pestana === 'soldados' || pestana === 'defensas' || pestana === 'apoyo'
     elLista.classList.toggle('lista-baraja', enBaraja)
     if (enBaraja) {
@@ -337,15 +312,15 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
       if (b.contenedor.parentNode !== elLista) elLista.replaceChildren(b.contenedor)
       b.api.ponerPies(clave => {
         const s = b.ficha.specs[clave]
-        return `<small>En partida: ${s.cost} monedas${s.recarga ? ` · recarga ${s.recarga} s` : ''}</small>${pieCompra(clave, c)}`
+        // Lo que ya es tuyo enseña sus mejoras donde antes solo ponía «Tuyo»;
+        // lo que no, el precio de desbloquearlo. Lo que no se mejora (el
+        // Recolector) se queda con su rótulo.
+        const filas = c.desbloqueadas.includes(clave) ? pistas(clave, s, c) : ''
+        return `<small>En partida: ${s.cost} monedas${s.recarga ? ` · recarga ${s.recarga} s` : ''}</small>${filas ? `<div class="carta-mejoras">${filas}</div>` : pieCompra(clave, c)}`
       })
       return
     }
-    elLista.innerHTML = pestana === 'cajas'
-      ? cajas(c)
-      : pestana === 'mejoras'
-        ? mejoras(c)
-        : comparar(c)
+    elLista.innerHTML = pestana === 'cajas' ? cajas(c) : comparar(c)
   }
 
   elPestanas.addEventListener('click', e => {
