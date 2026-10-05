@@ -1823,7 +1823,7 @@ html, body {
 }
 
 /* ---------- portada: botones del menú ---------- */
-/* VER EL MAPA grande y, debajo, TIENDA y ENEMIGOS del mismo tamaño. */
+/* JUGAR grande y, debajo, TIENDA y ENEMIGOS del mismo tamaño. */
 .menu-fila { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
 .menu-boton {
   display: flex; align-items: center; justify-content: center; gap: 8px;
