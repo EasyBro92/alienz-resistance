@@ -229,11 +229,12 @@ function deshilachar (geo, altoTotal, fuerza) {
   geo.computeVertexNormals()
 }
 
-function vestirArquero (cuerpo, hueso) {
+function vestirArquero (cuerpo, hueso, conCapucha = false) {
   // La ropa del tirador hacia el oliva y el cuero. El material se clona: es el
   // mismo archivo que lleva el Tirador y no se le puede teñir a él.
   cuerpo.traverse(o => {
-    if (!o.isMesh || !o.material?.map) return
+    // La cabeza de Blender no se tiñe: la cara saldría verde.
+    if (!o.isMesh || !o.material?.map || o.name === 'cabeza') return
     o.material = o.material.clone()
     o.material.color.set(0xb7ad84)
   })
@@ -260,7 +261,8 @@ function vestirArquero (cuerpo, hueso) {
   pico.position.set(0, 0.19, 0.1)
   pico.rotation.x = 0.9
   capucha.add(casco, pico)
-  colgarDeHueso(cabeza, capucha)
+  // La cabeza de Blender ya trae su capucha, hecha a su medida: esta sobra.
+  if (!conCapucha) colgarDeHueso(cabeza, capucha)
 
   // --- esclavina: la tela de la capucha cae sobre los hombros ---
   const hombros = new THREE.Group()
@@ -333,22 +335,25 @@ function vestirArquero (cuerpo, hueso) {
 // Los cuerpos de Meshy traen la cara en una textura de 512, medio tapada por
 // barboquejos y máscaras; `herramientas/blender/cabezas.py` hace una cabeza
 // nueva por soldado y sexo (`models/cabeza-<clave>-<f|m>.glb`: cráneo modelado,
-// ojos, cejas, boca, pelo, barba y casco, con el color en los vértices).
+// orejas, pelo, barba y casco, con la cara DIBUJADA en su textura —la primera
+// tanda, de rasgos de un solo color, no le gustó: «texturas poco detalladas,
+// dale caras más amigables»— y las sombras horneadas).
 //
 // Aquí se le quita al cuerpo la cabeza vieja y se cuelga la nueva del hueso
 // `Head`. Va RÍGIDA, como hija del hueso: no necesita pesos, la geometría la
 // comparten todas las copias y cuesta una llamada de dibujado por soldado.
 const CON_CABEZA = new Set(['archer', 'rifle', 'shotgun', 'sniper', 'flamer', 'gunner', 'misil', 'mortar', 'capitan'])
 const cuerposSinCabeza = new Map()
-const matCabeza = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8 })
-// La Guerra civil tiñe los materiales con el color del bando: a la cara, casi nada.
-matCabeza.userData.tinte = 0.12
 
 // La malla del cuerpo sin los triángulos de la cabeza y el cuello viejos: los
 // que mandan `Head` o `neck`, y lo que quede por encima del arranque del cuello
 // pegado a su eje (la piel del cuello, que cuelga del pecho). La MISMA regla que
 // `sin_cabeza` en cabezas.py, o las fotos de Blender no serían lo que se ve aquí.
-function quitarCabeza (original) {
+// Tres cuerpos traían un cuello alto grande y bajo y hay que cortar antes, o
+// asoman picos alrededor de la braga. Los mismos números que en cabezas.py.
+const CUELLO_ALTO = { 'soldado-escopeta-f': 0.02, 'soldado-escopeta-m': 0.03, 'soldado-fusil-f': 0.03 }
+
+function quitarCabeza (original, alto = 0.075) {
   const geo = original.geometry
   const { bones } = original.skeleton
   const fuera = new Set(['Head', 'head_end', 'headfront', 'neck'].map(n => bones.findIndex(b => b.name === n)))
@@ -366,7 +371,7 @@ function quitarCabeza (original) {
     // Dos escalones: pegado al eje, todo lo que suba del arranque del cuello;
     // algo más lejos, solo lo que suba mucho (capuchas y cuellos altos que
     // rodeaban la cabeza vieja), para no morder los hombros.
-    const sobra = (lejos < 0.1 && v.y > cuello.y + 0.008) || (lejos < 0.2 && v.y > cuello.y + 0.075)
+    const sobra = (lejos < 0.1 && v.y > cuello.y + 0.008) || (lejos < 0.2 && v.y > cuello.y + alto)
     quita[i] = fuera.has(indices.getComponent(i, mayor)) || sobra ? 1 : 0
   }
   const viejo = geo.index.array
@@ -403,27 +408,35 @@ async function ponerCabeza (key, cuerpo, url) {
     if (!hueso && o.name === 'Head') hueso = o
   })
   if (!molde || !mallaOriginal || !malla || !hueso) return
-  if (!cuerposSinCabeza.has(url)) cuerposSinCabeza.set(url, quitarCabeza(mallaOriginal))
+  if (!cuerposSinCabeza.has(url)) {
+    const nombre = url.slice(url.lastIndexOf('/') + 1, -4)
+    cuerposSinCabeza.set(url, quitarCabeza(mallaOriginal, CUELLO_ALTO[nombre]))
+  }
   malla.geometry = cuerposSinCabeza.get(url)
   // La cabeza está medida en el mundo del modelo en reposo: como hija del
   // hueso, su matriz es la inversa de la del hueso en ese reposo.
   let reposo = null
   original.traverse(o => { if (!reposo && o.name === 'Head') reposo = o })
   escena.updateMatrixWorld(true)
-  const cabeza = new THREE.Mesh(molde.geometry, matCabeza)
+  // El material es el del modelo, con su textura (la cara dibujada y las
+  // sombras horneadas). La Guerra civil tiñe los materiales con el color del
+  // bando: a la cara, casi nada.
+  molde.material.userData.tinte = 0.12
+  const cabeza = new THREE.Mesh(molde.geometry, molde.material)
   cabeza.name = 'cabeza'
   cabeza.applyMatrix4(molde.matrixWorld)
   cabeza.applyMatrix4(reposo.matrixWorld.clone().invert())
   cabeza.castShadow = true
   cabeza.receiveShadow = true
   hueso.add(cabeza)
+  return true
 }
 
 async function armarPersona (key, spec, urls) {
   const url = Array.isArray(urls) ? urls[sexoDe(key)] : urls
   const gltf = await cargarGLTF(url)
   const cuerpo = await loadModel(url)
-  await ponerCabeza(key, cuerpo, url)
+  const conCabeza = await ponerCabeza(key, cuerpo, url)
 
   const g = new THREE.Group()
   const figure = new THREE.Group()
@@ -487,7 +500,7 @@ async function armarPersona (key, spec, urls) {
 
   // El arquero se viste encima del cuerpo del tirador (Isidro, 28/09, con una
   // lámina de referencia: capucha, capa rota, cuero y carcaj).
-  if (key === 'archer') vestirArquero(cuerpo, hueso)
+  if (key === 'archer') vestirArquero(cuerpo, hueso, conCabeza)
   // Al del lanzallamas, la mochila de bombonas colgada del pecho: es lo que más
   // se ve, porque la cámara mira a los soldados por la espalda.
   if (key === 'flamer' && lanzallamas) {

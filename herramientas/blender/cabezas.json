@@ -1,0 +1,148 @@
+{
+  "_": "Quién es cada soldado. Lo leen las dos mitades de las cabezas: herramientas/cabezas/caras.mjs (dibuja la cara) y herramientas/blender/cabezas.py (hace la cabeza y hornea). Medidas en milímetros sobre la cara, con el origen entre los ojos; parche -1 = su ojo derecho.",
+  "base": {
+    "el": {
+      "ancho": 0.083, "mandibula": 0.27, "menton": 0.006, "nariz": 0.017, "nariz_ancho": 0.0105, "cuello": 0.05, "talla": 1.12,
+      "ojo": { "sep": 34, "rx": 15, "arriba": 11.6, "abajo": 9.0, "inclina": 1.0, "iris": 8.9 },
+      "cejas": { "grosor": 1.0, "arco": 3.0, "dentro": 0.4, "alto": 0.0 },
+      "boca": { "tipo": "sonrisa", "ancho": 19, "curva": 3.6 },
+      "rubor": 0.26, "labio": null, "pestanas": false
+    },
+    "ella": {
+      "ancho": 0.079, "mandibula": 0.38, "menton": 0.004, "nariz": 0.013, "nariz_ancho": 0.009, "cuello": 0.042, "talla": 1.12,
+      "ojo": { "sep": 34, "rx": 16, "arriba": 13.6, "abajo": 10.0, "inclina": 2.2, "iris": 10.0 },
+      "cejas": { "grosor": 0.62, "arco": 4.0, "dentro": 0.8, "alto": 1.6 },
+      "boca": { "tipo": "sonrisa", "ancho": 17, "curva": 3.8 },
+      "rubor": 0.42, "labio": "#c9665f", "pestanas": true
+    }
+  },
+  "personajes": {
+    "rifle-m": {
+      "de": "el", "cuerpo": "soldado-fusil-m", "casco": "#3d7dd8", "casco_extra": ["gafas", "cascos"],
+      "piel": "#eeb48e", "pelo": "#231a15", "iris": "#6b4426",
+      "cejas": { "grosor": 1.2, "arco": 3.4, "dentro": 0.2 },
+      "barba": "bigote", "sombra_barba": 0.45,
+      "cicatrices": [[45, 31, 49, 11]]
+    },
+    "rifle-f": {
+      "de": "ella", "cuerpo": "soldado-fusil-f", "casco": "#3d7dd8", "casco_extra": ["gafas"],
+      "piel": "#f2c3a2", "pelo": "#6b4226", "iris": "#4f8a45",
+      "peinado": "coleta", "flequillo": 3, "flequillo_giro": 0.2, "pecas": 26
+    },
+    "shotgun-m": {
+      "de": "el", "cuerpo": "soldado-escopeta-m", "casco": "#e58227", "casco_extra": ["placa"],
+      "piel": "#8f5c3e", "pelo": "#120d0b", "iris": "#4a2c14",
+      "ancho": 0.087, "mandibula": 0.2, "menton": 0.008, "nariz_ancho": 0.0125, "cuello": 0.058,
+      "peinado": "rapado", "rapado": 0.6, "barba": "barba", "barba_largo": 0.008,
+      "cejas": { "grosor": 1.3, "arco": 3.6, "dentro": 1.0 },
+      "boca": { "tipo": "risa", "ancho": 20, "abre": 12 }, "rubor": 0.18
+    },
+    "shotgun-f": {
+      "de": "ella", "cuerpo": "soldado-escopeta-f", "casco": "#e58227", "casco_extra": ["placa"],
+      "piel": "#d9a47c", "pelo": "#14100e", "iris": "#5a3a1c",
+      "mandibula": 0.34, "peinado": "corto", "flequillo": 4, "flequillo_giro": 0.3,
+      "cejas": { "grosor": 0.85, "dentro": 0.0 },
+      "boca": { "tipo": "media", "ancho": 17, "curva": 3.0 }, "labio": "#a8564e",
+      "pintura": "#1c1c1c", "cicatrices": [[-50, -28, -40, -46]]
+    },
+    "sniper-m": {
+      "de": "el", "cuerpo": "soldado-tirador-m", "casco": "#49b88a", "casco_extra": ["red"],
+      "piel": "#f1c7a8", "pelo": "#b89455", "ceja": "#8d6f3c", "iris": "#4f8fc0",
+      "ancho": 0.079, "mandibula": 0.33, "nariz_ancho": 0.009,
+      "ojo": { "arriba": 10.2, "inclina": 0.4 },
+      "cejas": { "grosor": 0.85, "arco": 2.4, "dentro": 0.6 },
+      "boca": { "tipo": "sonrisa", "ancho": 17, "curva": 2.6 },
+      "sombra_barba": 0.3, "flequillo": 2
+    },
+    "sniper-f": {
+      "de": "ella", "cuerpo": "soldado-tirador-f", "casco": "#49b88a", "casco_extra": ["red"],
+      "piel": "#f6d2b8", "pelo": "#a8431f", "ceja": "#7d3a1f", "iris": "#3f9a62",
+      "peinado": "melena", "flequillo": 3, "flequillo_giro": -0.2, "pecas": 34, "labio": "#c76a5e"
+    },
+    "flamer-m": {
+      "de": "el", "cuerpo": "soldado-lanzallamas-m", "casco": "#9c2a20", "casco_extra": ["gafas"], "gafas_color": "#2b3a44",
+      "piel": "#d79b78", "pelo": "#2a1d16", "iris": "#7a4a1e",
+      "mandibula": 0.24, "peinado": "rapado", "rapado": 0.18, "barba": "perilla",
+      "cejas": { "grosor": 1.15, "arco": 3.0, "dentro": -0.2 },
+      "boca": { "tipo": "media", "ancho": 18, "curva": 3.2 },
+      "sombra_barba": 0.25, "cicatrices": [[-62, 22, -55, -8], [-52, 6, -46, -26], [-64, -12, -56, -42]]
+    },
+    "flamer-f": {
+      "de": "ella", "cuerpo": "soldado-lanzallamas-f", "casco": "#9c2a20", "casco_extra": ["gafas"], "gafas_color": "#2b3a44",
+      "piel": "#f0c8a4", "pelo": "#17120f", "iris": "#6a4020",
+      "peinado": "mono", "flequillo": 3, "flequillo_giro": -0.25, "labio": "#b5524c",
+      "lunares": [[30, -44, 1.3]]
+    },
+    "archer-m": {
+      "de": "el", "cuerpo": "soldado-tirador-m", "casco": null, "capucha": "#5d6a34",
+      "piel": "#e9b792", "pelo": "#5a3a22", "iris": "#6f8a3a",
+      "ancho": 0.08, "mandibula": 0.32, "nariz": 0.015,
+      "ojo": { "rx": 15.6, "arriba": 12.6, "iris": 9.6 },
+      "cejas": { "grosor": 0.9, "arco": 3.8, "dentro": 1.2 },
+      "boca": { "tipo": "risa", "ancho": 17, "abre": 9 },
+      "flequillo": 4, "flequillo_giro": 0.25, "pecas": 14, "pintura": "#3f5a2a"
+    },
+    "archer-f": {
+      "de": "ella", "cuerpo": "soldado-tirador-f", "casco": null, "capucha": "#5d6a34",
+      "piel": "#eab58f", "pelo": "#8a4a22", "ceja": "#5f3418", "iris": "#7a6a2a",
+      "flequillo": 4, "flequillo_giro": -0.2, "pecas": 18, "pintura": "#3f5a2a", "labio": "#b96258"
+    },
+    "mortar-m": {
+      "de": "el", "cuerpo": "soldado-escopeta-m", "casco": "#d9c23a", "casco_extra": ["estrella"],
+      "piel": "#e0a584", "pelo": "#b9b6ae", "ceja": "#9a978f", "iris": "#5a7f96",
+      "mandibula": 0.22, "menton": 0.008, "nariz": 0.02, "nariz_ancho": 0.012,
+      "ojo": { "arriba": 10.4 },
+      "cejas": { "grosor": 1.3, "arco": 3.2, "dentro": 1.4 },
+      "barba": "bigote", "barba_color": "#e2dfd6", "arrugas": true, "rubor": 0.42, "entradas": 0.02
+    },
+    "mortar-f": {
+      "de": "ella", "cuerpo": "soldado-escopeta-f", "casco": "#d9c23a", "casco_extra": ["estrella"],
+      "piel": "#f3caa8", "pelo": "#d2ad62", "ceja": "#9a7a3c", "iris": "#4f8fc0",
+      "peinado": "mono", "flequillo": 2, "lunares": [[32, -58, 1.5]], "labio": "#cb6a62"
+    },
+    "gunner-m": {
+      "de": "el", "cuerpo": "soldado-lanzallamas-m", "casco": "#7a6ad4", "casco_extra": ["placa", "cascos"],
+      "piel": "#f0bf9f", "pelo": "#b5521c", "iris": "#3f9aa0",
+      "ancho": 0.087, "mandibula": 0.2, "nariz_ancho": 0.012, "cuello": 0.058,
+      "barba": "barba", "barba_largo": 0.013,
+      "cejas": { "grosor": 1.25, "arco": 3.6, "dentro": 1.2 },
+      "boca": { "tipo": "risa", "ancho": 21, "abre": 13 }, "pecas": 14, "rubor": 0.4
+    },
+    "gunner-f": {
+      "de": "ella", "cuerpo": "soldado-lanzallamas-f", "casco": "#7a6ad4", "casco_extra": ["placa", "cascos"],
+      "piel": "#7d4f36", "pelo": "#100c0a", "iris": "#4a2a12",
+      "mandibula": 0.34, "nariz_ancho": 0.011, "peinado": "corto",
+      "cejas": { "grosor": 0.8 },
+      "boca": { "tipo": "risa", "ancho": 18, "abre": 10 }, "labio": "#8f4038", "rubor": 0.22
+    },
+    "misil-f": {
+      "de": "ella", "cuerpo": "soldado-lanzallamas-f", "casco": "#e0559b", "casco_extra": ["gafas"], "gafas_color": "#8fd0e8",
+      "piel": "#f5d3b6", "pelo": "#15110f", "iris": "#5a3a22",
+      "peinado": "melena", "flequillo": 5, "labio": "#d0607a",
+      "ojo": { "inclina": 3.0 }, "lunares": [[-44, -16, 1.2]]
+    },
+    "misil-m": {
+      "de": "el", "cuerpo": "soldado-lanzallamas-m", "casco": "#e0559b", "casco_extra": ["gafas"], "gafas_color": "#8fd0e8",
+      "piel": "#b57a52", "pelo": "#16100d", "iris": "#5a3418",
+      "mandibula": 0.32, "barba": "perilla", "flequillo": 2,
+      "cejas": { "grosor": 1.05, "dentro": 0.8 },
+      "boca": { "tipo": "sonrisa", "ancho": 18, "curva": 4.0 }
+    },
+    "capitan-m": {
+      "de": "el", "cuerpo": "soldado-fusil-m", "casco": "#d8b04a", "casco_extra": ["estrella"],
+      "piel": "#e3ab88", "pelo": "#2b2623", "iris": "#5f7482",
+      "mandibula": 0.22, "menton": 0.009, "nariz": 0.019,
+      "cejas": { "grosor": 1.3, "arco": 3.0, "dentro": -0.8 },
+      "boca": { "tipo": "media", "ancho": 19, "curva": 3.4 },
+      "sombra_barba": 0.6, "parche": -1, "cicatrices": [[-27, 34, -31, 20], [-33, -16, -40, -42]]
+    },
+    "capitan-f": {
+      "de": "ella", "cuerpo": "soldado-fusil-f", "casco": "#d8b04a", "casco_extra": ["estrella"],
+      "piel": "#e8b592", "pelo": "#1a1513", "iris": "#5f7482",
+      "mandibula": 0.34, "peinado": "coleta", "flequillo": 2, "flequillo_giro": 0.4,
+      "cejas": { "grosor": 0.85, "dentro": -0.4 },
+      "boca": { "tipo": "media", "ancho": 17, "curva": 3.2 }, "labio": "#a9504a",
+      "parche": -1, "cicatrices": [[-33, -16, -40, -42]]
+    }
+  }
+}
