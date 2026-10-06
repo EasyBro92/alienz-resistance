@@ -223,12 +223,12 @@ export const SOLDIERS = {
     blurb: 'Solo en la caja alienígena. Fusil de tiradora semiautomático: dispara de pie, atraviesa blindajes, elige al más duro y lo echa para atrás.'
   },
   // Sherry: PRUEBA de un modelo hecho fuera (Hunyuan3D), para ver su realismo
-  // dentro del juego. Es una estatua: toda la malla va pegada a la cadera
-  // (`cuerpo_de_fuera.py`), trae su fusil fundido (`sinArma` esconde el del
-  // juego) y ni anda ni apunta. Para hacerla de verdad hace falta el modelo en
-  // pose A y sin arma.
+  // dentro del juego. Es una `estatua`: viene posada y con su fusil fundido, así
+  // que se dibuja quieta en vez de la malla del esqueleto (`sinArma` esconde el
+  // arma del juego) y ni anda ni apunta. Para hacerla de verdad hace falta el
+  // modelo en pose A y sin arma. Se reduce con `cuerpo_de_fuera.py`.
   sherry: {
-    name: 'Sherry', cost: 260, hp: 140, color: 0x6f9fc8, accent: 0x2a4a66, arma: 'rifle', sinGalones: true, sinArma: true,
+    name: 'Sherry', cost: 260, hp: 140, color: 0x6f9fc8, accent: 0x2a4a66, arma: 'rifle', sinGalones: true, sinArma: true, estatua: true,
     damage: 12, fireRate: 3.6, range: 18, armorPierce: 0.4,
     magazine: 20, reloadTime: 1.1,
     asienta: { porSegundo: 0.3, tope: 0.9 },

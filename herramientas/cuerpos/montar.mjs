@@ -140,6 +140,17 @@ async function montar (clave) {
   json.textures = [{ sampler: json.textures[0].sampler, source: 0 }]
   delete json.extensionsUsed
   json.meshes[0].name = 'cuerpo-' + clave
+  // El relieve, si lo hay (`<clave>-normal.png`, de cuerpo_de_fuera.py): las
+  // arrugas y el pelo que la malla reducida ya no tiene. A la mitad de tamaño,
+  // que el relieve no necesita tanto detalle como el color.
+  const rutaRelieve = path.join(TRABAJO, clave + '-normal.png')
+  const relieve = fs.existsSync(rutaRelieve)
+    ? await sharp(rutaRelieve).resize({ width: 1024 }).webp({ quality: 90 }).toBuffer()
+    : null
+  if (relieve) {
+    json.textures.push({ sampler: json.textures[0].sampler, source: 1 })
+    json.materials[0].normalTexture = { index: 1 }
+  }
 
   // --- volver a montar el binario (como simplificar.mjs) ---------------------------
   const usadas = new Set()
@@ -171,6 +182,10 @@ async function montar (clave) {
   })
   json.images = [{ mimeType: 'image/webp', bufferView: vistas.length }]
   vistas.push({ buffer: 0, byteOffset: pon(imagen), byteLength: imagen.length })
+  if (relieve) {
+    json.images.push({ mimeType: 'image/webp', bufferView: vistas.length })
+    vistas.push({ buffer: 0, byteOffset: pon(relieve), byteLength: relieve.length })
+  }
   json.bufferViews = vistas
   const relleno = (4 - (largo % 4)) % 4
   if (relleno) { trozos.push(Buffer.alloc(relleno)); largo += relleno }

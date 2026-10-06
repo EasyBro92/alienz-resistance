@@ -452,11 +452,38 @@ async function armarPersona (key, spec, urls) {
   const gltf = await cargarGLTF(url)
   const cuerpo = await loadModel(url)
   const conCabeza = await ponerCabeza(key, cuerpo, url)
+  // Un modelo de fuera que viene posado y con el arma en la mano (`estatua`: la
+  // prueba de Sherry). No se puede repartir entre los huesos, así que se dibuja
+  // tal cual, quieto, en vez de la malla del esqueleto: pegado a un hueso
+  // salía girado de lado en cuanto el soldado se ponía a apuntar. La malla está
+  // en el espacio del modelo en reposo, que es el de la raíz.
+  let quieta = null
+  if (spec.estatua) {
+    let piel = null
+    cuerpo.traverse(o => { if (!piel && o.isSkinnedMesh) piel = o })
+    if (piel) {
+      quieta = new THREE.Mesh(piel.geometry, piel.material)
+      quieta.name = 'estatua'
+      quieta.castShadow = true
+      quieta.receiveShadow = true
+      cuerpo.add(quieta)
+      piel.visible = false
+    }
+  }
 
   const g = new THREE.Group()
   const figure = new THREE.Group()
   g.add(figure)
   figure.add(cuerpo)
+  // Al apuntar, `cuerpo.js` pone la figura de medio lado (la postura de tiro) y
+  // el esqueleto lo compensa; una estatua no tiene con qué, y se quedaba
+  // mirando a un costado. Deshace ese giro justo antes de dibujarse.
+  if (quieta) {
+    quieta.onBeforeRender = () => {
+      quieta.rotation.y = -figure.rotation.y
+      quieta.updateMatrixWorld()
+    }
+  }
 
   // Meshy monta el esqueleto con la cara hacia +Z; el juego mira hacia -Z, que
   // es de donde bajan los huéspedes. Media vuelta o el soldado dispara a su
