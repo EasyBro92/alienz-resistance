@@ -221,6 +221,18 @@ export const SOLDIERS = {
     buscaDuro: true,
     empuja: 0.8,
     blurb: 'Solo en la caja alienígena. Fusil de tiradora semiautomático: dispara de pie, atraviesa blindajes, elige al más duro y lo echa para atrás.'
+  },
+  // Sherry: PRUEBA de un modelo hecho fuera (Hunyuan3D), para ver su realismo
+  // dentro del juego. Es una estatua: toda la malla va pegada a la cadera
+  // (`cuerpo_de_fuera.py`), trae su fusil fundido (`sinArma` esconde el del
+  // juego) y ni anda ni apunta. Para hacerla de verdad hace falta el modelo en
+  // pose A y sin arma.
+  sherry: {
+    name: 'Sherry', cost: 260, hp: 140, color: 0x6f9fc8, accent: 0x2a4a66, arma: 'rifle', sinGalones: true, sinArma: true,
+    damage: 12, fireRate: 3.6, range: 18, armorPierce: 0.4,
+    magazine: 20, reloadTime: 1.1,
+    asienta: { porSegundo: 0.3, tope: 0.9 },
+    blurb: 'Solo en la caja alienígena. De prueba: un modelo realista hecho con otra herramienta. Todavía no anda ni apunta.'
   }
 }
 
@@ -277,7 +289,7 @@ export const DEFENSES = {
 // alienígena entraron en SOLDIERS cuando las defensas ya tenían su número:
 // contando «soldados y luego defensas» se habrían corrido todas cinco puestos, y
 // un móvil sin actualizar vería una torreta donde el otro puso unos sacos.
-const TARDIAS = ['jill', 'claire', 'ada', 'rebecca', 'sheva']
+const TARDIAS = ['jill', 'claire', 'ada', 'rebecca', 'sheva', 'sherry']
 export const CLAVES_RED = [
   ...Object.keys(SOLDIERS).filter(k => !TARDIAS.includes(k)),
   ...Object.keys(DEFENSES),

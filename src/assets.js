@@ -60,7 +60,8 @@ export const MODELS = {
   claire: 'models/cuerpo-claire-f.glb',
   ada: 'models/cuerpo-ada-f.glb',
   rebecca: 'models/cuerpo-rebecca-f.glb',
-  sheva: 'models/cuerpo-sheva-f.glb'
+  sheva: 'models/cuerpo-sheva-f.glb',
+  sherry: 'models/cuerpo-sherry-f.glb'
 }
 
 // Chico o chica, y SIEMPRE el mismo.
@@ -514,6 +515,9 @@ async function armarPersona (key, spec, urls) {
   // apuntaba adonde cayera el brazo, no adonde miraba el soldado.
   figure.add(arma)
   arma.position.set(0.2, 1.26, -0.42)
+  // Un modelo que ya trae su arma fundida (la prueba de Sherry): la del juego
+  // sigue ahí —de ella salen la bala y el fogonazo— pero no se dibuja.
+  if (spec.sinArma) arma.traverse(o => { if (o.isMesh) o.visible = false })
 
   // El arquero se viste encima del cuerpo del tirador (Isidro, 28/09, con una
   // lámina de referencia: capucha, capa rota, cuero y carcaj).
