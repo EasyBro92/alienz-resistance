@@ -584,4 +584,30 @@ function atenasAcropolis () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, ...LUGARES }
+// Salónica: el paseo de Nikis mirando a la Torre Blanca, de día
+// (herramientas/blender/lugar_salonica.py, 06/10). El mar a la derecha, con las
+// barcas y la goleta; la calzada, las terrazas y los bloques a la izquierda. Los
+// alienz llegan en nave, como siempre, y la torre asoma por encima de ella: va
+// casi en el eje porque arriba, en el centro, es donde el marcador deja un hueco.
+// Por eso la base alien va a un lado, plantada en la bocacalle de la izquierda.
+function salonicaPaseo () {
+  const g = new THREE.Group()
+  g.name = 'lugar:salonicaPaseo'
+  Object.assign(g.userData, {
+    modelo: 'lugar-salonica',
+    modeloCiudad: 'lugar-salonica-ciudad',
+    luz: 'lugar-salonica',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    baseX: -12.8,
+    baseZ: -44,
+    // El coche que sigue ardiendo en la calzada.
+    humos: [[-10.75, -28, 1.6, 11, 1.0]]
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, ...LUGARES }

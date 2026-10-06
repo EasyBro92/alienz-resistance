@@ -281,9 +281,13 @@ export const PAISES = [
         waves: OLEADAS.colmena
       },
       {
-        name: 'Salónica', lugar: 'Nea Paralia · el paseo nuevo', mapa: sitio(40.64, 22.94),
-        // El paseo del golfo Termaico y los bloques de los años sesenta.
-        escenario: 'salonica', suelo: 'losas', tonoSuelo: 0xc6c0b2, hitos: [['torreBlanca']],
+        name: 'Salónica', llegada: 'salonica', lugar: 'Paseo de Nikis · la Torre Blanca', mapa: sitio(40.64, 22.94),
+        // El paseo marítimo hecho en Blender (herramientas/blender/lugar_salonica.py):
+        // el mar a la derecha, los bloques de Nikis a la izquierda y la Torre Blanca
+        // al fondo, de día. Los alienz llegan en nave, como siempre.
+        escenario: 'salonicaPaseo', suelo: 'losas', tonoSuelo: 0xbcb6a9, hitos: [],
+        fondo: { hora: 'dia', cielo: 0x8fc0ee, niebla: 0xd3e2ee, nieblaCerca: 140, nieblaLejos: 460 },
+        sinPajaros: true, sinNubes: true,
         resumen: 'Todo llega deprisa por la costa.',
         parte: ['El puerto del norte sirvió de apoyo. Cuando Atenas cayó, todo lo que quedaba vino hacia aquí.',
           'Llegan en columna por la carretera de la costa.'],

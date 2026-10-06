@@ -2012,6 +2012,16 @@ const ATENAS_PLANOS = [
   { k: 0.76, pos: [4, 36, 72], mira: [0, 5, -58] },
   { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
 ]
+// Salónica (06/10): la Torre Blanca de cerca, desde el agua, con el frente de
+// Nikis y la ciudad subiendo a la muralla detrás; la cámara se abre sobre el
+// golfo, rodea el paseo y baja a la espalda de los soldados, mirando a la torre.
+const SALONICA_PLANOS = [
+  { k: 0, pos: [64, 9, -97], mira: [-1.2, 6.5, -86] },
+  { k: 0.3, pos: [140, 46, -24], mira: [-24, 8, 30] },
+  { k: 0.56, pos: [66, 50, 104], mira: [0, 6, -44] },
+  { k: 0.76, pos: [6, 36, 76], mira: [0, 5, -62] },
+  { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
+]
 // Las llegadas «de película»: un recorrido por planos, largo la primera vez y
 // más corto (pero empezando también fuera) las siguientes. Cada una abre la
 // niebla y el corte de lejos a su medida, y enciende el modelo de la ciudad.
@@ -2023,6 +2033,7 @@ const LLEGADAS = {
   napoles: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-napoles-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: NAPOLES_PLANOS },
   roma: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-roma-v1', niebla: { cerca: 900, lejos: 3200 }, lejos: 4200, planos: ROMA_PLANOS },
   atenas: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-atenas-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: ATENAS_PLANOS },
+  salonica: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-salonica-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: SALONICA_PLANOS },
   marsella: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-marsella-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: MARSELLA_PLANOS }
 }
 // El recorrido es una curva que pasa por los planos, no tramos sueltos: con un

@@ -854,7 +854,7 @@ def a_srgb (x):
 
 def terminar (grupos, exportes, sol_hacia, sol_color=(1.0, 0.96, 0.88), sol_fuerza=3.5, sol_ancho=3.0,
               cielo_fuerza=0.7, cielo_altura=50.0, cielo_giro=0.0, escala=0.5, satura=1.0, rebotes=3,
-              no_alumbran=(), suaves=()):
+              no_alumbran=(), suaves=(), fundir=False):
     """grupos: {clave: (nombre del objeto, tipo, mapa)}; tipo 'atlas' | 'planta' |
     'vert' | 'plano' | 'juego'; `mapa` es el nombre del mapa de luz (luzE…), y dos
     grupos de tipo 'planta' pueden compartirlo.
@@ -862,7 +862,9 @@ def terminar (grupos, exportes, sol_hacia, sol_color=(1.0, 0.96, 0.88), sol_fuer
     sol_hacia: hacia el sol, en (x, y, z) del JUEGO.
     suaves: nombres de material que, en los grupos 'vert', llevan la luz
     promediada por vértice (montes y lomas: con una luz por esquina de cada cara
-    se les ven las facetas; en un edificio, en cambio, es lo que hace falta)."""
+    se les ven las facetas; en un edificio, en cambio, es lo que hace falta).
+    fundir: en los grupos 'vert', junta en un solo material todos los de color
+    liso (menos llamadas de dibujado; se ve igual)."""
     esc = bpy.context.scene
     env = lambda k, d: float(os.environ.get(f'{E.nombre.upper()}_{k}', d))
     escala, satura = env('ESCALA', escala), env('SATURA', satura)
@@ -1028,6 +1030,28 @@ def terminar (grupos, exportes, sol_hacia, sol_color=(1.0, 0.96, 0.88), sol_fuer
             np.add.at(suma, vert[es], col[es, :3]); np.add.at(cuantas, vert[es], 1)
             col[es, :3] = (suma[vert[es]] / cuantas[vert[es]][:, None]).astype(np.float32)
         col[:, :3] = np.clip(saturar(curva(col[:, :3] * escala)), 0, 1)
+        if fundir:
+            # Los materiales de color liso se quedan en UNO: su color pasa a los
+            # vértices, multiplicado por la luz (el juego hace esa misma cuenta).
+            # Cada material es una llamada de dibujado, y un paseo con farolas,
+            # bancos, coches y barcas juntaba cuarenta.
+            me = o.data
+            mat_cara = np.empty(len(me.polygons), np.int32); me.polygons.foreach_get('material_index', mat_cara)
+            lados = np.empty(len(me.polygons), np.int32); me.polygons.foreach_get('loop_total', lados)
+            de_esquina = np.repeat(mat_cara, lados)
+            comun = None
+            for i, m in enumerate(me.materials):
+                b = m.node_tree.nodes['Principled BSDF']
+                if b.inputs['Base Color'].is_linked or b.inputs['Emission Strength'].default_value > 0 or b.inputs['Alpha'].default_value < 1:
+                    continue
+                col[de_esquina == i, :3] *= np.array(b.inputs['Base Color'].default_value[:3], np.float32)
+                if comun is None:
+                    comun = i
+                    me.materials[i] = material('liso', color=(1.0, 1.0, 1.0), rug=0.9)
+                else:
+                    mat_cara[mat_cara == i] = comun
+            me.polygons.foreach_set('material_index', mat_cara)
+            me.update()
         col[:, 3] = 1
         atr.data.foreach_set('color', col.ravel())
         print('VERTICES', grupo, 'media', np.round(col[:, :3].mean(axis=0), 3))
