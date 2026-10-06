@@ -252,7 +252,7 @@ function disparar (u, blanco, soloVer = false) {
   const from = muzzleWorld(s, tmpA)
   const to = tmpB.copy(blanco.s.mesh.position).setY(1)
   s.onFire()
-  audio.shot(u.key === 'torreta' ? 'gunner' : u.key)
+  audio.shot(u.key)
   const daño = s.damage * (s.spec.pellets ?? 1)
   if (spec.projectile === 'arrow') {
     effects.arrow(from, to)

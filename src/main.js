@@ -998,7 +998,8 @@ function soldierFire (soldier, target) {
   const to = tmpB.copy(target.mesh.position).setY(1.0)
   const pierce = spec.armorPierce ?? 0
   soldier.onFire()
-  audio.shot(soldier.key)
+  // Cada arma suena en su lado: el campo mide unos doce de ancho.
+  audio.shot(soldier.key, from.x / 7)
 
   // Cada arma se ve distinta al disparar, no solo suena distinto.
   if (spec.projectile === 'arrow') {
@@ -2245,7 +2246,7 @@ function dispararALaBase (s, objetivo) {
   const from = muzzleWorld(s, tmpA)
   const to = tmpB.set(objetivo.x + (Math.random() - 0.5) * 6, objetivo.y + (Math.random() - 0.5) * 3, objetivo.z)
   s.onFire()
-  audio.shot(s.key)
+  audio.shot(s.key, from.x / 7)
   if (s.spec.projectile === 'arrow') effects.arrow(from, to)
   else if (s.spec.projectile === 'mortar') effects.mortar(from.clone(), to.clone(), p => { audio.boom(); effects.burst(p, 0xffb03a, 14, 3) })
   else effects.tracer(from, to)

@@ -55,6 +55,162 @@ export function createAudio () {
     build()
   }
 
+  // --- las piezas de un disparo ---------------------------------------------------
+  // Un solo trozo de ruido para todo (antes se fabricaba uno nuevo en cada
+  // disparo) y una sala: una reverberación corta hecha con ruido que se apaga,
+  // que es lo que hace que un tiro suene en un sitio y no dentro del altavoz.
+  let ruido = null
+  let sala = null
+  const ultimo = {}
+  const HUECO = { rifle: 0.04, gunner: 0.045, torreta: 0.05, flamer: 0.13, archer: 0.05, shotgun: 0.08, sniper: 0.1, misil: 0.12, mortar: 0.12 }
+
+  function preparar () {
+    if (ruido) return
+    ruido = noiseBuffer(2)
+    const largo = Math.floor(ctx.sampleRate * 0.9)
+    const eco = ctx.createBuffer(2, largo, ctx.sampleRate)
+    for (let c = 0; c < 2; c++) {
+      const d = eco.getChannelData(c)
+      let suave = 0
+      for (let i = 0; i < largo; i++) {
+        // Ruido que se apaga y pierde agudos según pasa: una calle, no un baño.
+        const k = i / largo
+        suave += ((Math.random() * 2 - 1) - suave) * (0.55 - 0.45 * k)
+        d[i] = suave * Math.exp(-5.5 * k)
+      }
+    }
+    sala = ctx.createConvolver()
+    sala.buffer = eco
+    const vuelta = ctx.createGain()
+    vuelta.gain.value = 0.55
+    sala.connect(vuelta).connect(sfxGain)
+  }
+
+  // Por dónde sale un sonido: su sitio entre izquierda y derecha y cuánto manda a la sala.
+  function voz (x = 0, aSala = 0.25) {
+    preparar()
+    const salida = ctx.createGain()
+    let destino = sfxGain
+    if (ctx.createStereoPanner) {
+      const pan = ctx.createStereoPanner()
+      pan.pan.value = Math.max(-0.75, Math.min(0.75, x))
+      pan.connect(sfxGain)
+      destino = pan
+    }
+    salida.connect(destino)
+    const envio = ctx.createGain()
+    envio.gain.value = aSala
+    salida.connect(envio).connect(sala)
+    return salida
+  }
+
+  // Una capa de ruido filtrado: `f0` → `f1` es por dónde viaja el filtro.
+  function soplo (salida, t, { tipo = 'bandpass', f0, f1 = f0, q = 0.8, pico, ataque = 0.001, cae, viaje = cae }) {
+    const src = ctx.createBufferSource()
+    src.buffer = ruido
+    const f = ctx.createBiquadFilter()
+    f.type = tipo
+    f.Q.value = q
+    f.frequency.setValueAtTime(f0, t)
+    if (f1 !== f0) f.frequency.exponentialRampToValueAtTime(f1, t + viaje)
+    const g = ctx.createGain()
+    g.gain.setValueAtTime(0.0001, t)
+    g.gain.exponentialRampToValueAtTime(pico, t + ataque)
+    g.gain.exponentialRampToValueAtTime(0.0001, t + ataque + cae)
+    src.connect(f).connect(g).connect(salida)
+    const largo = ataque + cae + 0.03
+    src.start(t, Math.random() * (2 - largo - 0.01), largo)
+  }
+
+  // Una capa de tono que cae: el golpe grave de un disparo, la cuerda de un arco.
+  function tono (salida, t, { forma = 'sine', f0, f1 = f0, pico, ataque = 0.002, cae }) {
+    const o = ctx.createOscillator()
+    o.type = forma
+    o.frequency.setValueAtTime(f0, t)
+    if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + ataque + cae)
+    const g = ctx.createGain()
+    g.gain.setValueAtTime(0.0001, t)
+    g.gain.exponentialRampToValueAtTime(pico, t + ataque)
+    g.gain.exponentialRampToValueAtTime(0.0001, t + ataque + cae)
+    o.connect(g).connect(salida)
+    o.start(t)
+    o.stop(t + ataque + cae + 0.03)
+  }
+
+  // Un clic de metal: la corredera, el cerrojo, el casquillo.
+  const clic = (s, t, f, pico = 0.1) => soplo(s, t, { f0: f, q: 2.5, pico, cae: 0.022 })
+
+  const ARMAS = {
+    // Fusil: chasquido seco, cuerpo corto y un golpe grave debajo.
+    rifle (s, t, v) {
+      soplo(s, t, { tipo: 'highpass', f0: 2400 * v, pico: 0.42, cae: 0.045 })
+      soplo(s, t, { tipo: 'lowpass', f0: 1100 * v, f1: 280, pico: 0.5, cae: 0.12 })
+      tono(s, t, { f0: 170 * v, f1: 55, pico: 0.5, cae: 0.09 })
+    },
+    // Ametralladora: más grave y más corta que el fusil, para que la ráfaga no se empaste.
+    gunner (s, t, v) {
+      soplo(s, t, { tipo: 'highpass', f0: 1700 * v, pico: 0.34, cae: 0.032 })
+      soplo(s, t, { tipo: 'lowpass', f0: 800 * v, f1: 200, pico: 0.55, cae: 0.085 })
+      tono(s, t, { f0: 125 * v, f1: 44, pico: 0.6, cae: 0.075 })
+    },
+    // Torreta: metálica y aguda, se distingue de los soldados.
+    torreta (s, t, v) {
+      soplo(s, t, { f0: 3200 * v, q: 1.6, pico: 0.62, cae: 0.035 })
+      soplo(s, t, { tipo: 'lowpass', f0: 1300 * v, f1: 400, pico: 0.62, cae: 0.07 })
+      tono(s, t, { forma: 'square', f0: 210 * v, f1: 90, pico: 0.26, cae: 0.05 })
+    },
+    // Escopeta: un trueno ancho, y después la corredera: clac-clac.
+    shotgun (s, t, v) {
+      soplo(s, t, { tipo: 'highpass', f0: 1500 * v, pico: 0.38, cae: 0.06 })
+      soplo(s, t, { tipo: 'lowpass', f0: 1600 * v, f1: 150, pico: 0.85, cae: 0.3 })
+      tono(s, t, { f0: 115 * v, f1: 36, pico: 0.85, cae: 0.2 })
+      clic(s, t + 0.3, 1500 * v, 0.13)
+      clic(s, t + 0.41, 2300 * v, 0.11)
+    },
+    // Tirador: el chasquido más fuerte, una cola larga que rueda, y el cerrojo.
+    sniper (s, t, v) {
+      soplo(s, t, { tipo: 'highpass', f0: 3200 * v, pico: 0.7, cae: 0.035 })
+      soplo(s, t, { tipo: 'lowpass', f0: 2000 * v, f1: 180, pico: 0.75, cae: 0.26 })
+      tono(s, t, { f0: 150 * v, f1: 38, pico: 0.75, cae: 0.2 })
+      clic(s, t + 0.5, 1900 * v, 0.09)
+      clic(s, t + 0.64, 2700 * v, 0.08)
+    },
+    // Arco: la cuerda que vibra y la flecha cortando el aire. Sin pólvora.
+    archer (s, t, v) {
+      tono(s, t, { forma: 'triangle', f0: 250 * v, f1: 150, pico: 0.5, cae: 0.17 })
+      tono(s, t, { forma: 'triangle', f0: 505 * v, f1: 300, pico: 0.18, cae: 0.09 })
+      soplo(s, t, { f0: 1100, f1: 3400, q: 1.2, pico: 0.26, ataque: 0.025, cae: 0.15 })
+    },
+    // Lanzallamas: no dispara, ruge.
+    flamer (s, t, v) {
+      soplo(s, t, { f0: 520 * v, f1: 900, q: 0.5, pico: 0.75, ataque: 0.05, cae: 0.34 })
+      soplo(s, t, { tipo: 'lowpass', f0: 190 * v, pico: 0.7, ataque: 0.04, cae: 0.3 })
+      soplo(s, t, { tipo: 'highpass', f0: 4200, pico: 0.14, ataque: 0.03, cae: 0.25 })
+    },
+    // Misil: el golpe del encendido y el motor que se va, cada vez más agudo.
+    misil (s, t, v) {
+      tono(s, t, { f0: 95 * v, f1: 48, pico: 0.6, cae: 0.16 })
+      soplo(s, t, { f0: 380 * v, f1: 2600, q: 0.9, pico: 0.62, ataque: 0.03, cae: 0.6, viaje: 0.5 })
+      soplo(s, t, { tipo: 'highpass', f0: 3000, pico: 0.12, ataque: 0.02, cae: 0.4 })
+    },
+    // Mortero: el «tump» hueco del tubo, con su resto metálico.
+    mortar (s, t, v) {
+      tono(s, t, { f0: 155 * v, f1: 50, pico: 0.95, cae: 0.24 })
+      soplo(s, t, { tipo: 'lowpass', f0: 750 * v, f1: 180, pico: 0.42, cae: 0.15 })
+      tono(s, t, { forma: 'triangle', f0: 540 * v, pico: 0.07, cae: 0.22 })
+    }
+  }
+  // Cuánto de cada arma se va a la sala: el tirador, mucho (es el que retumba).
+  Object.assign(ARMAS.rifle, { sala: 0.26 })
+  Object.assign(ARMAS.gunner, { sala: 0.16 })
+  Object.assign(ARMAS.torreta, { sala: 0.14 })
+  Object.assign(ARMAS.shotgun, { sala: 0.4 })
+  Object.assign(ARMAS.sniper, { sala: 0.75 })
+  Object.assign(ARMAS.archer, { sala: 0.08 })
+  Object.assign(ARMAS.flamer, { sala: 0.1 })
+  Object.assign(ARMAS.misil, { sala: 0.3 })
+  Object.assign(ARMAS.mortar, { sala: 0.36 })
+
   const api = {
     unlock () { ensure(); if (ctx.state === 'suspended') ctx.resume() },
     get muted () { return muted },
@@ -75,19 +231,23 @@ export function createAudio () {
       return muted
     },
 
-    shot (kind = 'rifle') {
+    // El disparo de cada arma (Isidro, 06/10: «céntrate en el sonido de las
+    // armas»). Antes todas eran el mismo soplido de ruido con el filtro en otro
+    // sitio: el arco sonaba a fusil y el mortero a escopeta. Ahora cada una se
+    // monta con sus capas —el chasquido, el cuerpo, el golpe grave, la cola de
+    // la sala y su mecánica (la corredera de la escopeta, el cerrojo del
+    // tirador)— y `x` la coloca a izquierda o derecha según su carril.
+    shot (kind = 'rifle', x = 0) {
       play(() => {
-        const src = ctx.createBufferSource()
-        src.buffer = noiseBuffer(0.14)
-        const filter = ctx.createBiquadFilter()
-        filter.type = 'bandpass'
-        filter.frequency.value = kind === 'sniper' ? 900 : kind === 'shotgun' ? 500 : 1500
-        filter.Q.value = 0.8
-        const g = ctx.createGain()
-        env(g, kind === 'sniper' ? 0.5 : 0.28, 0.001, kind === 'shotgun' ? 0.16 : 0.07)
-        src.connect(filter).connect(g).connect(sfxGain)
-        src.start()
-        src.stop(ctx.currentTime + 0.25)
+        const t = ctx.currentTime
+        // Veinte fusileros a la vez no son veinte disparos: son una pasta. Cada
+        // arma tiene un hueco mínimo entre dos sonidos suyos.
+        const hueco = HUECO[kind] ?? 0.035
+        if (t - (ultimo[kind] ?? -1) < hueco) return
+        ultimo[kind] = t
+        const v = 0.93 + Math.random() * 0.14        // ningún disparo es igual al anterior
+        const receta = ARMAS[kind] ?? ARMAS.rifle
+        receta(voz(x, receta.sala ?? 0.25), t, v)
       })
     },
 
@@ -120,18 +280,19 @@ export function createAudio () {
       })
     },
 
+    // La explosión (misil, mortero, granada, bombas): el estampido, el cuerpo
+    // que se hunde, el golpe en el pecho y los cascotes que caen después.
     boom () {
       play(() => {
-        const src = ctx.createBufferSource()
-        src.buffer = noiseBuffer(1.0)
-        const f = ctx.createBiquadFilter()
-        f.type = 'lowpass'
-        f.frequency.setValueAtTime(1800, ctx.currentTime)
-        f.frequency.exponentialRampToValueAtTime(90, ctx.currentTime + 0.7)
-        const g = ctx.createGain()
-        env(g, 0.85, 0.005, 0.8)
-        src.connect(f).connect(g).connect(sfxGain)
-        src.start(); src.stop(ctx.currentTime + 1.1)
+        const t = ctx.currentTime
+        if (t - (ultimo.boom ?? -1) < 0.06) return
+        ultimo.boom = t
+        const s = voz(0, 0.5)
+        const v = 0.9 + Math.random() * 0.2
+        soplo(s, t, { tipo: 'highpass', f0: 1800, pico: 0.35, cae: 0.05 })
+        soplo(s, t, { tipo: 'lowpass', f0: 1900 * v, f1: 85, pico: 0.85, ataque: 0.005, cae: 0.8, viaje: 0.7 })
+        tono(s, t, { f0: 95 * v, f1: 30, pico: 0.9, ataque: 0.004, cae: 0.5 })
+        for (let i = 0; i < 4; i++) clic(s, t + 0.22 + Math.random() * 0.45, 900 + Math.random() * 2200, 0.05)
       })
     },
 
