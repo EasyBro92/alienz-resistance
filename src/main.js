@@ -1377,7 +1377,10 @@ function separarHuespedes () {
     // Que se aparten no significa que puedan cambiarse de carril: la puntería,
     // el lanzallamas y la escopeta razonan por carriles, y un huésped a dos
     // carriles de donde dice estar rompe todo eso.
-    const centro = laneX(a.lane)
+    // El centro lleva el desvío de la ruina del Coliseo: sin él, este tope
+    // devolvía al carril a los que se abrían para rodearla y la atravesaban
+    // (el desvío se calculaba, pero se quedaban a 1,2 del centro en vez de a 4).
+    const centro = laneX(a.lane) + (a.desvioRuina ?? 0)
     const margen = FIELD.laneWidth * 0.5
     a.mesh.position.x = Math.min(centro + margen, Math.max(centro - margen, a.mesh.position.x))
   }
@@ -1608,15 +1611,29 @@ function simulate (dt) {
         const k = Math.min(1, s2.t / s2.dur)
         z.mesh.position.z = s2.z0 + (s2.z1 - s2.z0) * k
         // Parábola: sube y baja. Sin la altura se leía como un teletransporte.
-        z.mesh.position.y = Math.sin(k * Math.PI) * 2.6
+        z.mesh.position.y = Math.sin(k * Math.PI) * (s2.alto ?? 2.6)
         z.mesh.rotation.x = -Math.sin(k * Math.PI) * 0.5
         if (k >= 1) {
           z.salto = null
           z.mesh.position.y = 0
           z.mesh.rotation.x = 0
-          effects.burst(z.mesh.position, 0x7dffe4, 8, 1.1)
+          // El brinco de camino levanta polvo; el salto de verdad, su destello.
+          if (s2.libre) effects.burst(z.mesh.position, grietas.colorSuelo(), 4, 0.6)
+          else effects.burst(z.mesh.position, 0x7dffe4, 8, 1.1)
         }
         z.bar.face(camera, dt)
+        continue
+      }
+
+      // La ruina del Coliseo: los demás la rodean (zombie.js); el Saltador la
+      // SALTA (Isidro: «el saltador no la salta»). Un salto más largo y más alto
+      // que el de las barreras, sin gastar su recarga: no le está saltando a nadie.
+      const ruina = FIELD.ruina
+      if (ruina && z.spec.salta && !z.saltoRuina && Math.abs(z.xCarril - ruina.x) < ruina.radio &&
+          z.mesh.position.z < ruina.z && ruina.z - z.mesh.position.z < ruina.radio + 1.5) {
+        z.saltoRuina = true
+        z.salto = { t: 0, dur: 1.0, z0: z.mesh.position.z, z1: ruina.z + ruina.radio + 1.5, alto: 4.4 }
+        effects.burst(z.mesh.position, 0x7dffe4, 10, 1.3)
         continue
       }
 
@@ -1635,6 +1652,28 @@ function simulate (dt) {
           z.salto = { t: 0, dur: 0.62, z0: z.mesh.position.z, z1: z.mesh.position.z + z.spec.salta.distancia }
           effects.burst(z.mesh.position, 0x7dffe4, 10, 1.3)
           continue
+        }
+        // Y de camino avanza A BRINCOS. Isidro: «el personaje nunca salta». Saltar
+        // solo saltaba al ir a morder una barrera con la recarga lista: si lo
+        // mataban antes o no tenía a nadie delante, no se le veía saltar jamás y
+        // era un Corredor más. Estos brincos son solo su forma de andar: mientras
+        // dura uno se le puede disparar igual (`libre`), tarda lo mismo que
+        // corriendo ese trecho y nunca pasa por encima de nadie: acaba antes de
+        // la barrera, de la ruina y de la línea de la base.
+        if (!attacking && !z.suelo && (!FIELD.prisa || z.mesh.position.z > FIELD.prisa.hasta)) {
+          z.brincoCd = (z.brincoCd ?? 0.6 + Math.random() * 1.6) - dt
+          if (z.brincoCd <= 0) {
+            const z0 = z.mesh.position.z
+            let tope = Math.min(blocker ? blocker.pz - reach - 0.3 : Infinity, FIELD.baseZ - 0.6)
+            if (ruina && !z.saltoRuina && z0 < ruina.z && Math.abs(z.xCarril - ruina.x) < ruina.radio) tope = Math.min(tope, ruina.z - ruina.radio - 1.4)
+            const largo = Math.min(z.spec.salta.brinco ?? 4.4, tope - z0)
+            if (largo >= 2.4) {
+              z.brincoCd = 2.2 + Math.random() * 1.2
+              z.salto = { t: 0, dur: Math.min(1.6, largo / z.velocidad), z0, z1: z0 + largo, alto: 0.5 + largo * 0.3, libre: true }
+              continue
+            }
+            z.brincoCd = 0.35
+          }
         }
       }
 

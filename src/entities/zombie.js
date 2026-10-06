@@ -129,7 +129,10 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
     // Andando por el suelo, antes de cavar, sí se le puede disparar; al salir,
     // no hasta que ha salido del todo: le mataban a medio asomar, sin llegar a
     // verse qué era.
-    get intocable () { return this.bajoTierra || !!this.salto || (!!this.cavar && !this.cavar.tocable) },
+    // Los brincos con que avanza el Saltador (`libre`) no cuentan: son su forma
+    // de andar, y en el aire se le dispara igual. Solo le hace intocable el
+    // salto de verdad, el que pasa por encima de una barrera o de la ruina.
+    get intocable () { return this.bajoTierra || (!!this.salto && !this.salto.libre) || (!!this.cavar && !this.cavar.tocable) },
 
     curar (n) {
       if (this.hp >= this.maxHp) return 0
@@ -255,8 +258,9 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
       // hacia el lado que les pilla más cerca y vuelven a su carril al pasarla.
       // Se suma la DIFERENCIA con el fotograma anterior, no se fija la x: así
       // convive con el reparto de arriba y con los empujones entre ellos.
+      // El Saltador no la rodea: la salta (lo lleva el bucle de main.js).
       const ruina = FIELD.ruina
-      if (ruina && !this.bajoTierra) {
+      if (ruina && !this.bajoTierra && !this.spec.salta) {
         const lejos = Math.abs(this.mesh.position.z - ruina.z)
         const dx = this.xCarril - ruina.x
         const falta = Math.max(0, ruina.radio - Math.abs(dx))
