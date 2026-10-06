@@ -249,6 +249,24 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
         }
       }
 
+      // --- rodear la ruina ---------------------------------------------------
+      // En el Coliseo hay columnas caídas en medio del campo (Isidro: «pon alguna
+      // ruina en medio y que los alienz la esquiven»). Al acercarse se abren
+      // hacia el lado que les pilla más cerca y vuelven a su carril al pasarla.
+      // Se suma la DIFERENCIA con el fotograma anterior, no se fija la x: así
+      // convive con el reparto de arriba y con los empujones entre ellos.
+      const ruina = FIELD.ruina
+      if (ruina && !this.bajoTierra) {
+        const lejos = Math.abs(this.mesh.position.z - ruina.z)
+        const dx = this.xCarril - ruina.x
+        const falta = Math.max(0, ruina.radio - Math.abs(dx))
+        // Empieza a abrirse tres radios antes y ya va del todo abierto al llegar.
+        const t = Math.max(0, Math.min(1, (ruina.radio * 3 - lejos) / (ruina.radio * 2)))
+        const desvio = (dx >= 0 ? 1 : -1) * falta * t * t * (3 - 2 * t)
+        this.mesh.position.x += desvio - (this.desvioRuina ?? 0)
+        this.desvioRuina = desvio
+      }
+
       // Con esqueleto, el balanceo y el bote los pone la cadera (ver `alienDeMeshy`).
       this.mesh.rotation.z = rig ? 0 : swing * 0.05
       // `suelo` es la altura del terreno bajo los pies, y lo pone el bucle desde

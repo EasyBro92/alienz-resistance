@@ -2528,6 +2528,8 @@ function start (indice = nivelActual) {
   // Y si nacen muy al fondo, dentro de la niebla, traen prisa hasta salir de
   // ella (ver `velocidad` en zombie.js).
   FIELD.prisa = nivelDeHoy.entrada?.prisa ?? null
+  // Un estorbo en medio del campo que los huéspedes rodean (la ruina del Coliseo).
+  FIELD.ruina = nivelDeHoy.ruina ?? null
   sinNave = !!dueloEnCurso || !!nivelDeHoy.entrada
   dropship.recolocar()
   if (sinNave) dropship.ocultar()

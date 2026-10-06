@@ -204,7 +204,10 @@ export const PAISES = [
         name: 'Roma', llegada: 'roma', lugar: 'Dentro del Coliseo', mapa: sitio(41.90, 12.50), bioma: 'mediterraneo',
         // El Coliseo por dentro, como está hoy, hecho en Blender
         // (herramientas/blender/lugar_roma.py): la tarima sobre el hipogeo, de día.
-        escenario: 'romaColiseo', suelo: 'losas', tonoSuelo: 0xb08e60, hitos: [],
+        escenario: 'romaColiseo', suelo: 'losas', tonoSuelo: 0x86705a, hitos: [],
+        // Las columnas caídas del medio (las mismas del guion de Blender): los
+        // alienz las rodean.
+        ruina: { x: 0, z: -32, radio: 3.3 },
         // Salen del túnel de la puerta del fondo: nacen dentro, a oscuras, y
         // vienen deprisa hasta la boca (z = -63,5).
         entrada: { z: -86, fondo: 6, prisa: { desde: -84, hasta: -64, por: 3 } },

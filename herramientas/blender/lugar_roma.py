@@ -98,6 +98,20 @@ def tex_podio ():
     a[0:6] = np.array((0.8, 0.74, 0.65)) * 1.12
     return guardar('podio', a, 86)
 
+def tex_arena ():
+    """El suelo de la arena: tierra apisonada y arena, oscura y con manchas.
+    Isidro, al ver la tarima de tablas: «parece madera, ponlo como en la vida
+    real o más o menos, o por lo menos oscurécelo»."""
+    a = lienzo(256, 256, (0.5, 0.42, 0.31)) + ruido(256, 256, 0.16)[..., None]
+    a *= (1 + ruido(256, 256, 0.3))[..., None]
+    for _ in range(40):                              # piedrecillas y cascotes
+        x, y = random.randrange(250), random.randrange(250)
+        a[y:y + random.randint(2, 4), x:x + random.randint(2, 5)] *= random.choice([0.62, 0.7, 1.25])
+    for _ in range(6):                               # rodadas y manchas de humedad
+        y = random.randrange(240)
+        a[y:y + random.randint(3, 9)] *= 0.9
+    return guardar('arena', a)
+
 def tex_tablas ():
     a = lienzo(256, 256, (0.6, 0.47, 0.32)) + ruido(256, 256, 0.1)[..., None]
     for x in range(0, 256, 32):                      # las tablas, a lo largo del campo
@@ -112,7 +126,8 @@ ARCOS = material('arcos', tex_arcos(), rug=0.9)
 ATICO = material('atico', tex_atico(), rug=0.9)
 CAVEA = material('cavea', tex_cavea(), rug=0.95)
 PODIO = material('podio', tex_podio(), rug=0.9)
-TABLAS = material('tablas', tex_tablas(), rug=0.85)
+TABLAS = material('arena', tex_arena(), rug=1.0)          # ya no son tablas: el nombre se queda por no tocar lo demás
+RUINA = material('ruina', de_polyhaven('sandstone_blocks_08', 512, 0xcbbfa6), rug=0.9)
 PIEDRA = material('travertino', de_polyhaven('sandstone_blocks_08', 512, 0xd4c5a8), rug=0.9)
 LADRILLO = material('ladrillo', de_polyhaven('castle_wall_varriation', 512, 0xa9714f), rug=0.95)
 LADRILLO_OSC = material('ladrillo-oscuro', imagen_de(LADRILLO), tinte=0xb9a595, rug=0.95)
@@ -269,14 +284,29 @@ tambor = [(BASE[0] + 5.2 * math.cos(2 * math.pi * i / 20), BASE[1] + 5.2 * math.
 prisma('E', PIEDRA, tambor, HONDO, 0.0, techo=PIEDRA, baldosa=4)
 
 # --- la tarima: madera de punta a punta, y la plataforma ancha de la espalda --------------------
-rect('S', TABLAS, -8.9, 8.9, -98, Z0 + 26, 0.0, baldosa=3.2)
+rect('S', TABLAS, -8.9, 8.9, -98, Z0 + 26, 0.0, baldosa=7.0)
 plataforma = [(-8.9, Z0 + 26)] + [(23.2 * math.cos(t), Z0 + 40.6 * math.sin(t)) for t in np.linspace(math.radians(140), math.radians(40), 15)] + [(8.9, Z0 + 26)]
-cara('S', TABLAS, [P(x, z, 0.0) for x, z in plataforma], hacia=ARRIBA, baldosa=3.2)
+cara('S', TABLAS, [P(x, z, 0.0) for x, z in plataforma], hacia=ARRIBA, baldosa=7.0)
 cara('S', TABLAS, [P(x, z, 0.02) for x, z in tambor], hacia=ARRIBA, baldosa=6.0)
 for x in (-8.9, 8.9):                                                                             # el canto de la tarima
     caja('E', LADRILLO_OSC, x - 0.12, x + 0.12, ZP, Z0 + 26, -0.5, -0.02, baldosa=3)
 
-comprobar_paso(('E', 'EP', 'S', 'EV'), z_lejos=-62)
+# --- la ruina del medio: columnas caídas que los alienz tienen que rodear ----------------------
+# (`ruina` en la misión lleva el mismo centro y radio; zombie.js los aparta al pasar.)
+RX, RZ = 0.0, -32.0
+def tambor_de (cx, cz, r, y0, y1, lados=10):
+    prisma('E', RUINA, [(cx + r * math.cos(2 * math.pi * i / lados), cz + r * math.sin(2 * math.pi * i / lados)) for i in range(lados)], y0, y1, techo=RUINA, baldosa=2.5)
+tambor_de(RX - 0.9, RZ - 0.5, 0.62, 0.0, 2.7)            # una columna rota, en pie
+tambor_de(RX - 0.9, RZ - 0.5, 0.8, 0.0, 0.35)
+tambor_de(RX + 1.1, RZ + 0.7, 0.62, 0.0, 1.1)            # el arranque de otra
+tambor_de(RX + 1.1, RZ + 0.7, 0.8, 0.0, 0.35)
+for k in range(4):                                          # sus tambores, caídos en fila
+    cubo('E', RUINA, P(RX + 0.2 + k * 0.5, RZ - 1.3 + k * 0.42, 0.55), (1.15, 0.95, 1.1), 0.7 + k * 0.1)
+cubo('E', RUINA, P(RX - 1.6, RZ + 1.2, 0.3), (1.3, 0.8, 0.6), 0.4)                      # sillares sueltos
+cubo('E', RUINA, P(RX + 0.1, RZ + 1.7, 0.22), (0.9, 0.7, 0.44), 1.1)
+cubo('E', RUINA, P(RX + 1.9, RZ - 0.6, 0.25), (0.8, 0.6, 0.5), 0.2)
+
+comprobar_paso(('E', 'EP', 'S', 'EV'), salvo=('ruina',), z_lejos=-62)
 
 # ==================================================================================
 # 3. LO QUE SOLO SE VE EN EL VUELO
