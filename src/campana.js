@@ -187,11 +187,13 @@ export const PAISES = [
     cierre: 'Bajo Milán, el túnel sigue. Hacia el este. Hacia el mar.',
     misiones: [
       {
-        name: 'Nápoles', lugar: 'Bajo el Vesubio · anillo sur', mapa: sitio(40.85, 14.26),
-        // Bloques napolitanos con persianas y el volcán cerrando la bahía, con
-        // la vista abierta para que el Vesubio se vea de verdad.
-        fondo: { nieblaCerca: 85, nieblaLejos: 250 },
-        escenario: 'napoles', suelo: 'carretera', hitos: [['maschioAngioino']],
+        name: 'Nápoles', llegada: 'napoles', lugar: 'Lungomare · Castel dell\'Ovo', mapa: sitio(40.85, 14.26), bioma: 'mediterraneo',
+        // El paseo marítimo hecho en Blender (herramientas/blender/lugar_napoles.py):
+        // el Castel dell'Ovo en su islote y el Vesubio al otro lado de la bahía, de
+        // día. Los alienz llegan en nave, como siempre.
+        escenario: 'napolesLungomare', suelo: 'losas', tonoSuelo: 0x74747a, hitos: [],
+        fondo: { hora: 'dia', cielo: 0x8fc0ee, niebla: 0xd3e2ee, nieblaCerca: 140, nieblaLejos: 460 },
+        sinPajaros: true, sinNubes: true,
         resumen: 'Todo llega deprisa. Lo que dispara lento no llega a tiempo.',
         parte: ['La ciudad se vació en cuatro días. En el anillo todo llega deprisa.',
           'Lo que dispara lento no llega a tiempo.'],
@@ -199,9 +201,15 @@ export const PAISES = [
         waves: OLEADAS.contraflujo
       },
       {
-        name: 'Roma', lugar: 'Via dei Fori Imperiali', mapa: sitio(41.90, 12.50), bioma: 'mediterraneo',
-        // Los foros en ruinas a los dos lados y el Coliseo cerrando la calle.
-        escenario: 'roma', suelo: 'adoquin', tonoSuelo: 0x87817a, hitos: [['coliseo3d']],
+        name: 'Roma', llegada: 'roma', lugar: 'Dentro del Coliseo', mapa: sitio(41.90, 12.50), bioma: 'mediterraneo',
+        // El Coliseo por dentro, como está hoy, hecho en Blender
+        // (herramientas/blender/lugar_roma.py): la tarima sobre el hipogeo, de día.
+        escenario: 'romaColiseo', suelo: 'losas', tonoSuelo: 0xb08e60, hitos: [],
+        // Salen del túnel de la puerta del fondo: nacen dentro, a oscuras, y
+        // vienen deprisa hasta la boca (z = -63,5).
+        entrada: { z: -86, fondo: 6, prisa: { desde: -84, hasta: -64, por: 3 } },
+        fondo: { hora: 'dia', cielo: 0x8fc0ee, niebla: 0xd3e2ee, nieblaCerca: 140, nieblaLejos: 460 },
+        sinPajaros: true, sinNubes: true,
         resumen: 'Se curan y el caparazón devuelve las balas.',
         parte: ['Han instalado algo dentro del estadio olímpico. Desde el aire se ve la luz verde por las gradas.',
           'Los que protegen la zona vienen blindados. Hace falta con qué atravesarlos.'],

@@ -1924,6 +1924,26 @@ const LYON_PLANOS = [
   { k: 0.76, pos: [-8, 42, 74], mira: [0, 5, -60] },
   { k: 0.9, pos: [-3, 24, 42], mira: [0, 3, -40] }
 ]
+// Nápoles (06/10): la postal desde el mar —el Castel dell'Ovo delante, la ciudad
+// a la izquierda y el Vesubio cerrando la bahía—; luego gira hacia el paseo y baja.
+const NAPOLES_PLANOS = [
+  // El primer plano va en la línea que une el castillo con el volcán: así salen
+  // uno delante del otro, que en vertical no caben los dos de lado.
+  { k: 0, pos: [45, 110, 330], mira: [260, 110, -1300] },
+  { k: 0.3, pos: [70, 92, 170], mira: [180, 50, -700] },
+  { k: 0.56, pos: [60, 66, 112], mira: [10, 12, -110] },
+  { k: 0.76, pos: [6, 42, 76], mira: [0, 5, -64] },
+  { k: 0.9, pos: [-3, 24, 44], mira: [0, 3, -40] }
+]
+// Roma (06/10): el Coliseo entero desde fuera, con el Arco de Constantino y el
+// Foro; gira hasta ponerse a su espalda y entra por la brecha, bajando a la arena.
+const ROMA_PLANOS = [
+  { k: 0, pos: [-250, 150, 230], mira: [0, 22, -22] },
+  { k: 0.3, pos: [-120, 125, 250], mira: [0, 18, -22] },
+  { k: 0.56, pos: [-24, 86, 160], mira: [0, 6, -34] },
+  { k: 0.76, pos: [-5, 46, 84], mira: [0, 5, -60] },
+  { k: 0.9, pos: [-3, 24, 44], mira: [0, 3, -40] }
+]
 // Las llegadas «de película»: un recorrido por planos, largo la primera vez y
 // más corto (pero empezando también fuera) las siguientes. Cada una abre la
 // niebla y el corte de lejos a su medida, y enciende el modelo de la ciudad.
@@ -1932,6 +1952,8 @@ const LLEGADAS = {
   valencia: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-valencia-v1', niebla: { cerca: 900, lejos: 3200 }, lejos: 4200, planos: VALENCIA_PLANOS },
   lyon: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-lyon-v1', niebla: { cerca: 900, lejos: 3200 }, lejos: 4200, planos: LYON_PLANOS },
   paris: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-paris-v1', niebla: { cerca: 900, lejos: 3200 }, lejos: 4200, planos: PARIS_PLANOS },
+  napoles: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-napoles-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: NAPOLES_PLANOS },
+  roma: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-roma-v1', niebla: { cerca: 900, lejos: 3200 }, lejos: 4200, planos: ROMA_PLANOS },
   marsella: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-marsella-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: MARSELLA_PLANOS }
 }
 // El recorrido es una curva que pasa por los planos, no tramos sueltos: con un

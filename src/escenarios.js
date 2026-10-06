@@ -512,4 +512,50 @@ function parisMarte () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, ...LUGARES }
+// Nápoles: el Lungomare con el Castel dell'Ovo y el Vesubio, hecho en Blender con
+// la luz horneada (herramientas/blender/lugar_napoles.py, 06/10). Se juega en el
+// paseo mirando al este: la balaustrada, la escollera y el mar a la derecha; la
+// calzada con palmeras y los hoteles a la izquierda. Los alienz llegan en nave,
+// como siempre, y la base alien va en su sitio de siempre, en el eje.
+function napolesLungomare () {
+  const g = new THREE.Group()
+  g.name = 'lugar:napolesLungomare'
+  Object.assign(g.userData, {
+    modelo: 'lugar-napoles',
+    modeloCiudad: 'lugar-napoles-ciudad',
+    luz: 'lugar-napoles',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470
+  })
+  return g
+}
+
+// Roma: dentro del Coliseo como está hoy, hecho en Blender con la luz horneada
+// (herramientas/blender/lugar_roma.py, 06/10). Se juega sobre una tarima de
+// madera que cruza la arena, con el hipogeo abierto a los lados; el muro de
+// fuera sigue en pie a la izquierda y al fondo, y a la derecha está la mitad
+// caída. Los alienz salen del túnel de la puerta del fondo (`entrada` en la
+// misión) y la base alien va sobre un tambor de piedra, a la izquierda.
+function romaColiseo () {
+  const g = new THREE.Group()
+  g.name = 'lugar:romaColiseo'
+  Object.assign(g.userData, {
+    modelo: 'lugar-roma',
+    modeloCiudad: 'lugar-roma-ciudad',
+    luz: 'lugar-roma',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    sinAvion: true,
+    lejos: 470,
+    baseX: -13.5,
+    baseZ: -44
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, ...LUGARES }
