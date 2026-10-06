@@ -3604,6 +3604,9 @@ if (import.meta.env.DEV) {
     // Cede el turno cada paso para que se resuelvan las creaciones asíncronas.
     // --- atajos de prueba: cada comprobación en una línea ----------------------
     ganarYa: () => { if (running) win() },
+    // Soltar un huésped concreto en un carril, para probar lo suyo sin esperar
+    // a que salga en una oleada: __zr.meter('leaper', 2)
+    meter: (clave, lane = 2) => createZombie(clave, ZOMBIES[clave], lane, 1).then(z => { if (running) alAparecer(z); else scene.remove(z.mesh); return z }),
     asaltarYa: () => { if (running) empezarAsalto() },
     sinVuelo: () => { if (vuelo) terminarVuelo() },
     // Ver una arena del duelo sin montar un duelo: __zr.arena()

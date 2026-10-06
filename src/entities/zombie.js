@@ -264,15 +264,30 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
         const lejos = Math.abs(this.mesh.position.z - ruina.z)
         const dx = this.xCarril - ruina.x
         const falta = Math.max(0, ruina.radio - Math.abs(dx))
-        // Empieza a abrirse tres radios antes y ya va del todo abierto al llegar.
-        const t = Math.max(0, Math.min(1, (ruina.radio * 3 - lejos) / (ruina.radio * 2)))
+        // Empieza a abrirse con tiempo (tres radios y medio antes) y ya va del
+        // todo abierto al llegar a su altura: una curva larga, no un quiebro.
+        const t = Math.max(0, Math.min(1, (ruina.radio * 3.5 - lejos) / (ruina.radio * 2.5)))
         const desvio = (dx >= 0 ? 1 : -1) * falta * t * t * (3 - 2 * t)
-        this.mesh.position.x += desvio - (this.desvioRuina ?? 0)
+        const lado = desvio - (this.desvioRuina ?? 0)
+        this.mesh.position.x += lado
         this.desvioRuina = desvio
+        // Y GIRA el cuerpo hacia donde va. Sin esto se abrían de lado mirando
+        // al frente, como si la ruina los empujara (Isidro: «lo hacen como si
+        // solo chocaran, quiero que se giren para esquivarlo de forma natural»).
+        // El rumbo sale de lo que avanza y lo que se abre en este fotograma, y
+        // se alcanza poco a poco; al enderezar se inclina un punto, como quien
+        // toma una curva andando.
+        const rumbo = dt > 0 && walking ? Math.atan2(lado / dt, Math.max(0.5, this.velocidad)) : 0
+        this.giroRuina = (this.giroRuina ?? 0) + (rumbo - (this.giroRuina ?? 0)) * Math.min(1, dt * 7)
+        if (Math.abs(this.giroRuina) > 0.002 || this.girado) {
+          this.girado = Math.abs(this.giroRuina) > 0.002
+          this.mesh.rotation.y = Math.PI + this.giroRuina
+          this.ladeo = -this.giroRuina * 0.22
+        }
       }
 
       // Con esqueleto, el balanceo y el bote los pone la cadera (ver `alienDeMeshy`).
-      this.mesh.rotation.z = rig ? 0 : swing * 0.05
+      this.mesh.rotation.z = (rig ? 0 : swing * 0.05) + (this.ladeo ?? 0)
       // `suelo` es la altura del terreno bajo los pies, y lo pone el bucle desde
       // fuera. Vale cero en todo el asfalto y sube en la plancha de la rampa:
       // sin esto, los que acaban de salir aparecían a ras de carretera, o sea
