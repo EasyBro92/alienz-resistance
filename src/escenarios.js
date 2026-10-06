@@ -558,4 +558,30 @@ function romaColiseo () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, ...LUGARES }
+// Atenas: arriba, en la Acrópolis, con el Partenón de frente al fondo del campo,
+// al atardecer (herramientas/blender/lugar_atenas.py, 06/10). Isidro: «hay muchas
+// columnas en una zona alta» y «salen del Partenón». Los alienz nacen dentro del
+// templo, cruzan entre las columnas (`columnas` en la misión: las esquivan) y
+// bajan sus tres escalones: el `hueco` va con el fondo NEGATIVO, o sea, hacia
+// arriba; es el suelo del templo, 1,15 por encima de la roca, con su rampa.
+// A la izquierda, las Cariátides; a la derecha, la base alien.
+function atenasAcropolis () {
+  const g = new THREE.Group()
+  g.name = 'lugar:atenasAcropolis'
+  Object.assign(g.userData, {
+    modelo: 'lugar-atenas',
+    modeloCiudad: 'lugar-atenas-ciudad',
+    luz: 'lugar-atenas',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    hueco: { x: 7.6, zFondo: -62.0, zBorde: -60.6, hondo: -1.15 },
+    baseX: 13.2,
+    baseZ: -47
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, ...LUGARES }

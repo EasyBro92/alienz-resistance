@@ -2260,14 +2260,25 @@ export function createWorld (canvas) {
     scene.fog.near = fondo?.nieblaCerca ?? 62
     scene.fog.far = fondo?.nieblaLejos ?? 152
     // Arriba, el cielo de la región un punto más hondo; abajo, su niebla, para
-    // que el horizonte no tenga costura.
-    cielos.cenit.value.setHex(b.cielo).multiplyScalar(0.78)
-    cielos.horizonte.value.setHex(b.niebla)
+    // que el horizonte no tenga costura. Una misión a otra hora que su región
+    // trae los dos tonos en `fondo.cupula` ([cénit, horizonte]): en Atenas, tras
+    // un vuelo entero con el cielo naranja, el horizonte de la partida salía del
+    // azul claro de mediodía de Grecia. Las demás no lo traen y siguen igual.
+    if (fondo?.cupula) {
+      cielos.cenit.value.setHex(fondo.cupula[0])
+      cielos.horizonte.value.setHex(fondo.cupula[1])
+    } else {
+      cielos.cenit.value.setHex(b.cielo).multiplyScalar(0.78)
+      cielos.horizonte.value.setHex(b.niebla)
+    }
     // El perfil de la ciudad, en el tono de los cerros de la región y un punto
     // más frío: lejos, todo tira a azul.
     perfil.visible = (fondo?.ciudad ?? CON_CIUDAD.has(clave)) && !escenarioTapa
     matPerfil.color.setHex(b.cerro).lerp(new THREE.Color(b.niebla), 0.35).multiplyScalar(0.8)
-    sun.color.setHex(b.sol)
+    // `fondo.sol`: el color del sol sobre soldados y alienz, que no llevan la
+    // luz horneada del sitio. En un atardecer, con el sol blanco de su región
+    // parecían recortados y pegados encima.
+    sun.color.setHex(fondo?.sol ?? b.sol)
     cielo.color.setHex(fondo?.cielo ?? b.cielo)
     cielo.groundColor.setHex(fondo?.ambiente ?? b.ambiente)
 

@@ -259,15 +259,28 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
       // Se suma la DIFERENCIA con el fotograma anterior, no se fija la x: así
       // convive con el reparto de arriba y con los empujones entre ellos.
       // El Saltador no la rodea: la salta (lo lleva el bucle de main.js).
+      //
+      // Lo mismo vale para las COLUMNAS del Partenón (`columnas` en la misión de
+      // Atenas, 06/10): los alienz salen del templo y cada carril pasa por su
+      // hueco. Esas las esquivan todos, también el Saltador, que una columna de
+      // siete metros no se salta. Si hay varios estorbos manda el que más aparta
+      // (no se suman: dos columnas en fila apartarían el doble).
       const ruina = FIELD.ruina
-      if (ruina && !this.bajoTierra && !this.spec.salta) {
-        const lejos = Math.abs(this.mesh.position.z - ruina.z)
-        const dx = this.xCarril - ruina.x
-        const falta = Math.max(0, ruina.radio - Math.abs(dx))
-        // Empieza a abrirse con tiempo (tres radios y medio antes) y ya va del
-        // todo abierto al llegar a su altura: una curva larga, no un quiebro.
-        const t = Math.max(0, Math.min(1, (ruina.radio * 3.5 - lejos) / (ruina.radio * 2.5)))
-        const desvio = (dx >= 0 ? 1 : -1) * falta * t * t * (3 - 2 * t)
+      const columnas = FIELD.columnas
+      if ((ruina || columnas) && !this.bajoTierra) {
+        let desvio = 0
+        const apartar = (o) => {
+          const lejos = Math.abs(this.mesh.position.z - o.z)
+          const dx = this.xCarril - o.x
+          const falta = Math.max(0, o.radio - Math.abs(dx))
+          // Empieza a abrirse con tiempo (tres radios y medio antes) y ya va del
+          // todo abierto al llegar a su altura: una curva larga, no un quiebro.
+          const t = Math.max(0, Math.min(1, (o.radio * 3.5 - lejos) / (o.radio * 2.5)))
+          const d = (dx >= 0 ? 1 : -1) * falta * t * t * (3 - 2 * t)
+          if (Math.abs(d) > Math.abs(desvio)) desvio = d
+        }
+        if (ruina && !this.spec.salta) apartar(ruina)
+        if (columnas) for (const c of columnas) apartar(c)
         const lado = desvio - (this.desvioRuina ?? 0)
         this.mesh.position.x += lado
         this.desvioRuina = desvio

@@ -2002,6 +2002,16 @@ const ROMA_PLANOS = [
   { k: 0.76, pos: [-5, 46, 84], mira: [0, 5, -60] },
   { k: 0.9, pos: [-3, 24, 44], mira: [0, 3, -40] }
 ]
+// Atenas (06/10): la roca entera desde el suroeste, con el Odeón al pie y el
+// Partenón arriba, dorados por el sol que se pone; sube, pasa por encima de los
+// Propileos y baja a la meseta.
+const ATENAS_PLANOS = [
+  { k: 0, pos: [262, 7, 192], mira: [-4, 0, -70] },
+  { k: 0.3, pos: [150, 60, 240], mira: [0, 2, -80] },
+  { k: 0.56, pos: [22, 52, 132], mira: [0, 6, -62] },
+  { k: 0.76, pos: [4, 36, 72], mira: [0, 5, -58] },
+  { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
+]
 // Las llegadas «de película»: un recorrido por planos, largo la primera vez y
 // más corto (pero empezando también fuera) las siguientes. Cada una abre la
 // niebla y el corte de lejos a su medida, y enciende el modelo de la ciudad.
@@ -2012,6 +2022,7 @@ const LLEGADAS = {
   paris: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-paris-v1', niebla: { cerca: 900, lejos: 3200 }, lejos: 4200, planos: PARIS_PLANOS },
   napoles: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-napoles-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: NAPOLES_PLANOS },
   roma: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-roma-v1', niebla: { cerca: 900, lejos: 3200 }, lejos: 4200, planos: ROMA_PLANOS },
+  atenas: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-atenas-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: ATENAS_PLANOS },
   marsella: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-marsella-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: MARSELLA_PLANOS }
 }
 // El recorrido es una curva que pasa por los planos, no tramos sueltos: con un
@@ -2588,6 +2599,7 @@ function start (indice = nivelActual) {
   FIELD.prisa = nivelDeHoy.entrada?.prisa ?? null
   // Un estorbo en medio del campo que los huéspedes rodean (la ruina del Coliseo).
   FIELD.ruina = nivelDeHoy.ruina ?? null
+  FIELD.columnas = nivelDeHoy.columnas ?? null
   sinNave = !!dueloEnCurso || !!nivelDeHoy.entrada
   dropship.recolocar()
   if (sinNave) dropship.ocultar()

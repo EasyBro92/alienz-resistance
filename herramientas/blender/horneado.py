@@ -664,6 +664,189 @@ def comprobar_paso (grupos, salvo=(), ancho=7.4, z_lejos=-60, z_cerca=5):
         raise SystemExit('PASO OCUPADO: ' + ', '.join(sorted(malos)))
 
 # ==================================================================================
+# PIEDRA CON OFICIO (06/10): fotos mezcladas, piezas de torno y sillares
+# ==================================================================================
+# Nacieron en lugar_roma.py para la arena del Coliseo («los objetos se ven muy
+# cutres, el suelo también») y pasan aquí para los mapas siguientes (Grecia…).
+# Roma conserva sus copias, que ya se dio por buena.
+def foto (nombre, lado=256, tono=None, contraste=0.85):
+    """Una textura de Poly Haven como matriz (la fila 0 arriba), llevada a un tono."""
+    ruta = os.path.join(PH, 'texturas', nombre, f'{nombre}_diff_1k.jpg')
+    im = bpy.data.images.load(ruta)
+    im.scale(lado, lado)
+    px = np.array(im.pixels[:], dtype=np.float32).reshape(lado, lado, 4)[::-1, :, :3].copy()
+    bpy.data.images.remove(im)
+    if tono is not None:
+        px = np.array(rgb(tono), np.float32) + (px - px.mean(axis=(0, 1))) * contraste
+    return np.clip(px, 0, 1)
+
+def nube (h, w, cy, cx):
+    """Manchas grandes y suaves, de 0 a 1: `cy` × `cx` celdas repartidas por la imagen.
+    Para mezclar dos fotos sin que se note que cada una se repite."""
+    r = E.rng.random((cy + 2, cx + 2)).astype(np.float32)
+    ys, xs = np.linspace(0, cy, h, dtype=np.float32), np.linspace(0, cx, w, dtype=np.float32)
+    y0, x0 = np.floor(ys).astype(int), np.floor(xs).astype(int)
+    fy, fx = ys - y0, xs - x0
+    fy, fx = (fy * fy * (3 - 2 * fy))[:, None], (fx * fx * (3 - 2 * fx))[None, :]
+    return (r[y0][:, x0] * (1 - fy) * (1 - fx) + r[y0 + 1][:, x0] * fy * (1 - fx) + r[y0][:, x0 + 1] * (1 - fy) * fx + r[y0 + 1][:, x0 + 1] * fy * fx)
+
+def sm (a, b, x):
+    f = max(0.0, min(1.0, (x - a) / (b - a)))
+    return f * f * (3 - 2 * f)
+
+def en (x, z, y=0.0, giro=0.0, vuelco=(0.0, 0.0)):
+    """La matriz de una pieza puesta en (x, z) del juego, a la altura y, girada y volcada."""
+    return M.Translation(P(x, z, y)) @ mathutils.Euler((vuelco[0], vuelco[1], giro)).to_matrix().to_4x4()
+
+def torno (grupo, mat, m4, perfil, lados=18, u_rep=1.0, v_m=2.4, tapas=(True, True), roto=0.0):
+    """Una pieza de revolución: `perfil` es una lista de (radio, altura) a lo largo
+    del eje Z de `m4` (una matriz de Blender). Lleva sus UV: u da la vuelta y v sube
+    en metros. Con `roto`, el último anillo sale mellado."""
+    aros = []
+    for k, (r, h) in enumerate(perfil):
+        ultimo = k == len(perfil) - 1
+        aros.append([m4 @ V((r * math.cos(2 * math.pi * i / lados), r * math.sin(2 * math.pi * i / lados),
+                               h + (random.uniform(-roto, roto) if ultimo and roto else 0.0))) for i in range(lados)])
+    for k in range(len(perfil) - 1):
+        eje = m4 @ V((0, 0, (perfil[k][1] + perfil[k + 1][1]) / 2))
+        for i in range(lados):
+            j = (i + 1) % lados
+            pts = [aros[k][i], aros[k][j], aros[k + 1][j], aros[k + 1][i]]
+            uvs = [(i / lados * u_rep, perfil[k][1] / v_m), ((i + 1) / lados * u_rep, perfil[k][1] / v_m),
+                   ((i + 1) / lados * u_rep, perfil[k + 1][1] / v_m), (i / lados * u_rep, perfil[k + 1][1] / v_m)]
+            # Un anillo de radio cero (la punta de un cono): triángulos, no cuadros.
+            if (pts[0] - pts[1]).length < 1e-5:
+                pts, uvs = pts[1:], uvs[1:]
+            elif (pts[2] - pts[3]).length < 1e-5:
+                pts, uvs = pts[:3], uvs[:3]
+            if len({tuple(round(c, 5) for c in p) for p in pts}) < 3:
+                continue
+            cara(grupo, mat, pts, uvs=uvs, hacia=sum(pts, V((0, 0, 0))) / len(pts) - eje)
+    z = m4.to_3x3() @ V((0, 0, 1))
+    if tapas[0] and perfil[0][0] > 1e-4:
+        cara(grupo, mat, aros[0], hacia=-z, baldosa=1.4)
+    if tapas[1] and perfil[-1][0] > 1e-4:
+        cara(grupo, mat, aros[-1], hacia=z, baldosa=1.4)
+
+def bloque (grupo, mat, m4, tam, baldosa=1.5, mella=0.03):
+    """Un sillar: una caja apoyada en la base de `m4`, con las esquinas algo
+    comidas y sus UV por cara, a `baldosa` metros por repetición."""
+    w, d, h = tam
+    esq = {}
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            for sz in (0, 1):
+                esq[(sx, sy, sz)] = m4 @ V((sx * w / 2 * (1 - random.uniform(0, mella)), sy * d / 2 * (1 - random.uniform(0, mella)), sz * h * (1 - random.uniform(0, mella) * sz)))
+    centro = m4 @ V((0, 0, h / 2))
+    caras = [([(-1, -1, 0), (1, -1, 0), (1, -1, 1), (-1, -1, 1)], w, h), ([(1, 1, 0), (-1, 1, 0), (-1, 1, 1), (1, 1, 1)], w, h),
+             ([(1, -1, 0), (1, 1, 0), (1, 1, 1), (1, -1, 1)], d, h), ([(-1, 1, 0), (-1, -1, 0), (-1, -1, 1), (-1, 1, 1)], d, h),
+             ([(-1, -1, 1), (1, -1, 1), (1, 1, 1), (-1, 1, 1)], w, d), ([(-1, 1, 0), (1, 1, 0), (1, -1, 0), (-1, -1, 0)], w, d)]
+    for claves, a, b in caras:
+        pts = [esq[c] for c in claves]
+        cara(grupo, mat, pts, uvs=[(0, 0), (a / baldosa, 0), (a / baldosa, b / baldosa), (0, b / baldosa)], hacia=(pts[0] + pts[2]) / 2 - centro)
+
+def viga (grupo, mat, x0, x1, z0, z1, y0, y1, u_m=1.5, v_rep=1.0, tapas=True, techo=None):
+    """Una pieza recta con la textura a lo LARGO de cada cara: u avanza un metro
+    de textura cada `u_m` metros y v va de 0 a `v_rep` en todo el alto. Para un
+    friso, una cornisa o un escalón, donde `caja` cortaría el dibujo."""
+    x0, x1 = min(x0, x1), max(x0, x1); z0, z1 = min(z0, z1), max(z0, z1)
+    centro = P((x0 + x1) / 2, (z0 + z1) / 2, (y0 + y1) / 2)
+    esquinas = [(x0, z1), (x1, z1), (x1, z0), (x0, z0)]
+    for i in range(4):
+        (ax, az), (bx, bz) = esquinas[i], esquinas[(i + 1) % 4]
+        largo = math.hypot(bx - ax, bz - az)
+        pts = [P(ax, az, y0), P(bx, bz, y0), P(bx, bz, y1), P(ax, az, y1)]
+        medio = (pts[0] + pts[2]) / 2
+        cara(grupo, mat, pts, uvs=[(0, 0), (largo / u_m, 0), (largo / u_m, v_rep), (0, v_rep)],
+             hacia=_girado(V((medio.x - centro.x, medio.y - centro.y, 0))))
+    if tapas:
+        cara(grupo, techo or mat, [P(x0, z1, y1), P(x1, z1, y1), P(x1, z0, y1), P(x0, z0, y1)], hacia=ARRIBA, baldosa=u_m * 2)
+        cara(grupo, techo or mat, [P(x0, z1, y0), P(x1, z1, y0), P(x1, z0, y0), P(x0, z0, y0)], hacia=ABAJO, baldosa=u_m * 2)
+
+# ==================================================================================
+# MONTES Y ÁRBOLES (06/10)
+# ==================================================================================
+# Nacieron en lugar_atenas.py (que conserva los suyos, ya dados por buenos) y
+# quedan aquí para los mapas siguientes. Todo esto va en grupos 'vert'; a los
+# montes les sienta bien ir en `suaves` de `terminar`, o se les ven las facetas.
+def monte (grupo, mat, cx, cz, radio, alto, y0=0.0, seg=18, anillos=7, pico=0.75, baldosa=26.0):
+    """Un cerro. Devuelve una función con su altura en (x, z) —o None fuera de él—,
+    para plantarle cosas encima. `pico` menor que 1 lo hace cúpula; mayor, cono.
+    La textura va proyectada en planta: dándole la vuelta al cerro se aprieta en
+    la cima y de cerca es una mancha borrosa."""
+    fases = [random.uniform(0, 6.28) for _ in range(3)]
+    def r_en (t, a):
+        return radio * (1 - t) ** pico * (1 + 0.14 * math.sin(a * 2 + fases[0]) + 0.08 * math.sin(a * 5 + fases[1] + t * 3))
+    def y_en (t, a):
+        return y0 + alto * math.sin(t * math.pi / 2) * (1 + 0.05 * math.sin(a * 3 + fases[2]))
+    angs = [2 * math.pi * i / seg for i in range(seg)]
+    filas = [[P(cx + r_en(j / anillos, a) * math.cos(a), cz + r_en(j / anillos, a) * math.sin(a), y_en(j / anillos, a)) for a in angs] for j in range(anillos + 1)]
+    for j in range(anillos):
+        for i in range(seg):
+            k = (i + 1) % seg
+            pts = [filas[j][i], filas[j][k], filas[j + 1][k], filas[j + 1][i]]
+            cara(grupo, mat, pts[:3] if j == anillos - 1 else pts, hacia=ARRIBA, baldosa=baldosa)
+    def altura (x, z):
+        a, d = math.atan2(z - cz, x - cx), math.hypot(x - cx, z - cz)
+        if d >= r_en(0, a):
+            return None
+        for j in range(anillos):                                  # entre qué dos anillos cae
+            r0, r1 = r_en(j / anillos, a), r_en((j + 1) / anillos, a)
+            if d >= r1:
+                f = (r0 - d) / max(1e-6, r0 - r1)
+                return y_en(j / anillos, a) * (1 - f) + y_en((j + 1) / anillos, a) * f
+        return y_en(1, a)
+    return altura
+
+def sierra (grupo, mat, x0, z0, x1, z1, ancho, alto, y0=0.0, n=28, m=4):
+    """Una sierra de lejos: una loma larga de (x0, z0) a (x1, z1), con la cresta
+    que sube y baja. El pie va en `y0`: si queda DEBAJO de otro suelo, sus
+    vértices se hornean a oscuras y dibujan una franja negra."""
+    largo = math.hypot(x1 - x0, z1 - z0)
+    ux, uz = (x1 - x0) / largo, (z1 - z0) / largo
+    f = [random.uniform(0, 6.28) for _ in range(4)]
+    filas = []
+    for j in range(-m, m + 1):                                    # de un pie al otro, pasando por la cresta
+        s = j / m
+        fila = []
+        for i in range(n + 1):
+            t = i / n
+            cresta = alto * math.sin(math.pi * t) ** 0.55 * (0.74 + 0.15 * math.sin(t * 8 + f[0]) + 0.11 * math.sin(t * 21 + f[1]))
+            lado = ancho * (0.8 + 0.2 * math.sin(t * 6 + f[2])) * s
+            comba = 0.05 * largo * math.sin(math.pi * t) * math.sin(f[3])
+            fila.append(P(x0 + ux * largo * t - uz * (lado + comba), z0 + uz * largo * t + ux * (lado + comba), y0 + cresta * (1 - abs(s) ** 1.4)))
+        filas.append(fila)
+    malla(grupo, mat, filas, ARRIBA)
+
+def copa (grupo, mat, x, z, y, rx, ry, sub=1, baila=0.12):
+    """Una masa de hojas: una bola de caras planas, algo deformada."""
+    bm, _, _ = lote(grupo, mat)
+    r = bmesh.ops.create_icosphere(bm, subdivisions=sub, radius=1.0,
+        matrix=M.Translation(P(x, z, y)) @ M.Rotation(random.random() * 6.3, 4, 'Z') @ M.Diagonal((rx, rx, ry, 1)))
+    for v in r['verts']:
+        v.co += V((random.uniform(-1, 1) * rx, random.uniform(-1, 1) * rx, random.uniform(-1, 1) * ry)) * baila
+
+def pino (grupo, tronco, hojas, x, z, tam=1.0, y=0.0):
+    """Pino piñonero: tronco largo y la copa ancha y chata, como un paraguas."""
+    alto = random.uniform(4.2, 6.0) * tam
+    dx, dz = random.uniform(-0.5, 0.5) * tam, random.uniform(-0.5, 0.5) * tam
+    barra(grupo, tronco, P(x, z, y - 0.8), P(x + dx, z + dz, y + alto), 0.36 * tam)
+    copa(grupo, random.choice(hojas), x + dx, z + dz, y + alto + 0.6 * tam, random.uniform(2.4, 3.3) * tam, random.uniform(1.0, 1.4) * tam)
+
+def cipres (grupo, mat, x, z, tam=1.0, y=0.0):
+    torno(grupo, mat, en(x, z, y - 0.6), [(0.85 * tam, 0.0), (1.0 * tam, 2.4 * tam), (0.6 * tam, 6.5 * tam), (0.0, random.uniform(9, 12) * tam)], lados=6, tapas=(False, False))
+
+def platano (grupo, tronco, hojas, x, z, tam=1.0, y=0.0):
+    """Árbol de paseo (plátano, tilo): tronco recto y la copa en tres masas."""
+    alto = random.uniform(3.2, 4.2) * tam
+    barra(grupo, tronco, P(x, z, y - 0.3), P(x, z, y + alto), 0.4 * tam)
+    for k in range(3):
+        a = random.uniform(0, 6.28)
+        d = (0.0 if k == 0 else random.uniform(0.9, 1.5)) * tam
+        copa(grupo, random.choice(hojas), x + d * math.cos(a), z + d * math.sin(a), y + alto + random.uniform(1.2, 2.4) * tam,
+             random.uniform(1.9, 2.5) * tam, random.uniform(1.5, 2.0) * tam)
+
+# ==================================================================================
 # HORNEAR Y EXPORTAR
 # ==================================================================================
 def a_srgb (x):
@@ -671,12 +854,15 @@ def a_srgb (x):
 
 def terminar (grupos, exportes, sol_hacia, sol_color=(1.0, 0.96, 0.88), sol_fuerza=3.5, sol_ancho=3.0,
               cielo_fuerza=0.7, cielo_altura=50.0, cielo_giro=0.0, escala=0.5, satura=1.0, rebotes=3,
-              no_alumbran=()):
+              no_alumbran=(), suaves=()):
     """grupos: {clave: (nombre del objeto, tipo, mapa)}; tipo 'atlas' | 'planta' |
     'vert' | 'plano' | 'juego'; `mapa` es el nombre del mapa de luz (luzE…), y dos
     grupos de tipo 'planta' pueden compartirlo.
     exportes: [(archivo sin extensión, [claves])].
-    sol_hacia: hacia el sol, en (x, y, z) del JUEGO."""
+    sol_hacia: hacia el sol, en (x, y, z) del JUEGO.
+    suaves: nombres de material que, en los grupos 'vert', llevan la luz
+    promediada por vértice (montes y lomas: con una luz por esquina de cada cara
+    se les ven las facetas; en un edificio, en cambio, es lo que hace falta)."""
     esc = bpy.context.scene
     env = lambda k, d: float(os.environ.get(f'{E.nombre.upper()}_{k}', d))
     escala, satura = env('ESCALA', escala), env('SATURA', satura)
@@ -804,7 +990,8 @@ def terminar (grupos, exportes, sol_hacia, sol_color=(1.0, 0.96, 0.88), sol_fuer
     for mapa, m in mapas.items():
         lin = np.clip(saturar(curva(suavizar(m, 2) * escala)) * CODIGO, 0, 1)
         e = lin @ np.array([0.2126, 0.7152, 0.0722], np.float32)
-        print('  ', mapa, 'media', round(float(e[e > 0].mean()), 3), 'p50', round(float(np.percentile(e[e > 0], 50)), 3), 'p95', round(float(np.percentile(e[e > 0], 95)), 3), 'p99', round(float(np.percentile(e[e > 0], 99)), 3))
+        print('  ', mapa, 'media', round(float(e[e > 0].mean()), 3), 'p50', round(float(np.percentile(e[e > 0], 50)), 3), 'p95', round(float(np.percentile(e[e > 0], 95)), 3), 'p99', round(float(np.percentile(e[e > 0], 99)), 3),
+              'color', np.round(lin[e > 0].mean(axis=0), 3), 'al sol', np.round(lin[e > np.percentile(e[e > 0], 80)].mean(axis=0), 3))
         im = bpy.data.images.new(mapa + '-fin', LADO_LUZ, LADO_LUZ, alpha=False)
         px = np.ones((LADO_LUZ, LADO_LUZ, 4), np.float32); px[..., :3] = a_srgb(lin)
         im.pixels.foreach_set(px.ravel())
@@ -830,6 +1017,16 @@ def terminar (grupos, exportes, sol_hacia, sol_color=(1.0, 0.96, 0.88), sol_fuer
             atr.data.foreach_get('color', col)
             np.save(f'{crudo}-vert-{grupo}.npy', col)
         col = col.reshape(-1, 4)
+        lisos = [i for i, m in enumerate(o.data.materials) if m and m.name in suaves]
+        if lisos:
+            me = o.data
+            vert = np.empty(len(me.loops), np.int32); me.loops.foreach_get('vertex_index', vert)
+            mat_cara = np.empty(len(me.polygons), np.int32); me.polygons.foreach_get('material_index', mat_cara)
+            lados = np.empty(len(me.polygons), np.int32); me.polygons.foreach_get('loop_total', lados)
+            es = np.isin(np.repeat(mat_cara, lados), lisos)   # las esquinas van cara tras cara, en orden
+            suma, cuantas = np.zeros((len(me.vertices), 3)), np.zeros(len(me.vertices))
+            np.add.at(suma, vert[es], col[es, :3]); np.add.at(cuantas, vert[es], 1)
+            col[es, :3] = (suma[vert[es]] / cuantas[vert[es]][:, None]).astype(np.float32)
         col[:, :3] = np.clip(saturar(curva(col[:, :3] * escala)), 0, 1)
         col[:, 3] = 1
         atr.data.foreach_set('color', col.ravel())

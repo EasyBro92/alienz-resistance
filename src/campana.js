@@ -261,11 +261,21 @@ export const PAISES = [
     cierre: 'Los registros acaban en una fecha: la del último barco. Iba a Alejandría.',
     misiones: [
       {
-        name: 'Atenas', lugar: 'Dionisiou Areopagitou · bajo la Acrópolis', mapa: sitio(37.94, 23.65),
-        // El paseo de mármol al pie de la roca, con los olivos. Antes se jugaba en la terminal de contenedores del Pireo, que no se reconocía.
-        escenario: 'atenas', suelo: 'losas', tonoSuelo: 0xe4ddcc, hitos: [['partenon']],
+        name: 'Atenas', llegada: 'atenas', lugar: 'Acrópolis · frente al Partenón', mapa: sitio(37.94, 23.65),
+        // Arriba, en la roca, hecho en Blender (herramientas/blender/lugar_atenas.py):
+        // el Partenón de frente al fondo, las Cariátides a la izquierda, al atardecer.
+        escenario: 'atenasAcropolis', suelo: 'losas', tonoSuelo: 0xb39c82, hitos: [],
+        // Salen del Partenón: nacen dentro, sobre el pozo, y vienen deprisa hasta
+        // el pórtico. Las columnas del centro (las mismas del guion de Blender,
+        // las dos filas) las esquivan: cada carril pasa por su hueco.
+        entrada: { z: -84, fondo: 6, prisa: { desde: -82, hasta: -67, por: 3 } },
+        columnas: [-4.5, -1.5, 1.5, 4.5].flatMap(x => [{ x, z: -62.95, radio: 1.5 }, { x, z: -66.15, radio: 1.5 }]),
+        // `cupula`: el cielo de la partida, del mismo atardecer que el del vuelo;
+        // `sol`: la luz naranja sobre soldados y alienz.
+        fondo: { hora: 'ocaso', cielo: 0xd9a27c, niebla: 0xe6b796, nieblaCerca: 150, nieblaLejos: 470, cupula: [0x8f84b4, 0xf2aa7a], sol: 0xffc890 },
+        sinPajaros: true, sinNubes: true,
         resumen: 'Se curan entre ellos y el caparazón devuelve las balas.',
-        parte: ['La terminal está llena. No de cuerpos: de estructura.',
+        parte: ['El templo está lleno. No de cuerpos: de estructura.',
           'Han dejado de fabricar soldados y han empezado a fabricar oficio.'],
         cierre: 'Encontramos la primera cámara de cría intacta. Tibia, y con sitio para muchas más de las que hemos matado.',
         waves: OLEADAS.colmena

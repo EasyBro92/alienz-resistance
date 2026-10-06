@@ -21,7 +21,12 @@ const TEXTURAS = [
   'rusty_metal_02', 'sparse_grass', 'plywood',
   // Tarragona
   'coast_sand_01', 'sand_01', 'sandstone_blocks_08', 'seaworn_sandstone_brick', 'rock_face_03',
-  'castle_wall_varriation', 'leafy_grass', 'gravel_stones'
+  'castle_wall_varriation', 'leafy_grass', 'gravel_stones',
+  // Grecia (06/10; Isidro dio permiso para bajar de Poly Haven lo que haga falta
+  // en cada mapa): mármol, la roca de la Acrópolis, tierra seca con piedras, y
+  // losas y muros de piedra para el paseo de Salónica y el palacio de Cnosos
+  'marble_01', 'rock_ground', 'dry_ground_rocks', 'old_stone_wall', 'plastered_stone_wall', 'stone_pavers', 'rock_tile_floor',
+  'yellow_stone_wall'
 ]
 const MODELOS = [
   'ammo_box', 'barrel_03', 'cement_bag', 'concrete_road_barrier', 'covered_car', 'fire_hydrant', 'metal_jerrycan',
