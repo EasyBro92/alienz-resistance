@@ -1,0 +1,197 @@
+{
+ "de": "soldado-fusil-f.glb",
+ "huesos": {
+  "Hips": {
+   "pos": [
+    -0.00065,
+    1.01581,
+    -0.11597
+   ],
+   "padre": "Armature"
+  },
+  "LeftUpLeg": {
+   "pos": [
+    0.11173,
+    0.9254,
+    -0.09607
+   ],
+   "padre": "Hips"
+  },
+  "LeftLeg": {
+   "pos": [
+    0.16273,
+    0.56375,
+    -0.01647
+   ],
+   "padre": "LeftUpLeg"
+  },
+  "LeftFoot": {
+   "pos": [
+    0.22448,
+    0.16776,
+    -0.12223
+   ],
+   "padre": "LeftLeg"
+  },
+  "LeftToeBase": {
+   "pos": [
+    0.24079,
+    0.04656,
+    -0.02024
+   ],
+   "padre": "LeftFoot"
+  },
+  "RightUpLeg": {
+   "pos": [
+    -0.06817,
+    0.92365,
+    -0.09795
+   ],
+   "padre": "Hips"
+  },
+  "RightLeg": {
+   "pos": [
+    -0.09718,
+    0.55501,
+    -0.02587
+   ],
+   "padre": "RightUpLeg"
+  },
+  "RightFoot": {
+   "pos": [
+    -0.10641,
+    0.15908,
+    -0.12218
+   ],
+   "padre": "RightLeg"
+  },
+  "RightToeBase": {
+   "pos": [
+    -0.11624,
+    0.0414,
+    -0.01968
+   ],
+   "padre": "RightFoot"
+  },
+  "Spine02": {
+   "pos": [
+    -0.00054,
+    1.12464,
+    -0.11016
+   ],
+   "padre": "Hips"
+  },
+  "Spine01": {
+   "pos": [
+    -0.00043,
+    1.23348,
+    -0.10435
+   ],
+   "padre": "Spine02"
+  },
+  "Spine": {
+   "pos": [
+    -0.00032,
+    1.34231,
+    -0.09854
+   ],
+   "padre": "Spine01"
+  },
+  "LeftShoulder": {
+   "pos": [
+    0.02896,
+    1.38425,
+    -0.08893
+   ],
+   "padre": "Spine"
+  },
+  "LeftArm": {
+   "pos": [
+    0.14608,
+    1.38425,
+    -0.07933
+   ],
+   "padre": "LeftShoulder"
+  },
+  "LeftForeArm": {
+   "pos": [
+    0.2976,
+    1.21867,
+    -0.05195
+   ],
+   "padre": "LeftArm"
+  },
+  "LeftHand": {
+   "pos": [
+    0.45236,
+    1.22722,
+    0.12962
+   ],
+   "padre": "LeftForeArm"
+  },
+  "RightShoulder": {
+   "pos": [
+    -0.03159,
+    1.38572,
+    -0.08895
+   ],
+   "padre": "Spine"
+  },
+  "RightArm": {
+   "pos": [
+    -0.15664,
+    1.38572,
+    -0.07936
+   ],
+   "padre": "RightShoulder"
+  },
+  "RightForeArm": {
+   "pos": [
+    -0.2972,
+    1.22013,
+    -0.05205
+   ],
+   "padre": "RightArm"
+  },
+  "RightHand": {
+   "pos": [
+    -0.44943,
+    1.22629,
+    0.12735
+   ],
+   "padre": "RightForeArm"
+  },
+  "neck": {
+   "pos": [
+    -0.00016,
+    1.41344,
+    -0.09474
+   ],
+   "padre": "Spine"
+  },
+  "Head": {
+   "pos": [
+    0,
+    1.48224,
+    -0.09107
+   ],
+   "padre": "neck"
+  },
+  "head_end": {
+   "pos": [
+    0.00056,
+    1.72396,
+    -0.01912
+   ],
+   "padre": "Head"
+  },
+  "headfront": {
+   "pos": [
+    0,
+    1.48224,
+    0.04051
+   ],
+   "padre": "Head"
+  }
+ }
+}

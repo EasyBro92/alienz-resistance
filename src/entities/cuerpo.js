@@ -53,7 +53,16 @@ const AGARRES = {
   mortar: { mano: [0, -0.1, 0.12], apoyo: [0, -0.02, -0.14], culata: 0.36, escala: 0.6 },
   // El lanzamisiles va al hombro: la mano de apoyo delante, en el asa.
   misil: { mano: [0, -0.1, 0.14], apoyo: [0, -0.06, -0.18], culata: 0.42, escala: 0.62 },
-  capitan: { mano: [0, -0.11, 0.15], apoyo: [0, -0.12, -0.09], culata: 0.45, escala: 0.65 }
+  capitan: { mano: [0, -0.11, 0.15], apoyo: [0, -0.12, -0.09], culata: 0.45, escala: 0.65 },
+  // --- Las armas de la caja alienígena (06/10). Los puntos salen de la
+  // geometría de cada una en `buildWeapon`. ---
+  // La pistola no tiene culata: `culata` es lo que se adelanta del hombro, o
+  // sea, los brazos casi estirados. Las dos manos van a la empuñadura.
+  pistola: { mano: [0, -0.055, 0.072], apoyo: [-0.014, -0.078, 0.062], culata: 0.33, escala: 1.2 },
+  subfusil: { mano: [0, -0.11, 0.1], apoyo: [0, -0.1, -0.16], culata: 0.345, escala: 0.76 },
+  lanzagranadas: { mano: [0, -0.11, 0.07], apoyo: [0, -0.075, -0.17], culata: 0.44, escala: 0.68 },
+  ballesta: { mano: [0, -0.11, 0.12], apoyo: [0, -0.045, -0.1], culata: 0.365, escala: 0.74 },
+  dragunov: { mano: [0, -0.11, 0.17], apoyo: [0, -0.05, -0.1], culata: 0.5, escala: 0.6 }
 }
 // Cómo dispara cada uno: dónde va la culata respecto al hombro, cuánto se echa
 // hacia delante el tronco y cuánto abre las piernas.
@@ -68,7 +77,14 @@ const ESTILOS = {
   gunner: { culata: [-0.11, -0.16, -0.06], inclina: 0.18, abre: 0.16 },
   mortar: { culata: [-0.1, -0.2, -0.04], inclina: 0.14, abre: 0.12 },
   misil: { culata: [-0.13, 0.14, -0.05], inclina: 0.1, abre: 0.12 },
-  capitan: { culata: [-0.09, 0.11, -0.05], inclina: 0.06, abre: 0 }
+  capitan: { culata: [-0.09, 0.11, -0.05], inclina: 0.06, abre: 0 },
+  // La pistola se saca al centro y a la altura de la barbilla, con los pies
+  // abiertos: es la postura que la distingue de todos los demás.
+  pistola: { culata: [-0.13, 0.04, -0.02], inclina: 0.05, abre: 0.12 },
+  subfusil: { culata: [-0.09, 0.09, -0.05], inclina: 0.08, abre: 0.04 },
+  lanzagranadas: { culata: [-0.09, 0.1, -0.05], inclina: 0.0, abre: 0.12 },
+  ballesta: { culata: [-0.09, 0.11, -0.05], inclina: 0.05, abre: 0.05 },
+  dragunov: { culata: [-0.09, 0.11, -0.05], inclina: 0.07, abre: 0.06 }
 }
 const CARGADOR = new THREE.Vector3(0, -0.28, -0.09)
 const ARRIBA = new THREE.Vector3(0, 1, 0)

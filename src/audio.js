@@ -62,7 +62,7 @@ export function createAudio () {
   let ruido = null
   let sala = null
   const ultimo = {}
-  const HUECO = { rifle: 0.04, gunner: 0.045, torreta: 0.05, flamer: 0.13, archer: 0.05, shotgun: 0.08, sniper: 0.1, misil: 0.12, mortar: 0.12 }
+  const HUECO = { rifle: 0.04, gunner: 0.045, torreta: 0.05, flamer: 0.13, archer: 0.05, shotgun: 0.08, sniper: 0.1, misil: 0.12, mortar: 0.12, pistola: 0.04, subfusil: 0.04, lanzagranadas: 0.12, ballesta: 0.05, dragunov: 0.09 }
 
   function preparar () {
     if (ruido) return
@@ -198,6 +198,40 @@ export function createAudio () {
       tono(s, t, { f0: 155 * v, f1: 50, pico: 0.95, cae: 0.24 })
       soplo(s, t, { tipo: 'lowpass', f0: 750 * v, f1: 180, pico: 0.42, cae: 0.15 })
       tono(s, t, { forma: 'triangle', f0: 540 * v, pico: 0.07, cae: 0.22 })
+    },
+    // --- las de la caja alienígena: cada una suena a lo suyo ---
+    // Pistola: un chasquido corto y agudo, sin cola, y el casquillo.
+    pistola (s, t, v) {
+      soplo(s, t, { tipo: 'highpass', f0: 3000 * v, pico: 0.46, cae: 0.028 })
+      soplo(s, t, { tipo: 'lowpass', f0: 1500 * v, f1: 420, pico: 0.4, cae: 0.07 })
+      tono(s, t, { f0: 240 * v, f1: 90, pico: 0.34, cae: 0.05 })
+      clic(s, t + 0.12, 3600 * v, 0.045)
+    },
+    // Subfusil: más fino y seco que el fusil, hecho para ir en ráfaga.
+    subfusil (s, t, v) {
+      soplo(s, t, { tipo: 'highpass', f0: 2700 * v, pico: 0.34, cae: 0.024 })
+      soplo(s, t, { f0: 1300 * v, f1: 600, q: 1.1, pico: 0.42, cae: 0.05 })
+      tono(s, t, { f0: 200 * v, f1: 80, pico: 0.3, cae: 0.045 })
+    },
+    // Lanzagranadas: el «pum» hueco del tubo ancho y el clac al cerrarlo.
+    lanzagranadas (s, t, v) {
+      tono(s, t, { f0: 210 * v, f1: 62, pico: 0.9, cae: 0.16 })
+      soplo(s, t, { tipo: 'lowpass', f0: 520 * v, f1: 160, pico: 0.5, cae: 0.12 })
+      soplo(s, t, { f0: 1800, q: 1.4, pico: 0.12, cae: 0.04 })
+      clic(s, t + 0.34, 1300 * v, 0.1)
+    },
+    // Ballesta: el latigazo de las palas, más seco que un arco, y el virote silbando.
+    ballesta (s, t, v) {
+      tono(s, t, { forma: 'triangle', f0: 190 * v, f1: 85, pico: 0.55, cae: 0.07 })
+      soplo(s, t, { f0: 900 * v, q: 2.2, pico: 0.4, cae: 0.03 })
+      soplo(s, t, { f0: 1600, f1: 4200, q: 1.6, pico: 0.2, ataque: 0.02, cae: 0.11 })
+      clic(s, t + 0.02, 2400 * v, 0.08)
+    },
+    // Fusil de tiradora, semiautomático: chasquido fuerte y cola media, sin cerrojo.
+    dragunov (s, t, v) {
+      soplo(s, t, { tipo: 'highpass', f0: 2900 * v, pico: 0.6, cae: 0.035 })
+      soplo(s, t, { tipo: 'lowpass', f0: 1700 * v, f1: 220, pico: 0.66, cae: 0.18 })
+      tono(s, t, { f0: 160 * v, f1: 46, pico: 0.62, cae: 0.13 })
     }
   }
   // Cuánto de cada arma se va a la sala: el tirador, mucho (es el que retumba).
@@ -210,6 +244,11 @@ export function createAudio () {
   Object.assign(ARMAS.flamer, { sala: 0.1 })
   Object.assign(ARMAS.misil, { sala: 0.3 })
   Object.assign(ARMAS.mortar, { sala: 0.36 })
+  Object.assign(ARMAS.pistola, { sala: 0.2 })
+  Object.assign(ARMAS.subfusil, { sala: 0.16 })
+  Object.assign(ARMAS.lanzagranadas, { sala: 0.3 })
+  Object.assign(ARMAS.ballesta, { sala: 0.08 })
+  Object.assign(ARMAS.dragunov, { sala: 0.55 })
 
   const api = {
     unlock () { ensure(); if (ctx.state === 'suspended') ctx.resume() },

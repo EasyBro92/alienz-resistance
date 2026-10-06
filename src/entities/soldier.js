@@ -277,7 +277,9 @@ export async function createSoldier (key, spec, lane, row) {
   // La vida solo se mejora en las defensas; en un soldado vale siempre 1.
   const mejoraVida = factorMejora(key, 'vida')
   // Y lo que se le ve puesto: casco, hombreras y bocacha según lo mejorado.
-  if (!spec.fija) vestirMejoras(mesh, nivelMejora(key, 'dano') + nivelMejora(key, 'cadencia'))
+  // Las de la caja alienígena van de paisano (`sinGalones`): el petate y las
+  // hombreras de veterano les taparían la espalda, que es lo que se les ve.
+  if (!spec.fija && !spec.sinGalones) vestirMejoras(mesh, nivelMejora(key, 'dano') + nivelMejora(key, 'cadencia'))
 
   const bar = createHealthBar(1.4, spec.fija ? 1.6 : 2.45)
   mesh.add(bar.group)

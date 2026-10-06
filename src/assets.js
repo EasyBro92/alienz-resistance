@@ -56,11 +56,11 @@ export const MODELS = {
   capitan: ['models/soldado-fusil-f.glb', 'models/soldado-fusil-m.glb'],
   // Las cinco de la caja alienígena: una sola persona cada una (no hay chico),
   // con el cuerpo de chica que mejor le va por color.
-  jill: 'models/soldado-fusil-f.glb',
-  claire: 'models/soldado-lanzallamas-f.glb',
-  ada: 'models/soldado-lanzallamas-f.glb',
-  rebecca: 'models/soldado-tirador-f.glb',
-  sheva: 'models/soldado-escopeta-f.glb'
+  jill: 'models/cuerpo-jill-f.glb',
+  claire: 'models/cuerpo-claire-f.glb',
+  ada: 'models/cuerpo-ada-f.glb',
+  rebecca: 'models/cuerpo-rebecca-f.glb',
+  sheva: 'models/cuerpo-sheva-f.glb'
 }
 
 // Chico o chica, y SIEMPRE el mismo.
@@ -418,11 +418,15 @@ async function ponerCabeza (key, cuerpo, url) {
     if (!hueso && o.name === 'Head') hueso = o
   })
   if (!molde || !mallaOriginal || !malla || !hueso) return
-  if (!cuerposSinCabeza.has(url)) {
-    const nombre = url.slice(url.lastIndexOf('/') + 1, -4)
-    cuerposSinCabeza.set(url, quitarCabeza(mallaOriginal, CUELLO_ALTO[nombre]))
+  // Los cuerpos hechos en Blender (`cuerpo-*`, las de la caja alienígena) ya
+  // vienen sin cabeza: solo a los de Meshy hay que quitarles la suya.
+  if (!url.includes('/cuerpo-')) {
+    if (!cuerposSinCabeza.has(url)) {
+      const nombre = url.slice(url.lastIndexOf('/') + 1, -4)
+      cuerposSinCabeza.set(url, quitarCabeza(mallaOriginal, CUELLO_ALTO[nombre]))
+    }
+    malla.geometry = cuerposSinCabeza.get(url)
   }
-  malla.geometry = cuerposSinCabeza.get(url)
   // La cabeza está medida en el mundo del modelo en reposo: como hija del
   // hueso, su matriz es la inversa de la del hueso en ese reposo.
   let reposo = null
@@ -1118,6 +1122,107 @@ function buildWeapon (key) {
     grip(0.11, 0.42)
     piece(w, box(0.06, 0.12, 0.26, 0.03), wood, 0, -0.04, 0.32)           // culata
     piece(w, box(0.07, 0.1, 0.04, 0.02), sling, 0, -0.05, 0.46)
+  } else if (key === 'pistola') {
+    // --- Las armas de la caja alienígena (06/10). Isidro: «corrige las armas,
+    // alguno pone ballesta pero es solo un arco». Cada una lleva la suya. ---
+    // Jill: pistola de servicio, corredera de acero y cachas de madera.
+    piece(w, box(0.034, 0.038, 0.215, 0.008), steel, 0, 0.03, -0.005)            // corredera
+    for (let i = 0; i < 5; i++) piece(w, box(0.036, 0.026, 0.006, 0.002), black, 0, 0.032, 0.055 + i * 0.011)  // estrías
+    piece(w, tube(0.011, 0.011, 0.024, 8), canonMat, 0, 0.03, -0.118, Math.PI / 2)
+    piece(w, box(0.03, 0.026, 0.165, 0.006), black, 0, 0.002, -0.022)             // armazón
+    piece(w, box(0.022, 0.04, 0.055, 0.01), black, 0, -0.03, 0.0)                 // guardamonte
+    piece(w, box(0.036, 0.11, 0.052, 0.014), wood, 0, -0.058, 0.072, 0.24)        // cachas
+    piece(w, box(0.03, 0.014, 0.056, 0.004), black, 0, -0.116, 0.086, 0.24)       // base del cargador
+    piece(w, ball(0.007, 8, 6), mat(0xc9ccd2, 0.3, 0.8), 0.019, -0.045, 0.07)     // medallón
+    piece(w, box(0.006, 0.009, 0.008, 0.002), black, 0, 0.053, -0.1)              // punto de mira
+    piece(w, box(0.022, 0.009, 0.01, 0.002), black, 0, 0.053, 0.088)              // alza
+    piece(w, box(0.008, 0.018, 0.014, 0.003), steel, 0, 0.04, 0.108, -0.3)        // martillo
+  } else if (key === 'subfusil') {
+    // Rebecca: subfusil corto de culata plegable, con la cinta verde de sanidad.
+    piece(w, box(0.05, 0.08, 0.3, 0.016), black, 0, 0, -0.03)                     // cajón
+    piece(w, box(0.048, 0.06, 0.13, 0.016), polymer, 0, -0.004, -0.15)            // guardamanos
+    piece(w, tube(0.014, 0.014, 0.1, 8), canonMat, 0, 0.012, -0.25, Math.PI / 2)
+    piece(w, tube(0.02, 0.02, 0.035, 8), canonMat, 0, 0.012, -0.3, Math.PI / 2)
+    piece(w, box(0.03, 0.095, 0.036, 0.01), black, 0, -0.08, -0.16)               // empuñadura delantera
+    piece(w, box(0.032, 0.19, 0.05, 0.012), steel, 0, -0.125, -0.035, 0.16)       // cargador
+    piece(w, box(0.03, 0.03, 0.02, 0.006), black, 0, 0.055, -0.19)                // punto de mira
+    piece(w, box(0.036, 0.03, 0.03, 0.006), black, 0, 0.055, 0.08)                // alza
+    piece(w, box(0.054, 0.026, 0.05, 0.004), mat(0x3fa060, 0.6), 0, 0.012, 0.03)  // cinta de sanidad
+    grip(0.1, 0.36)
+    for (const lado of [-1, 1]) piece(w, box(0.01, 0.012, 0.22, 0.004), steel, lado * 0.022, 0.022, 0.23)  // culata plegable
+    piece(w, box(0.054, 0.1, 0.022, 0.008), sling, 0, -0.005, 0.345)
+  } else if (key === 'lanzagranadas') {
+    // Claire: lanzagranadas de un tiro, tubo ancho que bascula, madera y alza de hoja.
+    piece(w, tube(0.05, 0.05, 0.38, 14), canonMat, 0, 0.022, -0.3, Math.PI / 2)   // tubo
+    piece(w, tube(0.057, 0.057, 0.035, 14), steel, 0, 0.022, -0.48, Math.PI / 2)  // brocal
+    piece(w, tube(0.054, 0.054, 0.02, 14), steel, 0, 0.022, -0.13, Math.PI / 2)
+    piece(w, box(0.072, 0.105, 0.17, 0.022), steel, 0, 0, -0.035)                 // báscula
+    piece(w, box(0.066, 0.05, 0.2, 0.02), wood, 0, -0.045, -0.27)                 // guardamanos
+    piece(w, box(0.018, 0.075, 0.012, 0.004), black, 0, 0.11, -0.2)               // alza de hoja
+    piece(w, ball(0.012, 8, 6), black, 0, 0.082, -0.47)
+    piece(w, cap(0.012, 0.05, 3, 6), steel, 0.045, 0.04, 0.02, 0, 0, -0.9)        // palanca
+    grip(0.07, 0.36)
+    piece(w, box(0.058, 0.12, 0.3, 0.03), wood, 0, -0.035, 0.27)                  // culata
+    piece(w, box(0.066, 0.13, 0.035, 0.014), sling, 0, -0.035, 0.435)             // cantonera de goma
+    // Las granadas de repuesto, en su canana sobre la culata.
+    piece(w, box(0.062, 0.05, 0.2, 0.01), sling, 0, -0.03, 0.25)
+    for (let i = 0; i < 3; i++) piece(w, tube(0.021, 0.021, 0.055, 10), mat(0xb8862b, 0.4, 0.5), 0.04, -0.03, 0.19 + i * 0.058)
+  } else if (key === 'ballesta') {
+    // Ada: una ballesta de verdad, no un arco. Caja de fusil, las palas
+    // atravesadas en la punta, la cuerda montada, el virote en su canal y visor.
+    const fibra = mat(0x17181c, 0.5, 0.2)
+    const rojo = mat(0xb3202a, 0.5, 0.1)
+    piece(w, box(0.044, 0.06, 0.6, 0.016), fibra, 0, 0, -0.08)                    // caja
+    piece(w, box(0.022, 0.012, 0.44, 0.004), steel, 0, 0.036, -0.15)              // canal
+    piece(w, box(0.07, 0.05, 0.06, 0.012), steel, 0, 0.012, -0.37)                // cabezal
+    for (const lado of [-1, 1]) {
+      // Cada pala, en tres tramos que se van echando atrás.
+      const pts = [[0.03, -0.375], [0.12, -0.368], [0.22, -0.33], [0.3, -0.262]]
+      for (let i = 0; i < 3; i++) {
+        const [xa, za] = pts[i]; const [xb, zb] = pts[i + 1]
+        const dx = (xb - xa) * lado; const dz = zb - za
+        piece(w, cap(0.016 - i * 0.003, Math.hypot(dx, dz), 3, 6), i === 2 ? rojo : fibra,
+          lado * (xa + xb) / 2, 0.016, (za + zb) / 2, 0, Math.atan2(dz, -dx), Math.PI / 2)
+      }
+      // La cuerda, de la punta de la pala a la nuez (montada, lista).
+      const tx = 0.3 * lado; const tz = -0.262
+      piece(w, cap(0.0045, Math.hypot(tx, 0.02 - tz), 3, 5), mat(0xd8cfae, 0.9), tx / 2, 0.036, (tz + 0.02) / 2, 0, Math.atan2(0.02 - tz, tx), Math.PI / 2)
+      piece(w, ball(0.014, 8, 6), steel, tx, 0.016, tz)                           // polea
+    }
+    piece(w, box(0.03, 0.024, 0.03, 0.006), steel, 0, 0.046, 0.02)                // nuez
+    // El virote: asta, punta y plumas rojas.
+    piece(w, tube(0.007, 0.007, 0.36, 6), mat(0x2a2c31, 0.5, 0.4), 0, 0.05, -0.2, Math.PI / 2)
+    piece(w, cap(0.013, 0.04, 3, 6), mat(0xc9ccd2, 0.3, 0.8), 0, 0.05, -0.4, Math.PI / 2)
+    for (const lado of [-1, 1]) piece(w, box(0.003, 0.022, 0.06, 0.001), rojo, lado * 0.01, 0.058, -0.05)
+    piece(w, box(0.05, 0.012, 0.07, 0.004), steel, 0, -0.03, -0.42)               // estribo
+    piece(w, tube(0.023, 0.023, 0.2, 10), black, 0, 0.1, 0.05, Math.PI / 2)       // visor
+    piece(w, tube(0.029, 0.029, 0.04, 10), black, 0, 0.1, -0.06, Math.PI / 2)
+    piece(w, ball(0.021, 10, 6), glass, 0, 0.1, -0.075)
+    for (const z of [0.0, 0.1]) piece(w, box(0.02, 0.04, 0.02, 0.005), steel, 0, 0.068, z)
+    grip(0.12, 0.34)
+    piece(w, box(0.044, 0.1, 0.16, 0.022), fibra, 0, -0.02, 0.28)                 // culata
+    piece(w, box(0.05, 0.11, 0.025, 0.01), sling, 0, -0.02, 0.365)
+  } else if (key === 'dragunov') {
+    // Sheva: fusil de tiradora semiautomático, madera clara, culata calada y visor.
+    const madera = mat(0x8a5a32, 0.65)
+    piece(w, box(0.058, 0.085, 0.4, 0.02), steel, 0, 0, -0.02)                    // cajón
+    piece(w, box(0.056, 0.062, 0.3, 0.022), madera, 0, -0.004, -0.37)             // guardamanos
+    for (let i = 0; i < 4; i++) piece(w, box(0.06, 0.012, 0.03, 0.004), black, 0, 0.012, -0.28 - i * 0.055)
+    piece(w, tube(0.016, 0.018, 0.5, 10), canonMat, 0, 0.012, -0.76, Math.PI / 2)  // cañón
+    piece(w, tube(0.025, 0.025, 0.09, 10), canonMat, 0, 0.012, -1.02, Math.PI / 2) // apagallamas
+    piece(w, box(0.012, 0.06, 0.02, 0.004), black, 0, 0.045, -0.95)               // punto de mira
+    piece(w, box(0.046, 0.15, 0.09, 0.016), black, 0, -0.11, -0.06, 0.12)         // cargador
+    piece(w, tube(0.032, 0.032, 0.3, 12), black, 0, 0.115, -0.02, Math.PI / 2)    // visor
+    piece(w, tube(0.04, 0.04, 0.05, 12), black, 0, 0.115, -0.19, Math.PI / 2)
+    piece(w, tube(0.037, 0.03, 0.05, 12), sling, 0, 0.115, 0.15, Math.PI / 2)     // ocular de goma
+    piece(w, ball(0.03, 10, 6), glass, 0, 0.115, -0.21)
+    for (const z of [-0.08, 0.06]) piece(w, box(0.03, 0.045, 0.03, 0.008), steel, 0, 0.065, z)
+    grip(0.17, 0.3)
+    // La culata calada: dos largueros y la cantonera, con el hueco en medio.
+    piece(w, box(0.048, 0.045, 0.3, 0.02), madera, 0, 0.012, 0.34)
+    piece(w, box(0.044, 0.04, 0.27, 0.018), madera, 0, -0.085, 0.37, -0.14)
+    piece(w, box(0.052, 0.15, 0.035, 0.014), sling, 0, -0.04, 0.5)
+    piece(w, box(0.05, 0.035, 0.12, 0.014), madera, 0, 0.05, 0.36)                // carrillera
   } else {
     piece(w, box(0.062, 0.1, 0.4, 0.02), steel, 0, 0, 0)                  // cajón
     piece(w, box(0.055, 0.055, 0.28, 0.02), black, 0, 0.055, -0.06)       // riel superior
@@ -1139,7 +1244,10 @@ function buildWeapon (key) {
   }
 
   const g = bake(w)
-  g.userData.muzzleZ = { sniper: -1.1, shotgun: -0.7, archer: -0.7, gunner: -1.02, flamer: -0.72, mortar: -0.4 }[key] ?? -0.88
+  g.userData.muzzleZ = {
+    sniper: -1.1, shotgun: -0.7, archer: -0.7, gunner: -1.02, flamer: -0.72, mortar: -0.4,
+    pistola: -0.14, subfusil: -0.33, lanzagranadas: -0.5, ballesta: -0.43, dragunov: -1.08
+  }[key] ?? -0.88
   // La malla del cañón, para poder calentarla. `bake` clona el material al
   // activarle el color por vértice, así que se busca por el original.
   g.userData.canon = g.children.find(c => c.userData.baseMats.has(canonMat)) ?? null

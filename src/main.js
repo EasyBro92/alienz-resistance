@@ -1026,6 +1026,12 @@ function soldierFire (soldier, target) {
       effects.burst(p, 0x4a4a4a, 8, 1.1)
       marcas.poner(p.x, p.z, 'quemado', spec.splash * 1.4)
       splashDamage(p, spec.splash, soldier.damage, pierce)
+      // Las granadas de Claire son incendiarias: revientan con llamarada y
+      // dejan el suelo ardiendo un par de segundos, como el lanzallamas.
+      if (spec.brasas) {
+        fuego.explosion(p.x, 0, p.z, spec.splash * 0.9)
+        brasaEn(spec.brasas, p)
+      }
     })
     return   // el daño lo hace la explosión, no el disparo
   } else {

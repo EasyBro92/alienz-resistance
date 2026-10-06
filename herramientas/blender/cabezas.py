@@ -326,7 +326,9 @@ class Cabeza:
         pz.cil((0, 0.024, -0.2), (0, 0.012, -0.075), r * 1.1, rgb(piel, 0.96), 20, r2=r)
         # La braga al cuello: tapa la unión con el cuerpo de Meshy, donde quedan
         # los restos del cuello alto que traía cada modelo. Con capucha no hace falta.
-        if p.get('capucha'): return
+        # Ni con los cuerpos hechos aquí (`cuerpos.py`), que traen su cuello y
+        # sus hombros al aire: `"braga": false`.
+        if p.get('capucha') or p.get('braga') is False: return
         col = hexa(p.get('braga', '#5b6140'))
         bm = pz.bm
         capa = bm.loops.layers.color['Col']
@@ -881,7 +883,8 @@ for clave in claves:
     o = piel
     # Antes de hornear, fuera la cabeza vieja: si no, su casco envuelve a la nueva
     # y la oclusión sale con media cara a oscuras.
-    sin_cabeza(cuerpo, hueso['neck'], CUELLO_ALTO.get(p['cuerpo'], 0.075))
+    # Los cuerpos de `cuerpos.py` ya vienen sin cabeza: no hay nada que quitar.
+    if not p['cuerpo'].startswith('cuerpo-'): sin_cabeza(cuerpo, hueso['neck'], CUELLO_ALTO.get(p['cuerpo'], 0.075))
     hornear(o, clave)
 
     solo(o)

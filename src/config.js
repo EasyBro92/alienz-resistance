@@ -166,31 +166,36 @@ export const SOLDIERS = {
   // Isidro: «busca fotos de las chicas de Resident Evil y recrea varios
   // personajes»; eligió las cinco, como personajes NUEVOS de la caja alienígena
   // (eran los exclusivos que le faltaban) y sin casco, como las originales.
-  // Tampoco se compran. Cada una lleva un arma que ya existe (`arma`: de ahí
-  // salen el modelo, el agarre y el sonido) y un rasgo que no tiene nadie en
-  // esa combinación. Van AL FINAL: las claves viajan por índice en el
+  // Tampoco se compran. Van AL FINAL: las claves viajan por índice en el
   // multijugador.
   //
-  // Jill: el fusil de asalto. Se asienta como el Fusilero y además frena.
+  // «Se sienten igual que los otros… corrige las armas, alguno pone ballesta pero
+  // es solo un arco» (Isidro, el mismo día, al verlas). Así que cada una tiene su
+  // CUERPO (`cuerpos.py`), su ARMA propia (`arma`: de ahí salen el modelo de
+  // `buildWeapon`, cómo la agarra y cómo suena) y un rasgo que no tiene nadie.
+  //
+  // Jill: la pistola. Rapidísima, se asienta en el blanco y además lo frena.
   jill: {
-    name: 'Jill', cost: 280, hp: 170, color: 0x3f6fd0, accent: 0x1a2f66, arma: 'rifle',
-    damage: 13, fireRate: 4.2, range: 19, armorPierce: 0.4,
-    magazine: 15, reloadTime: 1.0,
+    name: 'Jill', cost: 280, hp: 170, color: 0x3f6fd0, accent: 0x1a2f66, arma: 'pistola', sinGalones: true,
+    damage: 11, fireRate: 5.0, range: 18, armorPierce: 0.4,
+    magazine: 15, reloadTime: 0.8,
     asienta: { porSegundo: 0.3, tope: 0.9 },
     suprime: { factor: 0.75, dura: 0.5 },
-    blurb: 'Solo en la caja alienígena. Fusil de asalto: se asienta en el blanco y además lo frena. Aguanta mucho.'
+    blurb: 'Solo en la caja alienígena. Pistola de las fuerzas especiales: dispara rapidísimo, cada vez más certera, y frena al que le da. Aguanta mucho.'
   },
-  // Claire: el lanzagranadas. Como el Mortero, pero más rápida y de menos pegada.
+  // Claire: el lanzagranadas incendiario. Como el Mortero, pero más rápida, de
+  // menos pegada, y donde cae la granada el suelo se queda ardiendo.
   claire: {
-    name: 'Claire', cost: 300, hp: 130, color: 0xc8323a, accent: 0x5f1418, arma: 'shotgun',
-    damage: 56, fireRate: 0.75, range: 26, armorPierce: 0.6, splash: 3.2, mortarShot: true,
+    name: 'Claire', cost: 300, hp: 130, color: 0xc8323a, accent: 0x5f1418, arma: 'lanzagranadas', sinGalones: true,
+    damage: 50, fireRate: 0.75, range: 26, armorPierce: 0.6, splash: 3.2, mortarShot: true,
     magazine: 6, reloadTime: 2.0,
     buscaCorro: true,
-    blurb: 'Solo en la caja alienígena. Lanzagranadas: seis seguidas donde más apretados van. Menos pegada que el Mortero, mucho más rápida.'
+    brasas: { daño: 8, dura: 2.6, radio: 1.7 },
+    blurb: 'Solo en la caja alienígena. Lanzagranadas incendiario: seis granadas seguidas donde más apretados van, y el suelo se queda ardiendo.'
   },
   // Ada: la ballesta. Silenciosa, busca al más duro y lo deja casi parado.
   ada: {
-    name: 'Ada', cost: 290, hp: 110, color: 0xb0183a, accent: 0x4a0a18, arma: 'archer',
+    name: 'Ada', cost: 290, hp: 110, color: 0xb0183a, accent: 0x4a0a18, arma: 'ballesta', sinGalones: true,
     damage: 46, fireRate: 1.1, range: 36, armorPierce: 0.9,
     magazine: 1, reloadTime: 0.55, projectile: 'arrow', silent: true,
     clava: { factor: 0.4, dura: 3 },
@@ -199,21 +204,23 @@ export const SOLDIERS = {
   },
   // Rebecca: la médica. Dispara poco, pero cura a los suyos mientras aguanta en pie.
   rebecca: {
-    name: 'Rebecca', cost: 240, hp: 120, color: 0x3fa060, accent: 0x1a4a2a, arma: 'rifle',
+    name: 'Rebecca', cost: 240, hp: 120, color: 0x3fa060, accent: 0x1a4a2a, arma: 'subfusil', sinGalones: true,
     damage: 8, fireRate: 2.6, range: 15, armorPierce: 0.2,
     magazine: 12, reloadTime: 1.1,
     // Rasgo: cura poco a poco a los soldados de su carril y de los de al lado.
     sana: { porSegundo: 7, carriles: 1 },
     blurb: 'Solo en la caja alienígena. Médica: cura sin parar a los soldados de su carril y de los de al lado.'
   },
-  // Sheva: la tiradora rápida. Menos pegada que el Tirador, casi el doble de cadencia.
+  // Sheva: la tiradora rápida. Menos pegada que el Tirador, casi el doble de
+  // cadencia, y dispara DE PIE: no se arrodilla, así que no pierde el medio
+  // segundo de levantarse cada vez que se la mueve.
   sheva: {
-    name: 'Sheva', cost: 300, hp: 110, color: 0x8a5ad0, accent: 0x3a2466, arma: 'sniper',
+    name: 'Sheva', cost: 300, hp: 110, color: 0x8a5ad0, accent: 0x3a2466, arma: 'dragunov', sinGalones: true,
     damage: 42, fireRate: 1.5, range: 44, armorPierce: 1.0,
     magazine: 6, reloadTime: 1.4,
     buscaDuro: true,
     empuja: 0.8,
-    blurb: 'Solo en la caja alienígena. Rifle de precisión rápido: atraviesa blindajes, elige al más duro y lo echa para atrás.'
+    blurb: 'Solo en la caja alienígena. Fusil de tiradora semiautomático: dispara de pie, atraviesa blindajes, elige al más duro y lo echa para atrás.'
   }
 }
 
