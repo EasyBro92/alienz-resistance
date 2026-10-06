@@ -610,4 +610,30 @@ function salonicaPaseo () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, ...LUGARES }
+// Heraclión: el patio central del palacio de Cnosos, por la mañana temprano
+// (herramientas/blender/lugar_cnosos.py, 06/10). Isidro: «lo más famoso» y «salen
+// del laberinto». Al fondo, la rampa que baja a los sótanos del palacio y, encima
+// de su puerta, la galería de las columnas rojas con el fresco del toro. Los
+// alienz nacen dentro, a oscuras, y suben la rampa: `hueco` es esa rampa (3,6 de
+// hondo al pie) y `entrada`, en la misión, dónde nacen. A los lados, tinajas y
+// columnas; a la derecha, la base alien dentro de una kulura.
+function heraclionCnosos () {
+  const g = new THREE.Group()
+  g.name = 'lugar:heraclionCnosos'
+  Object.assign(g.userData, {
+    modelo: 'lugar-cnosos',
+    modeloCiudad: 'lugar-cnosos-ciudad',
+    luz: 'lugar-cnosos',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    hueco: { x: 7.6, zFondo: -80.0, zBorde: -62.0, hondo: 3.6 },
+    baseX: 12.6,
+    baseZ: -44
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, ...LUGARES }

@@ -295,12 +295,19 @@ export const PAISES = [
         waves: OLEADAS.contraflujo
       },
       {
-        name: 'Heraclión', lugar: 'Espigón veneciano · fortaleza de Koules', mapa: sitio(35.34, 25.14),
-        // Se va por el rompeolas con agua a los DOS lados: por eso el campo queda en tres carriles.
-        escenario: 'heraclion', suelo: 'losas', tonoSuelo: 0xd4ccb8, hitos: [['koules']],
+        name: 'Heraclión', llegada: 'cnosos', lugar: 'Palacio de Cnosos · el patio central', mapa: sitio(35.34, 25.14),
+        // El palacio hecho en Blender (herramientas/blender/lugar_cnosos.py): el patio
+        // central por la mañana temprano, con la boca del laberinto al fondo.
+        escenario: 'heraclionCnosos', suelo: 'losas', tonoSuelo: 0xb9a888, hitos: [],
+        // Salen del laberinto: nacen dentro de la puerta, a oscuras, y suben la rampa
+        // deprisa hasta el patio. LA MADRE también, por el centro.
+        entrada: { z: -86, fondo: 6, prisa: { desde: -84, hasta: -66, por: 3 } },
+        // `cupula` y `sol`: el cielo y la luz de primera hora, como en el vuelo.
+        fondo: { hora: 'manana', cielo: 0xa9c6e6, niebla: 0xecd9c4, nieblaCerca: 150, nieblaLejos: 470, cupula: [0x86aede, 0xf6d8b6], sol: 0xffe3c0 },
+        sinPajaros: true, sinNubes: true,
         resumen: 'La base de la isla, y lo que la guarda.',
-        parte: ['La base naval de Creta coordinaba los barcos. Si cae, cortamos el puente con África.',
-          'La guarda algo grande. Lo hemos visto moverse desde el agua.'],
+        parte: ['El nido de Creta está debajo del palacio. Si cae, cortamos el puente con África.',
+          'Lo guarda algo grande. Lo hemos oído moverse ahí abajo.'],
         cierre: 'La base cae. El último barco que salió de aquí sigue en el radar, parado frente a Egipto.',
         waves: OLEADAS.madre
       }

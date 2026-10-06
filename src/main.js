@@ -2022,6 +2022,16 @@ const SALONICA_PLANOS = [
   { k: 0.76, pos: [6, 36, 76], mira: [0, 5, -62] },
   { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
 ]
+// Cnosos (06/10): el palacio entero desde el noreste, que desde arriba es lo que
+// es —un laberinto—, con el Juktas al fondo y el sol recién salido a la
+// izquierda; la cámara rodea las ruinas por el este y baja al patio central.
+const CNOSOS_PLANOS = [
+  { k: 0, pos: [112, 74, -272], mira: [-20, 0, -40] },
+  { k: 0.3, pos: [150, 62, -70], mira: [0, 0, -40] },
+  { k: 0.56, pos: [72, 50, 108], mira: [0, 4, -50] },
+  { k: 0.76, pos: [6, 36, 78], mira: [0, 4, -62] },
+  { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
+]
 // Las llegadas «de película»: un recorrido por planos, largo la primera vez y
 // más corto (pero empezando también fuera) las siguientes. Cada una abre la
 // niebla y el corte de lejos a su medida, y enciende el modelo de la ciudad.
@@ -2034,6 +2044,7 @@ const LLEGADAS = {
   roma: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-roma-v1', niebla: { cerca: 900, lejos: 3200 }, lejos: 4200, planos: ROMA_PLANOS },
   atenas: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-atenas-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: ATENAS_PLANOS },
   salonica: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-salonica-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: SALONICA_PLANOS },
+  cnosos: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-cnosos-v1', niebla: { cerca: 900, lejos: 3600 }, lejos: 4600, planos: CNOSOS_PLANOS },
   marsella: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-marsella-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: MARSELLA_PLANOS }
 }
 // El recorrido es una curva que pasa por los planos, no tramos sueltos: con un
