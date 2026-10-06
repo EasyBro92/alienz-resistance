@@ -207,7 +207,7 @@ export const PAISES = [
         escenario: 'romaColiseo', suelo: 'losas', tonoSuelo: 0x86705a, hitos: [],
         // Las columnas caídas del medio (las mismas del guion de Blender): los
         // alienz las rodean.
-        ruina: { x: 0, z: -32, radio: 3.3 },
+        ruina: { x: 0, z: -32, radio: 4.0 },
         // Salen del túnel de la puerta del fondo: nacen dentro, a oscuras, y
         // vienen deprisa hasta la boca (z = -63,5).
         entrada: { z: -86, fondo: 6, prisa: { desde: -84, hasta: -64, por: 3 } },
