@@ -13,10 +13,10 @@
 // que a ti, la para con los soldados que va comprando y encaja lo que le mandas.
 // No es una cuenta atrás disfrazada: si le mandas bichos, cae antes de verdad.
 
-import { ZOMBIES, SOLDIERS, DEFENSES, FIELD } from '../config.js'
+import { ZOMBIES, SOLDIERS, DEFENSES, FIELD, CLAVES_RED } from '../config.js'
 
 const CLAVES_Z = Object.keys(ZOMBIES)
-const CLAVES_S = [...Object.keys(SOLDIERS), ...Object.keys(DEFENSES)]
+const CLAVES_S = CLAVES_RED
 const trozos = ruta => ruta.split('/').filter(Boolean)
 const azar = (a, b) => a + Math.random() * (b - a)
 

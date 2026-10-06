@@ -53,7 +53,14 @@ export const MODELS = {
   mortar: ['models/soldado-escopeta-f.glb', 'models/soldado-escopeta-m.glb'],
   gunner: ['models/soldado-lanzallamas-f.glb', 'models/soldado-lanzallamas-m.glb'],
   misil: ['models/soldado-lanzallamas-f.glb', 'models/soldado-lanzallamas-m.glb'],
-  capitan: ['models/soldado-fusil-f.glb', 'models/soldado-fusil-m.glb']
+  capitan: ['models/soldado-fusil-f.glb', 'models/soldado-fusil-m.glb'],
+  // Las cinco de la caja alienígena: una sola persona cada una (no hay chico),
+  // con el cuerpo de chica que mejor le va por color.
+  jill: 'models/soldado-fusil-f.glb',
+  claire: 'models/soldado-lanzallamas-f.glb',
+  ada: 'models/soldado-lanzallamas-f.glb',
+  rebecca: 'models/soldado-tirador-f.glb',
+  sheva: 'models/soldado-escopeta-f.glb'
 }
 
 // Chico o chica, y SIEMPRE el mismo.
@@ -76,8 +83,10 @@ export function sexoDe (key) {
   const v = sexosGuardados()[key]
   return v === 0 || v === 1 ? v : (SEXO_DE_SERIE[key] ?? 1)
 }
+// Si la unidad tiene las dos versiones. Las de la caja alienígena, no: son quien son.
+export const dosSexos = key => Array.isArray(MODELS[key])
 export function cambiarSexo (key) {
-  if (!MODELS[key]) return null
+  if (!dosSexos(key)) return null
   const todos = sexosGuardados()
   todos[key] = sexoDe(key) ? 0 : 1
   try { localStorage.setItem(CLAVE_SEXO, JSON.stringify(todos)) } catch { /* sin almacén no se guarda: sale el de serie */ }
@@ -342,7 +351,8 @@ function vestirArquero (cuerpo, hueso, conCapucha = false) {
 // Aquí se le quita al cuerpo la cabeza vieja y se cuelga la nueva del hueso
 // `Head`. Va RÍGIDA, como hija del hueso: no necesita pesos, la geometría la
 // comparten todas las copias y cuesta una llamada de dibujado por soldado.
-const CON_CABEZA = new Set(['archer', 'rifle', 'shotgun', 'sniper', 'flamer', 'gunner', 'misil', 'mortar', 'capitan'])
+const CON_CABEZA = new Set(['archer', 'rifle', 'shotgun', 'sniper', 'flamer', 'gunner', 'misil', 'mortar', 'capitan',
+  'jill', 'claire', 'ada', 'rebecca', 'sheva'])
 const cuerposSinCabeza = new Map()
 
 // La malla del cuerpo sin los triángulos de la cabeza y el cuello viejos: los
@@ -491,7 +501,10 @@ async function armarPersona (key, spec, urls) {
   cuerpo.traverse(o => { if (!mano && o.name === 'RightHand') mano = o })
   // El lanzallamas de Blender tiene que haber llegado antes de montar el arma.
   if (key === 'flamer') await lanzallamasListo
-  const arma = buildWeapon(key, spec)
+  // Las de la caja alienígena llevan el arma de otra unidad (`arma` en config.js):
+  // de ahí salen el modelo y, más abajo, cómo la agarra el cuerpo.
+  const claveArma = spec.arma ?? key
+  const arma = buildWeapon(claveArma, spec)
   // El arma ya no cuelga de la mano: va en la figura y la coloca `cuerpo.js`
   // cada fotograma, y son las manos las que van a ella. Colgada de la mano
   // apuntaba adonde cayera el brazo, no adonde miraba el soldado.
@@ -569,7 +582,7 @@ async function armarPersona (key, spec, urls) {
   g.userData.clips = gltf.animations ?? []
   // Ciclo de andar del modelo + arma al hombro por cinemática inversa. Si al
   // esqueleto le faltara algún hueso, `null` y sigue el sistema de mandos.
-  g.userData.cuerpo = mano ? crearCuerpo({ figure, cuerpo, arma, key, clips: g.userData.clips }) : null
+  g.userData.cuerpo = mano ? crearCuerpo({ figure, cuerpo, arma, key: claveArma, clips: g.userData.clips }) : null
   return g
 }
 

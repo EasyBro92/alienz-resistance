@@ -19,10 +19,10 @@
 // nombre repetido treinta veces, ocho veces por segundo, son kilobytes por
 // minuto de datos del móvil del jugador para no decir nada.
 
-import { ZOMBIES, SOLDIERS, DEFENSES } from '../config.js'
+import { ZOMBIES, SOLDIERS, DEFENSES, CLAVES_RED } from '../config.js'
 
 const CLAVES_Z = Object.keys(ZOMBIES)
-const CLAVES_S = [...Object.keys(SOLDIERS), ...Object.keys(DEFENSES)]
+const CLAVES_S = CLAVES_RED
 
 // Ocho por segundo. Con menos se nota el tirón aunque se interpole; con más se
 // gasta batería y datos para dibujar lo mismo.

@@ -34,7 +34,7 @@ export const MONEDAS_POR_DOLAR = 100
 // dos o tres partidas más.
 // Unidades que no se compran con dinero: salen del cofre. No tienen precio a
 // propósito, para que no haya forma de pagarlas.
-export const PREMIOS_UNIDAD = ['capitan']
+export const PREMIOS_UNIDAD = ['capitan', 'jill', 'claire', 'ada', 'rebecca', 'sheva']
 
 // Desbloquea una unidad de premio. Devuelve false si ya la tenía, que es lo que
 // el cofre necesita saber para no repetir el premio más raro del juego.

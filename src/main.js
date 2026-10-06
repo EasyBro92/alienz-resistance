@@ -999,7 +999,7 @@ function soldierFire (soldier, target) {
   const pierce = spec.armorPierce ?? 0
   soldier.onFire()
   // Cada arma suena en su lado: el campo mide unos doce de ancho.
-  audio.shot(soldier.key, from.x / 7)
+  audio.shot(spec.arma ?? soldier.key, from.x / 7)
 
   // Cada arma se ve distinta al disparar, no solo suena distinto.
   if (spec.projectile === 'arrow') {
@@ -1443,6 +1443,19 @@ function simulate (dt) {
       for (const s of soldiers) {
         if (s === jefe || Math.abs(s.lane - jefe.lane) > aura.carriles) continue
         s.animo = Math.max(s.animo, aura.factor)
+      }
+    }
+    // La cura de Rebecca: mientras esté en su casilla, los soldados de su carril
+    // y de los de al lado (ella incluida) recuperan vida poco a poco. A las
+    // barreras no: una pared de sacos que se cura sola no se rompería nunca.
+    for (const medica of soldiers) {
+      const sana = medica.spec.sana
+      if (!sana || medica.dead || medica.andando) continue
+      for (const s of soldiers) {
+        if (s.dead || s.spec.fija || s.hp >= s.maxHp || Math.abs(s.lane - medica.lane) > sana.carriles) continue
+        s.hp = Math.min(s.maxHp, s.hp + sana.porSegundo * dt)
+        s.bar.set(s.hp / s.maxHp)
+        if (Math.random() < dt * 1.4) effects.burst(tmpB.copy(s.mesh.position).setY(1.4), 0x9dffb8, 2, 0.5)
       }
     }
 
@@ -2307,7 +2320,7 @@ function dispararALaBase (s, objetivo) {
   const from = muzzleWorld(s, tmpA)
   const to = tmpB.set(objetivo.x + (Math.random() - 0.5) * 6, objetivo.y + (Math.random() - 0.5) * 3, objetivo.z)
   s.onFire()
-  audio.shot(s.key, from.x / 7)
+  audio.shot(s.spec.arma ?? s.key, from.x / 7)
   if (s.spec.projectile === 'arrow') effects.arrow(from, to)
   else if (s.spec.projectile === 'mortar') effects.mortar(from.clone(), to.clone(), p => { audio.boom(); effects.burst(p, 0xffb03a, 14, 3) })
   else effects.tracer(from, to)

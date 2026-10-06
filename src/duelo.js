@@ -13,7 +13,7 @@
 // La lógica de la partida sigue en main.js: aquí se le pide lo justo a través
 // de `juego` (empezar, meter un alien, leer el campo, pintar el final).
 
-import { ZOMBIES, SOLDIERS, DEFENSES, FIELD } from './config.js'
+import { ZOMBIES, SOLDIERS, DEFENSES, FIELD, CLAVES_RED } from './config.js'
 import {
   semillaNueva, ENVIOS, CLAVES_ENVIO, biomasaDe, AVISO, MUERTE_SUBITA,
   PUNTOS_INICIALES, rangoDe, insignia, cambioDePuntos,
@@ -22,7 +22,7 @@ import {
 import { crearCamaraRival } from './camaraRival.js'
 
 const CLAVES_Z = Object.keys(ZOMBIES)
-const CLAVES_S = [...Object.keys(SOLDIERS), ...Object.keys(DEFENSES)]
+const CLAVES_S = CLAVES_RED
 const LETRAS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 const codigoNuevo = () => Array.from({ length: 4 }, () => LETRAS[Math.floor(Math.random() * LETRAS.length)]).join('')
 // v2: el tamaño por defecto pasa a ser el grande, y con la clave vieja los que

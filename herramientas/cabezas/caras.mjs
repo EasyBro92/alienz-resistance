@@ -252,9 +252,10 @@ export function dibujar (clave, p) {
     const izq = b.tipo === 'media' ? -0.6 : 2.4
     const der = b.tipo === 'media' ? 3.8 : 2.4
     const fondo = zm - b.curva
+    const lg = p.labio_grosor ?? 1                    // labios más o menos llenos
     // Los labios: el de arriba con su arco, el de abajo más lleno.
-    capas.push(`<path d="M ${P(-w * 0.86, zm + izq * 0.6)} Q ${P(-w * 0.34, zm + 3.6)} ${P(0, zm + 2.1)} Q ${P(w * 0.34, zm + 3.6)} ${P(w * 0.86, zm + der * 0.6)} Q ${P(0, fondo - 0.3)} ${P(-w * 0.86, zm + izq * 0.6)} Z" fill="${mezcla(labio, '#3d0f0c', 0.18)}" opacity="${fuerza}"/>`)
-    capas.push(`<path d="M ${P(-w * 0.8, zm + izq * 0.45)} Q ${P(0, fondo - 0.2)} ${P(w * 0.8, zm + der * 0.45)} Q ${P(0, fondo - 9.5)} ${P(-w * 0.8, zm + izq * 0.45)} Z" fill="${labio}" opacity="${fuerza}"/>`)
+    capas.push(`<path d="M ${P(-w * 0.86, zm + izq * 0.6)} Q ${P(-w * 0.34, zm + 3.6 * lg)} ${P(0, zm + 2.1 * lg)} Q ${P(w * 0.34, zm + 3.6 * lg)} ${P(w * 0.86, zm + der * 0.6)} Q ${P(0, fondo - 0.3)} ${P(-w * 0.86, zm + izq * 0.6)} Z" fill="${mezcla(labio, '#3d0f0c', 0.18)}" opacity="${fuerza}"/>`)
+    capas.push(`<path d="M ${P(-w * 0.8, zm + izq * 0.45)} Q ${P(0, fondo - 0.2)} ${P(w * 0.8, zm + der * 0.45)} Q ${P(0, fondo - 9.5 * lg)} ${P(-w * 0.8, zm + izq * 0.45)} Z" fill="${labio}" opacity="${fuerza}"/>`)
     capas.push(elipse(-1.5, fondo - 2.6, w * 0.26, 1.1, '#ffffff', 0.32, 'b1'))
     capas.push(`<path d="M ${P(-w, zm + izq)} Q ${P(0, fondo - b.curva * 0.9)} ${P(w, zm + der)}" fill="none" stroke="${linea}" stroke-width="${k(1.45)}" stroke-linecap="round"/>`)
     // Las comisuras: el hoyuelo de la sonrisa.

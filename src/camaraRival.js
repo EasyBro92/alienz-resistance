@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { FIELD, ZOMBIES, SOLDIERS, DEFENSES } from './config.js'
+import { FIELD, ZOMBIES, SOLDIERS, DEFENSES, CLAVES_RED } from './config.js'
 
 // La cámara del campo del rival.
 //
@@ -29,7 +29,7 @@ import { FIELD, ZOMBIES, SOLDIERS, DEFENSES } from './config.js'
 // informe.
 
 const CLAVES_Z = Object.keys(ZOMBIES)
-const CLAVES_S = [...Object.keys(SOLDIERS), ...Object.keys(DEFENSES)]
+const CLAVES_S = CLAVES_RED
 const PICADO = THREE.MathUtils.degToRad(25)
 const PASO_DATO = 0.25        // cada cuánto llega una instantánea
 const SIN_SENAL = 1.5         // sin datos más de esto, se cae la señal

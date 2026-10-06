@@ -195,6 +195,8 @@ class Cabeza:
         dy -= 0.005 * G(ax - 0.044, 0.026) * G(z + 0.032, 0.024) * f
         y += dy
         q = Vector((x, y, z))
+        if callable(fuera):                         # un grosor que cambia según el sitio (el pelo sin casco)
+            fuera = fuera(d, z)
         if fuera:
             q += Vector((d.x / self.rx, d.y / self.ry, d.z / self.rz_arriba)).normalized() * fuera
         return q, d, f
@@ -259,6 +261,18 @@ class Cabeza:
         a = abs(math.atan2(d.x, -d.y))
         linea = 0.066 if a < 0.85 else (0.066 - (a - 0.85) / 0.35 * 0.09 if a < 1.2 else (-0.024 if a < 1.5 else -0.024 - sm(1.5, 2.2, a) * 0.05))
         linea += self.p.get('entradas', 0.0) * G(a - 0.62, 0.22)
+        # El flequillo, para las que van sin casco: el pelo baja sobre la frente.
+        fl = self.p.get('flequillo_pelo')
+        if fl and a < 1.25:
+            s = math.atan2(d.x, -d.y)                # con signo: + hacia su izquierda (la derecha de quien mira)
+            cae = sm(1.25, 0.8, a)
+            if fl['tipo'] == 'lado':
+                # Ladeado: nace en la raya y va cayendo hacia el otro lado.
+                t = sm(fl.get('raya', -0.5), fl.get('raya', -0.5) + 1.2, s * fl.get('hacia', 1))
+                linea -= fl['baja'] * (0.15 + 0.85 * t) * cae
+            else:
+                # Recto, con la raya en medio si la lleva.
+                linea -= (fl['baja'] - fl.get('raya_medio', 0.0) * G(s, 0.1)) * cae
         return q.z - linea
 
     def casquete (self, filas, campo, col):
@@ -301,7 +315,9 @@ class Cabeza:
     def orejas_y_cuello (self):
         p, pz = self.p, self.pz
         piel = hexa(p['piel'])
-        for lado in (-1, 1):
+        # Con media melena las orejas van tapadas: si se hacen, asoman por fuera del pelo.
+        tapadas = (p.get('suelto') or {}).get('lados', 0.0) >= 0.05
+        for lado in (() if tapadas else (-1, 1)):
             q, n = self.lado(lado * 1.6, -0.02)
             giro = (0, lado * 0.2, lado * -0.3)
             pz.bola(q + n * 0.005, (0.01, 0.018, 0.03), rgb(piel, 0.97), 14, 10, giro=giro)
@@ -344,23 +360,48 @@ class Cabeza:
         if estilo == 'rapado': return
         col = hexa(p['pelo'])
         baja = 0.075 if estilo == 'melena' else 0.0
+        # Sin casco (`suelto`): el pelo se ve entero, así que lleva volumen arriba
+        # y, si es media melena, cae por los lados desde la sien hasta donde diga.
+        suelto = p.get('suelto')
+        lados = (suelto or {}).get('lados', 0.0)       # hasta dónde baja por los lados (m bajo los ojos)
+        desde = (suelto or {}).get('desde', 1.05)       # a partir de qué ángulo cae (1 = por delante de la oreja)
         def campo (q, d):
             a = abs(math.atan2(d.x, -d.y))
             c = self.zona_pelo(q, d)
             # La melena baja por detrás de la oreja hasta la mandíbula.
             if baja: c = max(c, min((a - 1.75) * 0.05, q.z + baja + 0.02))
+            if lados: c = max(c, min((a - desde) * 0.05, q.z + lados))
             return c
         def tono (q, d, f):
-            # Mechones: bandas de tono que siguen la cabeza, más clara arriba.
+            # Mechones: bandas de tono que siguen la cabeza, más clara arriba, y el
+            # brillo del pelo a media altura.
             a = math.atan2(d.x, -d.y)
-            return rgb(col, (0.86 + 0.2 * d.z) * (1 + 0.16 * math.sin(a * 29 + q.z * 40) * math.sin(q.z * 120 + a * 3)))
-        self.casquete(self.rejilla(0.007), campo, tono)
+            brillo = 0.16 * G(d.z - 0.62, 0.16) if suelto else 0.0
+            return rgb(col, (0.86 + 0.2 * d.z + brillo) * (1 + 0.16 * math.sin(a * 29 + q.z * 40) * math.sin(q.z * 120 + a * 3)))
+        if suelto:
+            vol = suelto.get('volumen', 0.012)
+            # Más grueso en la coronilla y en las puntas (que se abren), fino en el nacimiento.
+            grosor = lambda d, z: 0.005 + vol * sm(-0.25, 0.7, d.z) + (0.009 * sm(-0.01, -0.07, z) if lados else 0.0)
+            self.casquete(self.rejilla(grosor), campo, tono)
+        else:
+            self.casquete(self.rejilla(0.007), campo, tono)
+        for lado in (suelto or {}).get('mechones', ()):                 # mechones sueltos por delante de la oreja
+            # Una cinta de una pieza que se afina hacia la punta: hecho de bolas
+            # en fila parecía una trenza.
+            pts, anchos, normales = [], [], []
+            for k in range(10):
+                t = k / 9
+                q, n = self.lado(lado * (1.0 - 0.07 * t), 0.04 - 0.115 * t)
+                pts.append(q + n * 0.002); normales.append(n)
+                anchos.append(0.015 * (1 - 0.75 * t * t) * (0.55 + 0.45 * min(1, t * 5)))
+            pz.tira(pts, anchos, 0.0035, rgb(col, 0.97), normales)
         atras = self.ry
         goma = hexa(p.get('goma', '#2a2a2a'))
         if estilo == 'coleta':
-            for k in range(6):
-                t = k / 5
-                pz.bola((0, atras + 0.014 + 0.024 * math.sin(t * 2.3), -0.018 - t * 0.14), (0.026 - 0.012 * t, 0.023 - 0.009 * t, 0.032), rgb(col, 1.0 - 0.12 * t), 12, 8)
+            # Muchas y muy solapadas: con seis se contaban las bolas, como una trenza.
+            for k in range(13):
+                t = k / 12
+                pz.bola((0, atras + 0.014 + 0.024 * math.sin(t * 2.3), -0.018 - t * 0.14), (0.026 - 0.013 * t, 0.023 - 0.01 * t, 0.034), rgb(col, 1.0 - 0.12 * t), 12, 8)
             pz.bola((0, atras + 0.008, -0.01), (0.019, 0.015, 0.012), goma, 10, 6)
         if estilo == 'mono':
             pz.bola((0, atras + 0.014, -0.045), (0.038, 0.032, 0.035), rgb(col, 0.95), 14, 10)
@@ -610,12 +651,35 @@ class Cabeza:
             pts.append(r); ns.append(m)
         pz.tira(pts, [0.0055] * 17, 0.0016, 0x16171a, ns)
 
+    def adornos (self):
+        p, pz = self.p, self.pz
+        if p.get('aros'):
+            # Pendientes de aro: un anillo de cuentas doradas bajo cada oreja.
+            for lado in (-1, 1):
+                q, n = self.lado(lado * 1.6, -0.046, 0.008)
+                for k in range(10):
+                    a = 2 * math.pi * k / 10
+                    pz.bola(q + Vector((0, 0.013 * math.cos(a), -0.013 + 0.013 * math.sin(a))), 0.0034, hexa(p['aros']), 6, 4)
+        if p.get('gargantilla'):
+            r = p['cuello'] + 0.003
+            aro = [(Vector((r * 1.02 * math.sin(2 * math.pi * k / 24), 0.016 - r * math.cos(2 * math.pi * k / 24), -0.098)),
+                    Vector((math.sin(2 * math.pi * k / 24), -math.cos(2 * math.pi * k / 24), 0))) for k in range(25)]
+            pz.tira([q for q, n in aro], [0.009] * 25, 0.0018, hexa(p['gargantilla']), [n for q, n in aro])
+        if p.get('cinta'):
+            # Una cinta en la frente, atada atrás: va por encima del pelo.
+            aro = []
+            for k in range(33):
+                q, n = self.lado(-math.pi + 2 * math.pi * k / 32, 0.058, 0.019)
+                aro.append((q, n))
+            pz.tira([q for q, n in aro], [0.017] * 33, 0.0022, hexa(p['cinta']), [n for q, n in aro])
+
     def hacer (self):
         self.craneo()
         self.orejas_y_cuello()
         self.pelo()
         self.barba()
         self.parche()
+        self.adornos()
         if self.p.get('capucha'): self.capucha()
         elif self.p.get('casco'): self.casco()
 

@@ -375,7 +375,7 @@ export async function createSoldier (key, spec, lane, row) {
       this.modoPaso = entrando || celdas > 1 ? 'correr' : 'andar'
       // El tirador está de rodilla o tumbado: primero se levanta (medio segundo
       // en el sitio) y luego anda como los demás; al llegar vuelve a su postura.
-      if (this.key === 'sniper' && !entrando && !this.andando) this.espera = Math.max(this.espera, 0.55)
+      if ((this.spec.arma ?? this.key) === 'sniper' && !entrando && !this.andando) this.espera = Math.max(this.espera, 0.55)
       this.lane = newLane
       this.row = newRow
       this.destX = laneX(newLane)

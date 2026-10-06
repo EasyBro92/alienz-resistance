@@ -9,7 +9,7 @@
 // lo que cuesta desbloquearlo en billetes y lo que cuesta ponerlo en partida.
 
 import { SOLDIERS, DEFENSES, STRIKES, UPGRADES } from './config.js'
-import { buildDefensaMesh, buildSoldierMesh, sexoDe, cambiarSexo } from './assets.js'
+import { buildDefensaMesh, buildSoldierMesh, sexoDe, cambiarSexo, dosSexos } from './assets.js'
 import { figuraDeApoyo } from './systems/golpes.js'
 import { crearBaraja } from './enemigos.js'
 import { CAJAS, verCaja } from './cofre.js'
@@ -52,6 +52,7 @@ const ROL = {
   archer: 'El más barato', rifle: 'Constante', shotgun: 'Cuerpo a cuerpo', sniper: 'Matajefes',
   flamer: 'Fuego', gunner: 'Frena la horda', misil: 'Atraviesa la fila', mortar: 'Contra grupos',
   capitan: 'Anima a los suyos',
+  jill: 'Fusil de asalto', claire: 'Lanzagranadas', ada: 'Ballesta', rebecca: 'Médica', sheva: 'Tiradora rápida',
   sandbags: 'Aguanta el golpe', spikes: 'Devuelve el mordisco', mines: 'Revienta', erizos: 'Frena sin parar',
   torreta: 'Dispara sola',
   grenade: 'A mano', airstrike: 'Desde el aire', napalm: 'Incendiario', artilleria: 'Un carril entero',
@@ -114,6 +115,7 @@ function fichaTienda (grupo) {
       if (s.estela) d.push('Daña la fila de detrás')
       if (s.buscaCorro) d.push('Apunta al corro')
       if (s.anima) d.push('Acelera a sus vecinos')
+      if (s.sana) d.push('Cura a sus vecinos')
       if (soldados && s.splash) d.push(`Salpica ${String(s.splash).replace('.', ',')} m`)
       if (soldados && s.armorPierce >= 0.8) d.push('Atraviesa blindaje')
       if (s.blocker) d.push('Para al bicho')
@@ -137,7 +139,7 @@ function fichaTienda (grupo) {
     plano: soldados ? 0.6 : 0,
     // Chico o chica: se cambia tocando la figura y se queda guardado, también
     // para las partidas (`sexoDe` en assets.js).
-    insignia: clave => soldados ? `<span class="carta-sexo">${rotuloSexo(clave)}</span>` : '',
+    insignia: clave => soldados && dosSexos(clave) ? `<span class="carta-sexo">${rotuloSexo(clave)}</span>` : '',
     alTocar (clave, carta) {
       if (!soldados || cambiarSexo(clave) == null) return false
       carta.ventana.querySelector('.carta-sexo').textContent = rotuloSexo(clave)
@@ -196,7 +198,7 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
     // bloqueado y sin botón, porque no hay forma de pagarlo.
     const premio = !tuya && precio == null
     return premio
-      ? '<span class="articulo-premio">Solo en el cofre</span>'
+      ? '<span class="articulo-premio">Solo en la caja alienígena</span>'
       : tuya
       ? `<span class="articulo-tuyo">${precio == null ? 'De serie' : 'Tuyo'}</span>`
       : `<button type="button" class="articulo-comprar" data-comprar="${clave}" ${puede ? '' : 'disabled'}>${billete}${precio}</button>

@@ -159,7 +159,61 @@ export const SOLDIERS = {
     magazine: 12, reloadTime: 1.2,
     // Rasgo: los soldados de su carril y de los de al lado disparan más rápido.
     anima: { factor: 1.25, carriles: 1 },
-    blurb: 'No se compra: aparece en el cofre y casi nunca. Su carril y los de al lado disparan un 25% más rápido.'
+    blurb: 'No se compra: solo sale de la caja alienígena. Su carril y los de al lado disparan un 25% más rápido.'
+  },
+
+  // --- Las cinco de la caja alienígena (06/10) ----------------------------------
+  // Isidro: «busca fotos de las chicas de Resident Evil y recrea varios
+  // personajes»; eligió las cinco, como personajes NUEVOS de la caja alienígena
+  // (eran los exclusivos que le faltaban) y sin casco, como las originales.
+  // Tampoco se compran. Cada una lleva un arma que ya existe (`arma`: de ahí
+  // salen el modelo, el agarre y el sonido) y un rasgo que no tiene nadie en
+  // esa combinación. Van AL FINAL: las claves viajan por índice en el
+  // multijugador.
+  //
+  // Jill: el fusil de asalto. Se asienta como el Fusilero y además frena.
+  jill: {
+    name: 'Jill', cost: 280, hp: 170, color: 0x3f6fd0, accent: 0x1a2f66, arma: 'rifle',
+    damage: 13, fireRate: 4.2, range: 19, armorPierce: 0.4,
+    magazine: 15, reloadTime: 1.0,
+    asienta: { porSegundo: 0.3, tope: 0.9 },
+    suprime: { factor: 0.75, dura: 0.5 },
+    blurb: 'Solo en la caja alienígena. Fusil de asalto: se asienta en el blanco y además lo frena. Aguanta mucho.'
+  },
+  // Claire: el lanzagranadas. Como el Mortero, pero más rápida y de menos pegada.
+  claire: {
+    name: 'Claire', cost: 300, hp: 130, color: 0xc8323a, accent: 0x5f1418, arma: 'shotgun',
+    damage: 56, fireRate: 0.75, range: 26, armorPierce: 0.6, splash: 3.2, mortarShot: true,
+    magazine: 6, reloadTime: 2.0,
+    buscaCorro: true,
+    blurb: 'Solo en la caja alienígena. Lanzagranadas: seis seguidas donde más apretados van. Menos pegada que el Mortero, mucho más rápida.'
+  },
+  // Ada: la ballesta. Silenciosa, busca al más duro y lo deja casi parado.
+  ada: {
+    name: 'Ada', cost: 290, hp: 110, color: 0xb0183a, accent: 0x4a0a18, arma: 'archer',
+    damage: 46, fireRate: 1.1, range: 36, armorPierce: 0.9,
+    magazine: 1, reloadTime: 0.55, projectile: 'arrow', silent: true,
+    clava: { factor: 0.4, dura: 3 },
+    buscaDuro: true,
+    blurb: 'Solo en la caja alienígena. Ballesta: atraviesa blindajes, elige al más duro y lo deja clavado casi en el sitio.'
+  },
+  // Rebecca: la médica. Dispara poco, pero cura a los suyos mientras aguanta en pie.
+  rebecca: {
+    name: 'Rebecca', cost: 240, hp: 120, color: 0x3fa060, accent: 0x1a4a2a, arma: 'rifle',
+    damage: 8, fireRate: 2.6, range: 15, armorPierce: 0.2,
+    magazine: 12, reloadTime: 1.1,
+    // Rasgo: cura poco a poco a los soldados de su carril y de los de al lado.
+    sana: { porSegundo: 7, carriles: 1 },
+    blurb: 'Solo en la caja alienígena. Médica: cura sin parar a los soldados de su carril y de los de al lado.'
+  },
+  // Sheva: la tiradora rápida. Menos pegada que el Tirador, casi el doble de cadencia.
+  sheva: {
+    name: 'Sheva', cost: 300, hp: 110, color: 0x8a5ad0, accent: 0x3a2466, arma: 'sniper',
+    damage: 42, fireRate: 1.5, range: 44, armorPierce: 1.0,
+    magazine: 6, reloadTime: 1.4,
+    buscaDuro: true,
+    empuja: 0.8,
+    blurb: 'Solo en la caja alienígena. Rifle de precisión rápido: atraviesa blindajes, elige al más duro y lo echa para atrás.'
   }
 }
 
@@ -210,6 +264,18 @@ export const DEFENSES = {
     blurb: 'Dispara sola a su carril sin parar ni recargar. Cara, pero no se cansa.'
   }
 }
+
+// Duelo y cooperativo mandan cada pieza por su ÍNDICE en esta lista, así que lo
+// nuevo va siempre AL FINAL, sea soldado o defensa. Las cinco de la caja
+// alienígena entraron en SOLDIERS cuando las defensas ya tenían su número:
+// contando «soldados y luego defensas» se habrían corrido todas cinco puestos, y
+// un móvil sin actualizar vería una torreta donde el otro puso unos sacos.
+const TARDIAS = ['jill', 'claire', 'ada', 'rebecca', 'sheva']
+export const CLAVES_RED = [
+  ...Object.keys(SOLDIERS).filter(k => !TARDIAS.includes(k)),
+  ...Object.keys(DEFENSES),
+  ...TARDIAS
+]
 
 // `recarga`: los segundos que tarda en volver a estar listo después de usarlo.
 // Isidro, 27/09: «monedas y recarga», y la recarga «según lo fuerte»: granada y
