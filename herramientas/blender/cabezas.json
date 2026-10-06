@@ -137,49 +137,77 @@
       "sombra_barba": 0.6, "parche": -1, "cicatrices": [[-27, 34, -31, 20], [-33, -16, -40, -42]]
     },
     "jill-f": {
-      "_": "Las cinco de la caja alienígena, inspiradas en las chicas de Resident Evil. Sin casco: el pelo es lo que las hace reconocibles.",
-      "de": "ella", "cuerpo": "cuerpo-jill-f", "casco": null, "braga": false,
-      "piel": "#f0c7a8", "pelo": "#4a3122", "iris": "#6f8fa6", "labio": "#c2776c",
-      "peinado": "corto", "suelto": { "volumen": 0.013, "lados": 0.076, "desde": 1.0 },
-      "flequillo_pelo": { "tipo": "lado", "baja": 0.046, "hacia": 1, "raya": -0.55 },
-      "mandibula": 0.33, "ojo": { "arriba": 12.6, "inclina": 1.6 },
-      "cejas": { "grosor": 0.8, "arco": 3.0, "dentro": -0.2 },
-      "boca": { "tipo": "sonrisa", "ancho": 16, "curva": 2.4 }
+      "_": "Las cinco de la caja alienígena, inspiradas en las chicas de Resident Evil. Sin casco y con la cara REALISTA (`real`: proporciones de persona, no de muñeco; ver dibujarReal en caras.mjs y punto_real en cabezas.py). En `real` las medidas son milímetros de verdad vistos de frente.",
+      "de": "ella", "cuerpo": "cuerpo-jill-f", "casco": null, "braga": false, "talla": 1.03, "sube": 0.024, "cuello": 0.036,
+      "piel": "#ecc2a3", "pelo": "#3d2a1f", "iris": "#7f9eb6", "labio": "#bd6068",
+      "ancho": 0.0735, "mandibula": 0.45, "menton": 0.010, "nariz": 0.016, "nariz_ancho": 0.0082,
+      "peinado": "corto", "suelto": { "volumen": 0.013, "lados": 0.07, "desde": 1.0 },
+      "flequillo_pelo": { "tipo": "lado", "baja": 0.044, "hacia": 1, "raya": -0.55 },
+      "real": {
+        "ojo": { "ancho": 28.5, "arriba": 5.7, "abajo": 4.2, "inclina": 1.6 },
+        "ceja": { "grosor": 4.6, "arco": 2.8, "alto": 12.4, "cae": 1.0 },
+        "nariz": { "ancho": 15.4 },
+        "boca": { "ancho": 24.5, "arriba": 7.2, "abajo": 10.0, "sonrisa": 1.4 },
+        "delineado": 0.45, "rubor": 0.12, "pecas": 16
+      }
     },
     "claire-f": {
-      "de": "ella", "cuerpo": "cuerpo-claire-f", "casco": null, "braga": false,
-      "piel": "#f2c9ad", "pelo": "#6e2f22", "ceja": "#55261c", "iris": "#6f93b0", "labio": "#c96a66",
-      "peinado": "coleta", "suelto": { "volumen": 0.012, "mechones": [-1, 1] },
-      "flequillo_pelo": { "tipo": "recto", "baja": 0.026, "raya_medio": 0.03 },
-      "boca": { "tipo": "sonrisa", "ancho": 17, "curva": 3.6 }
+      "de": "ella", "cuerpo": "cuerpo-claire-f", "casco": null, "braga": false, "talla": 1.03, "sube": 0.024, "cuello": 0.036,
+      "piel": "#f0c8ad", "pelo": "#5a2a20", "ceja": "#3f2318", "iris": "#6c98c0", "labio": "#c96a72",
+      "ancho": 0.074, "mandibula": 0.47, "menton": 0.009, "nariz": 0.0155, "nariz_ancho": 0.008,
+      "peinado": "coleta", "suelto": { "volumen": 0.012, "mechones": [-1, 1], "mechon_largo": 0.105 },
+      "flequillo_pelo": { "tipo": "recto", "baja": 0.024, "raya_medio": 0.03 },
+      "real": {
+        "ojo": { "ancho": 29.2, "arriba": 6.3, "abajo": 4.5, "inclina": 1.8 },
+        "ceja": { "grosor": 4.4, "arco": 3.4 },
+        "nariz": { "ancho": 15.6 },
+        "boca": { "ancho": 24, "arriba": 6.6, "abajo": 9.4, "sonrisa": 1.8 },
+        "delineado": 0.4, "rubor": 0.14, "pecas": 8
+      }
     },
     "ada-f": {
-      "de": "ella", "cuerpo": "cuerpo-ada-f", "casco": null, "braga": false, "gargantilla": "#18181a",
-      "piel": "#f1cfae", "pelo": "#14110f", "iris": "#4a2f1e", "labio": "#b8242c",
+      "de": "ella", "cuerpo": "cuerpo-ada-f", "casco": null, "braga": false, "gargantilla": "#18181a", "talla": 1.03, "sube": 0.024, "cuello": 0.036,
+      "piel": "#ecc6a4", "pelo": "#15110f", "iris": "#3b251b", "labio": "#a3222a",
+      "ancho": 0.072, "mandibula": 0.5, "menton": 0.010, "nariz": 0.0155, "nariz_ancho": 0.008,
       "peinado": "corto", "suelto": { "volumen": 0.012, "lados": 0.058, "desde": 1.0 },
-      "flequillo_pelo": { "tipo": "lado", "baja": 0.052, "hacia": -1, "raya": -0.5 },
-      "ancho": 0.076, "mandibula": 0.44, "labio_grosor": 1.15,
-      "ojo": { "inclina": 3.4, "arriba": 11.8 },
-      "cejas": { "grosor": 0.58, "arco": 3.4, "dentro": 0.0 },
-      "boca": { "tipo": "media", "ancho": 15, "curva": 2.8 }, "rubor": 0.3
+      "flequillo_pelo": { "tipo": "lado", "baja": 0.05, "hacia": -1, "raya": -0.5 },
+      "real": {
+        "ojo": { "ancho": 29.5, "arriba": 5.0, "abajo": 3.7, "inclina": 3.6, "pliegue": 1.9 },
+        "pliegue_fuerza": 0.4,
+        "ceja": { "grosor": 3.9, "arco": 3.8, "alto": 12.8, "cae": 0.6 },
+        "nariz": { "ancho": 15.8 },
+        "boca": { "ancho": 24, "arriba": 7.0, "abajo": 9.8, "sonrisa": 0.9, "brillo": 0.4 },
+        "delineado": 1.0, "sombra_ojos": 0.26, "color_sombra": "#3a2026", "pintalabios": true,
+        "rubor": 0.08, "centro_iris": "#6a3a20"
+      }
     },
     "rebecca-f": {
-      "de": "ella", "cuerpo": "cuerpo-rebecca-f", "casco": null, "braga": false, "cinta": "#b3282d",
-      "piel": "#f3cdb0", "pelo": "#6b4630", "iris": "#5f9a7a", "labio": "#cf8a80",
+      "de": "ella", "cuerpo": "cuerpo-rebecca-f", "casco": null, "braga": false, "gargantilla": "#b3282d", "talla": 1.03, "sube": 0.024, "cuello": 0.036,
+      "piel": "#f2ceb3", "pelo": "#5a3b29", "iris": "#6f9a72", "labio": "#d07f86",
+      "ancho": 0.0752, "mandibula": 0.44, "menton": 0.008, "nariz": 0.0145, "nariz_ancho": 0.008,
       "peinado": "corto", "suelto": { "volumen": 0.011, "lados": 0.03, "desde": 1.25 },
-      "flequillo_pelo": { "tipo": "recto", "baja": 0.03 },
-      "ancho": 0.081, "mandibula": 0.34, "nariz": 0.012,
-      "ojo": { "rx": 16.6, "arriba": 14.2 },
-      "boca": { "tipo": "risa", "ancho": 15, "abre": 8 }, "rubor": 0.52, "pecas": 8
+      "flequillo_pelo": { "tipo": "recto", "baja": 0.028 },
+      "real": {
+        "ojo": { "ancho": 29.6, "arriba": 6.6, "abajo": 4.7, "inclina": 1.2 },
+        "ceja": { "grosor": 3.9, "arco": 2.6, "alto": 13.2 },
+        "nariz": { "ancho": 15.4 },
+        "boca": { "ancho": 22.5, "arriba": 6.0, "abajo": 8.6, "sonrisa": 2.4 },
+        "delineado": 0.3, "rubor": 0.2, "pecas": 10
+      }
     },
     "sheva-f": {
-      "de": "ella", "cuerpo": "cuerpo-sheva-f", "casco": null, "braga": false, "aros": "#e2b93b",
-      "piel": "#8a5a3c", "pelo": "#2a1a12", "iris": "#6a4420", "labio": "#93483c",
-      "peinado": "mono", "suelto": { "volumen": 0.01, "mechones": [1] },
-      "flequillo_pelo": { "tipo": "lado", "baja": 0.03, "hacia": 1, "raya": -0.4 },
-      "mandibula": 0.36, "nariz_ancho": 0.0105, "labio_grosor": 1.3,
-      "cejas": { "grosor": 0.78, "dentro": 0.3 },
-      "boca": { "tipo": "sonrisa", "ancho": 17, "curva": 3.4 }, "rubor": 0.2
+      "de": "ella", "cuerpo": "cuerpo-sheva-f", "casco": null, "braga": false, "aros": "#e2b93b", "talla": 1.03, "sube": 0.024, "cuello": 0.036,
+      "piel": "#9a6846", "pelo": "#1e1410", "iris": "#8a6a3c", "labio": "#9a4f4a",
+      "ancho": 0.0735, "mandibula": 0.46, "menton": 0.010, "nariz": 0.016, "nariz_ancho": 0.0098,
+      "peinado": "mono", "suelto": { "volumen": 0.009, "mechones": [-1, 1], "mechon_largo": 0.075 },
+      "flequillo_pelo": { "tipo": "lado", "baja": 0.012, "hacia": 1, "raya": -0.4 },
+      "real": {
+        "ojo": { "ancho": 29, "arriba": 5.7, "abajo": 4.1, "inclina": 2.8 },
+        "ceja": { "grosor": 4.1, "arco": 4.2, "alto": 13, "cae": 0.8 },
+        "nariz": { "ancho": 19 },
+        "boca": { "ancho": 25.5, "arriba": 8.0, "abajo": 10.6, "sonrisa": 1.2, "brillo": 0.34 },
+        "delineado": 0.65, "rubor": 0.07, "pomulo": 1.35, "centro_iris": "#d9a24a"
+      }
     },
     "capitan-f": {
       "de": "ella", "cuerpo": "soldado-fusil-f", "casco": "#d8b04a", "casco_extra": ["estrella"],

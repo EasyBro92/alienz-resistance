@@ -446,10 +446,22 @@ export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos, f
     // ve la cara y el equipo, y las piernas se salen por abajo. `plano` es la
     // parte de la persona que entra, y la persona mide 1,7 por su escala.
     if (F.plano) {
-      const escala = (visibleAlto * 0.8) / (1.7 * F.plano)
+      // Cuánta persona entra depende de la FORMA de la ventana, que no es fija:
+      // la carta reparte su alto y, cuanto más texto lleva debajo, más baja y
+      // apaisada queda la ventana. Con la misma porción en todas, en las
+      // apaisadas la figura era una miniatura en medio de un hueco (Isidro: «las
+      // imágenes de la tienda no acaban de estar bien cuadradas»). Ahora en una
+      // ventana apaisada se acerca —de la cabeza a la cintura— y la figura ocupa
+      // de ancho más o menos lo mismo en todas las cartas.
+      const porcion = Math.max(0.28, Math.min(F.plano, 0.64 / camara.aspect))
+      const escala = (visibleAlto * 0.86) / (1.7 * porcion)
       figura.scale.multiplyScalar(escala / figura.scale.y)
-      // La coronilla arriba, con aire para lo que asome por encima (la antena).
-      figura.position.y = 0.95 + visibleAlto * 0.38 - 1.7 * escala
+      figura.updateMatrixWorld(true)
+      // La cabeza arriba, medida de verdad (casco, pelo o capucha: cada una llega
+      // a una altura), con un dedo de aire. Sin cabeza suelta, por la coronilla.
+      const cabeza = figura.getObjectByName('cabeza')
+      const tope = cabeza ? cajaFigura.setFromObject(cabeza).max.y - figura.position.y : 1.7 * escala
+      figura.position.y = 0.95 + visibleAlto * 0.44 - tope
       return
     }
     // Los huéspedes solo se encogen; lo de la tienda (una granada, una mina)

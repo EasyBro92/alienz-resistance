@@ -1128,7 +1128,9 @@ function buildWeapon (key) {
     // Jill: pistola de servicio, corredera de acero y cachas de madera.
     piece(w, box(0.034, 0.038, 0.215, 0.008), steel, 0, 0.03, -0.005)            // corredera
     for (let i = 0; i < 5; i++) piece(w, box(0.036, 0.026, 0.006, 0.002), black, 0, 0.032, 0.055 + i * 0.011)  // estrías
-    piece(w, tube(0.011, 0.011, 0.024, 8), canonMat, 0, 0.03, -0.118, Math.PI / 2)
+    // La boca del cañón NO va con el material que se pone al rojo: disparando
+    // cinco veces por segundo se quedaba naranja, como una pistola de juguete.
+    piece(w, tube(0.011, 0.011, 0.024, 8), black, 0, 0.03, -0.118, Math.PI / 2)
     piece(w, box(0.03, 0.026, 0.165, 0.006), black, 0, 0.002, -0.022)             // armazón
     piece(w, box(0.022, 0.04, 0.055, 0.01), black, 0, -0.03, 0.0)                 // guardamonte
     piece(w, box(0.036, 0.11, 0.052, 0.014), wood, 0, -0.058, 0.072, 0.24)        // cachas

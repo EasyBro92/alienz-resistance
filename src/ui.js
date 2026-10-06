@@ -7,6 +7,8 @@ import { cartasAbiertas } from './systems/progreso.js'
 const SERIAL = {
   archer: 'A-01', rifle: 'R-02', shotgun: 'S-03', sniper: 'T-04',
   flamer: 'F-05', gunner: 'M-06', misil: 'K-07', mortar: 'X-08',
+  // Las de la caja alienígena: E de «exclusivas».
+  jill: 'E-01', claire: 'E-02', ada: 'E-03', rebecca: 'E-04', sheva: 'E-05',
   sandbags: 'B-01', spikes: 'B-02', mines: 'B-03', erizos: 'B-04', torreta: 'B-05',
   grenade: 'G-01', airstrike: 'G-02', napalm: 'G-03', artilleria: 'G-04', dron: 'G-05',
   misilGuiado: 'G-06', campoMinas: 'G-07', botiquin: 'M-01', collector: 'C-00'

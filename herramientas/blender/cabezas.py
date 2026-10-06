@@ -160,6 +160,20 @@ class Cabeza:
         self.rz_arriba, self.rz_abajo = 0.115, 0.108
         self.z_nariz, self.z_boca, self.z_menton = -0.038, -0.062, -0.09
         self.ojo_x = p['ojo']['sep'] / 1000 * 0.97
+        # Las cabezas REALISTAS (`real` en cabezas.json: las cinco de la caja
+        # alienígena; Isidro: «quiero que sean más realistas, copia mejor las
+        # caras»). Proporciones de una cara de verdad: más larga de los ojos al
+        # mentón, con la nariz, la boca y la barbilla donde las tiene una persona.
+        # Los MISMOS números que `Xr` en caras.mjs (RY, RZA, RZB).
+        self.real = p.get('real') or None
+        if self.real:
+            r = self.real if isinstance(self.real, dict) else {}
+            self.ry = 0.097
+            self.rz_arriba, self.rz_abajo = 0.112, 0.110
+            self.z_nariz = r.get('nariz', {}).get('punta', -37.5) / 1000
+            self.z_boca = r.get('boca', {}).get('z', -62.5) / 1000
+            self.z_menton = -0.094
+            self.ojo_x = r.get('ojo', {}).get('sep', 31.5) / 1000
 
     # Más malla en la cara que en la nuca, que es donde hay forma.
     @staticmethod
@@ -167,7 +181,47 @@ class Cabeza:
         u = (i / SEG) * 2 - 1
         return math.pi * (0.4 * u + 0.6 * u ** 3)
 
+    def punto_real (self, phi, th, fuera=0.0):
+        # La cabeza realista. Lo que cambia respecto a la de muñeco: la cara no se
+        # recoge hacia el mentón como un huevo (por delante el fondo baja con la
+        # RAÍZ del coseno: la barbilla queda a centímetro y medio de los labios,
+        # no a cinco), las cuencas hunden un poco, y la nariz tiene puente,
+        # punta y aletas. La boca y la barbilla llevan su relieve.
+        p = self.p
+        d = Vector((math.sin(phi) * math.cos(th), -math.cos(phi) * math.cos(th), math.sin(th)))
+        x = self.rx * d.x
+        y = self.ry * d.y
+        z = (self.rz_arriba if d.z > 0 else self.rz_abajo) * d.z
+        f = sm(0.0, 0.55, -d.y)
+        s = max(0.0, min(1.0, -z / self.rz_abajo))
+        if d.y < 0 and d.z < 0: y /= math.sqrt(max(0.004, math.cos(th)))
+        x *= 1 - p['mandibula'] * s ** 2.5
+        y *= 1 - (0.42 if d.y > 0 else 0.05) * s ** 2
+        x *= 1 - 0.04 * sm(0.03, 0.1, z)
+        ax = abs(x)
+        dy = 0.0
+        dy += 0.0042 * G(ax - self.ojo_x, 0.019) * G(z - 0.001, 0.011) * f
+        dy -= 0.0022 * G(z - 0.017, 0.008) * sm(0.07, 0.03, ax) * f
+        zt = self.z_nariz
+        puente = max(0.0, min(1.0, (0.012 - z) / (0.012 - zt))) if z >= zt else 0.0
+        dy -= p['nariz'] * (0.5 * puente ** 0.8 * G(x, 0.0062 + 0.002 * puente) + 0.62 * G(x, p['nariz_ancho']) * G(z - zt, 0.0085)) * f
+        dy -= 0.0042 * G(ax - 0.0125, 0.0058) * G(z - (zt - 0.003), 0.0062) * f
+        zb = self.z_boca
+        dy -= 0.0050 * G(x, 0.026) * G(z - zb, 0.013) * f
+        dy -= 0.0016 * G(x, 0.016) * G(z - (zb + 0.0045), 0.0035) * f
+        dy -= 0.0022 * G(x, 0.017) * G(z - (zb - 0.0055), 0.004) * f
+        dy += 0.0022 * G(x, 0.02) * G(z - (zb - 0.0165), 0.005) * f
+        dy -= p['menton'] * G(x, 0.02) * G(z - self.z_menton, 0.014) * f
+        dy -= 0.0035 * G(ax - 0.047, 0.022) * G(z + 0.024, 0.02) * f
+        y += dy
+        q = Vector((x, y, z))
+        if callable(fuera): fuera = fuera(d, z)
+        if fuera:
+            q += Vector((d.x / self.rx, d.y / self.ry, d.z / self.rz_arriba)).normalized() * fuera
+        return q, d, f
+
     def punto (self, phi, th, fuera=0.0):
+        if self.real: return self.punto_real(phi, th, fuera)
         p = self.p
         d = Vector((math.sin(phi) * math.cos(th), -math.cos(phi) * math.cos(th), math.sin(th)))
         x = self.rx * d.x
@@ -320,6 +374,11 @@ class Cabeza:
         for lado in (() if tapadas else (-1, 1)):
             q, n = self.lado(lado * 1.6, -0.02)
             giro = (0, lado * 0.2, lado * -0.3)
+            if self.real:
+                # Más pequeñas y pegadas: las de las demás son de muñeco, grandes y abiertas.
+                pz.bola(q + n * 0.001, (0.007, 0.013, 0.026), rgb(piel, 0.97), 14, 10, giro=(0, lado * 0.1, lado * -0.2))
+                pz.bola(q + n * 0.0065 + Vector((0, -0.003, 0.002)), (0.003, 0.007, 0.015), rgb(piel, 0.72), 10, 8, giro=(0, lado * 0.1, lado * -0.2))
+                continue
             pz.bola(q + n * 0.005, (0.01, 0.018, 0.03), rgb(piel, 0.97), 14, 10, giro=giro)
             pz.bola(q + n * 0.012 + Vector((0, -0.004, 0.002)), (0.004, 0.009, 0.018), rgb(piel, 0.7), 10, 8, giro=giro)
         r = p['cuello']
@@ -379,6 +438,10 @@ class Cabeza:
             # brillo del pelo a media altura.
             a = math.atan2(d.x, -d.y)
             brillo = 0.16 * G(d.z - 0.62, 0.16) if suelto else 0.0
+            if self.real:
+                # Mechones más finos y menos marcados: con las bandas anchas de las
+                # demás, el pelo de una cara realista parecía un gorro de lana.
+                return rgb(col, (0.84 + 0.2 * d.z + brillo * 0.8) * (1 + 0.075 * math.sin(a * 31 + q.z * 55) * math.sin(q.z * 90 + a * 5) + 0.045 * math.sin(a * 17 - q.z * 30)))
             return rgb(col, (0.86 + 0.2 * d.z + brillo) * (1 + 0.16 * math.sin(a * 29 + q.z * 40) * math.sin(q.z * 120 + a * 3)))
         if suelto:
             vol = suelto.get('volumen', 0.012)
@@ -391,9 +454,10 @@ class Cabeza:
             # Una cinta de una pieza que se afina hacia la punta: hecho de bolas
             # en fila parecía una trenza.
             pts, anchos, normales = [], [], []
+            largo = suelto.get('mechon_largo', 0.115)
             for k in range(10):
                 t = k / 9
-                q, n = self.lado(lado * (1.0 - 0.07 * t), 0.04 - 0.115 * t)
+                q, n = self.lado(lado * (1.0 - 0.07 * t), 0.04 - largo * t)
                 pts.append(q + n * 0.002); normales.append(n)
                 anchos.append(0.015 * (1 - 0.75 * t * t) * (0.55 + 0.45 * min(1, t * 5)))
             pz.tira(pts, anchos, 0.0035, rgb(col, 0.97), normales)
@@ -664,7 +728,10 @@ class Cabeza:
                     pz.bola(q + Vector((0, 0.013 * math.cos(a), -0.013 + 0.013 * math.sin(a))), 0.0034, hexa(p['aros']), 6, 4)
         if p.get('gargantilla'):
             r = p['cuello'] + 0.003
-            aro = [(Vector((r * 1.02 * math.sin(2 * math.pi * k / 24), 0.016 - r * math.cos(2 * math.pi * k / 24), -0.098)),
+            # En las cabezas realistas el mentón baja más y la cabeza va más alta:
+            # la gargantilla se pone a media altura del cuello que queda a la vista.
+            zg = -0.128 if self.real else -0.098
+            aro = [(Vector((r * 1.02 * math.sin(2 * math.pi * k / 24), 0.019 - r * math.cos(2 * math.pi * k / 24), zg)),
                     Vector((math.sin(2 * math.pi * k / 24), -math.cos(2 * math.pi * k / 24), 0))) for k in range(25)]
             pz.tira([q for q, n in aro], [0.009] * 25, 0.0018, hexa(p['gargantilla']), [n for q, n in aro])
         if p.get('cinta'):
@@ -864,7 +931,9 @@ for clave in claves:
     # vale: depende del casco que traía cada modelo y baila de 0,85 a 1,14.
     k = (hueso['head_end'].z - hueso['LeftToeBase'].z) / 1.753 * p['talla']
     # Los ojos, a la altura que deja el mentón justo sobre el arranque del cuello.
-    ojos = Vector((0.0, hueso['Head'].y - 0.004 * k + p.get('adelanta', 0.0), hueso['neck'].z + 0.022 + 0.1 * k))
+    # `sube`: las cabezas realistas tienen el mentón dos dedos más abajo; sin
+    # subirlas se comían el cuello.
+    ojos = Vector((0.0, hueso['Head'].y - 0.004 * k + p.get('adelanta', 0.0), hueso['neck'].z + 0.022 + 0.1 * k + p.get('sube', 0.0)))
 
     cab = Cabeza(p)
     cab.hacer()

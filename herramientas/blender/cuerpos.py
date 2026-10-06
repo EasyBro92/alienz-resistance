@@ -257,7 +257,7 @@ TRONCO = curva([
     (0.940, 0.172, 0.090, 0.104), (1.000, 0.165, 0.088, 0.097), (1.060, 0.142, 0.082, 0.084),
     (1.120, 0.121, 0.078, 0.075), (1.180, 0.125, 0.082, 0.079), (1.240, 0.137, 0.087, 0.087),
     (1.300, 0.147, 0.089, 0.092), (1.345, 0.153, 0.084, 0.092), (1.375, 0.146, 0.072, 0.086),
-    (1.395, 0.112, 0.060, 0.074), (1.410, 0.075, 0.053, 0.060), (1.422, 0.054, 0.050, 0.053)])
+    (1.395, 0.112, 0.060, 0.074), (1.410, 0.070, 0.050, 0.056), (1.422, 0.043, 0.041, 0.043)])
 Y_BAJO, Y_ALTO = 0.835, 1.422
 Z_EJE = -0.090
 
@@ -659,12 +659,12 @@ def claire ():
     f.brazos_piel()
     f.piernas_piel(s0=0.07)
     sisa = lambda p: min(math.hypot(abs(p[0].x) - 0.165, p[0].y - 1.385) - 0.062, 9)
-    escote = lambda p: (math.hypot(p[0].x / 0.075, (p[0].y - 1.43) / 0.095) - 1) if p[0].z > Z_EJE else (math.hypot(p[0].x / 0.07, (p[0].y - 1.43) / 0.045) - 1)
+    escote = lambda p: (math.hypot(p[0].x / 0.066, (p[0].y - 1.43) / 0.095) - 1) if p[0].z > Z_EJE else (math.hypot(p[0].x / 0.058, (p[0].y - 1.43) / 0.04) - 1)
     f.tronco(tela(0x1c1c20), y0=1.20, y1=Y_ALTO, sale=0.004, campo=lambda p: min(sisa(p), escote(p)) * 3, tensa=0.8)
     # El chaleco: abierto por delante (más abajo que arriba) y sin mangas.
     abierto = lambda p: (abs(p[0].x) - (0.034 + 0.05 * sm(1.38, 1.2, p[0].y))) if p[0].z > Z_EJE else 1.0
     sisa2 = lambda p: math.hypot(abs(p[0].x) - 0.17, p[0].y - 1.38) - 0.066
-    cuello = lambda p: (math.hypot(p[0].x / 0.062, (p[0].y - 1.43) / 0.032) - 1)
+    cuello = lambda p: (math.hypot(p[0].x / 0.052, (p[0].y - 1.43) / 0.03) - 1)
     rojo = tela(0xc2262e, 0.07)
     f.tronco(rojo, y0=1.165, y1=Y_ALTO, sale=0.013, campo=lambda p: min(abierto(p) * 4, sisa2(p) * 3, cuello(p)), tensa=1.0)
     f.aro_tronco(1.168, 0.016, 0.0135, 0x9a1c24, 0.003)
@@ -711,9 +711,8 @@ def ada ():
             return (0.035 + 0.125 * sm(1.41, 1.29, y)) - abs(x)
         return (1.17 + 0.07 * (abs(x) / 0.14) ** 2) - y
     f.tronco(rojo, y0=1.09, y1=Y_ALTO, sale=0.005, campo=lambda p: cuerpo(p) * 4, tensa=1.0)
-    # El cuello del vestido, cerrado atrás.
-    pts = [en_tronco(2 * math.pi * k / 24, 1.413, 0.005, f.busto) for k in range(25)]
-    m.cinta(pts, 0.022, 0.003, rgb(0x8f1820))
+    # Sin cinta al cuello: lo cierra la gargantilla negra, que va en la cabeza.
+    # Un aro rojo alrededor del arranque del cuello parecía un plato.
     # La falda larga con la raja: se abre desde lo alto del muslo izquierdo.
     def raja (p):
         th, y = p[3]
@@ -743,10 +742,12 @@ def rebecca ():
     f.brazos_piel(s0=0.07, hombro=0xe8e6de)
     blanca = tela(0xe8e6de, 0.05)
     f.manga(blanca, 0.0, 0.105, 0.006)
-    f.tronco(blanca, y0=1.02, y1=Y_ALTO, sale=0.004, campo=lambda p: (math.hypot(p[0].x / 0.066, (p[0].y - 1.43) / 0.04) - 1), tensa=1.0)
+    f.tronco(blanca, y0=1.02, y1=Y_ALTO, sale=0.004, campo=lambda p: (math.hypot(p[0].x / 0.055, (p[0].y - 1.43) / 0.036) - 1), tensa=1.0)
     verde = tela(0x3f7a4a, 0.07)
-    sisa = lambda p: math.hypot(abs(p[0].x) - 0.178, p[0].y - 1.37) - 0.066
-    pico = lambda p: (math.hypot(p[0].x / 0.066, (p[0].y - 1.43) / 0.12) - 1) if p[0].z > Z_EJE else (math.hypot(p[0].x / 0.066, (p[0].y - 1.43) / 0.04) - 1)
+    # Sisas y pico pequeños: entre una y otro tiene que quedar un tirante ancho, o
+    # el recorte lo deja en picos sueltos sobre el hombro.
+    sisa = lambda p: math.hypot(abs(p[0].x) - 0.188, p[0].y - 1.365) - 0.056
+    pico = lambda p: (math.hypot(p[0].x / 0.05, (p[0].y - 1.43) / 0.11) - 1) if p[0].z > Z_EJE else (math.hypot(p[0].x / 0.05, (p[0].y - 1.43) / 0.032) - 1)
     f.tronco(verde, y0=1.11, y1=Y_ALTO, sale=0.014, campo=lambda p: min(sisa(p) * 3, pico(p)), tensa=1.0)
     f.aro_tronco(1.113, 0.016, 0.0145, 0x2f5f39, 0.003)
     # La cremallera y los bolsillos del pecho.
@@ -793,8 +794,8 @@ def sheva ():
     f.piel_tronco([(1.03, 1.2), (1.27, Y_ALTO)])
     f.brazos_piel()
     lila = tela(0x7a52b3, 0.07)
-    sisa = lambda p: math.hypot(abs(p[0].x) - 0.182, p[0].y - 1.375) - 0.066
-    pico = lambda p: (math.hypot(p[0].x / 0.058, (p[0].y - 1.44) / 0.14) - 1) if p[0].z > Z_EJE else (math.hypot(p[0].x / 0.06, (p[0].y - 1.44) / 0.07) - 1)
+    sisa = lambda p: math.hypot(abs(p[0].x) - 0.19, p[0].y - 1.37) - 0.057
+    pico = lambda p: (math.hypot(p[0].x / 0.048, (p[0].y - 1.44) / 0.14) - 1) if p[0].z > Z_EJE else (math.hypot(p[0].x / 0.048, (p[0].y - 1.44) / 0.055) - 1)
     # El bajo va en diagonal: enseña más cintura por su derecha.
     bajo = lambda p: p[0].y - (1.185 - 0.03 * p[0].x / 0.12)
     f.tronco(lila, y0=1.14, y1=Y_ALTO, sale=0.004, campo=lambda p: min(sisa(p) * 3, pico(p), bajo(p) * 6), tensa=0.9)
