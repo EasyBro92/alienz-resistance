@@ -325,12 +325,18 @@ export const PAISES = [
     cierre: 'Bajo la meseta hay una sala más grande que las pirámides. Y en las paredes hay un mapa del mundo con puntos encendidos.',
     misiones: [
       {
-        name: 'Alejandría', lugar: 'Corniche · bahía este', mapa: sitio(31.20, 29.92), bioma: 'costa',
-        // La bahía en curva, el muro contra el oleaje y la pared de edificios beige.
-        escenario: 'alejandria', suelo: 'losas', tonoSuelo: 0xc4bda8, hitos: [['bibliotecaAlejandria']],
+        name: 'Alejandría', llegada: 'alejandria', lugar: 'Fortaleza de Qaitbay · el espigón', mapa: sitio(31.20, 29.92), bioma: 'costa',
+        // La fortaleza del puerto hecha en Blender (herramientas/blender/lugar_alejandria.py),
+        // de día: el espigón, con el mar abierto a un lado y las barcas al otro.
+        escenario: 'alejandriaQaitbay', suelo: 'losas', tonoSuelo: 0xcdbb96, hitos: [],
+        // Salen de la fortaleza: nacen dentro de la torre, cruzan el patio deprisa y
+        // pasan la puerta del muro en abanico cerrado (es estrecha); se abren después.
+        entrada: { z: -89, fondo: 4, prisa: { desde: -89, hasta: -70, por: 3 }, abanico: { ancho: 0.7, hasta: -65.4 } },
+        fondo: { hora: 'dia', cielo: 0x8fc0ee, niebla: 0xd3e2ee, nieblaCerca: 140, nieblaLejos: 460 },
+        sinPajaros: true, sinNubes: true,
         resumen: 'Subimos al barco. De frente y en masa.',
         parte: ['El barco de Creta lleva a bordo lo mismo que los contenedores de Valencia: gente dormida en literas.',
-          'Los del puerto bajan todos a la vez para que no lleguemos.'],
+          'Los de la fortaleza salen todos a la vez para que no lleguemos.'],
         cierre: 'Había cuatrocientas personas en el barco. Ciento doce seguían vivas.',
         waves: OLEADAS.avanzadilla
       },

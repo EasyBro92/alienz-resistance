@@ -636,4 +636,28 @@ function heraclionCnosos () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, ...LUGARES }
+// Alejandría: la explanada de la fortaleza de Qaitbay, de día
+// (herramientas/blender/lugar_alejandria.py, 07/10). Isidro eligió la fortaleza y
+// que los alienz SALGAN DE ELLA: nacen dentro de la torre del homenaje, cruzan el
+// patio y salen por la puerta del muro, que es estrecha (`entrada.abanico` en la
+// misión). El mar abierto a la izquierda, el puerto con sus barcas a la derecha,
+// y la base alien en un baluarte redondo del espigón.
+function alejandriaQaitbay () {
+  const g = new THREE.Group()
+  g.name = 'lugar:alejandriaQaitbay'
+  Object.assign(g.userData, {
+    modelo: 'lugar-alejandria',
+    modeloCiudad: 'lugar-alejandria-ciudad',
+    luz: 'lugar-alejandria',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    baseX: 12.6,
+    baseZ: -44
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, ...LUGARES }

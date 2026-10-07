@@ -847,6 +847,56 @@ def platano (grupo, tronco, hojas, x, z, tam=1.0, y=0.0):
              random.uniform(1.9, 2.5) * tam, random.uniform(1.5, 2.0) * tam)
 
 # ==================================================================================
+# PINTAR A MANO (07/10): frescos, relieves y siluetas
+# ==================================================================================
+# Nacieron en lugar_cnosos.py para el fresco del toro (que conserva los suyos).
+def lienzo_dibujo (Hh, W, fondo):
+    """Un lienzo con utilidades para pintar: devuelve (a, elipse, poligono, trazo).
+    Todo en píxeles, con la fila 0 arriba. `fondo` es un color o una matriz ya hecha."""
+    a = lienzo(Hh, W, fondo) if not isinstance(fondo, np.ndarray) else fondo
+    yy, xx = np.mgrid[0:Hh, 0:W].astype(np.float32)
+    def elipse (cx, cy, rx, ry, color, giro=0.0):
+        c, s = math.cos(giro), math.sin(giro)
+        u, v = (xx - cx) * c + (yy - cy) * s, -(xx - cx) * s + (yy - cy) * c
+        a[(u / rx) ** 2 + (v / ry) ** 2 < 1] = color
+    def poligono (pts, color):
+        dentro = np.zeros((Hh, W), bool)
+        n = len(pts)
+        for i in range(n):
+            (x0, y0), (x1, y1) = pts[i], pts[(i + 1) % n]
+            if y0 == y1:
+                continue
+            dentro ^= ((yy >= min(y0, y1)) & (yy < max(y0, y1))) & (xx < x0 + (yy - y0) * (x1 - x0) / (y1 - y0))
+        a[dentro] = color
+    def trazo (pts, color, grosor=2.0):
+        for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+            lx, ly = x1 - x0, y1 - y0
+            t = np.clip(((xx - x0) * lx + (yy - y0) * ly) / max(1e-6, lx * lx + ly * ly), 0, 1)
+            a[np.hypot(xx - x0 - t * lx, yy - y0 - t * ly) < grosor] = color
+    return a, elipse, poligono, trazo
+
+def extruido (grupo, mat, m4, contorno, grueso, baldosa=1.2):
+    """Una silueta con fondo: `contorno` es una lista de (x, alto) en el plano de
+    `m4`, en sentido ANTIHORARIO (así se sabe hacia dónde mira cada canto aunque
+    la figura tenga entrantes)."""
+    q = m4.to_3x3()
+    a_ = [m4 @ V((x, -grueso / 2, y)) for x, y in contorno]
+    b = [m4 @ V((x, grueso / 2, y)) for x, y in contorno]
+    cara(grupo, mat, a_, hacia=q @ V((0, -1, 0)), baldosa=baldosa)
+    cara(grupo, mat, b, hacia=q @ V((0, 1, 0)), baldosa=baldosa)
+    n = len(contorno)
+    for i in range(n):
+        j = (i + 1) % n
+        dx, dy = contorno[j][0] - contorno[i][0], contorno[j][1] - contorno[i][1]
+        cara(grupo, mat, [a_[i], a_[j], b[j], b[i]], hacia=q @ V((dy, 0, -dx)), baldosa=baldosa)
+
+def elipsoide (grupo, mat, m4, radios, sub=1):
+    """Una bola achatada o alargada (el lomo de una esfinge, una cabeza): `radios`
+    en los ejes de `m4`. No lleva dibujo: para materiales de color liso."""
+    bm, _, _ = lote(grupo, mat)
+    bmesh.ops.create_icosphere(bm, subdivisions=sub, radius=1.0, matrix=m4 @ M.Diagonal((radios[0], radios[1], radios[2], 1)))
+
+# ==================================================================================
 # HORNEAR Y EXPORTAR
 # ==================================================================================
 def a_srgb (x):

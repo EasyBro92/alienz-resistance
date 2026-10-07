@@ -28,8 +28,13 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
   // que cada uno aparece ya en la vertical de su carril y baja en fila. Se ve
   // bajar a la horda repartida por la escalera en vez de en un hilo por el
   // centro.
+  // Y si la misión los saca por una puerta ESTRECHA (la fortaleza de Alejandría,
+  // el pilono de Karnak), vienen en abanico cerrado hasta cruzarla
+  // (`entrada.abanico` en la misión: cuánto se separan y hasta qué z) y se abren
+  // a su carril después, igual que al pisar el suelo desde la nave.
   const centro = (FIELD.lanes - 1) / 2
-  const xSalida = FIELD.porElFondo ? xCarril : (lane - centro) * 0.62 + jitter * 0.5
+  const xSalida = FIELD.abanico ? (lane - centro) * FIELD.abanico.ancho + jitter * 0.3
+    : FIELD.porElFondo ? xCarril : (lane - centro) * 0.62 + jitter * 0.5
   mesh.position.set(xSalida, 0, FIELD.entradaZ - Math.random() * (FIELD.entradaAncho ?? 6))
   mesh.rotation.y = Math.PI // mirando hacia la base
 
@@ -239,7 +244,8 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
       // por PASOS y no fijando la x: el sistema de estorbo entre huéspedes
       // también escribe ahí, y sobrescribirla de golpe deshacía sus empujones y
       // volvían a meterse unos dentro de otros.
-      if (this.repartiendo && !this.suelo) {
+      // Con puerta estrecha (`FIELD.abanico`), no antes de haberla cruzado.
+      if (this.repartiendo && !this.suelo && !(FIELD.abanico && this.mesh.position.z < FIELD.abanico.hasta)) {
         const dx = this.xCarril - this.mesh.position.x
         // Se abre a la mitad de lo que avanza: el desvío queda en diagonal
         // suave, no en un giro de noventa grados nada más pisar el suelo.

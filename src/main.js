@@ -1386,6 +1386,17 @@ function separarHuespedes () {
     // El centro lleva el desvío de la ruina del Coliseo: sin él, este tope
     // devolvía al carril a los que se abrían para rodearla y la atravesaban
     // (el desvío se calculaba, pero se quedaban a 1,2 del centro en vez de a 4).
+    // Con puerta estrecha (`FIELD.abanico`: Alejandría, Luxor) su sitio es el del
+    // abanico hasta cruzarla, y de ahí a su carril van abriéndose poco a poco
+    // (zombie.js): mientras se reparten no hay tope, que los llevaría de golpe.
+    if (FIELD.abanico && a.repartiendo) {
+      if (a.mesh.position.z < FIELD.abanico.hasta) {
+        const sitio = (a.lane - (FIELD.lanes - 1) / 2) * FIELD.abanico.ancho
+        const holgura = FIELD.abanico.ancho * 0.5
+        a.mesh.position.x = Math.min(sitio + holgura, Math.max(sitio - holgura, a.mesh.position.x))
+      }
+      continue
+    }
     const centro = laneX(a.lane) + (a.desvioRuina ?? 0)
     const margen = FIELD.laneWidth * 0.5
     a.mesh.position.x = Math.min(centro + margen, Math.max(centro - margen, a.mesh.position.x))
@@ -2032,6 +2043,16 @@ const CNOSOS_PLANOS = [
   { k: 0.76, pos: [6, 36, 78], mira: [0, 4, -62] },
   { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
 ]
+// Alejandría (07/10): desde el mar, por detrás de la fortaleza, con el puerto
+// lleno de barcas y la Corniche al fondo; la cámara rodea la torre por el lado
+// del puerto y baja al espigón, de cara a la puerta.
+const ALEJANDRIA_PLANOS = [
+  { k: 0, pos: [-64, 40, -206], mira: [40, 0, -20] },
+  { k: 0.3, pos: [112, 22, -66], mira: [0, 5, -86] },
+  { k: 0.56, pos: [72, 46, 96], mira: [0, 5, -50] },
+  { k: 0.76, pos: [6, 36, 78], mira: [0, 5, -62] },
+  { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
+]
 // Las llegadas «de película»: un recorrido por planos, largo la primera vez y
 // más corto (pero empezando también fuera) las siguientes. Cada una abre la
 // niebla y el corte de lejos a su medida, y enciende el modelo de la ciudad.
@@ -2045,6 +2066,7 @@ const LLEGADAS = {
   atenas: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-atenas-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: ATENAS_PLANOS },
   salonica: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-salonica-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: SALONICA_PLANOS },
   cnosos: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-cnosos-v1', niebla: { cerca: 900, lejos: 3600 }, lejos: 4600, planos: CNOSOS_PLANOS },
+  alejandria: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-alejandria-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: ALEJANDRIA_PLANOS },
   marsella: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-marsella-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: MARSELLA_PLANOS }
 }
 // El recorrido es una curva que pasa por los planos, no tramos sueltos: con un
@@ -2619,6 +2641,9 @@ function start (indice = nivelActual) {
   // Y si nacen muy al fondo, dentro de la niebla, traen prisa hasta salir de
   // ella (ver `velocidad` en zombie.js).
   FIELD.prisa = nivelDeHoy.entrada?.prisa ?? null
+  // Y si salen por una puerta estrecha, vienen en abanico cerrado hasta cruzarla
+  // (`abanico: { ancho, hasta }`: lo que se separan y la z de la puerta).
+  FIELD.abanico = nivelDeHoy.entrada?.abanico ?? null
   // Un estorbo en medio del campo que los huéspedes rodean (la ruina del Coliseo).
   FIELD.ruina = nivelDeHoy.ruina ?? null
   FIELD.columnas = nivelDeHoy.columnas ?? null
