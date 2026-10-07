@@ -684,4 +684,29 @@ function luxorEsfinges () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, ...LUGARES }
+// El Cairo: a los pies de la Esfinge, al atardecer
+// (herramientas/blender/lugar_gizeh.py, 07/10). La Esfinge de frente al fondo (a
+// 0,6 de su tamaño: la cabeza cae en el hueco que deja el marcador) y la pirámide
+// de Kefrén pegada detrás. Los alienz, y LA MADRE, salen DE DEBAJO de ella: una
+// rampa que baja 4,6 m hasta una boca a oscuras bajo las patas (`hueco`, como en
+// Cnosos y en París; `entrada` en la misión dice dónde nacen).
+function gizehEsfinge () {
+  const g = new THREE.Group()
+  g.name = 'lugar:gizehEsfinge'
+  Object.assign(g.userData, {
+    modelo: 'lugar-gizeh',
+    modeloCiudad: 'lugar-gizeh-ciudad',
+    luz: 'lugar-gizeh',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    hueco: { x: 7.6, zFondo: -78.0, zBorde: -62.0, hondo: 4.6 },
+    baseX: 12.6,
+    baseZ: -44
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, ...LUGARES }

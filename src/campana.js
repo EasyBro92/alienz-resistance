@@ -357,12 +357,16 @@ export const PAISES = [
         waves: OLEADAS.formas
       },
       {
-        name: 'El Cairo', lugar: 'Gizeh · explanada de las pirámides', mapa: sitio(29.98, 31.13),
-        // La meseta de arena al atardecer, que es cuando las pirámides tienen
-        // ese color y la sombra se va medio kilómetro.
-        // Con la vista abierta: las pirámides están lejos y son el sitio.
-        fondo: { hora: 'ocaso', cielo: 0xe9a367, niebla: 0xe4bb93, nieblaCerca: 90, nieblaLejos: 260 },
-        escenario: 'elCairo', suelo: 'arena', tonoSuelo: 0xd8bf92, hitos: [['esfinge']],
+        name: 'El Cairo', llegada: 'gizeh', lugar: 'Gizeh · a los pies de la Esfinge', mapa: sitio(29.98, 31.13),
+        // La Esfinge y la pirámide hechas en Blender (herramientas/blender/lugar_gizeh.py),
+        // al atardecer, que es cuando la piedra tiene ese color.
+        // `cupula` y `sol`: el cielo y la luz de esa hora, como en el vuelo.
+        fondo: { hora: 'ocaso', cielo: 0xe9a367, niebla: 0xe4bb93, nieblaCerca: 150, nieblaLejos: 470, cupula: [0x7d7fb0, 0xf2a878], sol: 0xffc890 },
+        escenario: 'gizehEsfinge', suelo: 'arena', tonoSuelo: 0xd8bf92, hitos: [],
+        // Salen de debajo de la Esfinge: nacen en la sala de abajo, a oscuras, y suben
+        // la rampa deprisa hasta el patio. LA MADRE también, por el centro.
+        entrada: { z: -81, fondo: 6, prisa: { desde: -84, hasta: -66, por: 3 } },
+        sinPajaros: true, sinNubes: true,
         resumen: 'El campamento de la meseta, y lo que lo dirige.',
         parte: ['De aquí salió todo. Las naves se posan en la meseta a la vista de las pirámides.',
           'Lo que dirige el campamento es una MADRE, y esta ha tenido tiempo de aprender de la de París.'],
