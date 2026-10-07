@@ -2053,6 +2053,16 @@ const ALEJANDRIA_PLANOS = [
   { k: 0.76, pos: [6, 36, 78], mira: [0, 5, -62] },
   { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
 ]
+// Luxor (07/10): Karnak entero desde su extremo, mirando al Nilo y a la montaña
+// tebana por encima de la sala de las columnas; la cámara rodea el templo por el
+// sur y baja a la avenida de las esfinges, de cara al pilono.
+const LUXOR_PLANOS = [
+  { k: 0, pos: [-40, 96, -430], mira: [0, 0, 40] },
+  { k: 0.3, pos: [136, 62, -150], mira: [0, 6, -84] },
+  { k: 0.56, pos: [76, 48, 92], mira: [0, 6, -50] },
+  { k: 0.76, pos: [6, 36, 78], mira: [0, 5, -62] },
+  { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
+]
 // Las llegadas «de película»: un recorrido por planos, largo la primera vez y
 // más corto (pero empezando también fuera) las siguientes. Cada una abre la
 // niebla y el corte de lejos a su medida, y enciende el modelo de la ciudad.
@@ -2067,6 +2077,7 @@ const LLEGADAS = {
   salonica: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-salonica-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: SALONICA_PLANOS },
   cnosos: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-cnosos-v1', niebla: { cerca: 900, lejos: 3600 }, lejos: 4600, planos: CNOSOS_PLANOS },
   alejandria: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-alejandria-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: ALEJANDRIA_PLANOS },
+  luxor: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-luxor-v1', niebla: { cerca: 900, lejos: 3600 }, lejos: 4600, planos: LUXOR_PLANOS },
   marsella: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-marsella-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: MARSELLA_PLANOS }
 }
 // El recorrido es una curva que pasa por los planos, no tramos sueltos: con un

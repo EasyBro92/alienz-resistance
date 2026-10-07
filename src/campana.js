@@ -341,9 +341,15 @@ export const PAISES = [
         waves: OLEADAS.avanzadilla
       },
       {
-        name: 'Luxor', lugar: 'Karnak · avenida de las esfinges', mapa: sitio(25.69, 32.64),
-        // Las dos filas de carneros echados y los pilonos del templo. Antes era «carretera del Nilo», que no era ningún sitio.
-        escenario: 'luxor', suelo: 'arena', tonoSuelo: 0xd9c08f, hitos: [['temploEgipcio']],
+        name: 'Luxor', llegada: 'luxor', lugar: 'Karnak · avenida de las esfinges', mapa: sitio(25.69, 32.64),
+        // La avenida hecha en Blender (herramientas/blender/lugar_luxor.py): las dos
+        // filas de esfinges y el pilono del templo al fondo, a mediodía.
+        escenario: 'luxorEsfinges', suelo: 'arena', tonoSuelo: 0xd9c08f, hitos: [],
+        // Salen del templo: nacen detrás de la puerta del pilono y la cruzan en
+        // abanico cerrado (es estrecha); se abren al pasar los colosos.
+        entrada: { z: -69, fondo: 6, prisa: { desde: -72, hasta: -63, por: 2.5 }, abanico: { ancho: 0.7, hasta: -58.2 } },
+        fondo: { hora: 'alto', cielo: 0x7fb6e6, niebla: 0xe9dcc0, nieblaCerca: 140, nieblaLejos: 460 },
+        sinPajaros: true, sinNubes: true,
         resumen: 'El valle está lleno de formas nuevas.',
         parte: ['El valle del Nilo es donde crían las formas del desierto. Aguantan el calor mejor que nosotros.',
           'Espera algo que no has visto en Europa.'],

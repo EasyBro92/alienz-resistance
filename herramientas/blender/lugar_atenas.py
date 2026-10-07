@@ -159,7 +159,7 @@ RESINA = material('resina', color=(0.05, 0.07, 0.05), rug=0.5)
 NEGRO = material('negro', color=(0.03, 0.03, 0.035))
 VERDE = material('brillo-verde', color=(0.25, 1.0, 0.45), emite=2.2)
 HIERRO = material('hierro', color=(0.2, 0.2, 0.21), rug=0.6)
-MAR = material('mar', color=(0.78, 0.5, 0.36), emite=1.0)
+MAR = material('mar', color=(0.78, 0.5, 0.36), rug=0.2)       # sin luz ('plano'): el color va en la base, que con emisión el juego lo pinta negro
 # OJO: los colores lisos van en LINEAL (0,34 lineal es un gris claro, no un verde
 # oscuro): los primeros olivos salieron de color menta por darlos como si fueran sRGB.
 MONTE_L = material('monte-lejos', color=(0.22, 0.15, 0.3), rug=1.0)          # el Himeto, que al atardecer se pone violeta

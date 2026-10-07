@@ -350,7 +350,7 @@ VIÑA = material('vina', color=(0.1, 0.2, 0.05), rug=1.0)
 TRONCO = material('tronco', color=(0.09, 0.065, 0.045))
 MONTE_L = material('monte-lejos', color=(0.3, 0.27, 0.34), rug=1.0)                                        # las sierras, malva a esa hora
 MONTE_C = material('monte-cerca', de_polyhaven('sparse_grass', 512, 0x8a8a5c, 0.5), rug=1.0)
-MAR = material('mar', color=(0.5, 0.62, 0.76), emite=1.0)
+MAR = material('mar', color=(0.5, 0.62, 0.76), rug=0.2)        # sin luz ('plano'): el color va en la base, que con emisión el juego lo pinta negro
 LLANO = material('llano', color=(0.42, 0.33, 0.22), rug=1.0)
 FACHADAS = [material(f'f-heraclion-{i}', tex_postigos(f'heraclion-{i}', b, p)) for i, (b, p) in enumerate(
     [((0.95, 0.93, 0.88), (0.3, 0.42, 0.5)), ((0.92, 0.88, 0.78), (0.4, 0.34, 0.28)), ((0.9, 0.84, 0.7), (0.3, 0.4, 0.36))])]

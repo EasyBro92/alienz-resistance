@@ -660,4 +660,28 @@ function alejandriaQaitbay () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, ...LUGARES }
+// Luxor: la avenida de las esfinges de Karnak, a mediodía
+// (herramientas/blender/lugar_luxor.py, 07/10). Las dos filas de esfinges con
+// cabeza de carnero a los lados y, al fondo, el pilono con su puerta, los dos
+// colosos y el obelisco. Los alienz SALEN DEL TEMPLO por esa puerta, que es
+// estrecha: vienen en abanico cerrado y se abren al pasar los colosos
+// (`entrada.abanico` en la misión). La base alien, en un claro de la fila derecha.
+function luxorEsfinges () {
+  const g = new THREE.Group()
+  g.name = 'lugar:luxorEsfinges'
+  Object.assign(g.userData, {
+    modelo: 'lugar-luxor',
+    modeloCiudad: 'lugar-luxor-ciudad',
+    luz: 'lugar-luxor',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    baseX: 12.6,
+    baseZ: -44
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, ...LUGARES }
