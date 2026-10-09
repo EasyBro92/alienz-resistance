@@ -783,4 +783,26 @@ function agraTaj () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, ...LUGARES }
+// Calcuta: el paseo del jardín del Victoria Memorial, una tarde de monzón
+// (herramientas/blender/lugar_calcuta.py, 09/10). El palacio entero al fondo, a
+// 0,23 de su tamaño; la nave se posa delante y la cúpula con el Ángel asoma por
+// encima. Estanque a la izquierda y la base alien en un ruedo a la derecha.
+function calcutaMemorial () {
+  const g = new THREE.Group()
+  g.name = 'lugar:calcutaMemorial'
+  Object.assign(g.userData, {
+    modelo: 'lugar-calcuta',
+    modeloCiudad: 'lugar-calcuta-ciudad',
+    luz: 'lugar-calcuta',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    baseX: 12.6,
+    baseZ: -44
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, ...LUGARES }

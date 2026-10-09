@@ -2103,6 +2103,15 @@ const AGRA_PLANOS = [
   { k: 0.76, pos: [6, 36, 78], mira: [0, 5, -66] },
   { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
 ]
+// Calcuta (09/10): el palacio de cerca y desde abajo, con el Ángel contra el cielo
+// gris; la cámara retrocede por el paseo, entre las palmeras, subiendo a su sitio.
+const CALCUTA_PLANOS = [
+  { k: 0, pos: [3, 4.5, -40], mira: [0, 7.5, -86] },
+  { k: 0.3, pos: [2, 10, -4], mira: [0, 6.5, -84] },
+  { k: 0.56, pos: [3, 24, 46], mira: [0, 5, -70] },
+  { k: 0.76, pos: [6, 36, 78], mira: [0, 5, -62] },
+  { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
+]
 // Las llegadas «de película»: un recorrido por planos, largo la primera vez y
 // más corto (pero empezando también fuera) las siguientes. Cada una abre la
 // niebla y el corte de lejos a su medida, y enciende el modelo de la ciudad.
@@ -2121,6 +2130,7 @@ const LLEGADAS = {
   lagos: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-lagos-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: LAGOS_PLANOS },
   bombay: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-bombay-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: BOMBAY_PLANOS },
   agra: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-agra-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: AGRA_PLANOS },
+  calcuta: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-calcuta-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: CALCUTA_PLANOS },
   gizeh: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-gizeh-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: GIZEH_PLANOS },
   marsella: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-marsella-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: MARSELLA_PLANOS }
 }

@@ -447,9 +447,12 @@ export const PAISES = [
         waves: OLEADAS.colmena
       },
       {
-        name: 'Calcuta', lugar: 'Puente de Howrah', mapa: sitio(22.57, 88.36),
-        // Celosía de acero remachado —el de verdad no lleva un solo tornillo— con los tranvías y el mercado de flores.
-        escenario: 'calcuta', suelo: 'carretera', hitos: [['victoriaMemorial']],
+        name: 'Calcuta', llegada: 'calcuta', lugar: 'Victoria Memorial · el jardín', mapa: sitio(22.57, 88.36),
+        // Hecho en Blender (herramientas/blender/lugar_calcuta.py): una tarde de monzón,
+        // con el cielo gris y los charcos. Los alienz llegan en nave.
+        fondo: { hora: 'dia', cielo: 0xa9b4bd, niebla: 0xc6cdd0, nieblaCerca: 120, nieblaLejos: 430, cupula: [0x6f7b88, 0xc9ced0], sol: 0xfff0dc },
+        escenario: 'calcutaMemorial', suelo: 'losas', tonoSuelo: 0xcba88a, hitos: [],
+        sinPajaros: true, sinNubes: true,
         resumen: 'La MADRE del delta.',
         parte: ['El delta del Ganges es donde bajaron las primeras naves de Asia.',
           'Lo que dirige esto lleva aquí más tiempo que nadie.'],
