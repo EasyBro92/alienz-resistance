@@ -1,4 +1,4 @@
-// La campaña: trece países, tres misiones en cada uno.
+// La campaña: trece países, tres misiones en cada uno (Nigeria, una sola: Lagos).
 //
 // No cayó una nave: llegó una flota, y llevaba años bajando a por gente sin que
 // nadie atara los cabos. Lo que devolvían no eran personas: eran huéspedes,
@@ -384,7 +384,9 @@ export const PAISES = [
       'El mapa de Gizeh tiene un punto encendido en Lagos. Es uno de los grandes: de ahí sale lo que baja por toda África.',
       'El paso elevado de Apapa es lo único que une lo que queda de la ciudad con el continente.'
     ],
-    cierre: 'Por el paso elevado salieron cuatro mil personas mientras la compañía contaba oleadas. El punto de Lagos se apaga en el mapa.',
+    // Nigeria se queda en un solo tramo (Isidro, 09/10: «solo deja el mapa de la ciudad más famosa y más poblada»).
+    // Abuja y Kano salieron de la campaña; el cierre conserva el hilo que llevaba a la India.
+    cierre: 'Por el paso elevado salieron cuatro mil personas mientras la compañía contaba oleadas. El punto de Lagos se apaga en el mapa, y los que quedaban se fueron hacia el este.',
     misiones: [
       {
         name: 'Lagos', lugar: 'Third Mainland Bridge · sobre la laguna', mapa: sitio(6.45, 3.39),
@@ -395,26 +397,6 @@ export const PAISES = [
           'El búnker dice que aguantemos hasta que evacúen. No dice cuánto.'],
         cierre: 'El puente sigue en pie. La primera columna de evacuados ya ha cruzado.',
         waves: OLEADAS.contraflujo
-      },
-      {
-        name: 'Abuja', lugar: 'Explanada de Aso Rock', mapa: sitio(9.08, 7.40),
-        // El monolito y la mezquita de cúpula dorada. Antes era «autopista del aeropuerto».
-        escenario: 'abuja', suelo: 'tierra', tonoSuelo: 0xc08a5e, hitos: [['asoRock'], ['mezquitaNacional']],
-        resumen: 'Se cosen y se blindan.',
-        parte: ['El aeropuerto de la capital es la única pista larga que queda en la región. Hace falta para sacar a la gente.',
-          'Lo protegen los que se curan entre ellos.'],
-        cierre: 'La pista queda libre. Despega el primer avión con evacuados en año y medio.',
-        waves: OLEADAS.colmena
-      },
-      {
-        name: 'Kano', lugar: 'Mercado de Kurmi · muralla de adobe', mapa: sitio(12.00, 8.52),
-        // Muros de barro con contrafuertes y los puestos del mercado. Antes era «carretera del desierto».
-        escenario: 'kano', suelo: 'tierra', tonoSuelo: 0xc9a173, hitos: [['puertaAdobe']],
-        resumen: 'Todas las formas a la vez, y dos MADRES.',
-        parte: ['El campamento del norte es de los grandes. Aquí juntaron todo lo que criaban en África.',
-          'Bajarán todas las formas a la vez. Y al final no viene una MADRE: vienen dos.'],
-        cierre: 'Las dos cayeron. Pero antes de caer, las dos miraron hacia el este.',
-        waves: OLEADAS.todas
       }
     ]
   },
@@ -757,7 +739,7 @@ export const PAISES = [
 // --- la lista plana de misiones ---------------------------------------------
 //
 // El juego —empezar una partida, guardar el progreso, la pantalla de victoria—
-// habla en índices de misión, del 0 al 35, y no tiene por qué saber de países.
+// habla en índices de misión, del 0 en adelante, y no tiene por qué saber de países.
 // Se aplana aquí, y cada misión se lleva lo que necesita de su país.
 
 const TOTAL = PAISES.reduce((n, p) => n + p.misiones.length, 0)
@@ -775,7 +757,9 @@ PAISES.forEach((pais, ip) => {
       bioma: m.bioma ?? pais.bioma,
       // El peaje es del PAÍS: se paga al entrar, con la primera misión. Las
       // demás del mismo país ya exigen haber superado la anterior.
-      estrellas: ip * 6,
+      // Dos estrellas por misión ya pasada: seis por país mientras todos tenían tres,
+      // y lo justo ahora que Nigeria tiene una sola.
+      estrellas: pais.primera * 2,
       // De 0,06 a 0,56 en línea recta a lo largo de toda la campaña.
       dureza: 0.06 + (i / (TOTAL - 1)) * 0.5
     })

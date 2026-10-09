@@ -13,7 +13,8 @@ import { cargarCartera } from './cartera.js'
 // destinos y ahora son treinta y seis misiones—, así que el progreso de la v1
 // se acreditaría a ciudades equivocadas: las estrellas de Marsella caerían en
 // Valencia. Se empieza limpio en vez de mentir.
-const CLAVE = 'alienz-progreso-v3'
+const CLAVE = 'alienz-progreso-v4'
+const CLAVE_V3 = 'alienz-progreso-v3'
 const CLAVE_V2 = 'alienz-progreso-v2'
 
 // v3 desde que Nueva York tiene tres tramos. Se metieron DOS misiones nuevas
@@ -48,17 +49,46 @@ function migrarDeV2 () {
   const superados = Number.isFinite(n) ? (n <= CORTE_NY ? n : n + METIDOS) : 0
   const nuevo = { superados, rangos }
   try {
-    localStorage.setItem(CLAVE, JSON.stringify(nuevo))
+    localStorage.setItem(CLAVE_V3, JSON.stringify(nuevo))
     // La clave vieja se deja: si algo sale mal en la versión nueva, el progreso
     // de verdad sigue estando donde estaba.
   } catch { /* modo privado */ }
   return nuevo
 }
 
+// v4 desde que Nigeria tiene un solo tramo (09/10: Isidro dejó solo Lagos). Abuja
+// y Kano eran los tramos 16 y 17, así que todo lo de después —de la India a
+// Brasil— baja dos sitios. Nadie pierde nada: Lagos se queda con la mejor nota
+// de las tres, y quien iba por Abuja o Kano sigue en la puerta de la India.
+const LAGOS = 15
+const QUITADOS = 2
+
+function migrarDeV3 () {
+  let viejo = null
+  try {
+    const txt = localStorage.getItem(CLAVE_V3)
+    viejo = txt ? JSON.parse(txt) : migrarDeV2()
+  } catch { return null }
+  if (!viejo || typeof viejo !== 'object') return null
+  const rangos = {}
+  for (const k in viejo.rangos ?? {}) {
+    const i = Number(k)
+    const v = Number(viejo.rangos[k])
+    if (!Number.isFinite(i) || !Number.isFinite(v)) continue
+    const a = i <= LAGOS ? i : i <= LAGOS + QUITADOS ? LAGOS : i - QUITADOS
+    rangos[a] = Math.max(rangos[a] ?? 0, v)
+  }
+  const n = Number(viejo.superados)
+  const superados = !Number.isFinite(n) ? 0 : n <= LAGOS + 1 ? n : Math.max(LAGOS + 1, n - QUITADOS)
+  const nuevo = { superados, rangos }
+  try { localStorage.setItem(CLAVE, JSON.stringify(nuevo)) } catch { /* modo privado */ }
+  return nuevo
+}
+
 function leerCrudo () {
   try {
     const txt = localStorage.getItem(CLAVE)
-    if (!txt) return migrarDeV2()
+    if (!txt) return migrarDeV3()
     return JSON.parse(txt)
   } catch {
     // Almacén bloqueado (modo privado), lleno, o texto que no es JSON.
