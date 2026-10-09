@@ -2093,6 +2093,16 @@ const BOMBAY_PLANOS = [
   { k: 0.76, pos: [6, 36, 78], mira: [0, 5, -62] },
   { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
 ]
+// Agra (09/10): la postal, a ras del canal con el Taj llenando la pantalla (está
+// a 0,17 de su tamaño: de lejos y desde arriba se nota); la cámara retrocede por
+// el eje, entre los cipreses, subiendo hasta su sitio.
+const AGRA_PLANOS = [
+  { k: 0, pos: [0, 4.5, -30], mira: [0, 7.5, -80] },
+  { k: 0.3, pos: [1, 9, 0], mira: [0, 6.5, -80] },
+  { k: 0.56, pos: [3, 24, 46], mira: [0, 5, -70] },
+  { k: 0.76, pos: [6, 36, 78], mira: [0, 5, -66] },
+  { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
+]
 // Las llegadas «de película»: un recorrido por planos, largo la primera vez y
 // más corto (pero empezando también fuera) las siguientes. Cada una abre la
 // niebla y el corte de lejos a su medida, y enciende el modelo de la ciudad.
@@ -2110,6 +2120,7 @@ const LLEGADAS = {
   luxor: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-luxor-v1', niebla: { cerca: 900, lejos: 3600 }, lejos: 4600, planos: LUXOR_PLANOS },
   lagos: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-lagos-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: LAGOS_PLANOS },
   bombay: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-bombay-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: BOMBAY_PLANOS },
+  agra: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-agra-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: AGRA_PLANOS },
   gizeh: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-gizeh-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: GIZEH_PLANOS },
   marsella: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-marsella-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: MARSELLA_PLANOS }
 }

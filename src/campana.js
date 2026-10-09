@@ -431,13 +431,19 @@ export const PAISES = [
         waves: OLEADAS.avanzadilla
       },
       {
-        name: 'Delhi', lugar: 'Rajpath · Puerta de la India', mapa: sitio(28.61, 77.21),
-        // La avenida ceremonial con los estanques a los lados.
-        escenario: 'delhi', suelo: 'losas', tonoSuelo: 0xcbb096, hitos: [['puertaIndia']],
+        // Era Delhi (el Rajpath). Isidro eligió el Taj Mahal, que está en Agra.
+        name: 'Agra', llegada: 'agra', lugar: 'Taj Mahal · el jardín', mapa: sitio(27.17, 78.04),
+        // Hecho en Blender (herramientas/blender/lugar_agra.py), al amanecer con bruma
+        // rosada. Salen del mausoleo: la puerta mide 2,4 m, así que la cruzan en abanico
+        // cerrado y se abren al pie de la escalinata.
+        fondo: { hora: 'manana', cielo: 0xe7b9a8, niebla: 0xeecbc0, nieblaCerca: 120, nieblaLejos: 430, cupula: [0x8fa0d8, 0xf3c0b0], sol: 0xffd9c4 },
+        escenario: 'agraTaj', suelo: 'losas', tonoSuelo: 0xc08468, hitos: [],
+        entrada: { z: -79, fondo: 3, prisa: { desde: -80, hasta: -68, por: 2.5 }, abanico: { ancho: 0.45, hasta: -67.5 } },
+        sinPajaros: true, sinNubes: true,
         resumen: 'Se curan, se blindan, y son muchos.',
-        parte: ['El campamento de la capital está montado alrededor de la Puerta de la India. El Rajpath es la única entrada.',
-          'Los que guardan la avenida se cosen entre ellos.'],
-        cierre: 'La avenida es nuestra. Al otro lado, la ciudad está en silencio.',
+        parte: ['El campamento está montado dentro del Taj Mahal. El jardín es la única entrada.',
+          'Los que guardan el mausoleo se cosen entre ellos.'],
+        cierre: 'El jardín es nuestro. Dentro del mausoleo, por primera vez en dos años, no se oye nada.',
         waves: OLEADAS.colmena
       },
       {

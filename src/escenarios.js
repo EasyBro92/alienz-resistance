@@ -759,4 +759,28 @@ function bombayPuerta () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, ...LUGARES }
+// Agra: los jardines del Taj Mahal, al amanecer
+// (herramientas/blender/lugar_agra.py, 09/10). El mausoleo entero al fondo, a 0,17
+// de su tamaño, sobre su zócalo de mármol: los alienz nacen dentro, salen por la
+// puerta del gran arco y bajan la escalinata. `hueco` con `hondo` negativo es
+// ese suelo levantado (1,2 m) con su rampa, como en el Partenón.
+function agraTaj () {
+  const g = new THREE.Group()
+  g.name = 'lugar:agraTaj'
+  Object.assign(g.userData, {
+    modelo: 'lugar-agra',
+    modeloCiudad: 'lugar-agra-ciudad',
+    luz: 'lugar-agra',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    hueco: { x: 7.6, zFondo: -72.0, zBorde: -68.0, hondo: -1.2 },
+    baseX: 12.6,
+    baseZ: -44,
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, ...LUGARES }
