@@ -389,9 +389,13 @@ export const PAISES = [
     cierre: 'Por el paso elevado salieron cuatro mil personas mientras la compañía contaba oleadas. El punto de Lagos se apaga en el mapa, y los que quedaban se fueron hacia el este.',
     misiones: [
       {
-        name: 'Lagos', lugar: 'Third Mainland Bridge · sobre la laguna', mapa: sitio(6.45, 3.39),
-        // Once kilómetros de viga baja sobre la laguna, sin torres ni tirantes.
-        escenario: 'lagos', suelo: 'carretera', hitos: [['teatroNacional'], ['danfos']],
+        name: 'Lagos', llegada: 'lagos', lugar: 'Puente de Lekki-Ikoyi · sobre la laguna', mapa: sitio(6.45, 3.39),
+        // El puente atirantado hecho en Blender (herramientas/blender/lugar_lagos.py),
+        // al atardecer con bruma. Los alienz llegan en nave, como siempre.
+        // `cupula` y `sol`: el cielo y la luz de esa hora, como en el vuelo.
+        fondo: { hora: 'ocaso', cielo: 0xe8a468, niebla: 0xe6b78c, nieblaCerca: 110, nieblaLejos: 430, cupula: [0x7d7fb0, 0xf2a878], sol: 0xffc890 },
+        escenario: 'lagosPuente', suelo: 'losas', tonoSuelo: 0x5c5c60, hitos: [],
+        sinPajaros: true, sinNubes: true,
         resumen: 'Llegan deprisa. Hay que aguantar el puente.',
         parte: ['Si cae el paso elevado, aquí no vuelve a entrar nadie.',
           'El búnker dice que aguantemos hasta que evacúen. No dice cuánto.'],

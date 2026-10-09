@@ -709,4 +709,30 @@ function gizehEsfinge () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, ...LUGARES }
+// Lagos: encima del puente atirantado de Lekki-Ikoyi, al atardecer
+// (herramientas/blender/lugar_lagos.py, 09/10). Isidro dejó Nigeria en este solo
+// mapa y el sitio a mi elección («el que sea más bonito y reconocible»). El
+// pilono al fondo con sus tirantes, los danfos amarillos en las aceras, la laguna
+// con las casas sobre pilotes a los lados, y la base alien en un mirador redondo
+// que sale del tablero a la derecha. Los alienz llegan en nave.
+function lagosPuente () {
+  const g = new THREE.Group()
+  g.name = 'lugar:lagosPuente'
+  Object.assign(g.userData, {
+    modelo: 'lugar-lagos',
+    modeloCiudad: 'lugar-lagos-ciudad',
+    luz: 'lugar-lagos',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    baseX: 12.6,
+    baseZ: -44,
+    // El danfo que sigue ardiendo en la acera de la izquierda.
+    humos: [[-10.35, -31, 1.6, 11, 1.4]]
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, ...LUGARES }

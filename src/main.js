@@ -2073,6 +2073,16 @@ const GIZEH_PLANOS = [
   { k: 0.76, pos: [6, 36, 78], mira: [0, 5, -66] },
   { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
 ]
+// Lagos (09/10): el puente de perfil desde la laguna, con el pilono y sus dos
+// abanicos de tirantes; la cámara gira hasta ponerse sobre el tablero, por
+// encima de los tirantes de este lado, y baja al campo.
+const LAGOS_PLANOS = [
+  { k: 0, pos: [250, 26, 40], mira: [0, 30, -96] },
+  { k: 0.3, pos: [170, 60, 170], mira: [0, 24, -90] },
+  { k: 0.56, pos: [40, 64, 150], mira: [0, 10, -76] },
+  { k: 0.76, pos: [4, 44, 92], mira: [0, 5, -66] },
+  { k: 0.9, pos: [-1, 24, 45], mira: [0, 3, -40] }
+]
 // Las llegadas «de película»: un recorrido por planos, largo la primera vez y
 // más corto (pero empezando también fuera) las siguientes. Cada una abre la
 // niebla y el corte de lejos a su medida, y enciende el modelo de la ciudad.
@@ -2088,6 +2098,7 @@ const LLEGADAS = {
   cnosos: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-cnosos-v1', niebla: { cerca: 900, lejos: 3600 }, lejos: 4600, planos: CNOSOS_PLANOS },
   alejandria: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-alejandria-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: ALEJANDRIA_PLANOS },
   luxor: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-luxor-v1', niebla: { cerca: 900, lejos: 3600 }, lejos: 4600, planos: LUXOR_PLANOS },
+  lagos: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-lagos-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: LAGOS_PLANOS },
   gizeh: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-gizeh-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: GIZEH_PLANOS },
   marsella: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-marsella-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: MARSELLA_PLANOS }
 }
