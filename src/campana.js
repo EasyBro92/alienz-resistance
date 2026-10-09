@@ -485,12 +485,16 @@ export const PAISES = [
         waves: OLEADAS.formas
       },
       {
-        name: 'Pekín', lugar: 'Avenida Chang\'an · Tiananmén', mapa: sitio(39.90, 116.41), bioma: 'mediterraneo',
-        // Los farolillos rojos y la puerta de la Ciudad Prohibida cerrando.
-        escenario: 'pekin', suelo: 'losas', tonoSuelo: 0x8d8a82, hitos: [['ciudadProhibida']],
-        resumen: 'Llegan deprisa por Chang’an.',
-        parte: ['El búnker de Pekín es el más grande del mundo. Lleva un año pidiendo que alguien abra la superficie.',
-          'Todo lo que hay en la zona baja por la avenida hacia la puerta, y baja deprisa.'],
+        name: 'Pekín', llegada: 'pekin', lugar: 'Gran Muralla · Badaling', mapa: sitio(40.36, 116.02), bioma: 'mediterraneo',
+        // La muralla hecha en Blender (herramientas/blender/lugar_pekin.py), de día, en
+        // otoño. Salen de la torre: la puerta mide 3 m, así que la cruzan en abanico.
+        fondo: { hora: 'dia', cielo: 0x86b8ee, niebla: 0xcfdcea, nieblaCerca: 160, nieblaLejos: 520 },
+        escenario: 'pekinMuralla', suelo: 'losas', tonoSuelo: 0xb2aa9c, hitos: [],
+        entrada: { z: -77, fondo: 3, prisa: { desde: -78, hasta: -68, por: 2.5 }, abanico: { ancho: 0.55, hasta: -66 } },
+        sinPajaros: true, sinNubes: true,
+        resumen: 'Llegan deprisa por la muralla.',
+        parte: ['El búnker de Pekín es el más grande del mundo. Su entrada de emergencia está en la montaña, al pie de la Gran Muralla.',
+          'Todo lo que hay en la zona viene por el camino de ronda, de torre en torre, y viene deprisa.'],
         cierre: 'La trampilla se abre. Salen once mil personas. Tardan un día entero.',
         waves: OLEADAS.contraflujo
       },

@@ -805,4 +805,27 @@ function calcutaMemorial () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, ...LUGARES }
+// Pekín: encima de la Gran Muralla, en Badaling, un día de otoño
+// (herramientas/blender/lugar_pekin.py, 10/10; sitio, entrada y hora elegidos por
+// mí: Isidro pidió seguir sin preguntar). Se juega en el camino de ronda; al
+// fondo, la torre: los alienz nacen dentro y salen por su puerta (`entrada` con
+// `abanico`, en la misión). La base alien, en un cubo redondo de la muralla.
+function pekinMuralla () {
+  const g = new THREE.Group()
+  g.name = 'lugar:pekinMuralla'
+  Object.assign(g.userData, {
+    modelo: 'lugar-pekin',
+    modeloCiudad: 'lugar-pekin-ciudad',
+    luz: 'lugar-pekin',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    baseX: 12.6,
+    baseZ: -44
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, ...LUGARES }

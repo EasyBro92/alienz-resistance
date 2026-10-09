@@ -2112,6 +2112,15 @@ const CALCUTA_PLANOS = [
   { k: 0.76, pos: [6, 36, 78], mira: [0, 5, -62] },
   { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
 ]
+// Pekín (10/10): la muralla serpenteando por las crestas hasta la torre; la cámara
+// la sigue desde la izquierda y baja al camino de ronda.
+const PEKIN_PLANOS = [
+  { k: 0, pos: [-110, 46, 150], mira: [0, 4, -76] },
+  { k: 0.3, pos: [-50, 40, 110], mira: [0, 4, -76] },
+  { k: 0.56, pos: [-10, 42, 100], mira: [0, 5, -66] },
+  { k: 0.76, pos: [4, 36, 78], mira: [0, 5, -62] },
+  { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
+]
 // Las llegadas «de película»: un recorrido por planos, largo la primera vez y
 // más corto (pero empezando también fuera) las siguientes. Cada una abre la
 // niebla y el corte de lejos a su medida, y enciende el modelo de la ciudad.
@@ -2131,6 +2140,7 @@ const LLEGADAS = {
   bombay: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-bombay-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: BOMBAY_PLANOS },
   agra: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-agra-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: AGRA_PLANOS },
   calcuta: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-calcuta-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: CALCUTA_PLANOS },
+  pekin: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-pekin-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: PEKIN_PLANOS },
   gizeh: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-gizeh-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: GIZEH_PLANOS },
   marsella: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-marsella-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: MARSELLA_PLANOS }
 }
