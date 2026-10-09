@@ -416,9 +416,14 @@ export const PAISES = [
     cierre: 'Los tres puntos de la India se apagan. Queda uno en China más brillante que todos los que hemos visto.',
     misiones: [
       {
-        name: 'Bombay', lugar: 'Bandra-Worli · enlace del mar', mapa: sitio(19.08, 72.88),
-        // Aquí no se juega AL LADO del enlace: se juega encima. Atirantado, sobre el mar Arábigo y con Marine Drive al fondo, así que el puente atirantado que había de adorno ya no hace falta.
-        escenario: 'bombay', suelo: 'carretera',
+        name: 'Bombay', llegada: 'bombay', lugar: 'Puerta de la India · el muelle', mapa: sitio(19.08, 72.88),
+        // La explanada hecha en Blender (herramientas/blender/lugar_bombay.py), de día.
+        // Desembarcan detrás del arco y lo cruzan en abanico cerrado (6 m de luz); se
+        // abren al salir a la explanada.
+        fondo: { hora: 'dia', cielo: 0x8fc0ee, niebla: 0xdbe3e4, nieblaCerca: 140, nieblaLejos: 460 },
+        escenario: 'bombayPuerta', suelo: 'losas', tonoSuelo: 0x9c958a, hitos: [],
+        entrada: { z: -90, fondo: 5, prisa: { desde: -90, hasta: -68, por: 3 }, abanico: { ancho: 0.9, hasta: -64.5 } },
+        sinPajaros: true, sinNubes: true,
         resumen: 'Otra vez de frente, pero nada de esto es como en Tarragona.',
         parte: ['Catorce millones de personas y un campamento en medio.',
           'Vuelven a venir de frente, en masa. La diferencia es cuántos son y lo que aguanta cada uno.'],

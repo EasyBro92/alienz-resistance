@@ -735,4 +735,28 @@ function lagosPuente () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, ...LUGARES }
+// Bombay: la explanada de la Puerta de la India, de día
+// (herramientas/blender/lugar_bombay.py, 09/10). El arco de frente al fondo, a la
+// mitad de su tamaño; detrás, las barcazas alienígenas varadas contra el muelle:
+// los alienz nacen en ellas y cruzan por debajo del arco (`entrada` con
+// `abanico`, en la misión). El mar a la derecha, con la base alien en un
+// baluarte redondo del muelle.
+function bombayPuerta () {
+  const g = new THREE.Group()
+  g.name = 'lugar:bombayPuerta'
+  Object.assign(g.userData, {
+    modelo: 'lugar-bombay',
+    modeloCiudad: 'lugar-bombay-ciudad',
+    luz: 'lugar-bombay',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    baseX: 12.6,
+    baseZ: -44
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, ...LUGARES }
