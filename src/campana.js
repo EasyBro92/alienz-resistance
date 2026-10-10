@@ -581,9 +581,12 @@ export const PAISES = [
     cierre: 'Nueva York queda limpia. En la antena del edificio más alto encontramos el emisor que hablaba con Moscú. Apuntaba al sur.',
     misiones: [
       {
-        name: 'Anchorage', lugar: 'Seward Highway · ensenada de Turnagain', mapa: sitio(61.22, -149.90),
-        // Aquí una carretera SÍ es el sitio: va de verdad entre el fiordo y la pared de montaña.
-        escenario: 'anchorage', suelo: 'carretera', hitos: [['totems']],
+        name: 'Anchorage', llegada: 'anchorage', lugar: 'Seward Highway · ensenada de Turnagain', mapa: sitio(61.22, -149.90),
+        // Hecho en Blender (herramientas/blender/lugar_anchorage.py): la carretera entre
+        // el agua y la montaña, con el sol de medianoche. Los alienz llegan en nave.
+        fondo: { hora: 'ocaso', cielo: 0xe6b27a, niebla: 0xe2c4a4, nieblaCerca: 160, nieblaLejos: 520, cupula: [0x6f86c0, 0xf6c088], sol: 0xffd09a },
+        escenario: 'anchorageSeward', suelo: 'losas', tonoSuelo: 0x8a8782, hitos: [],
+        sinPajaros: true, sinNubes: true,
         resumen: 'Se curan, se blindan, y no viene nadie a relevarte.',
         parte: ['El búnker del Ártico está debajo de la ensenada.',
           'Se cosen entre ellos y el caparazón devuelve las balas.'],

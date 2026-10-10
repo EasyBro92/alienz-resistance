@@ -921,4 +921,27 @@ function novosibirskObi () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, ...LUGARES }
+// Anchorage: la carretera de Seward junto a la ensenada, con el sol de medianoche
+// (herramientas/blender/lugar_anchorage.py, 10/10; elegido por mí). El agua con
+// los hielos a la izquierda; a la derecha los tótems, el tren del Alaska Railroad
+// parado en la vía y la ladera de abetos; las montañas nevadas alrededor. La base
+// alien, en un paso de tablones sobre la vía.
+function anchorageSeward () {
+  const g = new THREE.Group()
+  g.name = 'lugar:anchorageSeward'
+  Object.assign(g.userData, {
+    modelo: 'lugar-anchorage',
+    modeloCiudad: 'lugar-anchorage-ciudad',
+    luz: 'lugar-anchorage',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    baseX: 12.6,
+    baseZ: -44
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, ...LUGARES }
