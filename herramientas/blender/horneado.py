@@ -660,6 +660,21 @@ se_mece = {}
 def mecer (mat, cuanto=1.0):
     se_mece[mat.name] = cuanto
     return mat
+# El follaje se mece SOLO, por el nombre de su material (así valen los mapas de
+# antes sin tocar sus guiones, volviéndolos a exportar con `--reusar`): las copas
+# la mitad que una bandera, las palmas algo más y las coníferas menos. Los troncos
+# llevan otro material y se quedan quietos. (`copa` no sirve para saberlo: con
+# ella se hacen también los globos de las farolas.)
+import re
+FOLLAJE = [(re.compile(r'^palma'), 0.6), (re.compile(r'^(pino|cipres|abeto)(-|d|$)'), 0.35),
+           (re.compile(r'^(hojas?|selva|olivo|sauce|jacaranda|ipe|arbol|mata)(-|d|$)'), 0.5)]
+def cuanto_mece (nombre):
+    if nombre in se_mece:
+        return se_mece[nombre]
+    for patron, cuanto in FOLLAJE:
+        if patron.match(nombre):
+            return cuanto
+    return None
 
 def copiar (o, grupo, m4):
     """Otra copia de un modelo ya importado (`importar` lo trae una vez), puesta
@@ -1119,17 +1134,17 @@ def terminar (grupos, exportes, sol_hacia, sol_color=(1.0, 0.96, 0.88), sol_fuer
         # Lo que se mece: el alfa, ANTES de fundir materiales (después ya no se
         # sabe cuál era cada uno).
         alfa = np.ones(len(col), np.float32)
-        if se_mece:
+        if True:
             me = o.data
             mat_cara = np.empty(len(me.polygons), np.int32); me.polygons.foreach_get('material_index', mat_cara)
             lados = np.empty(len(me.polygons), np.int32); me.polygons.foreach_get('loop_total', lados)
             de_esquina = np.repeat(mat_cara, lados)
             vert = np.empty(len(me.loops), np.int32); me.loops.foreach_get('vertex_index', vert)
             for i, m in enumerate(me.materials):
-                if not m or m.name not in se_mece:
+                cuanto = cuanto_mece(m.name) if m else None
+                if cuanto is None:
                     continue
                 es = np.nonzero(de_esquina == i)[0]
-                cuanto = se_mece[m.name]
                 if callable(cuanto):
                     alfa[es] = 1 - np.clip([cuanto(me.vertices[v].co) for v in vert[es]], 0, 1)
                 else:
