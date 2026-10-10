@@ -2211,6 +2211,15 @@ const PUNTACANA_PLANOS = [
   { k: 0.76, pos: [3, 36, 78], mira: [0, 4, -58] },
   { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
 ]
+// Santo Domingo (10/10): la cruz de luz del Faro en el cielo, sobre el río; la
+// cámara gira hacia el Alcázar iluminado y baja a la plaza.
+const SANTODOMINGO_PLANOS = [
+  { k: 0, pos: [-60, 26, 110], mira: [500, 300, -220] },
+  { k: 0.3, pos: [-30, 36, 120], mira: [10, 8, -80] },
+  { k: 0.56, pos: [-8, 42, 104], mira: [0, 5, -72] },
+  { k: 0.76, pos: [4, 36, 78], mira: [0, 5, -64] },
+  { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
+]
 // Las llegadas «de película»: un recorrido por planos, largo la primera vez y
 // más corto (pero empezando también fuera) las siguientes. Cada una abre la
 // niebla y el corte de lejos a su medida, y enciende el modelo de la ciudad.
@@ -2241,6 +2250,7 @@ const LLEGADAS = {
   guadalajara: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-guadalajara-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: GUADALAJARA_PLANOS },
   cdmx: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-cdmx-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: CDMX_PLANOS },
   puntacana: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-puntacana-v1', niebla: { cerca: 900, lejos: 3600 }, lejos: 4600, planos: PUNTACANA_PLANOS },
+  santodomingo: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-santodomingo-v1', niebla: { cerca: 900, lejos: 3600 }, lejos: 4600, planos: SANTODOMINGO_PLANOS },
   gizeh: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-gizeh-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: GIZEH_PLANOS },
   marsella: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-marsella-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: MARSELLA_PLANOS }
 }

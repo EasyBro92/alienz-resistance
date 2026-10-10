@@ -724,11 +724,14 @@ export const PAISES = [
         waves: OLEADAS.formas
       },
       {
-        name: 'Santo Domingo', lugar: 'Calle Las Damas · Alcázar de Colón', mapa: sitio(18.47, -69.89),
-        // La calle más antigua de América, con los muros de piedra de coral.
-        escenario: 'santoDomingo', suelo: 'adoquin', tonoSuelo: 0x8f867a, hitos: [['alcazarColon'], ['faroColon']],
+        name: 'Santo Domingo', llegada: 'santodomingo', lugar: 'Plaza de España · Alcázar de Colón', mapa: sitio(18.47, -69.89),
+        // Hecho en Blender (herramientas/blender/lugar_santodomingo.py): de noche, con el
+        // Alcázar iluminado y la cruz de luz del Faro en el cielo. Llegan en nave.
+        fondo: { hora: 'noche', cielo: 0x121428, niebla: 0x241f30, nieblaCerca: 130, nieblaLejos: 460, ambiente: 0x2c2830, cupula: [0x050818, 0x2a2440], sol: 0xffd0a0 },
+        escenario: 'santoDomingoAlcazar', suelo: 'losas', tonoSuelo: 0x3a3630, hitos: [],
+        sinPajaros: true, sinNubes: true,
         resumen: 'Se curan entre ellos.',
-        parte: ['La ciudad vieja es su hospital en el Caribe. Por los adoquines de la calle de las Damas bajan los que ya han cosido.',
+        parte: ['La ciudad vieja es su hospital en el Caribe. Por la plaza del Alcázar bajan los que ya han cosido.',
           'Al fondo, el Faro a Colón proyecta su cruz de luz: la usan para guiar las naves que cruzan desde México.'],
         cierre: 'Apagamos el Faro. El cielo de la isla vuelve a estar a oscuras, y lo que venía del norte ya no sabe dónde posarse.',
         waves: OLEADAS.colmena

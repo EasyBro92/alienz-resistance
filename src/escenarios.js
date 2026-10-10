@@ -1059,4 +1059,27 @@ function puntaCanaBavaro () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, seattlePike, monterreyMacroplaza, guadalajaraCatedral, cdmxReforma, puntaCanaBavaro, ...LUGARES }
+// Santo Domingo: la Plaza de España ante el Alcázar de Colón, de noche
+// (herramientas/blender/lugar_santodomingo.py, 10/10; elegido por mí). El Alcázar
+// al fondo, a 0,8 de su tamaño, iluminado; faroles coloniales, la estatua de
+// Ovando, la muralla con sus cañones y la base alien en un ruedo. El Faro a Colón
+// y su cruz de luz, en la llegada. Los alienz, en nave.
+function santoDomingoAlcazar () {
+  const g = new THREE.Group()
+  g.name = 'lugar:santoDomingoAlcazar'
+  Object.assign(g.userData, {
+    modelo: 'lugar-santodomingo',
+    modeloCiudad: 'lugar-santodomingo-ciudad',
+    luz: 'lugar-santodomingo',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    baseX: 12.6,
+    baseZ: -44
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, seattlePike, monterreyMacroplaza, guadalajaraCatedral, cdmxReforma, puntaCanaBavaro, santoDomingoAlcazar, ...LUGARES }
