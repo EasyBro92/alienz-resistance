@@ -897,4 +897,28 @@ function moscuPlaza () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, ...LUGARES }
+// Novosibirsk: encima del Obi helado, en la noche azul del invierno
+// (herramientas/blender/lugar_novosibirsk.py, 10/10; elegido por mí, siguiendo el
+// parte de la misión: «se curan en el hielo»). Al fondo, el boquete: una losa de
+// hielo vencida que baja 3,6 m al agua (`hueco`); por ahí suben los alienz.
+// Detrás, el puente de Bugrinski encendido. La base alien, en un cerco de hielo.
+function novosibirskObi () {
+  const g = new THREE.Group()
+  g.name = 'lugar:novosibirskObi'
+  Object.assign(g.userData, {
+    modelo: 'lugar-novosibirsk',
+    modeloCiudad: 'lugar-novosibirsk-ciudad',
+    luz: 'lugar-novosibirsk',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    hueco: { x: 7.6, zFondo: -78.0, zBorde: -64.0, hondo: 3.6 },
+    baseX: 12.6,
+    baseZ: -44
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, ...LUGARES }

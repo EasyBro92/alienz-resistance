@@ -540,9 +540,13 @@ export const PAISES = [
         waves: OLEADAS.contraflujo
       },
       {
-        name: 'Novosibirsk', lugar: 'Puente del Obi', mapa: sitio(55.03, 82.92),
-        // Arcos de acero y el hielo del río en placas.
-        escenario: 'novosibirsk', suelo: 'nieve', tonoSuelo: 0x8e9094, hitos: [['operaNovosibirsk']],
+        name: 'Novosibirsk', llegada: 'novosibirsk', lugar: 'Río Obi · sobre el hielo', mapa: sitio(55.03, 82.92),
+        // Hecho en Blender (herramientas/blender/lugar_novosibirsk.py): el río helado en
+        // la noche azul del invierno. Salen de debajo del hielo, por el boquete del fondo.
+        fondo: { hora: 'noche', cielo: 0x1c2a52, niebla: 0x33466e, nieblaCerca: 130, nieblaLejos: 460, ambiente: 0x3a4a6a, cupula: [0x070c26, 0x34508a], sol: 0xcfe0ff },
+        escenario: 'novosibirskObi', suelo: 'nieve', tonoSuelo: 0xcfdcea, hitos: [],
+        entrada: { z: -81, fondo: 5, prisa: { desde: -84, hasta: -66, por: 3 } },
+        sinPajaros: true, sinNubes: true,
         resumen: 'Se curan en el hielo.',
         parte: ['El centro de Siberia. Aquí se refugiaron los que huyeron de China.',
           'Se cosen entre ellos y el caparazón aguanta el frío mejor que la carne.'],

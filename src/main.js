@@ -2148,6 +2148,15 @@ const MOSCU_PLANOS = [
   { k: 0.76, pos: [5, 34, 74], mira: [0, 5, -64] },
   { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
 ]
+// Novosibirsk (10/10): el arco rojo del puente entero sobre el río helado; la
+// cámara baja al hielo por el eje.
+const NOVOSIBIRSK_PLANOS = [
+  { k: 0, pos: [60, 30, 190], mira: [0, 50, -104] },
+  { k: 0.3, pos: [40, 40, 140], mira: [0, 26, -104] },
+  { k: 0.56, pos: [20, 42, 104], mira: [0, 6, -78] },
+  { k: 0.76, pos: [5, 36, 78], mira: [0, 5, -64] },
+  { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
+]
 // Las llegadas «de película»: un recorrido por planos, largo la primera vez y
 // más corto (pero empezando también fuera) las siguientes. Cada una abre la
 // niebla y el corte de lejos a su medida, y enciende el modelo de la ciudad.
@@ -2171,6 +2180,7 @@ const LLEGADAS = {
   shanghai: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-shanghai-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: SHANGHAI_PLANOS },
   chongqing: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-chongqing-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: CHONGQING_PLANOS },
   moscu: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-moscu-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: MOSCU_PLANOS },
+  novosibirsk: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-novosibirsk-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: NOVOSIBIRSK_PLANOS },
   gizeh: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-gizeh-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: GIZEH_PLANOS },
   marsella: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-marsella-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: MARSELLA_PLANOS }
 }
