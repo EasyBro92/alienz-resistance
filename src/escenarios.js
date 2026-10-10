@@ -1129,4 +1129,27 @@ function rioCorcovado () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, seattlePike, monterreyMacroplaza, guadalajaraCatedral, cdmxReforma, puntaCanaBavaro, santoDomingoAlcazar, puertoPlataFortaleza, rioCorcovado, ...LUGARES }
+// Manaos: la plaza de São Sebastião ante el Teatro Amazonas, con tormenta
+// (herramientas/blender/lugar_manaos.py, 10/10; elegido por mí). La última
+// misión. El teatro entero al fondo, a 0,3 de su tamaño, con su cúpula de
+// azulejos; la plaza de olas blancas y negras, el monumento a la izquierda y la
+// base alien en un ruedo. Las dos MADRES y los suyos, en nave.
+function manaosTeatro () {
+  const g = new THREE.Group()
+  g.name = 'lugar:manaosTeatro'
+  Object.assign(g.userData, {
+    modelo: 'lugar-manaos',
+    modeloCiudad: 'lugar-manaos-ciudad',
+    luz: 'lugar-manaos',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    baseX: 12.6,
+    baseZ: -44
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, seattlePike, monterreyMacroplaza, guadalajaraCatedral, cdmxReforma, puntaCanaBavaro, santoDomingoAlcazar, puertoPlataFortaleza, rioCorcovado, manaosTeatro, ...LUGARES }

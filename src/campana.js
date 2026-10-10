@@ -788,9 +788,12 @@ export const PAISES = [
         waves: OLEADAS.colmena
       },
       {
-        name: 'Manaos', lugar: 'Plaza São Sebastião · frente al Teatro Amazonas', mapa: sitio(-3.12, -60.02),
-        // El mismo empedrado en olas que Copacabana: los dos vinieron de Lisboa.
-        escenario: 'manaos', suelo: 'adoquin', tonoSuelo: 0xc6bca8, hitos: [['teatroAmazonas']],
+        name: 'Manaos', llegada: 'manaos', lugar: 'Plaza São Sebastião · frente al Teatro Amazonas', mapa: sitio(-3.12, -60.02),
+        // Hecho en Blender (herramientas/blender/lugar_manaos.py): al atardecer, con el
+        // último sol entrando por debajo de una tormenta. Llegan en nave.
+        fondo: { hora: 'ocaso', cielo: 0x8a5a52, niebla: 0xa87460, nieblaCerca: 140, nieblaLejos: 470, cupula: [0x1c1c34, 0xe07a44], sol: 0xffb47a },
+        escenario: 'manaosTeatro', suelo: 'losas', tonoSuelo: 0x8a8880, hitos: [],
+        sinPajaros: true, sinNubes: true,
         resumen: 'Todo a la vez, y al final no viene una MADRE: vienen dos.',
         parte: ['No queda nadie detrás de nosotros y no hay otro sitio al que ir.',
           'Bajarán todas las formas a la vez, y al final no viene una MADRE: vienen dos.'],
