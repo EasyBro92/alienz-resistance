@@ -710,9 +710,13 @@ export const PAISES = [
     cierre: 'La isla queda limpia. Lo que salió del muelle antes de que llegáramos iba hacia el sur, hacia el Amazonas.',
     misiones: [
       {
-        name: 'Punta Cana', lugar: 'Playa Bávaro · la tarima', mapa: sitio(18.58, -68.40),
-        // Tarima de madera entre las palmeras. Llano y sin torres: el mar lo pone el lugar.
-        escenario: 'puntaCana', suelo: 'losas', tonoSuelo: 0xb08a5e, hitos: [['bavaro']],
+        name: 'Punta Cana', llegada: 'puntacana', lugar: 'Playa Bávaro · el muelle nuevo', mapa: sitio(18.58, -68.40),
+        // Hecho en Blender (herramientas/blender/lugar_puntacana.py): a mediodía. Nacen en
+        // el muelle alien del fondo (8 m de ancho) y bajan a la arena en abanico.
+        fondo: { hora: 'dia', cielo: 0x6fc0f2, niebla: 0xd0ecf2, nieblaCerca: 170, nieblaLejos: 520 },
+        escenario: 'puntaCanaBavaro', suelo: 'arena', tonoSuelo: 0xf2e6cc, hitos: [],
+        entrada: { z: -86, fondo: 8, prisa: { desde: -90, hasta: -66, por: 3 }, abanico: { ancho: 1.4, hasta: -63 } },
+        sinPajaros: true, sinNubes: true,
         resumen: 'Salen del mar y cruzan la arena.',
         parte: ['La playa de Bávaro era su muelle: las naves se posan junto al agua y la siembra sale andando por la arena.',
           'Aquí no hay carretera. Solo arena, palmeras y ellos.'],

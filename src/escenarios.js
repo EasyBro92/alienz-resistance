@@ -1036,4 +1036,27 @@ function cdmxReforma () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, seattlePike, monterreyMacroplaza, guadalajaraCatedral, cdmxReforma, ...LUGARES }
+// Punta Cana: la playa de Bávaro, a mediodía
+// (herramientas/blender/lugar_puntacana.py, 10/10; elegido por mí). Se juega en
+// la arena, con el mar turquesa pegado a la izquierda; palmeras, hamacas y
+// sombrillas de cana a la derecha. Al fondo, el muelle alien que entra del mar:
+// los alienz nacen en él y bajan a la arena (`entrada` con `abanico`).
+function puntaCanaBavaro () {
+  const g = new THREE.Group()
+  g.name = 'lugar:puntaCanaBavaro'
+  Object.assign(g.userData, {
+    modelo: 'lugar-puntacana',
+    modeloCiudad: 'lugar-puntacana-ciudad',
+    luz: 'lugar-puntacana',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    baseX: 12.6,
+    baseZ: -44
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, seattlePike, monterreyMacroplaza, guadalajaraCatedral, cdmxReforma, puntaCanaBavaro, ...LUGARES }

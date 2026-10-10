@@ -2202,6 +2202,15 @@ const CDMX_PLANOS = [
   { k: 0.76, pos: [4, 34, 74], mira: [0, 5, -62] },
   { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
 ]
+// Punta Cana (10/10): la playa desde el agua, con el muelle negro entrando en la
+// arena y el palmeral detrás; la cámara cruza la orilla y sube a su sitio.
+const PUNTACANA_PLANOS = [
+  { k: 0, pos: [-90, 12, 20], mira: [10, 2, -70] },
+  { k: 0.3, pos: [-60, 30, 80], mira: [4, 2, -60] },
+  { k: 0.56, pos: [-14, 40, 100], mira: [0, 3, -60] },
+  { k: 0.76, pos: [3, 36, 78], mira: [0, 4, -58] },
+  { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
+]
 // Las llegadas «de película»: un recorrido por planos, largo la primera vez y
 // más corto (pero empezando también fuera) las siguientes. Cada una abre la
 // niebla y el corte de lejos a su medida, y enciende el modelo de la ciudad.
@@ -2231,6 +2240,7 @@ const LLEGADAS = {
   monterrey: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-monterrey-v1', niebla: { cerca: 900, lejos: 3800 }, lejos: 4600, planos: MONTERREY_PLANOS },
   guadalajara: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-guadalajara-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: GUADALAJARA_PLANOS },
   cdmx: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-cdmx-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: CDMX_PLANOS },
+  puntacana: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-puntacana-v1', niebla: { cerca: 900, lejos: 3600 }, lejos: 4600, planos: PUNTACANA_PLANOS },
   gizeh: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-gizeh-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: GIZEH_PLANOS },
   marsella: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-marsella-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: MARSELLA_PLANOS }
 }
