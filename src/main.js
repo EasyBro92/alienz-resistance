@@ -2139,6 +2139,15 @@ const CHONGQING_PLANOS = [
   { k: 0.76, pos: [4, 36, 78], mira: [0, 5, -64] },
   { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
 ]
+// Moscú (10/10): San Basilio de cerca, con sus cúpulas contra el cielo; la cámara
+// retrocede por la plaza subiendo a su sitio.
+const MOSCU_PLANOS = [
+  { k: 0, pos: [3, 3.5, -40], mira: [0, 8.5, -86] },
+  { k: 0.3, pos: [2, 10, -6], mira: [0, 7, -86] },
+  { k: 0.56, pos: [3, 24, 46], mira: [0, 5, -72] },
+  { k: 0.76, pos: [5, 34, 74], mira: [0, 5, -64] },
+  { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
+]
 // Las llegadas «de película»: un recorrido por planos, largo la primera vez y
 // más corto (pero empezando también fuera) las siguientes. Cada una abre la
 // niebla y el corte de lejos a su medida, y enciende el modelo de la ciudad.
@@ -2161,6 +2170,7 @@ const LLEGADAS = {
   pekin: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-pekin-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: PEKIN_PLANOS },
   shanghai: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-shanghai-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: SHANGHAI_PLANOS },
   chongqing: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-chongqing-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: CHONGQING_PLANOS },
+  moscu: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-moscu-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: MOSCU_PLANOS },
   gizeh: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-gizeh-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: GIZEH_PLANOS },
   marsella: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-marsella-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: MARSELLA_PLANOS }
 }

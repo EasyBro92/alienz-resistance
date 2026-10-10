@@ -873,4 +873,28 @@ function chongqingHongya () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, ...LUGARES }
+// Moscú: la Plaza Roja nevada, un día de invierno
+// (herramientas/blender/lugar_moscu.py, 10/10; elegido por mí). San Basilio
+// entero al fondo, a 0,27 de su tamaño; delante, la rampa que baja a lo que hay
+// debajo: por ahí suben los alienz y LA MADRE (`hueco`, como en Gizeh). A la
+// derecha, la muralla del Kremlin, el mausoleo y la base alien en un ruedo.
+function moscuPlaza () {
+  const g = new THREE.Group()
+  g.name = 'lugar:moscuPlaza'
+  Object.assign(g.userData, {
+    modelo: 'lugar-moscu',
+    modeloCiudad: 'lugar-moscu-ciudad',
+    luz: 'lugar-moscu',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    hueco: { x: 7.6, zFondo: -78.0, zBorde: -62.0, hondo: 4.6 },
+    baseX: 12.6,
+    baseZ: -44
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, ...LUGARES }

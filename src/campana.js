@@ -550,9 +550,14 @@ export const PAISES = [
         waves: OLEADAS.colmena
       },
       {
-        name: 'Moscú', lugar: 'Plaza Roja', mapa: sitio(55.76, 37.62),
-        // La muralla del Kremlin con las almenas de cola de golondrina a un lado y el GUM al otro.
-        escenario: 'moscu', suelo: 'adoquin', tonoSuelo: 0x8f857c, hitos: [['sanBasilio']],
+        name: 'Moscú', llegada: 'moscu', lugar: 'Plaza Roja · San Basilio', mapa: sitio(55.76, 37.62),
+        // Hecho en Blender (herramientas/blender/lugar_moscu.py): la plaza nevada, de
+        // día, con el sol bajo. Salen de debajo de la catedral: nacen abajo, a oscuras,
+        // y suben la rampa. LA MADRE también.
+        fondo: { hora: 'dia', cielo: 0xb9cfe6, niebla: 0xdfe6ee, nieblaCerca: 140, nieblaLejos: 460, cupula: [0x7fa4d8, 0xf0dccb], sol: 0xffe6c8 },
+        escenario: 'moscuPlaza', suelo: 'nieve', tonoSuelo: 0xdfe3ea, hitos: [],
+        entrada: { z: -81, fondo: 6, prisa: { desde: -84, hasta: -66, por: 3 } },
+        sinPajaros: true, sinNubes: true,
         resumen: 'La MADRE del norte.',
         parte: ['La señal que emiten sale de debajo del Kremlin.',
           'Lo que la emite es una MADRE, y es la primera que no sale a pelear: espera.'],
