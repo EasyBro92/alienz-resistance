@@ -473,11 +473,12 @@ export const PAISES = [
     cierre: 'Chongqing se apaga. Las naves siguen llegando igual. No las estábamos frenando: las estábamos entreteniendo.',
     misiones: [
       {
-        name: 'Shanghái', lugar: 'Puente de Nanpu · sobre el Huangpu', mapa: sitio(31.23, 121.47), bioma: 'monzon',
-        // Con su rampa en espiral, que es lo que hace que ese puente sea ese
-        // puente, y Pudong encendido al anochecer al otro lado del río.
-        fondo: { hora: 'ocaso', cielo: 0xb98fa8, niebla: 0xc0a3b0 },
-        escenario: 'shanghai', suelo: 'carretera', hitos: [['perlaOriental']],
+        name: 'Shanghái', llegada: 'shanghai', lugar: 'Jardín Yuyuan · la casa de té del lago', mapa: sitio(31.23, 121.47), bioma: 'monzon',
+        // Hecho en Blender (herramientas/blender/lugar_shanghai.py): el estanque del
+        // Yuyuan al anochecer, con los farolillos encendidos y Pudong detrás.
+        fondo: { hora: 'ocaso', cielo: 0x8a6f9e, niebla: 0x9a82a8, nieblaCerca: 130, nieblaLejos: 450, cupula: [0x2b2f66, 0xd98a8c], sol: 0xffc0a6 },
+        escenario: 'shanghaiYuyuan', suelo: 'losas', tonoSuelo: 0x8e8c90, hitos: [],
+        sinPajaros: true, sinNubes: true,
         resumen: 'Formas nuevas en la costa.',
         parte: ['El puerto de Shanghái recibía lo que salía de Chongqing río abajo.',
           'Aquí llegan las formas terminadas. Espera cosas que no has visto.'],

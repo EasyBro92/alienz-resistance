@@ -828,4 +828,27 @@ function pekinMuralla () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, ...LUGARES }
+// Shanghái: la terraza del estanque del Jardín Yuyuan, al anochecer
+// (herramientas/blender/lugar_shanghai.py, 10/10; elegido por mí). Al fondo, la
+// casa de té con sus tres tejados y las celosías encendidas; farolillos rojos en
+// las barandillas, el puente en zigzag a la izquierda y la base alien en una
+// isleta del estanque a la derecha. Pudong, encendido, solo en la llegada.
+function shanghaiYuyuan () {
+  const g = new THREE.Group()
+  g.name = 'lugar:shanghaiYuyuan'
+  Object.assign(g.userData, {
+    modelo: 'lugar-shanghai',
+    modeloCiudad: 'lugar-shanghai-ciudad',
+    luz: 'lugar-shanghai',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    baseX: 12.6,
+    baseZ: -44
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, ...LUGARES }

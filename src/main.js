@@ -2121,6 +2121,15 @@ const PEKIN_PLANOS = [
   { k: 0.76, pos: [4, 36, 78], mira: [0, 5, -62] },
   { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
 ]
+// Shanghái (10/10): la casa de té de cerca, con Pudong encendido detrás; la
+// cámara retrocede por la terraza subiendo a su sitio.
+const SHANGHAI_PLANOS = [
+  { k: 0, pos: [3, 3.5, -38], mira: [0, 9, -78] },
+  { k: 0.3, pos: [2, 10, -4], mira: [0, 7, -78] },
+  { k: 0.56, pos: [3, 24, 46], mira: [0, 5, -70] },
+  { k: 0.76, pos: [5, 34, 74], mira: [0, 5, -62] },
+  { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
+]
 // Las llegadas «de película»: un recorrido por planos, largo la primera vez y
 // más corto (pero empezando también fuera) las siguientes. Cada una abre la
 // niebla y el corte de lejos a su medida, y enciende el modelo de la ciudad.
@@ -2141,6 +2150,7 @@ const LLEGADAS = {
   agra: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-agra-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: AGRA_PLANOS },
   calcuta: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-calcuta-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: CALCUTA_PLANOS },
   pekin: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-pekin-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: PEKIN_PLANOS },
+  shanghai: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-shanghai-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: SHANGHAI_PLANOS },
   gizeh: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-gizeh-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: GIZEH_PLANOS },
   marsella: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-marsella-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: MARSELLA_PLANOS }
 }
