@@ -737,9 +737,13 @@ export const PAISES = [
         waves: OLEADAS.colmena
       },
       {
-        name: 'Puerto Plata', lugar: 'Malecón · fortaleza de San Felipe', mapa: sitio(19.79, -70.69),
-        // El malecón con el Pico Isabel de Torres detrás.
-        escenario: 'puertoPlata', suelo: 'losas', tonoSuelo: 0xc2baa8, hitos: [['sanFelipe']],
+        name: 'Puerto Plata', llegada: 'puertoplata', lugar: 'Malecón · fortaleza de San Felipe', mapa: sitio(19.79, -70.69),
+        // Hecho en Blender (herramientas/blender/lugar_puertoplata.py): al atardecer.
+        // Suben del mar por la rampa del pie de la muralla. LA MADRE también.
+        fondo: { hora: 'ocaso', cielo: 0xe9a367, niebla: 0xe4b98f, nieblaCerca: 150, nieblaLejos: 480, cupula: [0x7d7fb0, 0xf2a878], sol: 0xffc890 },
+        escenario: 'puertoPlataFortaleza', suelo: 'losas', tonoSuelo: 0xd8c8ac, hitos: [],
+        entrada: { z: -81, fondo: 5, prisa: { desde: -84, hasta: -66, por: 3 } },
+        sinPajaros: true, sinNubes: true,
         resumen: 'La MADRE del Caribe.',
         parte: ['El muelle nuevo está aquí, al pie de la vieja fortaleza. De aquí sale todo lo que cruza hacia el sur.',
           'Sobre la arena espera otra MADRE.'],

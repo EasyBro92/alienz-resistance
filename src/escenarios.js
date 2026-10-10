@@ -1082,4 +1082,28 @@ function santoDomingoAlcazar () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, seattlePike, monterreyMacroplaza, guadalajaraCatedral, cdmxReforma, puntaCanaBavaro, santoDomingoAlcazar, ...LUGARES }
+// Puerto Plata: el Malecón al pie de la fortaleza de San Felipe, al atardecer
+// (herramientas/blender/lugar_puertoplata.py, 10/10; elegido por mí). La
+// fortaleza al fondo, a su tamaño; delante, la rampa que baja 3,6 m al agua, a
+// la poterna: por ahí suben del mar LA MADRE y los suyos (`hueco`, como en
+// Gizeh). El Atlántico a la izquierda, tras el pretil; palmeras a la derecha.
+function puertoPlataFortaleza () {
+  const g = new THREE.Group()
+  g.name = 'lugar:puertoPlataFortaleza'
+  Object.assign(g.userData, {
+    modelo: 'lugar-puertoplata',
+    modeloCiudad: 'lugar-puertoplata-ciudad',
+    luz: 'lugar-puertoplata',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    hueco: { x: 7.6, zFondo: -78.0, zBorde: -62.0, hondo: 3.6 },
+    baseX: 12.6,
+    baseZ: -44
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, seattlePike, monterreyMacroplaza, guadalajaraCatedral, cdmxReforma, puntaCanaBavaro, santoDomingoAlcazar, puertoPlataFortaleza, ...LUGARES }
