@@ -87,6 +87,50 @@ export function createAmbient (scene) {
   // alto vuelan (donde la cámara va más baja se ve más cielo). Isidro: «muchos
   // mapas tienen los mismos pájaros». En una bahía, gaviotas: claras y altas.
   let subenAves = 0
+  let aleteo = 1
+  // Qué vuela en cada región. `cuantas` pasan en bandada y cómo van (`uve`,
+  // `fila` o `nube`), y cuántas se quedan dando vueltas sobre el campo.
+  const AVES = {
+    // gaviotas
+    costa: { color: 0xe8e6e0, cuantas: 6, formacion: 'nube', circulan: 2, talla: 0.75 },
+    mediterraneo: { color: 0xe8e6e0, cuantas: 5, formacion: 'nube', circulan: 1, talla: 0.7 },
+    egeo: { color: 0xe8e6e0, cuantas: 4, formacion: 'fila', circulan: 2, talla: 0.7 },
+    caribe: { color: 0x4a4038, cuantas: 5, formacion: 'fila', circulan: 1, talla: 0.95 },      // pelícanos, en fila
+    // buitres y rapaces
+    desierto: { color: 0x2b2b30, cuantas: 3, formacion: 'fila', circulan: 3, talla: 1 },
+    sabana: { color: 0x2b2b30, cuantas: 4, formacion: 'uve', circulan: 3, talla: 1 },
+    altiplano: { color: 0x3a2f28, cuantas: 3, formacion: 'fila', circulan: 2, talla: 1.05 },
+    karstico: { color: 0xf0efe8, cuantas: 7, formacion: 'uve', circulan: 0, talla: 0.8 },      // garcetas
+    monzon: { color: 0xf0efe8, cuantas: 6, formacion: 'fila', circulan: 1, talla: 0.8 },
+    selva: { color: 0xc8402a, cuantas: 8, formacion: 'nube', circulan: 0, talla: 0.6, aleteo: 1.6 },   // guacamayos
+    taiga: { color: 0x18181c, cuantas: 4, formacion: 'nube', circulan: 1, talla: 0.7 },       // cuervos
+    artico: { color: 0xdfe3e8, cuantas: 9, formacion: 'uve', circulan: 0, talla: 0.85 },       // gansos
+    ciudad: { color: 0x7a7d86, cuantas: 9, formacion: 'nube', circulan: 0, talla: 0.5, aleteo: 1.5 },   // palomas
+    parque: { color: 0x7a7d86, cuantas: 7, formacion: 'nube', circulan: 0, talla: 0.5, aleteo: 1.5 },
+    volcanico: { color: 0x2b2b30, cuantas: 0, formacion: 'uve', circulan: 0, talla: 1 }
+  }
+  // De noche, murciélagos: pequeños, oscuros y de aleteo nervioso.
+  const DE_NOCHE = { color: 0x14141a, cuantas: 8, formacion: 'nube', circulan: 0, talla: 0.38, aleteo: 2.4 }
+  function vestirAves (destino) {
+    const de = destino.fondo?.hora === 'noche' ? DE_NOCHE : (AVES[destino.bioma] ?? AVES.sabana)
+    const a = { ...de, ...(destino.aves ?? {}) }
+    birdMat.color.setHex(a.color)
+    subenAves = a.sube ?? 0
+    aleteo = a.aleteo ?? 1
+    birds.forEach((b, i) => {
+      b.visible = i < a.cuantas
+      const rango = Math.ceil(i / 2)
+      const lado = i % 2 ? 1 : -1
+      if (a.formacion === 'fila') b.position.set(lado * rango * 0.5, Math.sin(i * 1.7) * 0.5, i * 2.6)
+      else if (a.formacion === 'nube') b.position.set(Math.sin(i * 2.4) * 5.5, Math.cos(i * 1.3) * 1.8, Math.sin(i * 0.9 + 1) * 6)
+      else b.position.set(lado * rango * 2, Math.sin(i * 1.7) * 0.8, rango * 2.2)
+      b.scale.setScalar(a.talla * (0.85 + (i % 3) * 0.12))
+    })
+    vultures.forEach((v, i) => {
+      v.bird.visible = !sinPajaros && i < a.circulan
+      v.bird.scale.setScalar(a.talla * (1.1 + i * 0.15))
+    })
+  }
 
   function launchFlock () {
     flockActive = true
@@ -352,26 +396,59 @@ export function createAmbient (scene) {
 
   // Exploradores que cruzan el cielo de vez en cuando, con el haz encendido.
   const scouts = []
-  for (let i = 0; i < 2; i++) {
-    const s = makeSaucer(1.5 + i * 0.7, true)
+  for (let i = 0; i < 3; i++) {
+    const s = makeSaucer([1.5, 2.2, 1.1][i], true)
     s.visible = false
     scene.add(s)
-    scouts.push({ ship: s, timer: rand(6, 22), active: false, speed: 0, dir: 1 })
+    scouts.push({ ship: s, active: false, speed: 0, dir: 1 })
   }
+  // Cada misión tiene SU forma de pasar (Isidro, 10/10: «muchos mapas tienen las
+  // mismas animaciones de las naves que pasan»): un explorador suelto, una pareja
+  // en fila, un enjambre de tres pequeños y rápidos, o una patrulla grande y lenta.
+  // Sale del nombre de la misión, así que cada sitio es siempre igual a sí mismo.
+  let estiloNaves = 'explorador'
+  let tNaves = rand(6, 20)
+  // Por dónde caben: el carril (cuánto se apartan del eje), por qué lados y a qué
+  // altura. Lo decide `vestir` con lo que mide el sitio; si no caben, no pasan.
+  let carril = [1.5, 4]
+  let ladosLibres = [-1, 1]
 
   // A lo largo de la carretera, desde el fondo hacia la cámara. Cruzando de lado
   // a lado atravesaban edificios, colinas y monumentos; por encima del campo no
   // hay nada contra lo que chocar, y así además se ven enteros.
-  function launchScout (sc) {
-    sc.dir = Math.random() < 0.5 ? 1 : -1
-    // Por el eje pasan justo por encima de la nave de desembarco, y si esta baja o
-    // sube en ese momento la cruzan: donde hay sitio a los lados, van por un costado.
-    const x = ladoExplorador ? rand(ladoExplorador[0], ladoExplorador[1]) : rand(1.5, 4)
-    sc.ship.position.set(sc.dir * x, vueloExplorador.y + rand(-0.4, 0.4), -150)
+  function launchScout (sc, cfg = {}) {
+    sc.dir = cfg.dir ?? ladosLibres[Math.floor(Math.random() * ladosLibres.length)]
+    const x = Math.min(carril[1], Math.max(carril[0], cfg.x ?? rand(carril[0], carril[1])))
+    sc.ship.position.set(sc.dir * x, vueloExplorador.y + (cfg.dy ?? rand(-0.4, 0.4)), -150 - (cfg.atras ?? 0))
+    sc.ship.scale.setScalar(cfg.escala ?? 1)
     sc.ship.visible = true
     sc.active = true
-    sc.speed = rand(14, 22)
+    sc.speed = cfg.velocidad ?? rand(14, 22)
     if (sc.ship.userData.beam) sc.ship.userData.beam.visible = false
+  }
+  // Una pasada, según el estilo del sitio. Devuelve cuánto esperar hasta la siguiente.
+  function lanzarNaves () {
+    const dir = ladosLibres[Math.floor(Math.random() * ladosLibres.length)]
+    const x = rand(carril[0], carril[1])
+    if (estiloNaves === 'pareja') {
+      const velocidad = rand(13, 18)
+      launchScout(scouts[0], { dir, x, velocidad })
+      launchScout(scouts[2], { dir, x: x + 1.4, velocidad, atras: 7, dy: 0.5 })
+      return rand(14, 30)
+    }
+    if (estiloNaves === 'enjambre') {
+      const velocidad = rand(24, 30)
+      launchScout(scouts[2], { dir, x, velocidad, escala: 0.7 })
+      launchScout(scouts[0], { dir, x: x - 1.2, velocidad, atras: 5, dy: 0.4, escala: 0.5 })
+      launchScout(scouts[1], { dir, x: x + 1.2, velocidad, atras: 5, dy: -0.3, escala: 0.34 })
+      return rand(10, 22)
+    }
+    if (estiloNaves === 'patrulla') {
+      launchScout(scouts[1], { dir, x, velocidad: rand(7, 9.5), escala: 1.15 })
+      return rand(24, 40)
+    }
+    launchScout(scouts[Math.random() < 0.5 ? 0 : 1], { dir, x })
+    return rand(8, 22)
   }
 
   // Cápsulas de siembra: caen del cielo con estela verde y revientan en el
@@ -565,16 +642,16 @@ export function createAmbient (scene) {
       sinNodriza = destino.naves?.nodriza === false
       sinCapsulas = destino.naves?.capsulas === false
       ladoExplorador = destino.naves?.exploradores ?? null
+      const semilla = [...((destino.name ?? '') + (destino.lugar ?? ''))].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7)
+      estiloNaves = destino.naves?.estilo ?? ['explorador', 'pareja', 'enjambre', 'patrulla'][semilla % 4]
       if (sinCapsulas) for (const p of pods) { p.active = false; p.mesh.visible = false }
       if (sinNodriza) mother.visible = false
       sinPajaros = !!destino.sinPajaros
-      birdMat.color.setHex(destino.aves?.color ?? 0x2b2b30)
-      subenAves = destino.aves?.sube ?? 0
       if (sinPajaros) {
         flockActive = false
         flock.visible = false
       }
-      for (const v of vultures) v.bird.visible = !sinPajaros
+      vestirAves(destino)
       sinNubes = !!destino.sinNubes
       for (const c of clouds) c.group.visible = !sinNubes
       if (sinNaves) {
@@ -617,7 +694,31 @@ export function createAmbient (scene) {
         // una fachada.
         // Exploradores: por encima del campo, que nunca tiene decorado, y lo
         // bastante altos para no rozar la nave que aterriza.
-        vueloExplorador = { z: -70, y: Math.max(8.5, alturaEn(-150, -6, -6, 6) + 2) }
+        // Dónde caben. Se mira el eje (por encima del campo) y los dos costados;
+        // el techo es lo más alto que aún se ve con la cámara del juego (`naves.techo`
+        // en la misión donde va más baja). Si la misión pide carril (`exploradores`),
+        // ese; si no, el eje y, si por ahí hay algo alto, un costado. El costado de
+        // la base alien nunca: su torre mide lo que un explorador vuela.
+        const techo = destino.naves?.techo ?? 12.5
+        const libre = (x0, x1) => Math.max(8.5, alturaEn(-150, -6, x0, x1) + 2)
+        const eje = libre(-6.5, 6.5)
+        const costados = [-1, 1].map(s => [s, libre(Math.min(s * 6.5, s * 13), Math.max(s * 6.5, s * 13))]).filter(([, y]) => y <= techo)
+        if (ladoExplorador) {
+          // La misión sabe por dónde caben (en Río pasan por DEBAJO de los brazos
+          // del Cristo, y eso una altura por casilla no lo ve): se le hace caso, y
+          // dice también por qué costados (`lados`: el de la base alien, no).
+          carril = ladoExplorador
+          ladosLibres = destino.naves?.lados ?? [-1, 1]
+          vueloExplorador = { z: -70, y: 8.5 }
+        } else if (eje <= techo) {
+          carril = [1.5, 4]; ladosLibres = [-1, 1]
+          vueloExplorador = { z: -70, y: eje }
+        } else if (costados.length) {
+          carril = ladoExplorador ?? [8.8, 10.4]; ladosLibres = costados.map(c => c[0])
+          vueloExplorador = { z: -70, y: Math.max(...costados.map(c => c[1])) }
+        } else {
+          ladosLibres = []
+        }
         // Nodriza: patrulla detrás entre x -40 y 40 (con sus doce de radio,
         // -52 a 52), en la franja de profundidad con el decorado más bajo. Si ni
         // así queda bajo el marcador, ese mapa se queda sin nodriza antes que
@@ -634,10 +735,12 @@ export function createAmbient (scene) {
         for (const sc of scouts) {
           sc.active = false
           sc.ship.visible = false
-          sc.timer = rand(6, 22)
         }
+        tNaves = rand(6, 20)
       }
     },
+    // Para las comprobaciones: cómo ha quedado lo que vuela en esta misión.
+    estado: () => ({ estilo: estiloNaves, carril, lados: ladosLibres, y: +vueloExplorador.y.toFixed(1), nodriza: mother.visible, sinNaves }),
     update (dt) {
       clock += dt
 
@@ -658,12 +761,12 @@ export function createAmbient (scene) {
       mother.position.z = zNodriza
       if (mother.position.x > 40) mother.position.x = -40
 
+      if (scouts.every(sc => !sc.active)) {
+        tNaves -= dt
+        if (tNaves <= 0 && !sinNaves && ladosLibres.length) tNaves = lanzarNaves()
+      }
       for (const sc of scouts) {
-        if (!sc.active) {
-          sc.timer -= dt
-          if (sc.timer <= 0 && !sinNaves) launchScout(sc)
-          continue
-        }
+        if (!sc.active) continue
         blink(sc.ship, 1.2)
         sc.ship.position.z += sc.speed * dt
         sc.ship.position.y += Math.sin(clock * 1.6 + sc.speed) * 0.012
@@ -675,7 +778,6 @@ export function createAmbient (scene) {
         if (sc.ship.position.z > 26) {
           sc.active = false
           sc.ship.visible = false
-          sc.timer = rand(10, 30)
         }
       }
 
@@ -721,7 +823,7 @@ export function createAmbient (scene) {
       // aleteo compartido por pájaros y buitres
       const flap = b => {
         const u = b.userData
-        u.phase += dt * u.rate
+        u.phase += dt * u.rate * aleteo
         const a = Math.sin(u.phase) * 0.7
         u.l.rotation.z = a
         u.r.rotation.z = -a

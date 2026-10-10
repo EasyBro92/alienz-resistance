@@ -773,7 +773,7 @@ export const PAISES = [
         sinPajaros: true, sinNubes: true,
         // Sin nodriza ni cápsulas (cruzaban la estatua y caían en el vacío), y los
         // exploradores por los costados, bajo los brazos del Cristo.
-        naves: { nodriza: false, capsulas: false, exploradores: [8.8, 10.4] },
+        naves: { nodriza: false, capsulas: false, exploradores: [8.8, 10.4], lados: [-1], techo: 18 },
         // Con la cámara más baja de este mapa se ve más cielo: la nave entra desde más arriba.
         alturaNave: 24,
         resumen: 'La puerta del continente, y formas que no hemos visto.',

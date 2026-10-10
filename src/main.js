@@ -1426,7 +1426,15 @@ function alturaBajoElPie (z) {
     world.alturaHueco(z.mesh.position.x, z.mesh.position.z)
 }
 
+// Las naves de paso se colocan según lo alto que es el sitio, y de un sitio de
+// Blender eso no se sabe hasta que llega su modelo.
+let ambientePendiente = false
+
 function simulate (dt) {
+  if (ambientePendiente && world.escenarioListo()) {
+    ambientePendiente = false
+    ambient.vestir(nivelActivo(), world.alturaEn)
+  }
   // En pausa no avanza NADA: ni la horda, ni los efectos, ni la nave. Congelar
   // solo la partida y dejar el humo subiendo se lee como que el juego se ha
   // colgado, no como una pausa.
@@ -2267,12 +2275,12 @@ const MANAOS_PLANOS = [
 // más corto (pero empezando también fuera) las siguientes. Cada una abre la
 // niebla y el corte de lejos a su medida, y enciende el modelo de la ciudad.
 const LLEGADAS = {
-  estadio: { dura: 9, corto: { desde: 0.2, dura: 5.5 }, visto: 'alienz-vuelo-madrid-v1', niebla: { cerca: 700, lejos: 2400 }, lejos: 4200, planos: ESTADIO_PLANOS },
+  estadio: { sinFondo: true, dura: 9, corto: { desde: 0.2, dura: 5.5 }, visto: 'alienz-vuelo-madrid-v1', niebla: { cerca: 700, lejos: 2400 }, lejos: 4200, planos: ESTADIO_PLANOS },
   valencia: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-valencia-v1', niebla: { cerca: 900, lejos: 3200 }, lejos: 4200, planos: VALENCIA_PLANOS },
   lyon: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-lyon-v1', niebla: { cerca: 900, lejos: 3200 }, lejos: 4200, planos: LYON_PLANOS },
   paris: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-paris-v1', niebla: { cerca: 900, lejos: 3200 }, lejos: 4200, planos: PARIS_PLANOS },
   napoles: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-napoles-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: NAPOLES_PLANOS },
-  roma: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-roma-v1', niebla: { cerca: 900, lejos: 3200 }, lejos: 4200, planos: ROMA_PLANOS },
+  roma: { sinFondo: true, dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-roma-v1', niebla: { cerca: 900, lejos: 3200 }, lejos: 4200, planos: ROMA_PLANOS },
   atenas: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-atenas-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: ATENAS_PLANOS },
   salonica: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-salonica-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: SALONICA_PLANOS },
   cnosos: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-cnosos-v1', niebla: { cerca: 900, lejos: 3600 }, lejos: 4600, planos: CNOSOS_PLANOS },
@@ -2492,6 +2500,22 @@ function actualizarVuelo (dt) {
   if (k >= 1) terminarVuelo()
 }
 
+// El fondo NO desaparece al empezar la batalla (Isidro, 10/10: «en muchos mapas se
+// ve la ciudad, pero al empezar la batalla desaparece el fondo»). La ciudad de un
+// sitio de Blender es otro modelo, que solo se encendía para el vuelo de llegada;
+// ahora se queda, con la misma bruma y el mismo corte de lejos del vuelo, que son
+// los que la dejan ver. En calidad baja no: ahí sigue apagándose. Y tampoco donde
+// se juega DENTRO de algo que la tapa (`sinFondo` en la llegada: el estadio de
+// Madrid, el Coliseo).
+function fondoDeJuego (cfg) {
+  if (!cfg || cfg.sinFondo || calidad.nivel === 'baja') return false
+  if (!world.verCiudad(true)) return false
+  if (scene.fog) { scene.fog.near = cfg.niebla.cerca; scene.fog.far = cfg.niebla.lejos }
+  camera.far = Math.max(camera.far, cfg.lejos)
+  camera.updateProjectionMatrix()
+  return true
+}
+
 function terminarVuelo () {
   // La niebla que se abrió para enseñar el estadio desde fuera vuelve a lo suyo.
   if (vuelo?.niebla && scene.fog) {
@@ -2505,7 +2529,7 @@ function terminarVuelo () {
   }
   // La ciudad se apaga en cuanto se entra en el estadio: jugando no se ve ni una
   // ventana y tenerla encendida es gastar batería para nada.
-  if (vuelo?.estadio) world.verCiudad(false)
+  if (vuelo?.estadio && !fondoDeJuego(vuelo.cfg)) world.verCiudad(false)
   vuelo = null
   world.resize()
 }
@@ -2890,6 +2914,8 @@ function start (indice = nivelActual) {
   world.reiniciarAscensor()
   // Lo que arrastra el viento en este sitio, y por dónde vuelan las naves de paso.
   ambient.vestir(nivelDeHoy, world.alturaEn)
+  // Y otra vez cuando llegue el modelo del sitio, que es cuando se sabe lo que mide.
+  ambientePendiente = true
   billetesPartida = 0
   pintarBilletes()
   cuentas = null
@@ -3880,6 +3906,8 @@ if (import.meta.env.DEV) {
       empezarReto({ codigo: 'PRUEB', alias: 'Prueba', composicion, escenario: nivelActual }, oleadasDeReto(composicion))
     },
     render: () => resplandor.render(),
+    niveles: NIVELES,
+    ambiente: () => ambient.estado(),
     // Para medir llamadas de dibujo y triángulos (renderer.info).
     renderer,
     fuego,

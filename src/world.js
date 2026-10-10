@@ -1737,14 +1737,14 @@ float olaAgua (vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0
   // Tres tamaños, cada uno girado un poco para que no se vea la rejilla del ruido.
   vec2 q = vec2(p.x * 0.94 + p.y * 0.34, p.y * 0.94 - p.x * 0.34);
   float mar = olaAgua(vec2(p.x * 0.012, p.y * 0.05) + vec2(uT * 0.03, uT * 0.05)) - 0.5;
-  float ola = olaAgua(vec2(q.x * 0.045, q.y * 0.2) + vec2(-uT * 0.06, uT * 0.16)) - 0.5;
-  float rizo = olaAgua(vec2(p.x * 0.22, p.y * 0.95) + vec2(uT * 0.25, uT * 0.5)) - 0.5;
+  float ola = olaAgua(vec2(q.x * 0.07, q.y * 0.17) + vec2(-uT * 0.06, uT * 0.16)) - 0.5;
+  float rizo = olaAgua(vec2(p.x * 0.34, p.y * 0.8) + vec2(uT * 0.25, uT * 0.5)) - 0.5;
   float fina = ola * 0.8 * (1.0 - smoothstep(1.6, 5.0, tapa)) + rizo * 0.6 * (1.0 - smoothstep(0.35, 1.0, tapa));
   diffuseColor.rgb *= 1.0 + (mar * (1.0 - smoothstep(6.0, 22.0, tapa)) + fina) * 0.5;
   // Solo el filo de las olas pequeñas coge la luz del cielo (con el mar de fondo
   // en la cuenta salían charcos de color); hacia el horizonte, toda el agua.
   float filo = smoothstep(0.3, 0.4, fina);
-  diffuseColor.rgb = mix(diffuseColor.rgb, uClaro, filo * 0.3 + lejos * 0.5);
+  diffuseColor.rgb = mix(diffuseColor.rgb, uClaro, filo * 0.22 + lejos * 0.5);
 }`)
     }
     m.customProgramCacheKey = () => 'agua'
@@ -1771,12 +1771,17 @@ float olaAgua (vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0
     }
     m.customProgramCacheKey = () => 'mece'
   }
+  // Cómo se llama el agua en los modelos: `agua-*` en los nuevos, y en los de antes
+  // cada uno la suya (se miró mapa a mapa: mar, rio, sena, estanque, caribe…). Ojo
+  // con `marmol`, que también empieza por «mar». Un sitio con el agua HELADA lo
+  // dice con `agua: false` en el escenario (el Moscova de Moscú).
+  const ES_AGUA = /^(agua|mar($|-)|rio|laguna|lago|sena|estanque|ensenada|caribe|atlantico|bahia|piscina)/
   function conMovimiento (raiz, datos) {
     raiz.traverse(o => {
       if (!o.isMesh) return
       const m = o.material
-      if (m.userData.conMovimiento) return
-      if (/^agua/.test(m.name)) {
+      if (!m || m.userData.conMovimiento) return
+      if (datos.agua !== false && ES_AGUA.test(m.name)) {
         m.userData.conMovimiento = true
         hacerAgua(m, datos.agua)
       } else if (m.vertexColors && o.geometry.attributes.color?.itemSize === 4) {
@@ -1784,6 +1789,39 @@ float olaAgua (vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0
         hacerMecer(m)
       }
     })
+  }
+  // --- lo que mide un modelo de Blender, para lo que vuela -------------------------
+  // El mundo no sabía lo alto que es un sitio hecho en Blender (su modelo llega
+  // después de vestir la misión), y la nodriza y los exploradores lo atravesaban
+  // (Isidro, en Río: «las naves lo atraviesan»). Al llegar el modelo se apunta, en
+  // una rejilla de cuatro metros, lo más alto que hay en cada casilla: cada
+  // triángulo marca TODAS las casillas que pisa su caja (con solo los vértices, un
+  // muro largo dejaba el medio a cero). Lo consulta `alturaEn`.
+  function rejillaDeAlturas (piezas) {
+    const R = { x0: -60, z0: -160, paso: 4, nx: 30, nz: 41, h: new Float32Array(30 * 41) }
+    const a = new THREE.Vector3(); const b = new THREE.Vector3(); const c = new THREE.Vector3()
+    for (const raiz of piezas) {
+      raiz.updateMatrixWorld(true)
+      raiz.traverse(o => {
+        if (!o.isMesh || !o.geometry?.attributes.position) return
+        const m = o.material
+        if (m?.transparent || /^(cielo|brillo-haz)/.test(m?.name ?? '') || ES_AGUA.test(m?.name ?? '')) return
+        const p = o.geometry.attributes.position
+        const idx = o.geometry.index
+        const n = idx ? idx.count : p.count
+        for (let i = 0; i < n; i += 3) {
+          a.fromBufferAttribute(p, idx ? idx.getX(i) : i).applyMatrix4(o.matrixWorld)
+          b.fromBufferAttribute(p, idx ? idx.getX(i + 1) : i + 1).applyMatrix4(o.matrixWorld)
+          c.fromBufferAttribute(p, idx ? idx.getX(i + 2) : i + 2).applyMatrix4(o.matrixWorld)
+          const alto = Math.max(a.y, b.y, c.y)
+          if (alto < 1.5) continue
+          const i0 = Math.max(0, Math.floor((Math.min(a.x, b.x, c.x) - R.x0) / R.paso)); const i1 = Math.min(R.nx - 1, Math.floor((Math.max(a.x, b.x, c.x) - R.x0) / R.paso))
+          const j0 = Math.max(0, Math.floor((Math.min(a.z, b.z, c.z) - R.z0) / R.paso)); const j1 = Math.min(R.nz - 1, Math.floor((Math.max(a.z, b.z, c.z) - R.z0) / R.paso))
+          for (let j = j0; j <= j1; j++) for (let k = i0; k <= i1; k++) if (alto > R.h[j * R.nx + k]) R.h[j * R.nx + k] = alto
+        }
+      })
+    }
+    return R
   }
   // --- el ascensor del hangar (el portaaviones de Nueva York) --------------------
   // Los alienz nacen en el hangar, bajo la cubierta, donde no se ven; pasan a la
@@ -1842,7 +1880,7 @@ float olaAgua (vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0
   // Si el escenario se come el horizonte. Lo miran el bosque, los cerros y el
   // mobiliario de la carretera al final de `vestir`.
   let escenarioTapa = false
-  function ponerEscenario (nombre) {
+  function ponerEscenario (nombre, fondo = null) {
     for (const [n, g] of escenariosHechos) g.visible = n === nombre
     if (nombre && !escenariosHechos.has(nombre) && ESCENARIOS[nombre]) {
       const crudo = ESCENARIOS[nombre]()
@@ -1888,7 +1926,6 @@ float olaAgua (vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0
         const montar = gltf => {
           if (crudo.userData.luz) {
             esperas.push(conLuzHorneada(gltf.scene, ruta(crudo.userData.luz)))
-            conMovimiento(gltf.scene, crudo.userData)
           } else {
             gltf.scene.traverse(o => {
               if (!o.isMesh) return
@@ -1899,6 +1936,9 @@ float olaAgua (vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0
               o.castShadow = false
             })
           }
+          // El agua coge el color del cielo de la misión (el de su bruma) si el
+          // escenario no dice otro.
+          conMovimiento(gltf.scene, { agua: crudo.userData.agua ?? (fondo?.niebla != null ? { claro: fondo.niebla } : undefined) })
           return gltf.scene
         }
         // Nada se cuelga según llega: el modelo del sitio aparecía antes que sus
@@ -1924,6 +1964,7 @@ float olaAgua (vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0
         Promise.all(cargas).then(() => Promise.all(esperas))
           .then(async () => {
             for (const p of piezas) g.add(p)
+            g.userData.alturas = rejillaDeAlturas(piezas)
             // Antes de enseñarlo, las texturas subidas a la tarjeta y los
             // sombreadores compilados: si no, el primer fotograma que los dibuja
             // se atasca y aún se ve cómo entran. La ciudad también, encendida
@@ -2280,7 +2321,7 @@ float olaAgua (vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0
       '|' + (fondo ? JSON.stringify(fondo) : '')
     if (!b || llave === bioma) return
     bioma = llave
-    ponerEscenario(escenario)
+    ponerEscenario(escenario, fondo)
     // La nave estrellada tapaba justo el sitio de los monumentos.
     const estrellada = scene.getObjectByName('nave-estrellada')
     // Y tampoco dentro de un escenario: en el puente aparecia flotando sobre el mar.
@@ -2568,6 +2609,13 @@ float olaAgua (vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0
         for (const o of lista) {
           if (o.maxZ >= zMin && o.minZ <= zMax && o.maxX >= xMin && o.minX <= xMax) h = Math.max(h, o.maxY)
         }
+      }
+      // Lo que mide el modelo del sitio, si es de Blender (ver `rejillaDeAlturas`).
+      const R = escenarioVisto?.userData.alturas
+      if (R) {
+        const i0 = Math.max(0, Math.floor((xMin - R.x0) / R.paso)); const i1 = Math.min(R.nx - 1, Math.floor((xMax - R.x0) / R.paso))
+        const j0 = Math.max(0, Math.floor((zMin - R.z0) / R.paso)); const j1 = Math.min(R.nz - 1, Math.floor((zMax - R.z0) / R.paso))
+        for (let j = j0; j <= j1; j++) for (let k = i0; k <= i1; k++) h = Math.max(h, R.h[j * R.nx + k])
       }
       if (baseVisible?.visible) {
         // Sin el haz de luz: es transparente y sube setenta unidades, y con él en

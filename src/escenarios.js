@@ -890,6 +890,8 @@ function moscuPlaza () {
     sinSombra: true,
     sinCalzada: true,
     lejos: 470,
+    // El Moscova está helado: que no se mueva.
+    agua: false,
     hueco: { x: 7.6, zFondo: -78.0, zBorde: -62.0, hondo: 4.6 },
     baseX: 12.6,
     baseZ: -44
