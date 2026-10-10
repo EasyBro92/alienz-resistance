@@ -767,9 +767,16 @@ export const PAISES = [
         name: 'Río de Janeiro', llegada: 'rio', lugar: 'Corcovado · a los pies del Cristo', mapa: sitio(-22.95, -43.21), bioma: 'costa',
         // Hecho en Blender (herramientas/blender/lugar_rio.py): el mirador del Corcovado,
         // por la mañana, con la ciudad y la bahía abajo. Los alienz llegan en nave.
-        fondo: { hora: 'dia', cielo: 0x7cbcf2, niebla: 0xcfe2f0, nieblaCerca: 170, nieblaLejos: 540 },
+        // La niebla, muy abierta: la bahía y las sierras del fondo están a kilómetros
+        // y se ven jugando.
+        fondo: { hora: 'dia', cielo: 0x7cbcf2, niebla: 0xcfe2f0, nieblaCerca: 600, nieblaLejos: 13000, cupula: [0x2f6fd0, 0xbfe0f6] },
         escenario: 'rioCorcovado', suelo: 'losas', tonoSuelo: 0xb8b4ac, hitos: [],
         sinPajaros: true, sinNubes: true,
+        // Sin nodriza ni cápsulas (cruzaban la estatua y caían en el vacío), y los
+        // exploradores por los costados, bajo los brazos del Cristo.
+        naves: { nodriza: false, capsulas: false, exploradores: [8.8, 10.4] },
+        // Con la cámara más baja de este mapa se ve más cielo: la nave entra desde más arriba.
+        alturaNave: 24,
         resumen: 'La puerta del continente, y formas que no hemos visto.',
         parte: ['Entramos por la costa. Lo que guarda la entrada al continente se ha subido al mirador, a los pies del Cristo, y no se parece a nada anterior.',
           'Es lo último que han diseñado.'],

@@ -2232,11 +2232,11 @@ const PUERTOPLATA_PLANOS = [
 // Río (10/10): el Cristo de cerca y desde abajo, con los brazos abiertos contra
 // el cielo; la cámara retrocede por la terraza, sube y se abre a la bahía.
 const RIO_PLANOS = [
-  { k: 0, pos: [2, 3, -52], mira: [0, 9, -84] },
-  { k: 0.3, pos: [1, 10, -14], mira: [0, 7, -84] },
-  { k: 0.56, pos: [3, 30, 50], mira: [0, 2, -90] },
-  { k: 0.76, pos: [6, 36, 78], mira: [0, 5, -66] },
-  { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
+  { k: 0, pos: [5, 16, -62], mira: [0, 18, -100] },
+  { k: 0.3, pos: [2, 9, -22], mira: [0, 11, -100] },
+  { k: 0.56, pos: [3, 30, 50], mira: [0, 4, -100] },
+  { k: 0.76, pos: [6, 32, 76], mira: [0, 5, -66] },
+  { k: 0.9, pos: [-2, 20, 43], mira: [0, 3, -40] }
 ]
 // Manaos (10/10): el teatro de cerca y desde abajo, con la cúpula de azulejos
 // contra la tormenta; la cámara retrocede por la plaza subiendo a su sitio.
@@ -2279,7 +2279,7 @@ const LLEGADAS = {
   puntacana: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-puntacana-v1', niebla: { cerca: 900, lejos: 3600 }, lejos: 4600, planos: PUNTACANA_PLANOS },
   santodomingo: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-santodomingo-v1', niebla: { cerca: 900, lejos: 3600 }, lejos: 4600, planos: SANTODOMINGO_PLANOS },
   puertoplata: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-puertoplata-v1', niebla: { cerca: 900, lejos: 3600 }, lejos: 4600, planos: PUERTOPLATA_PLANOS },
-  rio: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-rio-v1', niebla: { cerca: 1200, lejos: 4200 }, lejos: 4800, planos: RIO_PLANOS },
+  rio: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-rio-v2', niebla: { cerca: 1500, lejos: 13000 }, lejos: 7600, planos: RIO_PLANOS },
   manaos: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-manaos-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: MANAOS_PLANOS },
   gizeh: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-gizeh-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: GIZEH_PLANOS },
   marsella: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-marsella-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: MARSELLA_PLANOS }
@@ -2864,6 +2864,7 @@ function start (indice = nivelActual) {
   FIELD.columnas = nivelDeHoy.columnas ?? null
   sinNave = !!dueloEnCurso || !!nivelDeHoy.entrada
   dropship.recolocar()
+  dropship.ponerAltura(nivelDeHoy.alturaNave)
   if (sinNave) dropship.ocultar()
   world.vestir(nivelDeHoy.bioma, nivelDeHoy.hitos, nivelDeHoy.suelo, nivelDeHoy.tonoSuelo, nivelDeHoy.escenario, nivelDeHoy.fondo)
   // Lo que arrastra el viento en este sitio, y por dónde vuelan las naves de paso.

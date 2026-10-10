@@ -575,6 +575,9 @@ export function createDropship (alFase) {
   let estado = 'oculta'
   // De qué altura y con qué giro empieza la bajada. Normalmente 13 y 0, pero si
   // la anterior sigue en pantalla se sigue desde donde esté (ver `llegar`).
+  // Desde dónde entra en ESTA misión: trece, salvo donde la cámara va más baja y se
+  // ve más cielo (Río), que desde trece aparecería de golpe en mitad de la pantalla.
+  let altura = ALTURA
   let alturaDesde = ALTURA
   let giroDesde = 0
   let t = 0
@@ -604,6 +607,7 @@ export function createDropship (alFase) {
   return {
     group,
     recolocar,
+    ponerAltura (n) { altura = n ?? ALTURA },
     // A qué altura está la plancha en un punto de la carretera. Cero fuera de
     // ella, así que se puede llamar siempre sin preguntar nada.
     // Media anchura por la que se puede bajar, con un margen para no pisar el
@@ -640,7 +644,7 @@ export function createDropship (alFase) {
       // Ahora se sigue desde donde esté: baja desde su altura y el giro se
       // deshace poco a poco durante la bajada.
       const enPantalla = group.visible && estado !== 'oculta'
-      alturaDesde = enPantalla ? Math.max(2, group.position.y) : ALTURA
+      alturaDesde = enPantalla ? Math.max(2, group.position.y) : altura
       // Por el camino corto: un giro de 4 radianes es -2,28, no 4.
       giroDesde = enPantalla ? Math.atan2(Math.sin(group.rotation.y), Math.cos(group.rotation.y)) : 0
       group.visible = true
@@ -724,7 +728,7 @@ export function createDropship (alFase) {
           break
         }
         case 'subiendo': {
-          group.position.y = ALTURA * easeInOut(Math.min(1, t / T_SUBIDA))
+          group.position.y = altura * easeInOut(Math.min(1, t / T_SUBIDA))
           // Se recogen nada más despegar, antes de que la nave empiece a girar.
           desplegarPatas(1 - Math.min(1, t / (T_SUBIDA * 0.35)))
           group.rotation.y += dt * 0.35

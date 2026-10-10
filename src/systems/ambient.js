@@ -337,6 +337,14 @@ export function createAmbient (scene) {
   // arco de la Galleria). Isidro: «que no vengan en naves». Y los exploradores
   // cruzaban justo por dentro de la galería.
   let sinNaves = false
+  // Y lo que cada misión quita o cambia de sitio (`naves` en campana.js): en Río
+  // la nodriza patrullaba por dentro del Cristo, los exploradores salían de detrás
+  // atravesándolo y las cápsulas «caían» en el vacío (Isidro: «las naves lo
+  // atraviesan… revisa el vuelo de las naves pequeñitas»). El mundo no sabe lo
+  // que mide un modelo de Blender (llega después), así que lo dice la misión.
+  let sinNodriza = false
+  let sinCapsulas = false
+  let ladoExplorador = null      // [x mínima, x máxima]: por un costado, no por el eje
 
   // Exploradores que cruzan el cielo de vez en cuando, con el haz encendido.
   const scouts = []
@@ -352,7 +360,10 @@ export function createAmbient (scene) {
   // hay nada contra lo que chocar, y así además se ven enteros.
   function launchScout (sc) {
     sc.dir = Math.random() < 0.5 ? 1 : -1
-    sc.ship.position.set(sc.dir * rand(1.5, 4), vueloExplorador.y + rand(-0.4, 0.4), -150)
+    // Por el eje pasan justo por encima de la nave de desembarco, y si esta baja o
+    // sube en ese momento la cruzan: donde hay sitio a los lados, van por un costado.
+    const x = ladoExplorador ? rand(ladoExplorador[0], ladoExplorador[1]) : rand(1.5, 4)
+    sc.ship.position.set(sc.dir * x, vueloExplorador.y + rand(-0.4, 0.4), -150)
     sc.ship.visible = true
     sc.active = true
     sc.speed = rand(14, 22)
@@ -547,6 +558,11 @@ export function createAmbient (scene) {
       const conValla = (suelo ?? 'carretera') === 'carretera' && !destino.arena
       for (const r of rags) r.mesh.visible = conValla
       sinNaves = !!destino.entrada
+      sinNodriza = destino.naves?.nodriza === false
+      sinCapsulas = destino.naves?.capsulas === false
+      ladoExplorador = destino.naves?.exploradores ?? null
+      if (sinCapsulas) for (const p of pods) { p.active = false; p.mesh.visible = false }
+      if (sinNodriza) mother.visible = false
       sinPajaros = !!destino.sinPajaros
       if (sinPajaros) {
         flockActive = false
@@ -607,7 +623,7 @@ export function createAmbient (scene) {
         }
         zNodriza = mejor.z
         alturaNodriza = Math.max(6, mejor.h + 3)
-        mother.visible = alturaNodriza <= 11 && !sinNaves
+        mother.visible = alturaNodriza <= 11 && !sinNaves && !sinNodriza
         if (mother.position.x < -40 || mother.position.x > 40) mother.position.x = -40
         for (const sc of scouts) {
           sc.active = false
@@ -661,7 +677,7 @@ export function createAmbient (scene) {
       for (const p of pods) {
         if (!p.active) {
           p.timer -= dt
-          if (p.timer <= 0) launchPod(p)
+          if (p.timer <= 0 && !sinCapsulas) launchPod(p)
           continue
         }
         p.mesh.position.addScaledVector(p.v, dt)

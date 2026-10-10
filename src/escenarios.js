@@ -1106,11 +1106,14 @@ function puertoPlataFortaleza () {
   return g
 }
 
-// Río de Janeiro: lo alto del Corcovado, a los pies del Cristo, por la mañana
+// Río de Janeiro: lo alto del Corcovado, ante el Cristo, por la mañana
 // (herramientas/blender/lugar_rio.py, 10/10; elegido por mí: antes era
-// Copacabana). El Cristo entero al fondo, a un tercio de su tamaño, con los
-// brazos abiertos; la terraza con sus balaustradas y la base alien en un mirador
-// volado. Abajo, en la llegada, la ciudad, el Pan de Azúcar y la bahía.
+// Copacabana). Isidro, de la primera versión: «el Cristo se ve muy pequeño y
+// poco detallado… baja un poco la cámara para que quepa, pero hazlo grande».
+// Por eso este mapa lleva `picado: 18` (lo normal son 25): al fondo caben 27 m
+// en vez de 13 y se ve cielo. El Cristo, esculpido y a 0,69 de su tamaño, en su
+// plazoleta al final de la escalinata; detrás, la zona sur, el Pan de Azúcar y
+// la bahía, que aquí se ven también jugando (`lejos` y la niebla, muy abiertos).
 function rioCorcovado () {
   const g = new THREE.Group()
   g.name = 'lugar:rioCorcovado'
@@ -1122,7 +1125,8 @@ function rioCorcovado () {
     tapaElMundo: true,
     sinSombra: true,
     sinCalzada: true,
-    lejos: 470,
+    picado: 18,
+    lejos: 7600,
     baseX: 12.6,
     baseZ: -44
   })

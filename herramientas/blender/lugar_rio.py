@@ -1,27 +1,35 @@
-# Río de Janeiro: lo alto del Corcovado, a los pies del Cristo (10/10/2026).
+# Río de Janeiro: lo alto del Corcovado, ante el Cristo (10/10/2026, rehecho el mismo día).
 #   blender -b -P herramientas/blender/lugar_rio.py              (entero)
 #   blender -b -P herramientas/blender/lugar_rio.py -- --rapido  (un minuto)
 #   blender -b -P herramientas/blender/lugar_rio.py -- --reusar  (retocar la luz)
 #
 # Sitio, entrada y hora elegidos por mí (Isidro, 10/10: «elige tú y sigue sin
-# parar»). Río es el Cristo Redentor con los brazos abiertos sobre la bahía. La
-# misión era Copacabana (el paseo, con el Cristo lejos, de adorno): ahora se juega
-# ARRIBA, en el mirador, con la estatua de frente. Los alienz, EN NAVE; por la
-# MAÑANA, con el día limpio.
+# parar»): ARRIBA, en el mirador, con la estatua de frente; los alienz EN NAVE;
+# por la MAÑANA. La primera versión llevaba el Cristo a un tercio de su tamaño,
+# hecho de cilindros, y a Isidro no le valió: «se ve muy pequeño y poco
+# detallado, haz más realista la pista también, las naves lo atraviesan, añade
+# elementos típicos del lugar». Preguntado: EN BLENDER (no con Meshy) y «baja un
+# poco la cámara para que quepa, pero hazlo grande».
 #
-# Cómo está puesto. Se mira a la estatua por la terraza:
-#   · EL CRISTO VA A UN TERCIO DE SU TAMAÑO (12,6 m con el pedestal; mide 38):
-#     entero, con los brazos abiertos (9,4 m de mano a mano), en el hueco que deja
-#     el marcador;
-#   · la terraza de piedra, ensanchada para los cinco carriles, con sus
-#     balaustradas, las farolas y los catalejos; la base alien, en un mirador
-#     redondo que vuela sobre el vacío a la derecha;
-#   · alrededor, nada: el monte cae a pico. Abajo, en la llegada, la selva de
-#     Tijuca, la ciudad, la laguna, el Pan de Azúcar y la bahía.
+# Cómo está puesto ahora:
+#   · LA CÁMARA DE ESTE MAPA VA MÁS BAJA (`picado: 18` en el escenario; lo normal
+#     son 25). Con eso al fondo caben 27 m de alto en vez de 13, y se ve cielo;
+#   · EL CRISTO VA A 0,69 DE SU TAMAÑO (26 m con el pedestal, 19 de mano a mano) y
+#     ESCULPIDO: las piezas se funden con un remallado por vóxeles y se alisan
+#     (túnica con sus pliegues, el manto, mangas colgando, manos con dedos, cabeza
+#     con pelo, barba y rasgos). Está en su plazoleta, tres metros por debajo del
+#     mirador, al final de una escalinata;
+#   · la terraza: losas de granito de foto, cada una de su tono, con la cenefa
+#     de olas de piedra portuguesa de las aceras de Río a los lados;
+#   · lo típico: el tren rojo del Corcovado en su apeadero, la bandera, el
+#     carrito de cocos, guacamayos en la balaustrada, ipês amarillos y palmeras;
+#   · detrás, y esto se ve JUGANDO: la zona sur, la laguna, las playas, el Pan
+#     de Azúcar, la bahía y las sierras del otro lado.
 
 import os, sys, math, random
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np
+import bpy, bmesh
 from horneado import *
 import horneado as H
 
@@ -29,48 +37,77 @@ SOL = (0.42, 0.62, 0.66)                 # media mañana: a la espalda y a la de
 iniciar('rio', 4433, eje=(0.0, -80.0), encendidas=0.0, reflejo=(0.1, 0.14, 0.2))
 
 BORDE = 9.6                              # la balaustrada de la terraza
-ZC = -84.0                               # el Cristo
+Z_FIN = -70.0                            # donde acaba la terraza y baja la escalinata
+ZC = -100.0                              # el Cristo
+Y_PLAZA = -3.0                           # su plazoleta
+ESCALA = 0.687                           # la estatua, respecto a la de verdad (30 m de figura, 8 de pedestal)
+ALTO_PED = 8.0 * ESCALA
 ABAJO = -230.0                           # el nivel del mar, visto desde arriba (el Corcovado, a escala)
 BASE = (12.6, -44.0)
 R_MIR = 5.9
+CAM = (0.0, 10.67, 23.83)                # la cámara de juego de este mapa (18° de picado)
+
+def polar (grados, d):
+    """Un punto del suelo a `d` metros de la cámara de juego y a tantos grados del eje
+    (la pantalla del móvil abarca ±11,6°): así se coloca el fondo por lo que se VE."""
+    a = math.radians(grados)
+    return d * math.sin(a), CAM[2] - d * math.cos(a)
 
 # ==================================================================================
 # 1. TEXTURAS Y MATERIALES
 # ==================================================================================
-PX0, PX1, PZ0, PZ1 = -9.2, 9.2, -61.6, 12.4
-PW, PH_ = 512, 2048
+PX0, PX1, PZ0, PZ1 = -9.2, 9.2, Z_FIN, 12.4
+PW, PH_ = 768, 3072
 KX, KZ = PW / (PX1 - PX0), PH_ / (PZ1 - PZ0)
 def a_px (x, z):
     return int(round((x - PX0) * KX)), int(round((z - PZ0) * KZ))
 
 def tex_pista ():
-    """La terraza: losas de granito gris claro con una greca de piedra negra y
-    blanca —el dibujo de olas de las aceras de Río— a cada lado."""
+    """La terraza: losas de granito gris, cada una de su tono, a hiladas; un
+    bordillo claro y, a cada lado, la cenefa de olas de piedra portuguesa (la
+    calçada de las aceras de Río). Encima, lo que deja el tiempo: verdín junto a
+    los bordes, charcos, grietas, rejillas y tres quemaduras."""
     tejar = lambda t: np.tile(t, (PH_ // t.shape[0] + 1, PW // t.shape[1] + 1, 1))[:PH_, :PW].copy()
-    a = tejar(foto('rock_tile_floor', 256, 0xb8b4ac, 0.5))
-    l = 1.0
-    f, fila = 0.0, 0
-    while f < PH_:
-        f0, f1 = int(f), int(min(PH_, f + l * KZ))
-        c = -(fila % 2) * l * KX / 2
-        while c < PW:
-            c0, c1 = int(max(0, c)), int(min(PW, c + l * KX))
-            if c1 > c0:
-                a[f0:f1, c0:c1] *= random.uniform(0.92, 1.06)
-                a[f0:f1, c0:c0 + 1] *= 0.7
-            c += l * KX
-        a[f0:f0 + 1] *= 0.7
-        fila += 1; f += l * KZ
+    mezcla = nube(PH_, PW, 30, 8)[..., None]
+    a = tejar(foto('concrete_floor_worn_001', 384, 0xb0aca2, 0.75)) * mezcla + tejar(foto('marble_01', 320, 0x9d9c99, 0.5)) * (1 - mezcla)
     yy, xx = np.mgrid[0:PH_, 0:PW].astype(np.float32)
     xs, zs = PX0 + xx / KX, PZ0 + yy / KZ
-    for s in (-1, 1):                                                    # la greca de olas, de piedra portuguesa
-        d = s * xs - 7.3
-        franja = np.abs(d) < 1.1
-        ola = (d + 0.5 * np.sin(zs * 2.2)) > 0
-        a[franja & ola] = np.array((0.1, 0.1, 0.1), np.float32) * (0.8 + 0.4 * nube(PH_, PW, 200, 60))[franja & ola][..., None]
-        a[franja & ~ola] = np.array((0.86, 0.85, 0.82), np.float32) * (0.9 + 0.2 * nube(PH_, PW, 200, 60))[franja & ~ola][..., None]
-    a *= (0.9 + 0.16 * nube(PH_, PW, 16, 4))[..., None]
-    def mancha (x, z, r_, k, forma=1.0):
+    X_LOSA = 7.25
+    cA, cB = a_px(-X_LOSA, 0)[0], a_px(X_LOSA, 0)[0]
+    z, alto_fila = PZ0, 0.86
+    while z < PZ1:
+        f0, f1 = int((z - PZ0) * KZ), int(min(PH_, (z + alto_fila - PZ0) * KZ))
+        x = -X_LOSA - random.uniform(0.0, 1.0)
+        while x < X_LOSA:
+            largo = random.uniform(0.9, 1.9)
+            c0, c1 = max(cA, a_px(x, 0)[0]), min(cB, a_px(x + largo, 0)[0])
+            if c1 > c0 + 3:
+                tono = random.uniform(0.9, 1.07) * (0.82 if random.random() < 0.06 else 1.0)       # alguna, repuesta con otra piedra
+                a[f0:f1, c0:c1] *= tono * np.array((1 + random.uniform(-0.025, 0.025), 1.0, 1 + random.uniform(-0.03, 0.03)), np.float32)
+                a[f0:f1, c0:c0 + 2] *= 0.52                                                      # la junta y su canto de luz
+                a[f0:f1, c0 + 2:c0 + 3] *= 1.12
+            x += largo
+        a[f0:f0 + 2, cA:cB] *= 0.52
+        a[f0 + 2:f0 + 3, cA:cB] *= 1.1
+        z += alto_fila
+    grano = E.rng.random((PH_, PW)).astype(np.float32)
+    for s in (-1, 1):
+        d = s * xs - X_LOSA
+        bordillo = (d >= 0) & (d < 0.25)
+        a[bordillo] = (np.array((0.74, 0.73, 0.7), np.float32) * (0.9 + 0.16 * grano[bordillo][..., None]))
+        a[bordillo & ((zs * (1 / 1.2)) % 1 < 0.03)] *= 0.55
+        banda = d >= 0.25
+        # Las olas de Copacabana: franjas negras y blancas que serpentean a lo largo.
+        negro = np.floor((d - 0.25 - 0.2 * np.sin(zs * 2 * math.pi / 3.4)) / 0.44) % 2 == 0
+        tesela = np.where(((xs * 7) % 1 < 0.16) | ((zs * 7) % 1 < 0.16), 0.78, 1.0) * (0.86 + 0.24 * grano)
+        a[banda & negro] = np.array((0.2, 0.2, 0.21), np.float32) * tesela[banda & negro][..., None] * 1.15
+        a[banda & ~negro] = np.array((0.8, 0.78, 0.72), np.float32) * tesela[banda & ~negro][..., None]
+    # El tiempo: suciedad a manchas grandes, el centro más pisado y verdín junto a los bordes.
+    a *= (0.86 + 0.22 * nube(PH_, PW, 24, 6))[..., None]
+    a *= (1 + 0.05 * np.exp(-(xs / 4.0) ** 2))[..., None]
+    verdin = np.clip((np.abs(xs) - 5.2) / 2.0, 0, 1) * np.clip((nube(PH_, PW, 44, 11) - 0.42) * 4, 0, 1) * 0.42
+    a = a * (1 - verdin[..., None]) + np.array((0.3, 0.36, 0.22), np.float32) * verdin[..., None]
+    def mancha (x, z, r_, k, forma=1.0, hacia=None):
         c, f_ = a_px(x, z)
         rc, rf = int(r_ * KX * forma) + 2, int(r_ * KZ) + 2
         y0, y1, x0, x1 = max(0, f_ - rf), min(PH_, f_ + rf), max(0, c - rc), min(PW, c + rc)
@@ -78,43 +115,113 @@ def tex_pista ():
             return
         my, mx = np.mgrid[y0:y1, x0:x1].astype(np.float32)
         d = np.hypot((mx - c) / (r_ * KX * forma), (my - f_) / (r_ * KZ))
-        a[y0:y1, x0:x1] *= (1 - (1 - k) * np.clip(1 - d, 0, 1) ** 1.5)[..., None]
-    for _ in range(30):
-        mancha(random.uniform(-6, 6), random.uniform(PZ0, PZ1), random.uniform(0.3, 1.0), random.uniform(0.82, 0.93), random.uniform(0.6, 1.5))
-    for x, z, r_ in ((-3.6, -14.0, 1.5), (4.0, -33.0, 1.6), (-1.0, -52.0, 1.4)):
-        mancha(x, z, r_ * 1.5, 0.8, 1.1)
-        mancha(x, z, r_, 0.4)
-    return guardar('pista', np.clip(a, 0, 1), 88)
+        m = ((1 - k) * np.clip(1 - d, 0, 1) ** 1.5)[..., None]
+        a[y0:y1, x0:x1] = a[y0:y1, x0:x1] * (1 - m) + (0 if hacia is None else np.array(hacia, np.float32) * m)
+    for _ in range(46):
+        mancha(random.uniform(-7, 7), random.uniform(PZ0, PZ1), random.uniform(0.3, 1.1), random.uniform(0.8, 0.93), random.uniform(0.6, 1.6))
+    for x, z, r_ in ((-4.4, -9.0, 1.2), (3.2, -27.0, 1.5), (-2.4, -47.0, 1.0), (5.4, 3.0, 0.9)):   # charcos: oscuros, con el cielo dentro
+        mancha(x, z, r_ * 1.25, 0.72, 1.4)
+        mancha(x, z, r_, 0.55, 1.4, hacia=(0.46, 0.58, 0.7))
+    for x, z, r_ in ((-3.6, -16.0, 1.5), (4.4, -36.0, 1.6), (-0.8, -55.0, 1.4)):                   # quemaduras
+        mancha(x, z, r_ * 1.6, 0.78, 1.1)
+        mancha(x, z, r_, 0.38)
+    for _ in range(26):                                                                         # grietas
+        x, z, rumbo = random.uniform(-7, 7), random.uniform(PZ0 + 1, PZ1 - 1), random.uniform(0, 6.28)
+        for _ in range(random.randint(30, 110)):
+            c, f_ = a_px(x, z)
+            if 2 < c < PW - 2 and 2 < f_ < PH_ - 2:
+                a[f_ - 1:f_ + 1, c - 1:c + 1] *= 0.55
+            rumbo += random.uniform(-0.5, 0.5)
+            x += 0.025 * math.cos(rumbo); z += 0.025 * math.sin(rumbo)
+    for x, z in ((-6.6, -4.0), (6.6, -22.0), (-6.6, -40.0), (6.6, -58.0)):                          # rejillas de desagüe
+        (c0, f0), (c1, f1) = a_px(x - 0.3, z - 0.2), a_px(x + 0.3, z + 0.2)
+        a[f0:f1, c0:c1] = (0.07, 0.07, 0.07)
+        a[f0:f1, c0:c1:4] = (0.3, 0.3, 0.3)
+    return guardar('pista', np.clip(a, 0, 1), 86)
 
 def tex_esteatita ():
     """La piel del Cristo: teselas de esteatita, gris verdoso muy claro, con las aguas de la lluvia."""
-    n = 128
-    a = lienzo(n, n, (0.74, 0.76, 0.7)) * (0.9 + 0.14 * nube(n, n, 4, 4))[..., None]
-    a[::8] *= 0.94; a[:, ::8] *= 0.94
-    a *= (0.92 + 0.1 * nube(2, n, 1, 20)[0])[None, :, None]
+    n = 256
+    a = lienzo(n, n, (0.78, 0.8, 0.74)) * (0.88 + 0.16 * nube(n, n, 6, 6))[..., None]
+    a *= (0.93 + 0.1 * E.rng.random((n, n)).astype(np.float32))[..., None]
+    a *= (0.86 + 0.16 * nube(2, n, 1, 24)[0])[None, :, None]                # chorreras verticales
     return guardar('esteatita', np.clip(a, 0, 1), 88)
+
+def tex_bandera ():
+    a, elipse, poligono, trazo = lienzo_dibujo(180, 256, (0.0, 0.42, 0.18))
+    poligono([(128, 16), (236, 90), (128, 164), (20, 90)], (0.98, 0.82, 0.05))
+    elipse(128, 90, 42, 42, (0.04, 0.14, 0.5))
+    trazo([(88, 82), (108, 80), (128, 84), (148, 92), (168, 104)], (0.95, 0.95, 0.95), 3.5)
+    return guardar('bandera', a, 88)
+
+def tex_tren ():
+    """El costado del tren del Corcovado: rojo, con la franja de ventanas."""
+    a, elipse, poligono, trazo = lienzo_dibujo(64, 256, (0.7, 0.07, 0.06))
+    a[38:] = (0.5, 0.05, 0.05)
+    a[58:] = (0.08, 0.08, 0.08)
+    a[10:13] = (0.9, 0.86, 0.72)
+    for c in range(8, 250, 30):
+        a[15:34, c:c + 22] = (0.1, 0.14, 0.17)
+        a[15:19, c:c + 22] = (0.36, 0.46, 0.52)
+    return guardar('tren', a, 88)
+
+def tex_ciudad ():
+    """La zona sur desde arriba: manzanas de azoteas claras entre calles, con algún parque."""
+    n = 512
+    a = lienzo(n, n, (0.3, 0.31, 0.31))
+    p = n // 8
+    for i in range(8):
+        for j in range(8):
+            t = random.random()
+            c = (0.2, 0.34, 0.16) if t < 0.1 else random.choice(((0.62, 0.6, 0.56), (0.56, 0.54, 0.5), (0.66, 0.6, 0.52), (0.5, 0.5, 0.52), (0.6, 0.44, 0.36)))
+            a[i * p + 5:(i + 1) * p - 5, j * p + 5:(j + 1) * p - 5] = c
+            for _ in range(5):                                             # las casas de cada manzana
+                y, x = i * p + random.randint(6, p - 22), j * p + random.randint(6, p - 22)
+                a[y:y + random.randint(8, 16), x:x + random.randint(8, 16)] *= random.uniform(0.8, 1.15)
+    a *= (0.9 + 0.2 * nube(n, n, 5, 5))[..., None]
+    return guardar('ciudad', np.clip(a, 0, 1), 84)
+
+def tex_mar ():
+    n = 256
+    a = lienzo(n, n, (0.13, 0.4, 0.6)) * (0.9 + 0.2 * nube(n, n, 5, 5))[..., None]
+    a *= (0.97 + 0.06 * E.rng.random((n, n)).astype(np.float32))[..., None]
+    return guardar('mar', np.clip(a, 0, 1), 86)
 
 PISTA = material('pista', tex_pista(), rug=0.9)
 GRANITO = material('granito', de_polyhaven('rock_tile_floor', 512, 0xb8b4ac, 0.5), rug=0.9)
 ESTEATITA = material('esteatita', tex_esteatita(), rug=0.7)
 ROCA = material('roca', de_polyhaven('rock_face_03', 512, 0x74706a, 0.6), rug=1.0)
+BANDERA = material('bandera', tex_bandera(), rug=0.9)
+TREN = material('tren', tex_tren(), rug=0.5)
+CIUDAD_S = material('ciudad-suelo', tex_ciudad(), rug=1.0)
+MAR = material('mar', tex_mar(), rug=0.2)
 # OJO: los colores lisos van en LINEAL.
 PIEDRA_C = material('esteatita-lisa', color=(0.5, 0.52, 0.46), rug=0.7)
 NEGRO = material('negro', color=(0.01, 0.01, 0.012))
 HIERRO = material('hierro', color=(0.03, 0.035, 0.03), rug=0.6)
 FAROL = material('farol', color=(0.9, 0.86, 0.72), rug=0.3)
 BRONCE = material('bronce', color=(0.08, 0.07, 0.04), rug=0.5)
-RESINA = material('resina', color=(0.02, 0.03, 0.022), rug=0.5)
 VERDE = material('brillo-verde', color=(0.25, 1.0, 0.45), emite=2.2)
 SELVA = [material(f'selva-{i}', color=c, rug=1.0) for i, c in enumerate([(0.03, 0.1, 0.03), (0.04, 0.13, 0.04), (0.06, 0.16, 0.05)])]
+IPE = material('ipe', color=(0.85, 0.6, 0.03), rug=1.0)                              # el ipê amarillo, en flor
 TRONCO = material('tronco', color=(0.07, 0.05, 0.04))
+MADERA = material('madera', color=(0.16, 0.1, 0.05), rug=0.9)
+COCO = material('coco', color=(0.1, 0.3, 0.05), rug=0.7)
+AMARILLO = material('amarillo', color=(0.9, 0.62, 0.02), rug=0.8)
+VERDE_B = material('verde-bandera', color=(0.0, 0.3, 0.08), rug=0.8)
+TECHO_T = material('techo-tren', color=(0.6, 0.58, 0.52), rug=0.6)
+HORMIGON = material('hormigon', color=(0.42, 0.41, 0.39), rug=1.0)
+PLUMA = {k: material(f'pluma-{k}', color=c, rug=0.8) for k, c in
+         dict(rojo=(0.75, 0.03, 0.02), azul=(0.02, 0.16, 0.7), oro=(0.95, 0.6, 0.02), negro=(0.02, 0.02, 0.02), blanco=(0.9, 0.9, 0.86)).items()}
 MONTE_S = material('monte-selva', color=(0.05, 0.14, 0.06), rug=1.0)
 MONTE_R = material('monte-roca', color=(0.3, 0.28, 0.26), rug=1.0)
-MONTE_L = material('monte-lejos', color=(0.3, 0.38, 0.46), rug=1.0)
-BAHIA = material('bahia', color=(0.16, 0.42, 0.6), rug=0.1)                           # el mar, desde arriba (va sin luz)
+MONTE_L = material('monte-lejos', color=(0.22, 0.32, 0.4), rug=1.0)
 LAGUNA = material('laguna', color=(0.14, 0.34, 0.44), rug=0.1)
 ARENA = material('arena-playa', color=(0.86, 0.8, 0.62), rug=1.0)
-CIUDAD = [material(f'ciudad-{i}', color=c, rug=0.9) for i, c in enumerate([(0.52, 0.5, 0.46), (0.44, 0.44, 0.44), (0.54, 0.48, 0.4), (0.38, 0.4, 0.44)])]
+BOSQUE = material('bosque-llano', color=(0.06, 0.17, 0.07), rug=1.0)
+CIUDAD = [material(f'ciudad-{i}', color=c, rug=0.9) for i, c in enumerate([(0.42, 0.4, 0.37), (0.34, 0.34, 0.35), (0.44, 0.37, 0.3), (0.28, 0.3, 0.34), (0.5, 0.48, 0.44)])]   # apagados: claros y en fila parecían lápidas
+FAVELA = [material(f'favela-{i}', color=c, rug=0.9) for i, c in enumerate([(0.6, 0.3, 0.2), (0.7, 0.55, 0.3), (0.3, 0.45, 0.6), (0.65, 0.62, 0.55), (0.5, 0.25, 0.3), (0.3, 0.5, 0.35)])]
+ALA = [material(f'ala-{i}', color=c, rug=0.8) for i, c in enumerate([(0.9, 0.2, 0.05), (0.95, 0.8, 0.05)])]
 NUBE = material('nube', color=(0.9, 0.92, 0.95), rug=1.0)
 CIELO = material('cielo', tex_cielo(
     [(0.0, (0.82, 0.9, 0.96)), (0.07, (0.66, 0.84, 0.98)), (0.25, (0.4, 0.68, 0.96)), (0.6, (0.2, 0.48, 0.9)), (1.0, (0.1, 0.34, 0.8))],
@@ -125,14 +232,10 @@ print('TEXTURAS', round(time.time() - H.E.t0, 1), 's')
 # 2. LA TERRAZA
 # ==================================================================================
 Z_ATRAS = 60.0                                                                      # de aquí hacia atrás, las escaleras
-Z_FIN = ZC - 10.0
 rect('P', PISTA, PX0, PX1, PZ0, PZ1, 0.0, uvs=[(0, 0), (1, 0), (1, 1), (0, 1)])
-rect('P', GRANITO, PX0, PX1, Z_FIN, PZ0, 0.0, 3.0)
 rect('P', GRANITO, PX0, PX1, PZ1, Z_ATRAS, 0.0, 3.0)
 for s in (-1, 1):
     rect('P', GRANITO, min(s * 9.2, s * (BORDE + 0.4)), max(s * 9.2, s * (BORDE + 0.4)), Z_FIN, Z_ATRAS, 0.0, 3.0)
-    cara('P', ROCA, [P(s * (BORDE + 0.4), Z_ATRAS, -8.0), P(s * (BORDE + 0.4), Z_FIN, -8.0), P(s * (BORDE + 0.4), Z_FIN, 0.0), P(s * (BORDE + 0.4), Z_ATRAS, 0.0)], hacia=V((s, 0, 0)), baldosa=5.0)
-en_mirador = lambda z: abs(z - BASE[1]) < R_MIR - 0.4
 def balaustrada (s, z0, z1):
     viga('P', GRANITO, min(s * BORDE, s * (BORDE + 0.36)), max(s * BORDE, s * (BORDE + 0.36)), z0, z1, 0.0, 0.3, u_m=2.0, techo=GRANITO)
     viga('P', GRANITO, min(s * BORDE, s * (BORDE + 0.36)), max(s * BORDE, s * (BORDE + 0.36)), z0, z1, 0.9, 1.06, u_m=2.0, techo=GRANITO)
@@ -149,7 +252,7 @@ def farola (x, z, alto=4.4):
 def catalejo (x, z, s):
     barra('EV', HIERRO, P(x, z, 0.0), P(x, z, 1.3), 0.12)
     barra('EV', BRONCE, P(x - s * 0.1, z, 1.4), P(x + s * 0.5, z, 1.56), 0.2)
-for z in np.arange(4.0, -62.0, -16.0):
+for z in np.arange(4.0, -66.0, -16.0):
     farola(-9.0, float(z))
     catalejo(-9.1, float(z) - 6.0, -1)
     if abs(z - BASE[1]) > 9.0:
@@ -158,7 +261,7 @@ for z in np.arange(4.0, -62.0, -16.0):
 N_M = 28
 circ = [(BASE[0] + R_MIR * math.cos(2 * math.pi * i / N_M), BASE[1] + R_MIR * math.sin(2 * math.pi * i / N_M)) for i in range(N_M)]
 MIRADOR = material('mirador', imagen_de(GRANITO), rug=0.9)
-prisma('P', ROCA, circ, -8.0, 0.05, techo=MIRADOR, baldosa=4.0)
+prisma('P', ROCA, circ, -44.0, 0.05, techo=MIRADOR, baldosa=4.0)
 for i in range(N_M):
     (ax, az), (bx, bz) = circ[i], circ[(i + 1) % N_M]
     if (ax + bx) / 2 > BORDE + 0.6:
@@ -167,94 +270,339 @@ for i in range(N_M):
     f = lambda x, z, k: P(BASE[0] + (x - BASE[0]) * k, BASE[1] + (z - BASE[1]) * k, 0.08)
     cara('EP', VERDE, [f(ax, az, 0.86), f(bx, bz, 0.86), f(bx, bz, 0.82), f(ax, az, 0.82)], hacia=ARRIBA)
 
-# ==================================================================================
-# 3. EL CRISTO REDENTOR
-# ==================================================================================
-# El pedestal, con la capilla dentro, y su escalinata.
-for k, (m, y0, y1) in enumerate(((5.0, 0.0, 0.3), (4.5, 0.3, 0.6), (4.0, 0.6, 0.9))):
-    viga('P', GRANITO, -m, m, ZC - m, ZC + m, y0, y1, u_m=2.0, techo=GRANITO)
-Y_P = 2.9
-torno('P', GRANITO, en(0.0, ZC, 0.9), [(1.9, 0.0), (1.8, 0.2), (1.55, Y_P - 1.1), (1.75, Y_P - 0.9)], lados=8, u_rep=4, v_m=2.0, tapas=(False, True))
-cara('EP', NEGRO, [P(-0.4, ZC + 1.72, 0.9), P(0.4, ZC + 1.72, 0.9), P(0.4, ZC + 1.66, 2.0), P(0.0, ZC + 1.64, 2.3), P(-0.4, ZC + 1.66, 2.0)], hacia=V((0, -1, 0)))   # la puerta de la capilla
-# La túnica: un cuerpo de revolución aplastado, que se abre abajo y se ciñe en la cintura.
-m_cuerpo = en(0.0, ZC, Y_P) @ M.Diagonal((1.0, 0.72, 1.0, 1))
-torno('P', ESTEATITA, m_cuerpo, [(1.25, 0.0), (1.12, 0.6), (0.98, 2.4), (0.9, 4.4), (0.96, 5.6), (1.1, 6.5), (0.86, 7.2), (0.42, 7.6)], lados=14, u_rep=6, v_m=2.0, tapas=(True, False))
-for k in range(7):                                                                   # los pliegues de la túnica, a bulto
-    a_ = math.pi * (0.2 + 0.1 * k)
-    barra('EV', PIEDRA_C, P(1.1 * math.cos(a_), ZC + 0.82 * math.sin(a_), Y_P + 0.1), P(0.86 * math.cos(a_), ZC + 0.66 * math.sin(a_), Y_P + 4.6), 0.1)
-# La cabeza, algo inclinada, con el pelo y la barba.
-Y_H = Y_P + 8.3
-elipsoide('P', ESTEATITA, en(0.0, ZC, Y_P + 7.7), (0.36, 0.34, 0.4))                   # el cuello
-elipsoide('P', ESTEATITA, en(0.0, ZC + 0.12, Y_H, 0.0, (0.16, 0.0)), (0.5, 0.52, 0.66), sub=2)
-elipsoide('EV', PIEDRA_C, en(0.0, ZC - 0.16, Y_H + 0.1), (0.56, 0.5, 0.62))            # el pelo
-elipsoide('EV', PIEDRA_C, en(0.0, ZC + 0.34, Y_H - 0.42), (0.3, 0.26, 0.3))            # la barba
-RASGO = material('rasgo', color=(0.2, 0.2, 0.17), rug=1.0)                          # ojos, cejas y boca: piezas pequeñas, sin luz
-for s in (-1, 1):
-    elipsoide('EP', RASGO, en(s * 0.19, ZC + 0.6, Y_H + 0.1), (0.09, 0.03, 0.04))
-    bloque('EP', RASGO, en(s * 0.19, ZC + 0.58, Y_H + 0.2), (0.2, 0.04, 0.035), mella=0.0)
-bloque('P', ESTEATITA, en(0.0, ZC + 0.6, Y_H - 0.12), (0.1, 0.14, 0.3), mella=0.0)    # la nariz
-bloque('EP', RASGO, en(0.0, ZC + 0.56, Y_H - 0.3), (0.2, 0.04, 0.03), mella=0.0)
-# Los brazos, abiertos en cruz, con las mangas colgando y las manos.
-Y_B = Y_P + 6.7
-for s in (-1, 1):
-    hombro, codo, mano = P(s * 0.9, ZC, Y_B), P(s * 2.9, ZC, Y_B + 0.05), P(s * 4.3, ZC, Y_B - 0.05)
-    barra('P', ESTEATITA, hombro, codo, 0.74)
-    barra('P', ESTEATITA, codo, mano, 0.56)
-    cara('P', ESTEATITA, [P(s * 0.9, ZC + 0.1, Y_B - 0.3), P(s * 3.9, ZC + 0.1, Y_B - 0.26), P(s * 3.5, ZC + 0.1, Y_B - 1.0), P(s * 1.0, ZC + 0.1, Y_B - 1.5)] if s > 0 else
-         [P(s * 3.9, ZC + 0.1, Y_B - 0.26), P(s * 0.9, ZC + 0.1, Y_B - 0.3), P(s * 1.0, ZC + 0.1, Y_B - 1.5), P(s * 3.5, ZC + 0.1, Y_B - 1.0)], hacia=V((0, -1, 0)), baldosa=1.0)
-    cara('P', ESTEATITA, [P(s * 3.9, ZC - 0.1, Y_B - 0.26), P(s * 0.9, ZC - 0.1, Y_B - 0.3), P(s * 1.0, ZC - 0.1, Y_B - 1.5), P(s * 3.5, ZC - 0.1, Y_B - 1.0)] if s > 0 else
-         [P(s * 0.9, ZC - 0.1, Y_B - 0.3), P(s * 3.9, ZC - 0.1, Y_B - 0.26), P(s * 3.5, ZC - 0.1, Y_B - 1.0), P(s * 1.0, ZC - 0.1, Y_B - 1.5)], hacia=V((0, 1, 0)), baldosa=1.0)
-    elipsoide('P', ESTEATITA, en(s * 4.62, ZC, Y_B - 0.08), (0.36, 0.12, 0.22))        # la mano, abierta
-print('CRISTO', round(Y_H + 0.7, 2), 'm; de mano a mano', 2 * 4.98)
+# --- lo típico -------------------------------------------------------------------
+# La bandera, en su mástil (por encima de los cuatro metros: debajo andan los alienz).
+barra('EV', HIERRO, P(-9.3, -34.0, 0.0), P(-9.3, -34.0, 7.6), 0.14)
+cara('EP', BANDERA, [P(-9.2, -34.0, 5.6), P(-6.5, -34.0, 5.6), P(-6.5, -34.0, 7.5), P(-9.2, -34.0, 7.5)], uvs=[(0, 0), (1, 0), (1, 1), (0, 1)], hacia=V((0, -1, 0)))
+cara('EP', BANDERA, [P(-9.2, -34.02, 5.6), P(-6.5, -34.02, 5.6), P(-6.5, -34.02, 7.5), P(-9.2, -34.02, 7.5)], uvs=[(0, 0), (1, 0), (1, 1), (0, 1)], hacia=V((0, 1, 0)))
+# El carrito de agua de coco, con su sombrilla.
+def carrito (x, z, s):
+    viga('EV', MADERA, x - 0.6, x + 0.6, z - 0.4, z + 0.4, 0.35, 1.0, tapas=True)
+    for dx, dz in ((-0.5, 0.45), (0.5, 0.45)):
+        torno('EV', HIERRO, en(x + dx, z + dz, 0.3, 0.0, (math.pi / 2, 0.0)), [(0.3, -0.04), (0.3, 0.04)], lados=10)
+    for k in range(9):
+        elipsoide('EV', COCO, en(x - 0.4 + 0.2 * (k % 5), z - 0.15 + 0.3 * (k // 5), 1.1 + 0.02 * (k % 2)), (0.13, 0.13, 0.15))
+    x_s = x + s * 0.7                                                                 # la sombrilla, del lado de la balaustrada
+    barra('EV', HIERRO, P(x_s, z, 0.0), P(x_s, z, 2.5), 0.06)
+    for k in range(8):                                                               # la sombrilla, a gajos verdes y amarillos
+        a0, a1 = 2 * math.pi * k / 8, 2 * math.pi * (k + 1) / 8
+        cara('EV', AMARILLO if k % 2 else VERDE_B, [P(x_s, z, 2.7), P(x_s + 1.05 * math.cos(a0), z + 1.05 * math.sin(a0), 2.3), P(x_s + 1.05 * math.cos(a1), z + 1.05 * math.sin(a1), 2.3)], hacia=ARRIBA)
+carrito(-8.3, -11.0, -1)
+carrito(8.3, -24.0, 1)
+# Guacamayos en la balaustrada: el rojo y el azul y amarillo.
+def guacamayo (x, z, y, cuerpo, pecho, giro):
+    c, s = math.cos(giro), math.sin(giro)
+    elipsoide('EV', PLUMA[cuerpo], en(x, z, y + 0.3, giro, (0.5, 0.0)), (0.13, 0.15, 0.26))
+    elipsoide('EV', PLUMA[pecho], en(x - s * 0.05, z + c * 0.05, y + 0.28, giro, (0.5, 0.0)), (0.1, 0.12, 0.2))
+    elipsoide('EV', PLUMA[cuerpo], en(x - s * 0.08, z + c * 0.08, y + 0.58), (0.11, 0.11, 0.11))
+    elipsoide('EV', PLUMA['blanco'], en(x - s * 0.16, z + c * 0.16, y + 0.57), (0.06, 0.06, 0.07))
+    barra('EV', PLUMA['negro'], P(x - s * 0.17, z + c * 0.17, y + 0.56), P(x - s * 0.27, z + c * 0.27, y + 0.46), 0.07)
+    barra('EV', PLUMA[cuerpo], P(x + s * 0.1, z - c * 0.1, y + 0.16), P(x + s * 0.3, z - c * 0.3, y - 0.42), 0.09)
+for x, z, cu, pe, g in ((-9.78, -18.0, 'rojo', 'oro', 1.4), (-9.78, -19.0, 'azul', 'oro', 1.8), (9.78, -30.5, 'azul', 'oro', -1.5), (-9.78, -52.0, 'rojo', 'azul', 1.2), (9.78, -8.0, 'rojo', 'oro', -1.7)):
+    guacamayo(x, z, 1.06, cu, pe, g)
+# Bancos de piedra, pegados a la balaustrada.
+for s, z in ((-1, -2.0), (1, -14.0), (-1, -26.0), (-1, -44.0), (1, -58.0)):
+    viga('P', GRANITO, min(s * 8.3, s * 9.1), max(s * 8.3, s * 9.1), z - 1.1, z + 1.1, 0.42, 0.56, u_m=2.0, techo=GRANITO)
+    for dz in (-0.8, 0.8):
+        viga('P', GRANITO, min(s * 8.45, s * 8.95), max(s * 8.45, s * 8.95), z + dz - 0.12, z + dz + 0.12, 0.0, 0.42, u_m=2.0, tapas=False)
+# El tren del Corcovado en su apeadero, a la izquierda y por debajo de la terraza.
+X_TREN, Y_VIA = -12.9, -4.3
+viga('FV', HORMIGON, -15.6, -9.96, -66.0, -14.0, Y_VIA - 0.6, Y_VIA, u_m=3.0)
+for dx in (-0.6, 0.6):
+    barra('FV', HIERRO, P(X_TREN + dx, -66.0, Y_VIA + 0.08), P(X_TREN + dx, -14.0, Y_VIA + 0.08), 0.12)
+for z0 in (-62.0, -47.0):
+    viga('EV', TREN, X_TREN - 1.3, X_TREN + 1.3, z0, z0 + 14.0, Y_VIA + 0.35, Y_VIA + 3.1, u_m=14.0, techo=TECHO_T)
+    viga('EV', TECHO_T, X_TREN - 0.9, X_TREN + 0.9, z0 + 0.6, z0 + 13.4, Y_VIA + 3.1, Y_VIA + 3.32, tapas=True)
+for z in np.arange(-30.0, -15.0, 4.0):                                               # la marquesina del andén
+    barra('FV', HIERRO, P(-10.6, float(z), Y_VIA), P(-10.6, float(z), Y_VIA + 3.0), 0.12)
+viga('FV', TECHO_T, -12.2, -10.1, -31.0, -16.0, Y_VIA + 3.0, Y_VIA + 3.15, tapas=True)
 
-comprobar_paso(('E', 'EP', 'P', 'EV'))
+# ==================================================================================
+# 3. LA ESCALINATA Y EL CRISTO REDENTOR
+# ==================================================================================
+# Del final de la terraza baja una escalinata a la plazoleta de la estatua.
+N_ESC = 15
+for k in range(N_ESC):
+    y1 = -k * (-Y_PLAZA / N_ESC)
+    viga('K', GRANITO, -7.0, 7.0, Z_FIN - 0.42 * (k + 1), Z_FIN - 0.42 * k, y1 + Y_PLAZA / N_ESC - 0.4, y1 + Y_PLAZA / N_ESC, u_m=2.0, techo=GRANITO)
+for s in (-1, 1):                                                                    # el frente de la terraza, a los lados de la escalinata
+    viga('P', GRANITO, min(s * 7.0, s * (BORDE + 0.36)), max(s * 7.0, s * (BORDE + 0.36)), Z_FIN - 0.36, Z_FIN, 0.0, 1.06, u_m=2.0, techo=GRANITO)
+R_PLAZA = 14.0
+plaza = [(-7.0, Z_FIN - 6.0), (7.0, Z_FIN - 6.0)] + [(R_PLAZA * math.sin(a), ZC + R_PLAZA * math.cos(a)) for a in np.linspace(0.5, 2 * math.pi - 0.5, 30)]
+PLAZA = material('plaza', imagen_de(GRANITO), rug=0.9)
+prisma('K', ROCA, plaza, -40.0, Y_PLAZA, techo=PLAZA, baldosa=4.0)
+for i in range(2, len(plaza) - 1):                                                   # su barandilla
+    (ax, az), (bx, bz) = plaza[i], plaza[i + 1]
+    barra('EV', PIEDRA_C, P(ax, az, Y_PLAZA + 1.0), P(bx, bz, Y_PLAZA + 1.0), 0.2)
+    barra('EV', PIEDRA_C, P(ax, az, Y_PLAZA), P(ax, az, Y_PLAZA + 1.0), 0.16)
+# El pedestal, con la capilla dentro.
+Y_PIES = Y_PLAZA + ALTO_PED
+for m, y0, y1 in ((4.4, 0.0, 0.3), (4.0, 0.3, 0.6)):
+    viga('K', GRANITO, -m, m, ZC - m, ZC + m, Y_PLAZA + y0, Y_PLAZA + y1, u_m=2.0, techo=GRANITO)
+torno('K', GRANITO, en(0.0, ZC, Y_PLAZA + 0.6, math.pi / 8), [(3.5, 0.0), (3.3, 0.4), (2.9, ALTO_PED - 1.3), (3.15, ALTO_PED - 1.0), (3.15, ALTO_PED - 0.6)], lados=8, u_rep=6, v_m=2.0, tapas=(False, True))
+cara('EP', NEGRO, [P(-0.6, ZC + 3.2, Y_PLAZA + 0.6), P(0.6, ZC + 3.2, Y_PLAZA + 0.6), P(0.6, ZC + 3.1, Y_PLAZA + 2.3), P(0.0, ZC + 3.05, Y_PLAZA + 2.8), P(-0.6, ZC + 3.1, Y_PLAZA + 2.3)], hacia=V((0, -1, 0)))
+
+# --- la estatua, esculpida ---------------------------------------------------------
+# Se modela en metros de la estatua de verdad (pies en z = 0, mirando a -Y de
+# Blender, que es hacia la cámara) con piezas cerradas que se pisan; un remallado
+# por vóxeles las funde en una sola piel, se alisa y se aligera.
+Z_ = V((0, 0, 1))
+def esfera (bm, c, r, giro=None):
+    bmesh.ops.create_uvsphere(bm, u_segments=20, v_segments=12, radius=1.0,
+                              matrix=M.Translation(c) @ (giro or M.Identity(4)) @ M.Diagonal((r[0], r[1], r[2], 1)))
+def tubo (bm, pts, secs, lados=16):
+    """Un tubo cerrado por `pts`, de sección elíptica: `secs` da en cada punto el
+    radio hacia arriba (hacia X si el tubo es vertical) y el otro."""
+    pts = [V(p) for p in pts]
+    if not isinstance(secs[0], tuple):
+        secs = [(r, r) for r in secs]
+    aros, n = [], len(pts)
+    for i, p in enumerate(pts):
+        t = (pts[min(i + 1, n - 1)] - pts[max(i - 1, 0)]).normalized()
+        u = Z_ - t * Z_.dot(t)
+        if u.length < 0.2:
+            u = V((1, 0, 0)) - t * t.x
+        u.normalize()
+        v = t.cross(u)
+        aros.append([bm.verts.new(p + u * secs[i][0] * math.cos(2 * math.pi * k / lados) + v * secs[i][1] * math.sin(2 * math.pi * k / lados)) for k in range(lados)])
+    for i in range(n - 1):
+        for k in range(lados):
+            j = (k + 1) % lados
+            bm.faces.new([aros[i][k], aros[i][j], aros[i + 1][j], aros[i + 1][k]])
+    bm.faces.new(aros[0]); bm.faces.new(aros[-1])
+
+NIV = [(0.0, 3.2, 2.5), (0.5, 3.25, 2.55), (2.5, 2.95, 2.3), (8.0, 2.7, 2.05), (13.0, 2.5, 1.9), (16.5, 2.45, 1.8), (19.0, 2.7, 1.9),
+       (21.5, 3.0, 2.0), (23.6, 3.3, 1.85), (24.9, 2.9, 1.6), (25.6, 1.3, 1.1), (26.0, 0.8, 0.8)]
+def radios_tunica (z):
+    for (z0, a0, b0), (z1, a1, b1) in zip(NIV, NIV[1:]):
+        if z <= z1:
+            f = (z - z0) / (z1 - z0)
+            return a0 + (a1 - a0) * f, b0 + (b1 - b0) * f
+    return NIV[-1][1], NIV[-1][2]
+def en_tunica (ang, z, k=1.0):
+    rx, ry = radios_tunica(z)
+    return V((rx * k * math.cos(ang), ry * k * math.sin(ang), z))
+
+def piezas_cuerpo (bm):
+    tubo(bm, [(0, 0, z) for z, _, _ in NIV], [(rx, ry) for _, rx, ry in NIV], lados=32)
+    for s in (-1, 1):                                                                # los pies, asomando bajo la túnica
+        esfera(bm, V((s * 0.95, -2.45, 0.32)), (0.55, 0.75, 0.32))
+    # Los pliegues de la túnica: cordones verticales medio hundidos en la tela.
+    n = 30
+    for k in range(n):
+        ang = 2 * math.pi * (k + 0.5 * random.random()) / n
+        alto = random.uniform(10.0, 16.5) if math.sin(ang) < 0 else random.uniform(14.0, 21.0)
+        zs = np.linspace(0.15, alto, 7)
+        gr = random.uniform(0.2, 0.28)
+        tubo(bm, [en_tunica(ang + 0.02 * math.sin(z * 0.5 + k), z, 0.975) for z in zs], [gr * (1 - 0.6 * (i / 6) ** 2) for i in range(7)], lados=10)
+    # El manto: tres caídas en U de hombro a hombro, por delante, y la banda del pecho.
+    for hondo, gr in ((3.2, 0.27), (5.6, 0.3), (8.2, 0.3)):
+        pts = []
+        for t in np.linspace(-1, 1, 15):
+            x, z = 2.75 * t, 24.4 - hondo * (1 - t * t) ** 0.8
+            rx, ry = radios_tunica(z)
+            pts.append(V((x, -ry * math.sqrt(max(0.05, 1 - (x / rx) ** 2)) * 1.0, z)))
+        tubo(bm, pts, [gr] * 15, lados=10)
+    tubo(bm, [V((2.7, -1.25, 24.6)), V((1.3, -1.85, 22.6)), V((-0.6, -1.95, 20.0)), V((-2.0, -1.6, 17.6)), V((-2.5, -0.9, 16.2))], [(0.75, 0.3)] * 5, lados=12)
+    for s in (-1, 1):
+        # El brazo dentro de la manga, ancha.
+        tubo(bm, [(s * 2.2, 0, 24.3), (s * 5.0, 0, 24.45), (s * 8.5, 0, 24.4), (s * 11.6, 0, 24.25)], [(1.6, 1.35), (1.45, 1.2), (1.35, 1.1), (1.3, 1.05)], lados=20)
+        esfera(bm, V((s * 3.2, 0.1, 24.5)), (1.9, 1.6, 1.5))                         # el hombro
+        tubo(bm, [(s * 10.8, 0, 24.3), (s * 12.7, -0.05, 24.2)], [(0.66, 0.58), (0.5, 0.42)], lados=12)
+        # La mano, abierta, con la palma al frente.
+        esfera(bm, V((s * 13.05, -0.1, 24.15)), (0.78, 0.27, 0.64))
+        for j in range(4):
+            zf = 24.15 + (j - 1.5) * 0.3
+            tubo(bm, [(s * 13.4, -0.12, zf), (s * (14.05 - abs(j - 1.6) * 0.14), -0.2, zf - 0.04)], [0.16, 0.115], lados=8)
+        tubo(bm, [(s * 12.8, -0.15, 24.6), (s * 13.35, -0.3, 25.1)], [0.18, 0.12], lados=8)
+        # La manga que cuelga: una cortina de pliegues, más larga junto al cuerpo.
+        # (Con dieciséis pliegues largos y acabados en punta parecían las plumas de un ala.)
+        n = 24
+        for i in range(n):
+            f = i / (n - 1)
+            x = 2.9 + (11.3 - 2.9) * f
+            zb = 20.3 + (22.3 - 20.3) * f ** 0.8 + 0.1 * math.sin(i * 1.9)
+            dy = 0.07 * (-1) ** i
+            tubo(bm, [(s * x, dy, 24.2), (s * x, dy, (24.2 + zb) / 2), (s * x, dy, zb + 0.3), (s * x, dy, zb)], [(0.42, 0.66), (0.42, 0.58), (0.4, 0.5), (0.3, 0.4)], lados=10)
+
+def piezas_cabeza (bm):
+    esfera(bm, V((0, 0, 0)), (1.2, 1.4, 1.75))                                       # el cráneo
+    esfera(bm, V((0, -0.42, -0.85)), (0.98, 1.0, 1.15))                              # la cara, hacia la barbilla
+    esfera(bm, V((0, 0.3, 0.18)), (1.4, 1.42, 1.78))                                 # el pelo, por arriba y por detrás
+    esfera(bm, V((0, 0.95, -1.5)), (1.35, 0.85, 1.7))
+    for s in (-1, 1):
+        # La melena, cayendo a los hombros en dos mechones por lado.
+        tubo(bm, [(s * 1.12, -0.25, 0.9), (s * 1.3, -0.1, -0.3), (s * 1.42, 0.1, -1.5), (s * 1.6, 0.2, -2.7)], [(0.5, 0.75), (0.48, 0.8), (0.5, 0.75), (0.4, 0.55)], lados=12)
+        tubo(bm, [(s * 0.6, -0.95, 1.25), (s * 1.12, -0.8, 0.5), (s * 1.3, -0.62, -0.7), (s * 1.38, -0.5, -1.9)], [0.3, 0.3, 0.27, 0.2], lados=10)
+        tubo(bm, [(s * 0.12, -1.28, 0.3), (s * 0.5, -1.33, 0.4), (s * 0.95, -1.12, 0.26)], [0.15, 0.17, 0.13], lados=8)   # la ceja
+        esfera(bm, V((s * 0.47, -1.2, 0.0)), (0.27, 0.13, 0.12))                     # el párpado
+        esfera(bm, V((s * 0.62, -1.0, -0.42)), (0.42, 0.4, 0.4))                     # el pómulo
+        esfera(bm, V((s * 0.2, -1.5, -0.56)), (0.14, 0.13, 0.11))                    # la aleta de la nariz
+        tubo(bm, [(s * 0.04, -1.5, -0.74), (s * 0.4, -1.38, -0.84), (s * 0.72, -1.14, -1.06)], [0.15, 0.14, 0.1], lados=8)   # el bigote
+        esfera(bm, V((s * 0.5, -0.92, -1.35)), (0.5, 0.5, 0.62))                     # la barba, por los lados
+    tubo(bm, [(0, -1.3, 0.32), (0, -1.48, -0.1), (0, -1.66, -0.52)], [(0.14, 0.14), (0.16, 0.17), (0.2, 0.22)], lados=10)    # la nariz
+    esfera(bm, V((0, -1.36, -1.0)), (0.3, 0.14, 0.09))                               # el labio de abajo
+    esfera(bm, V((0, -1.05, -1.62)), (0.72, 0.6, 0.72))                              # la barba
+    esfera(bm, V((0, -1.12, -2.2)), (0.4, 0.36, 0.42))
+    tubo(bm, [(0, 0.15, -1.2), (0, 0.3, -3.0)], [(0.85, 0.85), (0.95, 0.95)], lados=14)   # el cuello
+
+def esculpir (nombre, piezas, voxel, caras, m4, alisar=2):
+    bm = bmesh.new()
+    piezas(bm)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    me = bpy.data.meshes.new(nombre)
+    bm.to_mesh(me); bm.free()
+    o = bpy.data.objects.new(nombre, me)
+    bpy.context.collection.objects.link(o)
+    bpy.ops.object.select_all(action='DESELECT')
+    o.select_set(True); bpy.context.view_layer.objects.active = o
+    r = o.modifiers.new('fundir', 'REMESH'); r.mode = 'VOXEL'; r.voxel_size = voxel; r.adaptivity = 0.0
+    bpy.ops.object.modifier_apply(modifier=r.name)
+    a = o.modifiers.new('alisar', 'SMOOTH'); a.factor = 0.6; a.iterations = alisar
+    bpy.ops.object.modifier_apply(modifier=a.name)
+    antes = len(o.data.polygons)
+    d = o.modifiers.new('aligerar', 'DECIMATE'); d.ratio = min(1.0, caras / max(1, antes * 2))
+    bpy.ops.object.modifier_apply(modifier=d.name)
+    me = o.data
+    me.transform(m4)
+    me.update()
+    # La textura, proyectada por la cara que más mira a cada eje (en metros del sitio).
+    uv = me.uv_layers.new(name='UVMap')
+    B = 5.0
+    for p in me.polygons:
+        p.use_smooth = True
+        nx, ny, nz = abs(p.normal.x), abs(p.normal.y), abs(p.normal.z)
+        for li in p.loop_indices:
+            c = me.vertices[me.loops[li].vertex_index].co
+            uv.data[li].uv = (c.x / B, c.y / B) if nz > 0.75 else ((c.y / B, c.z / B) if nx > ny else (c.x / B, c.z / B))
+    me.materials.append(ESTEATITA)
+    H.importados.setdefault('K', []).append(o)
+    print('ESCULPIDO', nombre, antes, '->', len(me.polygons), 'caras')
+    return o
+
+A_SITIO = M.Translation(P(0.0, ZC, Y_PIES)) @ M.Diagonal((ESCALA, ESCALA, ESCALA, 1))
+esculpir('cristo-cuerpo', piezas_cuerpo, 0.09, 10000, A_SITIO, alisar=3)
+# La cabeza, aparte y con el vóxel más fino; algo inclinada hacia delante.
+esculpir('cristo-cabeza', piezas_cabeza, 0.04, 4200, A_SITIO @ M.Translation((0, -0.35, 27.95)) @ M.Rotation(math.radians(9), 4, 'X'), alisar=1)
+ALTO_CRISTO = Y_PIES + 29.8 * ESCALA
+print('CRISTO: cabeza a', round(ALTO_CRISTO, 2), 'm; de mano a mano', round(28.1 * ESCALA, 2), '; brazos a', round(Y_PIES + 24.3 * ESCALA, 2))
+
+comprobar_paso(('E', 'EP', 'P', 'EV', 'K'))
 
 # ==================================================================================
-# 4. EL MONTE Y LO QUE SE VE DESDE ARRIBA (solo en el vuelo)
+# 4. EL MONTE Y LO QUE SE VE DESDE ARRIBA (jugando también: va en el modelo de juego)
 # ==================================================================================
-# El Corcovado: el pico de roca que sostiene la terraza, y sus faldas de selva.
-monte('T', MONTE_R, 0.0, -20.0, 210.0, -26.0 - ABAJO, y0=ABAJO, seg=16, anillos=6, pico=1.0)
-monte('T', MONTE_S, -30.0, 30.0, 330.0, 150.0, y0=ABAJO, seg=18, anillos=5, pico=0.9)
+# La roca que sostiene la terraza: paredes a pico y, debajo, el monte.
+contorno = [(-(BORDE + 0.4), Z_ATRAS), (BORDE + 0.4, Z_ATRAS), (BORDE + 0.4, Z_FIN - 0.4), (-(BORDE + 0.4), Z_FIN - 0.4)]
+prisma('FV', ROCA, contorno, -44.0, -0.02, baldosa=5.0)
+prisma('FV', ROCA, [(-7.0, Z_FIN - 0.3), (7.0, Z_FIN - 0.3), (7.0, Z_FIN - 6.4), (-7.0, Z_FIN - 6.4)], -44.0, Y_PLAZA - 0.3, baldosa=5.0)
+monte('FV', MONTE_R, 0.0, -10.0, 190.0, -26.0 - ABAJO, y0=ABAJO, seg=16, anillos=6, pico=1.0)
+monte('FV', MONTE_R, 0.0, -98.0, 150.0, -30.0 - ABAJO, y0=ABAJO, seg=16, anillos=6, pico=1.0)
+monte('FV', MONTE_S, -30.0, -120.0, 760.0, 150.0, y0=ABAJO, seg=18, anillos=5, pico=0.9)
 for cx, cz, radio, alto in ((-330.0, 180.0, 380.0, 170.0), (260.0, 330.0, 420.0, 190.0), (-520.0, -160.0, 360.0, 130.0), (520.0, 60.0, 380.0, 150.0), (-160.0, 620.0, 460.0, 210.0)):
-    monte('T', MONTE_S, cx, cz, radio, alto, y0=ABAJO, seg=18, anillos=5, pico=0.9)     # el macizo de Tijuca
-for _ in range(90):                                                                  # las copas más altas, pegadas a la terraza
-    a_, d = random.uniform(0, 6.28), random.uniform(16.0, 60.0)
-    x, z = d * math.cos(a_), -20.0 + d * math.sin(a_) * 1.6
-    if abs(x) < BORDE + 6.0 and Z_FIN - 4.0 < z < Z_ATRAS + 4.0:
+    monte('FV', MONTE_S, cx, cz, radio, alto, y0=ABAJO, seg=18, anillos=5, pico=0.9)     # el macizo de Tijuca
+def fuera_de_todo (x, z, margen=1.5):
+    if abs(x) < BORDE + margen and Z_FIN - margen < z < Z_ATRAS + margen:
+        return False
+    if math.hypot(x, z - ZC) < R_PLAZA + margen or (abs(x) < 7.0 + margen and ZC < z < Z_FIN):
+        return False
+    if math.hypot(x - BASE[0], z - BASE[1]) < R_MIR + margen:
+        return False
+    return not (-17.0 - margen < x < -9.0 and -68.0 - margen < z < -12.0 + margen)    # el apeadero
+n_copas = 0
+for _ in range(900):                                                                 # la selva, pegada a la roca
+    x, z = random.uniform(-70, 70), random.uniform(-150, 90)
+    r = random.uniform(2.6, 5.0)
+    if not fuera_de_todo(x, z, r + 0.6):                                             # que ninguna copa asome por un suelo
         continue
-    copa('T', random.choice(SELVA), x, z, -10.0 - 0.5 * math.hypot(x, z + 20.0) * 0.3, random.uniform(4.0, 7.0), random.uniform(3.0, 4.6), sub=1)
-# La ciudad, abajo: la bahía, la laguna, las playas y los barrios entre los morros.
-rect('CP', BAHIA, -3200.0, 3200.0, -3200.0, 3200.0, ABAJO, 400.0)
-LLANO = material('llano', color=(0.3, 0.34, 0.3), rug=1.0)
-rect('CP', LLANO, -900.0, 900.0, -1100.0, -170.0, ABAJO + 0.5, 200.0)                   # la zona sur, al frente
-rect('CP', LAGUNA, -420.0, -120.0, -520.0, -300.0, ABAJO + 1.0, 100.0)                   # la laguna Rodrigo de Freitas
-rect('CP', ARENA, -900.0, 500.0, -1140.0, -1100.0, ABAJO + 1.0, 100.0)                   # Ipanema y Copacabana
-n_ed = 0
-for gx in np.arange(-860.0, 860.0, 30.0):
-    for gz in np.arange(-1080.0, -200.0, 30.0):
-        if (-440.0 < gx < -100.0 and -540.0 < gz < -280.0) or random.random() < 0.3:
-            continue
-        a = random.uniform(6.0, 10.0)
-        alto = random.uniform(8.0, 30.0)
-        cubo('CP', random.choice(CIUDAD), P(gx + 15, gz + 15, ABAJO + 0.5 + alto / 2), (2 * a, 2 * a, alto))
-        n_ed += 1
-print('EDIFICIOS', n_ed)
-# El Pan de Azúcar y el morro de Urca, en la boca de la bahía; y los morros de alrededor.
-monte('T', MONTE_R, 620.0, -1350.0, 150.0, 260.0, y0=ABAJO, seg=14, anillos=7, pico=0.42)
-monte('T', MONTE_R, 470.0, -1220.0, 130.0, 130.0, y0=ABAJO, seg=14, anillos=5, pico=0.5)
-for cx, cz, radio, alto in ((-760.0, -900.0, 190.0, 180.0), (150.0, -760.0, 150.0, 120.0), (-200.0, -1020.0, 120.0, 100.0), (900.0, -700.0, 260.0, 160.0)):
-    monte('T', MONTE_S, cx, cz, radio, alto, y0=ABAJO, seg=14, anillos=5, pico=0.6)
-for cx, cz, radio, alto in ((1500.0, -2400.0, 1100.0, 260.0), (-1900.0, -1700.0, 1000.0, 300.0), (2400.0, -600.0, 1000.0, 320.0), (-600.0, 2400.0, 1300.0, 380.0)):   # las sierras del otro lado de la bahía
-    monte('T', MONTE_L, cx, cz, radio, alto, y0=ABAJO, seg=18, anillos=5, pico=0.9)
-for _ in range(14):                                                                  # jirones de nube por debajo de la terraza
-    x, z = random.uniform(-700.0, 700.0), random.uniform(-900.0, 500.0)
-    if math.hypot(x, z + 20.0) < 120.0:
+    d = max(abs(x) - BORDE, 0.0) if Z_FIN < z < Z_ATRAS else math.hypot(max(abs(x) - BORDE, 0.0), min(abs(z - Z_FIN), abs(z - Z_ATRAS)))
+    if z < Z_FIN:
+        d = min(d, max(0.0, math.hypot(x, z - ZC) - R_PLAZA))
+    if d > 46 or random.random() < d / 60:
         continue
-    y = random.uniform(-150.0, -60.0)
-    for _ in range(5):
-        elipsoide('T', NUBE, en(x + random.uniform(-40, 40), z + random.uniform(-30, 30), y + random.uniform(-6, 6)), (random.uniform(30, 60), random.uniform(24, 44), random.uniform(8, 14)))
+    y = -4.5 - d * 0.75 - random.uniform(0, 3) + (Y_PLAZA if z < Z_FIN else 0.0)
+    copa('FV', IPE if random.random() < 0.05 else random.choice(SELVA), x, z, y, r, r * random.uniform(0.6, 0.85), sub=1)
+    n_copas += 1
+for x, z, alto, y in ((-12.4, -6.0, 9.0, -6.0), (-13.5, 4.0, 10.0, -7.0), (12.2, -12.0, 8.0, -6.5), (13.0, -64.0, 9.0, -7.0), (-12.0, -74.0, 9.0, -8.0), (12.6, 6.0, 9.5, -7.0), (-17.5, -40.0, 9.0, -9.0)):
+    palmera('FV', TRONCO, SELVA[1:], x, z, alto=alto, y=y)
+print('COPAS', n_copas)
 
-cupula('CP', CIELO, 3300.0, 0.0, -80.0)
+# El mar, y la zona sur al frente: la ciudad entre los morros, la laguna y las playas.
+rect('FP', MAR, -7600.0, 7600.0, -7600.0, 7600.0, ABAJO, 700.0)
+rect('FP', BOSQUE, -2600.0, 2600.0, -1000.0, 2600.0, ABAJO + 3.0, 300.0)               # Tijuca, a la espalda y al pie
+def costa (x):
+    return -2560.0 - 110.0 * math.cos(x / 330.0) - 70.0 * math.sin(x / 140.0 + 1.0)
+xs_c = list(np.arange(-2600.0, 2601.0, 100.0))
+for x0, x1 in zip(xs_c, xs_c[1:]):
+    cara('FP', CIUDAD_S if abs(x0 + 50) < 1500 else BOSQUE, [P(x0, -1000.0, ABAJO + 4.0), P(x1, -1000.0, ABAJO + 4.0), P(x1, costa(x1), ABAJO + 4.0), P(x0, costa(x0), ABAJO + 4.0)], hacia=ARRIBA, baldosa=480.0)
+    cara('FP', ARENA, [P(x0, costa(x0) + 6.0, ABAJO + 6.0), P(x1, costa(x1) + 6.0, ABAJO + 6.0), P(x1, costa(x1) - 34.0, ABAJO + 6.0), P(x0, costa(x0) - 34.0, ABAJO + 6.0)], hacia=ARRIBA)
+lx, lz = polar(-6.5, 2330.0)                                                         # la laguna Rodrigo de Freitas
+cara('FP', LAGUNA, [P(lx + 230 * math.cos(a) * (1 + 0.12 * math.sin(3 * a)), lz + 130 * math.sin(a), ABAJO + 8.0) for a in np.linspace(0, 2 * math.pi, 22)[:-1]], hacia=ARRIBA)
+morros = []
+for grados, d, radio, alto, mat, pico in (
+        (-10.4, 2640.0, 120.0, 200.0, MONTE_R, 0.55), (-8.9, 2570.0, 105.0, 150.0, MONTE_R, 0.6),      # Dois Irmãos
+        (10.2, 2300.0, 170.0, 150.0, MONTE_S, 0.7), (3.4, 2380.0, 140.0, 100.0, MONTE_S, 0.7), (-2.6, 2470.0, 120.0, 90.0, MONTE_S, 0.7),
+        (-17.0, 2200.0, 260.0, 190.0, MONTE_S, 0.8), (17.0, 2100.0, 260.0, 170.0, MONTE_S, 0.8), (150.0 / 20, 700.0, 130.0, 95.0, MONTE_S, 0.7)):
+    x, z = polar(grados, d)
+    morros.append((x, z, radio, monte('FV', mat, x, z, radio, alto, y0=ABAJO, seg=14, anillos=6, pico=pico)))
+# El Pan de Azúcar y el morro de Urca, en la boca de la bahía, sobre su lengua de tierra.
+px, pz = polar(6.6, 3300.0)
+ux, uz = polar(4.3, 3080.0)
+monte('FV', MONTE_R, px, pz, 115.0, 205.0, y0=ABAJO, seg=14, anillos=8, pico=0.4)
+monte('FV', MONTE_R, ux, uz, 110.0, 95.0, y0=ABAJO, seg=14, anillos=5, pico=0.5)
+cara('FP', BOSQUE, [P(ux - 150, costa(ux) + 10, ABAJO + 4.0), P(ux + 260, costa(ux) + 10, ABAJO + 4.0), P(px + 150, pz - 120, ABAJO + 4.0), P(px - 60, pz - 150, ABAJO + 4.0), P(ux - 170, uz - 60, ABAJO + 4.0)], hacia=ARRIBA)
+barra('FV', HIERRO, P(ux, uz, ABAJO + 98.0), P(px, pz, ABAJO + 207.0), 0.8)            # el cable del bondinho
+cubo('FV', AMARILLO, P((ux + px) / 2, (uz + pz) / 2, ABAJO + 148.0), (7.0, 7.0, 5.0))
+def en_un_morro (x, z, margen=0.0):
+    return any(math.hypot(x - mx, z - mz) < r + margen for mx, mz, r, _ in morros)
+n_ed = 0
+for gx in np.arange(-1500.0, 1500.0, 60.0):
+    for gz in np.arange(-2640.0, -1040.0, 60.0):
+        x, z = gx + 30.0, gz + 30.0
+        orilla = z < costa(x) + 260.0
+        if z < costa(x) + 30.0 or en_un_morro(x, z) or math.hypot((x - lx) / 250.0, (z - lz) / 150.0) < 1.0 or random.random() > (0.8 if orilla else 0.3):
+            continue
+        a = random.uniform(11.0, 17.0)
+        alto = random.uniform(24.0, 46.0) if orilla else random.uniform(8.0, 24.0)
+        cubo('FV', random.choice(CIUDAD), P(x + random.uniform(-16, 16), z + random.uniform(-16, 16), ABAJO + 4.0 + alto / 2), (a, a * random.uniform(0.7, 1.5), alto), random.choice((0.0, 0.0, 0.5)))
+        n_ed += 1
+# Las favelas, subiendo por la falda de dos morros.
+n_fav = 0
+for mx, mz, radio, altura in (morros[2], morros[7]):
+    for _ in range(90):
+        a, d = random.uniform(0.2, 2.9), random.uniform(0.45, 0.95) * radio                # la cara que mira a la cámara
+        x, z = mx + d * math.cos(a), mz + d * math.sin(a)
+        y = altura(x, z)
+        if y is None:
+            continue
+        t = random.uniform(6.0, 10.0)
+        cubo('FV', random.choice(FAVELA), P(x, z, y + t * 0.3), (t, t, t * 0.8), random.uniform(0, 1.5))
+        n_fav += 1
+print('EDIFICIOS', n_ed, 'FAVELA', n_fav)
+# Las islas de fuera, y las sierras del otro lado de la bahía cerrando el horizonte.
+for grados, d, radio, alto in ((-4.0, 4000.0, 100.0, 60.0), (-0.8, 4300.0, 80.0, 45.0), (2.6, 4500.0, 110.0, 70.0), (-13.0, 3900.0, 120.0, 60.0)):
+    x, z = polar(grados, d)
+    monte('FV', MONTE_L, x, z, radio, alto, y0=ABAJO, seg=12, anillos=4, pico=0.7)
+for g0, d0, g1, d1, alto in ((-42.0, 5200.0, -9.0, 5600.0, 330.0), (-13.0, 5900.0, 14.0, 5700.0, 360.0), (10.0, 5500.0, 44.0, 5200.0, 340.0), (-80.0, 4200.0, -40.0, 5000.0, 300.0), (40.0, 5000.0, 80.0, 4200.0, 300.0)):
+    (x0, z0), (x1, z1) = polar(g0, d0), polar(g1, d1)
+    sierra('FV', MONTE_L, x0, z0, x1, z1, 520.0, alto, y0=ABAJO)
+monte('FV', MONTE_L, -600.0, 3000.0, 1500.0, 400.0, y0=ABAJO, seg=18, anillos=5, pico=0.9)
+for _ in range(16):                                                                  # jirones de nube por debajo de la terraza
+    x, z = random.uniform(-900.0, 900.0), random.uniform(-1400.0, 500.0)
+    if math.hypot(x, z + 20.0) < 160.0 or (abs(x) < 260.0 and z < 0.0):
+        continue
+    y = random.uniform(-170.0, -70.0)
+    for _ in range(5):
+        elipsoide('FV', NUBE, en(x + random.uniform(-40, 40), z + random.uniform(-30, 30), y + random.uniform(-6, 6)), (random.uniform(30, 60), random.uniform(24, 44), random.uniform(8, 14)))
+# Dos alas delta, planeando sobre la selva.
+for (x, z, y, giro, mat) in ((-52.0, -150.0, -12.0, 0.5, ALA[0]), (70.0, -230.0, -30.0, -0.7, ALA[1])):
+    c, s = math.cos(giro), math.sin(giro)
+    pt = lambda a, b, h=0.0: P(x + a * c - b * s, z + a * s + b * c, y + h)
+    cara('EP', mat, [pt(0, 3.0, 0.4), pt(-5.0, -2.0), pt(0, -0.6, 0.2)], hacia=ARRIBA)
+    cara('EP', mat, [pt(0, 3.0, 0.4), pt(0, -0.6, 0.2), pt(5.0, -2.0)], hacia=ARRIBA)
+    barra('EV', NEGRO, pt(0, 0.6, -1.2), pt(0, -1.2, -1.3), 0.4)
+
+cupula('CP', CIELO, 7000.0, 0.0, -80.0)
 
 # ==================================================================================
 # 5. HORNEAR Y EXPORTAR
@@ -262,12 +610,14 @@ cupula('CP', CIELO, 3300.0, 0.0, -80.0)
 terminar(
     grupos={
         'P': ('luzS-pista', 'atlas', 'luzS'),
+        'K': ('luzK-cristo', 'atlas', 'luzK'),
         'EV': ('vert-cerca', 'vert', None),
         'EP': ('planoE', 'plano', None),
-        'T': ('vertT', 'vert', None),
+        'FV': ('vert-lejos', 'vert', None),
+        'FP': ('planoF', 'plano', None),
         'CP': ('planoC', 'plano', None),
     },
-    exportes=[('lugar-rio', ['P', 'EV', 'EP']), ('lugar-rio-ciudad', ['T', 'CP'])],
+    exportes=[('lugar-rio', ['P', 'K', 'EV', 'EP', 'FV', 'FP']), ('lugar-rio-ciudad', ['CP'])],
     # De día, la receta de Salónica: sol fuerte y algo dorado, cielo muy flojo.
     sol_hacia=SOL, sol_color=(1.0, 0.9, 0.72), sol_fuerza=7.5, cielo_fuerza=0.12, cielo_altura=42, cielo_giro=150,
-    escala=0.62, satura=0.9, no_alumbran=('CP',), suaves=('monte-selva', 'monte-roca', 'monte-lejos', 'nube'), fundir=True)
+    escala=0.62, satura=0.9, no_alumbran=('CP', 'FP'), suaves=('monte-selva', 'monte-roca', 'monte-lejos', 'nube'), fundir=True)

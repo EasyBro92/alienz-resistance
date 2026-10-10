@@ -1322,7 +1322,12 @@ export function createWorld (canvas) {
     const dist = Math.max(needed, 26)
     // 30° dejaba una franja de cielo del 3%: no cabía nada volando. A 25° entra
     // cielo suficiente para que los pájaros y las nubes se vean de verdad.
-    const pitch = THREE.MathUtils.degToRad(25)
+    // Un sitio puede pedir la cámara más BAJA (`picado` en el escenario, en grados):
+    // con 25° el borde de arriba de la pantalla queda bajo el horizonte y al fondo
+    // solo caben trece metros de alto. Isidro, en Río: «baja un poco la cámara para
+    // que quepa [el Cristo], pero hazlo grande». La cámara gira alrededor del mismo
+    // punto del campo, así que la línea de la base no se mueve de su sitio.
+    const pitch = THREE.MathUtils.degToRad(escenarioVisto?.userData.picado ?? 25)
     camera.position.set(0, camTarget.y + Math.sin(pitch) * dist, camTarget.z + Math.cos(pitch) * dist)
     camera.lookAt(camTarget)
     camera.updateProjectionMatrix()
@@ -1865,7 +1870,8 @@ export function createWorld (canvas) {
     // ver el cielo liso (Isidro, en Marsella: «se ven de fondo espacios en
     // blanco»). La cúpula del cielo no escribe profundidad, así que no estorba.
     camera.far = escenarioVisto?.userData.lejos ?? 200
-    camera.updateProjectionMatrix()
+    // Y la cámara a su sitio, por si este escenario la pide con otro picado.
+    resize()
   }
 
   // --- la escalera de la grada -----------------------------------------------
