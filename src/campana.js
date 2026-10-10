@@ -670,9 +670,13 @@ export const PAISES = [
         waves: OLEADAS.contraflujo
       },
       {
-        name: 'Guadalajara', lugar: 'Plaza de Armas · frente a la catedral', mapa: sitio(20.66, -103.35),
-        // Los portales con arcadas y la catedral de teja amarilla. Antes era «periférico, salida sur».
-        escenario: 'guadalajara', suelo: 'adoquin', tonoSuelo: 0xbdb2a2, hitos: [['catedralGdl']],
+        name: 'Guadalajara', llegada: 'guadalajara', lugar: 'Plaza de Armas · frente a la catedral', mapa: sitio(20.66, -103.35),
+        // Hecho en Blender (herramientas/blender/lugar_guadalajara.py): a media tarde.
+        // Salen de la catedral: la puerta mide 2,4 m, así que la cruzan en abanico.
+        fondo: { hora: 'dia', cielo: 0x9cc0e6, niebla: 0xe2dccb, nieblaCerca: 140, nieblaLejos: 460, cupula: [0x6f9cd8, 0xf0dcb8], sol: 0xffe4b8 },
+        escenario: 'guadalajaraCatedral', suelo: 'losas', tonoSuelo: 0xd2c0ac, hitos: [],
+        entrada: { z: -79, fondo: 2.5, prisa: { desde: -80, hasta: -68, por: 2.5 }, abanico: { ancho: 0.36, hasta: -66 } },
+        sinPajaros: true, sinNubes: true,
         resumen: 'Se curan y se blindan.',
         parte: ['La ciudad es su segundo hospital: aquí reparan lo que les rompemos.',
           'Los que la guardan se cosen entre ellos.'],

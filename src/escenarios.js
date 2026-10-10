@@ -991,4 +991,27 @@ function monterreyMacroplaza () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, seattlePike, monterreyMacroplaza, ...LUGARES }
+// Guadalajara: la plaza, delante de la catedral, a media tarde
+// (herramientas/blender/lugar_guadalajara.py, 10/10; elegido por mí). La catedral
+// entera al fondo, a 0,2 de su tamaño, con sus dos agujas de azulejo; los alienz
+// nacen dentro y salen por la puerta (`entrada` con `abanico`). Naranjos,
+// bancos, el quiosco de hierro a la izquierda y la base alien en un ruedo.
+function guadalajaraCatedral () {
+  const g = new THREE.Group()
+  g.name = 'lugar:guadalajaraCatedral'
+  Object.assign(g.userData, {
+    modelo: 'lugar-guadalajara',
+    modeloCiudad: 'lugar-guadalajara-ciudad',
+    luz: 'lugar-guadalajara',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    baseX: 12.6,
+    baseZ: -44
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, seattlePike, monterreyMacroplaza, guadalajaraCatedral, ...LUGARES }
