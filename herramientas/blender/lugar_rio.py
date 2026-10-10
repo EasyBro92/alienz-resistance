@@ -14,11 +14,9 @@
 # Cómo está puesto ahora:
 #   · LA CÁMARA DE ESTE MAPA VA MÁS BAJA (`picado: 18` en el escenario; lo normal
 #     son 25). Con eso al fondo caben 27 m de alto en vez de 13, y se ve cielo;
-#   · EL CRISTO VA A 0,69 DE SU TAMAÑO (26 m con el pedestal, 19 de mano a mano) y
-#     ESCULPIDO: las piezas se funden con un remallado por vóxeles y se alisan
-#     (túnica con sus pliegues, el manto, mangas colgando, manos con dedos, cabeza
-#     con pelo, barba y rasgos). Está en su plazoleta, tres metros por debajo del
-#     mirador, al final de una escalinata;
+#   · EL CRISTO VA A 0,69 DE SU TAMAÑO (26 m con el pedestal) y es un modelo de
+#     MESHY (herramientas/blender/modelos/cristo.glb). Está en su plazoleta, tres
+#     metros por debajo del mirador, al final de una escalinata;
 #   · la terraza: losas de granito de foto, cada una de su tono, con la cenefa
 #     de olas de piedra portuguesa de las aceras de Río a los lados;
 #   · lo típico: el tren rojo del Corcovado en su apeadero, la bandera, el
@@ -335,157 +333,17 @@ for i in range(2, len(plaza) - 1):                                              
     (ax, az), (bx, bz) = plaza[i], plaza[i + 1]
     barra('EV', PIEDRA_C, P(ax, az, Y_PLAZA + 1.0), P(bx, bz, Y_PLAZA + 1.0), 0.2)
     barra('EV', PIEDRA_C, P(ax, az, Y_PLAZA), P(ax, az, Y_PLAZA + 1.0), 0.16)
-# El pedestal, con la capilla dentro.
-Y_PIES = Y_PLAZA + ALTO_PED
-for m, y0, y1 in ((4.4, 0.0, 0.3), (4.0, 0.3, 0.6)):
-    viga('K', GRANITO, -m, m, ZC - m, ZC + m, Y_PLAZA + y0, Y_PLAZA + y1, u_m=2.0, techo=GRANITO)
-torno('K', GRANITO, en(0.0, ZC, Y_PLAZA + 0.6, math.pi / 8), [(3.5, 0.0), (3.3, 0.4), (2.9, ALTO_PED - 1.3), (3.15, ALTO_PED - 1.0), (3.15, ALTO_PED - 0.6)], lados=8, u_rep=6, v_m=2.0, tapas=(False, True))
-cara('EP', NEGRO, [P(-0.6, ZC + 3.2, Y_PLAZA + 0.6), P(0.6, ZC + 3.2, Y_PLAZA + 0.6), P(0.6, ZC + 3.1, Y_PLAZA + 2.3), P(0.0, ZC + 3.05, Y_PLAZA + 2.8), P(-0.6, ZC + 3.1, Y_PLAZA + 2.3)], hacia=V((0, -1, 0)))
-
-# --- la estatua, esculpida ---------------------------------------------------------
-# Se modela en metros de la estatua de verdad (pies en z = 0, mirando a -Y de
-# Blender, que es hacia la cámara) con piezas cerradas que se pisan; un remallado
-# por vóxeles las funde en una sola piel, se alisa y se aligera.
-Z_ = V((0, 0, 1))
-def esfera (bm, c, r, giro=None):
-    bmesh.ops.create_uvsphere(bm, u_segments=20, v_segments=12, radius=1.0,
-                              matrix=M.Translation(c) @ (giro or M.Identity(4)) @ M.Diagonal((r[0], r[1], r[2], 1)))
-def tubo (bm, pts, secs, lados=16):
-    """Un tubo cerrado por `pts`, de sección elíptica: `secs` da en cada punto el
-    radio hacia arriba (hacia X si el tubo es vertical) y el otro."""
-    pts = [V(p) for p in pts]
-    if not isinstance(secs[0], tuple):
-        secs = [(r, r) for r in secs]
-    aros, n = [], len(pts)
-    for i, p in enumerate(pts):
-        t = (pts[min(i + 1, n - 1)] - pts[max(i - 1, 0)]).normalized()
-        u = Z_ - t * Z_.dot(t)
-        if u.length < 0.2:
-            u = V((1, 0, 0)) - t * t.x
-        u.normalize()
-        v = t.cross(u)
-        aros.append([bm.verts.new(p + u * secs[i][0] * math.cos(2 * math.pi * k / lados) + v * secs[i][1] * math.sin(2 * math.pi * k / lados)) for k in range(lados)])
-    for i in range(n - 1):
-        for k in range(lados):
-            j = (k + 1) % lados
-            bm.faces.new([aros[i][k], aros[i][j], aros[i + 1][j], aros[i + 1][k]])
-    bm.faces.new(aros[0]); bm.faces.new(aros[-1])
-
-NIV = [(0.0, 3.2, 2.5), (0.5, 3.25, 2.55), (2.5, 2.95, 2.3), (8.0, 2.7, 2.05), (13.0, 2.5, 1.9), (16.5, 2.45, 1.8), (19.0, 2.7, 1.9),
-       (21.5, 3.0, 2.0), (23.6, 3.3, 1.85), (24.9, 2.9, 1.6), (25.6, 1.3, 1.1), (26.0, 0.8, 0.8)]
-def radios_tunica (z):
-    for (z0, a0, b0), (z1, a1, b1) in zip(NIV, NIV[1:]):
-        if z <= z1:
-            f = (z - z0) / (z1 - z0)
-            return a0 + (a1 - a0) * f, b0 + (b1 - b0) * f
-    return NIV[-1][1], NIV[-1][2]
-def en_tunica (ang, z, k=1.0):
-    rx, ry = radios_tunica(z)
-    return V((rx * k * math.cos(ang), ry * k * math.sin(ang), z))
-
-def piezas_cuerpo (bm):
-    tubo(bm, [(0, 0, z) for z, _, _ in NIV], [(rx, ry) for _, rx, ry in NIV], lados=32)
-    for s in (-1, 1):                                                                # los pies, asomando bajo la túnica
-        esfera(bm, V((s * 0.95, -2.45, 0.32)), (0.55, 0.75, 0.32))
-    # Los pliegues de la túnica: cordones verticales medio hundidos en la tela.
-    n = 30
-    for k in range(n):
-        ang = 2 * math.pi * (k + 0.5 * random.random()) / n
-        alto = random.uniform(10.0, 16.5) if math.sin(ang) < 0 else random.uniform(14.0, 21.0)
-        zs = np.linspace(0.15, alto, 7)
-        gr = random.uniform(0.2, 0.28)
-        tubo(bm, [en_tunica(ang + 0.02 * math.sin(z * 0.5 + k), z, 0.975) for z in zs], [gr * (1 - 0.6 * (i / 6) ** 2) for i in range(7)], lados=10)
-    # El manto: tres caídas en U de hombro a hombro, por delante, y la banda del pecho.
-    for hondo, gr in ((3.2, 0.27), (5.6, 0.3), (8.2, 0.3)):
-        pts = []
-        for t in np.linspace(-1, 1, 15):
-            x, z = 2.75 * t, 24.4 - hondo * (1 - t * t) ** 0.8
-            rx, ry = radios_tunica(z)
-            pts.append(V((x, -ry * math.sqrt(max(0.05, 1 - (x / rx) ** 2)) * 1.0, z)))
-        tubo(bm, pts, [gr] * 15, lados=10)
-    tubo(bm, [V((2.7, -1.25, 24.6)), V((1.3, -1.85, 22.6)), V((-0.6, -1.95, 20.0)), V((-2.0, -1.6, 17.6)), V((-2.5, -0.9, 16.2))], [(0.75, 0.3)] * 5, lados=12)
-    for s in (-1, 1):
-        # El brazo dentro de la manga, ancha.
-        tubo(bm, [(s * 2.2, 0, 24.3), (s * 5.0, 0, 24.45), (s * 8.5, 0, 24.4), (s * 11.6, 0, 24.25)], [(1.6, 1.35), (1.45, 1.2), (1.35, 1.1), (1.3, 1.05)], lados=20)
-        esfera(bm, V((s * 3.2, 0.1, 24.5)), (1.9, 1.6, 1.5))                         # el hombro
-        tubo(bm, [(s * 10.8, 0, 24.3), (s * 12.7, -0.05, 24.2)], [(0.66, 0.58), (0.5, 0.42)], lados=12)
-        # La mano, abierta, con la palma al frente.
-        esfera(bm, V((s * 13.05, -0.1, 24.15)), (0.78, 0.27, 0.64))
-        for j in range(4):
-            zf = 24.15 + (j - 1.5) * 0.3
-            tubo(bm, [(s * 13.4, -0.12, zf), (s * (14.05 - abs(j - 1.6) * 0.14), -0.2, zf - 0.04)], [0.16, 0.115], lados=8)
-        tubo(bm, [(s * 12.8, -0.15, 24.6), (s * 13.35, -0.3, 25.1)], [0.18, 0.12], lados=8)
-        # La manga que cuelga: una cortina de pliegues, más larga junto al cuerpo.
-        # (Con dieciséis pliegues largos y acabados en punta parecían las plumas de un ala.)
-        n = 24
-        for i in range(n):
-            f = i / (n - 1)
-            x = 2.9 + (11.3 - 2.9) * f
-            zb = 20.3 + (22.3 - 20.3) * f ** 0.8 + 0.1 * math.sin(i * 1.9)
-            dy = 0.07 * (-1) ** i
-            tubo(bm, [(s * x, dy, 24.2), (s * x, dy, (24.2 + zb) / 2), (s * x, dy, zb + 0.3), (s * x, dy, zb)], [(0.42, 0.66), (0.42, 0.58), (0.4, 0.5), (0.3, 0.4)], lados=10)
-
-def piezas_cabeza (bm):
-    esfera(bm, V((0, 0, 0)), (1.2, 1.4, 1.75))                                       # el cráneo
-    esfera(bm, V((0, -0.42, -0.85)), (0.98, 1.0, 1.15))                              # la cara, hacia la barbilla
-    esfera(bm, V((0, 0.3, 0.18)), (1.4, 1.42, 1.78))                                 # el pelo, por arriba y por detrás
-    esfera(bm, V((0, 0.95, -1.5)), (1.35, 0.85, 1.7))
-    for s in (-1, 1):
-        # La melena, cayendo a los hombros en dos mechones por lado.
-        tubo(bm, [(s * 1.12, -0.25, 0.9), (s * 1.3, -0.1, -0.3), (s * 1.42, 0.1, -1.5), (s * 1.6, 0.2, -2.7)], [(0.5, 0.75), (0.48, 0.8), (0.5, 0.75), (0.4, 0.55)], lados=12)
-        tubo(bm, [(s * 0.6, -0.95, 1.25), (s * 1.12, -0.8, 0.5), (s * 1.3, -0.62, -0.7), (s * 1.38, -0.5, -1.9)], [0.3, 0.3, 0.27, 0.2], lados=10)
-        tubo(bm, [(s * 0.12, -1.28, 0.3), (s * 0.5, -1.33, 0.4), (s * 0.95, -1.12, 0.26)], [0.15, 0.17, 0.13], lados=8)   # la ceja
-        esfera(bm, V((s * 0.47, -1.2, 0.0)), (0.27, 0.13, 0.12))                     # el párpado
-        esfera(bm, V((s * 0.62, -1.0, -0.42)), (0.42, 0.4, 0.4))                     # el pómulo
-        esfera(bm, V((s * 0.2, -1.5, -0.56)), (0.14, 0.13, 0.11))                    # la aleta de la nariz
-        tubo(bm, [(s * 0.04, -1.5, -0.74), (s * 0.4, -1.38, -0.84), (s * 0.72, -1.14, -1.06)], [0.15, 0.14, 0.1], lados=8)   # el bigote
-        esfera(bm, V((s * 0.5, -0.92, -1.35)), (0.5, 0.5, 0.62))                     # la barba, por los lados
-    tubo(bm, [(0, -1.3, 0.32), (0, -1.48, -0.1), (0, -1.66, -0.52)], [(0.14, 0.14), (0.16, 0.17), (0.2, 0.22)], lados=10)    # la nariz
-    esfera(bm, V((0, -1.36, -1.0)), (0.3, 0.14, 0.09))                               # el labio de abajo
-    esfera(bm, V((0, -1.05, -1.62)), (0.72, 0.6, 0.72))                              # la barba
-    esfera(bm, V((0, -1.12, -2.2)), (0.4, 0.36, 0.42))
-    tubo(bm, [(0, 0.15, -1.2), (0, 0.3, -3.0)], [(0.85, 0.85), (0.95, 0.95)], lados=14)   # el cuello
-
-def esculpir (nombre, piezas, voxel, caras, m4, alisar=2):
-    bm = bmesh.new()
-    piezas(bm)
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    me = bpy.data.meshes.new(nombre)
-    bm.to_mesh(me); bm.free()
-    o = bpy.data.objects.new(nombre, me)
-    bpy.context.collection.objects.link(o)
-    bpy.ops.object.select_all(action='DESELECT')
-    o.select_set(True); bpy.context.view_layer.objects.active = o
-    r = o.modifiers.new('fundir', 'REMESH'); r.mode = 'VOXEL'; r.voxel_size = voxel; r.adaptivity = 0.0
-    bpy.ops.object.modifier_apply(modifier=r.name)
-    a = o.modifiers.new('alisar', 'SMOOTH'); a.factor = 0.6; a.iterations = alisar
-    bpy.ops.object.modifier_apply(modifier=a.name)
-    antes = len(o.data.polygons)
-    d = o.modifiers.new('aligerar', 'DECIMATE'); d.ratio = min(1.0, caras / max(1, antes * 2))
-    bpy.ops.object.modifier_apply(modifier=d.name)
-    me = o.data
-    me.transform(m4)
-    me.update()
-    # La textura, proyectada por la cara que más mira a cada eje (en metros del sitio).
-    uv = me.uv_layers.new(name='UVMap')
-    B = 5.0
-    for p in me.polygons:
-        p.use_smooth = True
-        nx, ny, nz = abs(p.normal.x), abs(p.normal.y), abs(p.normal.z)
-        for li in p.loop_indices:
-            c = me.vertices[me.loops[li].vertex_index].co
-            uv.data[li].uv = (c.x / B, c.y / B) if nz > 0.75 else ((c.y / B, c.z / B) if nx > ny else (c.x / B, c.z / B))
-    me.materials.append(ESTEATITA)
-    H.importados.setdefault('K', []).append(o)
-    print('ESCULPIDO', nombre, antes, '->', len(me.polygons), 'caras')
-    return o
-
-A_SITIO = M.Translation(P(0.0, ZC, Y_PIES)) @ M.Diagonal((ESCALA, ESCALA, ESCALA, 1))
-esculpir('cristo-cuerpo', piezas_cuerpo, 0.09, 10000, A_SITIO, alisar=3)
-# La cabeza, aparte y con el vóxel más fino; algo inclinada hacia delante.
-esculpir('cristo-cabeza', piezas_cabeza, 0.04, 4200, A_SITIO @ M.Translation((0, -0.35, 27.95)) @ M.Rotation(math.radians(9), 4, 'X'), alisar=1)
-ALTO_CRISTO = Y_PIES + 29.8 * ESCALA
-print('CRISTO: cabeza a', round(ALTO_CRISTO, 2), 'm; de mano a mano', round(28.1 * ESCALA, 2), '; brazos a', round(Y_PIES + 24.3 * ESCALA, 2))
+# --- la estatua ---------------------------------------------------------------------
+# De MESHY (10/10, 60 créditos; Isidro: «haz todas estas con Meshy»): la esculpida
+# aquí por código —piezas fundidas con un remallado por vóxeles— había mejorado
+# mucho, pero la cara y las manos seguían siendo sencillas (está en el historial
+# de git). El modelo trae su pedestal; va en un grupo `vert`: conserva su textura
+# y le cae la luz del sitio en los vértices.
+ALTO_CRISTO = 26.0
+cristo = importar(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'modelos', 'cristo.glb'), 'KV', ALTO_CRISTO, 0.0, ZC)
+cristo.data.transform(M.Translation((0, 0, Y_PLAZA)))
+vs = np.array([v.co[:] for v in cristo.data.vertices])
+print('CRISTO', len(cristo.data.polygons), 'caras; de mano a mano', round(float(vs[:, 0].max() - vs[:, 0].min()), 1), '; fondo', round(float(vs[:, 1].min()), 1), round(float(vs[:, 1].max()), 1))
 
 comprobar_paso(('E', 'EP', 'P', 'EV', 'K'))
 
@@ -610,14 +468,15 @@ cupula('CP', CIELO, 7000.0, 0.0, -80.0)
 terminar(
     grupos={
         'P': ('luzS-pista', 'atlas', 'luzS'),
-        'K': ('luzK-cristo', 'atlas', 'luzK'),
+        'K': ('luzK-plaza', 'atlas', 'luzK'),
+        'KV': ('vert-cristo', 'vert', None),
         'EV': ('vert-cerca', 'vert', None),
         'EP': ('planoE', 'plano', None),
         'FV': ('vert-lejos', 'vert', None),
         'FP': ('planoF', 'plano', None),
         'CP': ('planoC', 'plano', None),
     },
-    exportes=[('lugar-rio', ['P', 'K', 'EV', 'EP', 'FV', 'FP']), ('lugar-rio-ciudad', ['CP'])],
+    exportes=[('lugar-rio', ['P', 'K', 'KV', 'EV', 'EP', 'FV', 'FP']), ('lugar-rio-ciudad', ['CP'])],
     # De día, la receta de Salónica: sol fuerte y algo dorado, cielo muy flojo.
     sol_hacia=SOL, sol_color=(1.0, 0.9, 0.72), sol_fuerza=7.5, cielo_fuerza=0.12, cielo_altura=42, cielo_giro=150,
     escala=0.62, satura=0.9, no_alumbran=('CP', 'FP'), suaves=('monte-selva', 'monte-roca', 'monte-lejos', 'nube'), fundir=True)
