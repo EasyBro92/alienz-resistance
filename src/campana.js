@@ -657,9 +657,12 @@ export const PAISES = [
     cierre: 'México queda limpio. Pero antes de caer, la última MADRE mandó algo hacia el sur, y lo que mandó no era una nave.',
     misiones: [
       {
-        name: 'Monterrey', lugar: 'Macroplaza · el Faro del Comercio', mapa: sitio(25.69, -100.32),
-        // La explanada más grande de América, con el Cerro de la Silla cerrando el valle. Antes era «carretera del norte».
-        escenario: 'monterrey', suelo: 'losas', tonoSuelo: 0xb0a89a, hitos: [['faroComercio'], ['cerroSilla']],
+        name: 'Monterrey', llegada: 'monterrey', lugar: 'Macroplaza · el Faro del Comercio', mapa: sitio(25.69, -100.32),
+        // Hecho en Blender (herramientas/blender/lugar_monterrey.py): al amanecer, con el
+        // Cerro de la Silla en la llegada. Los alienz llegan en nave.
+        fondo: { hora: 'manana', cielo: 0xe8b796, niebla: 0xecccb4, nieblaCerca: 150, nieblaLejos: 480, cupula: [0x86a0dc, 0xf6c8a0], sol: 0xffdcb8 },
+        escenario: 'monterreyMacroplaza', suelo: 'losas', tonoSuelo: 0xd6ccba, hitos: [],
+        sinPajaros: true, sinNubes: true,
         resumen: 'Llegan deprisa desde la frontera.',
         parte: ['Lo que huyó de Estados Unidos entró por aquí.',
           'Llegan deprisa por la carretera del norte.'],

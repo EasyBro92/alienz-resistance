@@ -968,4 +968,27 @@ function seattlePike () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, seattlePike, ...LUGARES }
+// Monterrey: la Macroplaza al amanecer
+// (herramientas/blender/lugar_monterrey.py, 10/10; elegido por mí). El Faro del
+// Comercio al fondo, a la mitad de su tamaño (una losa naranja que se sale por
+// arriba de la pantalla), la catedral a su izquierda y la fuente a su derecha;
+// explanada de losas con jardineras y palmeras. Los alienz, en nave.
+function monterreyMacroplaza () {
+  const g = new THREE.Group()
+  g.name = 'lugar:monterreyMacroplaza'
+  Object.assign(g.userData, {
+    modelo: 'lugar-monterrey',
+    modeloCiudad: 'lugar-monterrey-ciudad',
+    luz: 'lugar-monterrey',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    baseX: 12.6,
+    baseZ: -44
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, seattlePike, monterreyMacroplaza, ...LUGARES }
