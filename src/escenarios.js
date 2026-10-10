@@ -1106,4 +1106,27 @@ function puertoPlataFortaleza () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, seattlePike, monterreyMacroplaza, guadalajaraCatedral, cdmxReforma, puntaCanaBavaro, santoDomingoAlcazar, puertoPlataFortaleza, ...LUGARES }
+// Río de Janeiro: lo alto del Corcovado, a los pies del Cristo, por la mañana
+// (herramientas/blender/lugar_rio.py, 10/10; elegido por mí: antes era
+// Copacabana). El Cristo entero al fondo, a un tercio de su tamaño, con los
+// brazos abiertos; la terraza con sus balaustradas y la base alien en un mirador
+// volado. Abajo, en la llegada, la ciudad, el Pan de Azúcar y la bahía.
+function rioCorcovado () {
+  const g = new THREE.Group()
+  g.name = 'lugar:rioCorcovado'
+  Object.assign(g.userData, {
+    modelo: 'lugar-rio',
+    modeloCiudad: 'lugar-rio-ciudad',
+    luz: 'lugar-rio',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    baseX: 12.6,
+    baseZ: -44
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, seattlePike, monterreyMacroplaza, guadalajaraCatedral, cdmxReforma, puntaCanaBavaro, santoDomingoAlcazar, puertoPlataFortaleza, rioCorcovado, ...LUGARES }

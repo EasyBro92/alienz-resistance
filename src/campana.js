@@ -764,11 +764,14 @@ export const PAISES = [
     cierre: 'Se acabó.',
     misiones: [
       {
-        name: 'Río de Janeiro', lugar: 'Copacabana · avenida Atlántica', mapa: sitio(-22.91, -43.17), bioma: 'costa',
-        // La baldosa de olas, la pared de edificios y los morros detrás.
-        escenario: 'rio', suelo: 'losas', tonoSuelo: 0xe0dcd2, hitos: [['cristo']],
-        resumen: 'La costa, y formas que no hemos visto.',
-        parte: ['Entramos por la costa. Lo que guarda la entrada al continente no se parece a nada anterior.',
+        name: 'Río de Janeiro', llegada: 'rio', lugar: 'Corcovado · a los pies del Cristo', mapa: sitio(-22.95, -43.21), bioma: 'costa',
+        // Hecho en Blender (herramientas/blender/lugar_rio.py): el mirador del Corcovado,
+        // por la mañana, con la ciudad y la bahía abajo. Los alienz llegan en nave.
+        fondo: { hora: 'dia', cielo: 0x7cbcf2, niebla: 0xcfe2f0, nieblaCerca: 170, nieblaLejos: 540 },
+        escenario: 'rioCorcovado', suelo: 'losas', tonoSuelo: 0xb8b4ac, hitos: [],
+        sinPajaros: true, sinNubes: true,
+        resumen: 'La puerta del continente, y formas que no hemos visto.',
+        parte: ['Entramos por la costa. Lo que guarda la entrada al continente se ha subido al mirador, a los pies del Cristo, y no se parece a nada anterior.',
           'Es lo último que han diseñado.'],
         cierre: 'Las formas de aquí eran perfectas. Esto era el final del experimento, no el principio.',
         waves: OLEADAS.formas

@@ -2229,6 +2229,15 @@ const PUERTOPLATA_PLANOS = [
   { k: 0.76, pos: [4, 36, 78], mira: [0, 5, -64] },
   { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
 ]
+// Río (10/10): el Cristo de cerca y desde abajo, con los brazos abiertos contra
+// el cielo; la cámara retrocede por la terraza, sube y se abre a la bahía.
+const RIO_PLANOS = [
+  { k: 0, pos: [2, 3, -52], mira: [0, 9, -84] },
+  { k: 0.3, pos: [1, 10, -14], mira: [0, 7, -84] },
+  { k: 0.56, pos: [3, 30, 50], mira: [0, 2, -90] },
+  { k: 0.76, pos: [6, 36, 78], mira: [0, 5, -66] },
+  { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
+]
 // Las llegadas «de película»: un recorrido por planos, largo la primera vez y
 // más corto (pero empezando también fuera) las siguientes. Cada una abre la
 // niebla y el corte de lejos a su medida, y enciende el modelo de la ciudad.
@@ -2261,6 +2270,7 @@ const LLEGADAS = {
   puntacana: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-puntacana-v1', niebla: { cerca: 900, lejos: 3600 }, lejos: 4600, planos: PUNTACANA_PLANOS },
   santodomingo: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-santodomingo-v1', niebla: { cerca: 900, lejos: 3600 }, lejos: 4600, planos: SANTODOMINGO_PLANOS },
   puertoplata: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-puertoplata-v1', niebla: { cerca: 900, lejos: 3600 }, lejos: 4600, planos: PUERTOPLATA_PLANOS },
+  rio: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-rio-v1', niebla: { cerca: 1200, lejos: 4200 }, lejos: 4800, planos: RIO_PLANOS },
   gizeh: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-gizeh-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: GIZEH_PLANOS },
   marsella: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-marsella-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: MARSELLA_PLANOS }
 }
