@@ -8,6 +8,8 @@
 // Firebase pesa: se carga en diferido y solo si hay sesión abierta o se pulsa
 // «Entrar», así que quien no la usa no descarga nada.
 
+import { VERSION_PROGRESO, leerProgresoLocal, subirProgreso, CLAVE_PROGRESO } from './progreso.js'
+
 // La configuración web de Firebase es pública por diseño; la usa también el
 // cooperativo para abrir la Realtime Database.
 export const CONFIG = {
@@ -23,7 +25,16 @@ export const CONFIG = {
 }
 
 const CLAVE_CARTERA = 'alienz-cartera-v1'
-const CLAVE_PROGRESO = 'alienz-progreso-v2'
+// El progreso se guarda por número de misión y la campaña ha cambiado de tramos
+// tres veces. La clave de aquí estaba clavada en la v2, así que desde el 27/09 lo
+// que se subía a la cuenta era un progreso viejo que el juego ya ni leía (las
+// estrellas no llegaban a la nube). Ahora se usa SIEMPRE el de la versión de
+// ahora (progreso.js), y en la ficha de la nube va en un campo con su número:
+//   · el campo viejo (`progreso`, con los índices de la v2) no se toca, por si
+//     queda algún móvil con el juego sin actualizar escribiendo en él;
+//   · si la ficha solo trae el viejo, se sube de versión una vez y se funde.
+const CAMPO_PROGRESO = 'progreso' + VERSION_PROGRESO
+const progresoDeLaNube = nube => nube?.[CAMPO_PROGRESO] ?? subirProgreso(nube?.progreso, 2) ?? {}
 // Marca de que en este móvil hubo sesión: solo entonces se carga Firebase al arrancar.
 const CLAVE_SESION = 'alienz-cuenta-v1'
 
@@ -142,7 +153,10 @@ export function fusionar (a, b) {
   }
 }
 
-const fichaLocal = () => ({ cartera: leer(CLAVE_CARTERA) ?? {}, progreso: leer(CLAVE_PROGRESO) ?? {} })
+const fichaLocal = () => ({ cartera: leer(CLAVE_CARTERA) ?? {}, progreso: leerProgresoLocal() ?? {} })
+// Lo que se sube: la cartera y el progreso en SU campo. Se escribe fundiendo
+// (`merge`), para no borrar el campo viejo.
+const paraSubir = f => ({ cartera: f.cartera, [CAMPO_PROGRESO]: f.progreso })
 
 // Si en este móvil hubo sesión (antes de que Firebase confirme que sigue abierta).
 export const haySesionGuardada = () => !!leer(CLAVE_SESION)
@@ -155,7 +169,7 @@ export function crearCuenta ({ alCambiar }) {
   async function subir () {
     if (!usuario) return
     const { fs, db } = await cargarFirebase()
-    await fs.setDoc(fs.doc(db, 'jugadores', usuario.uid), { ...fichaLocal(), guardado: fs.serverTimestamp() })
+    await fs.setDoc(fs.doc(db, 'jugadores', usuario.uid), { ...paraSubir(fichaLocal()), guardado: fs.serverTimestamp() }, { merge: true })
     apuntarEnLista().catch(e => console.warn('Sin lista:', e))
   }
 
@@ -187,11 +201,11 @@ export function crearCuenta ({ alCambiar }) {
     const ref = fs.doc(db, 'jugadores', usuario.uid)
     const nube = (await fs.getDoc(ref)).data() ?? null
     const local = fichaLocal()
-    const junta = fusionar(local, nube)
+    const junta = fusionar(local, nube && { cartera: nube.cartera, progreso: progresoDeLaNube(nube) })
     const cambia = JSON.stringify(junta) !== JSON.stringify(fusionar(local, null))
     escribir(CLAVE_CARTERA, junta.cartera)
     escribir(CLAVE_PROGRESO, junta.progreso)
-    await fs.setDoc(ref, { ...junta, guardado: fs.serverTimestamp() })
+    await fs.setDoc(ref, { ...paraSubir(junta), guardado: fs.serverTimestamp() }, { merge: true })
     apuntarEnLista().catch(e => console.warn('Sin lista:', e))
     // Si la nube traía algo nuevo, los menús ya pintados están desfasados.
     if (cambia) location.reload()

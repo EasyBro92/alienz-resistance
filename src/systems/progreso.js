@@ -13,83 +13,92 @@ import { cargarCartera } from './cartera.js'
 // destinos y ahora son treinta y seis misiones—, así que el progreso de la v1
 // se acreditaría a ciudades equivocadas: las estrellas de Marsella caerían en
 // Valencia. Se empieza limpio en vez de mentir.
-const CLAVE = 'alienz-progreso-v4'
-const CLAVE_V3 = 'alienz-progreso-v3'
-const CLAVE_V2 = 'alienz-progreso-v2'
+export const VERSION_PROGRESO = 5
+export const CLAVE_PROGRESO = 'alienz-progreso-v5'
+const CLAVE = CLAVE_PROGRESO
+const CLAVES_VIEJAS = { 4: 'alienz-progreso-v4', 3: 'alienz-progreso-v3', 2: 'alienz-progreso-v2' }
 
-// v3 desde que Nueva York tiene tres tramos. Se metieron DOS misiones nuevas
-// (Times Square y la Isla de la Libertad) detrás de la Quinta Avenida, que era
-// el tramo 29, así que todo lo que venía después —México, Dominicana y Brasil—
-// se movió dos sitios. El progreso se guarda por NÚMERO de misión, así que sin
-// migrar, las tres estrellas de Monterrey se habrían acreditado a Times Square.
+// El progreso se guarda por NÚMERO de misión, así que cada vez que la campaña
+// gana o pierde un tramo hay que correr los índices, o las estrellas de una
+// ciudad se acreditan a otra. Cada cambio es un PASO de una versión a la
+// siguiente, y son funciones puras: valen para el almacén de este móvil y para
+// la ficha de la nube, que puede venir de una versión vieja (cuenta.js).
 //
-// No se empieza de cero como en la v2: Isidro tiene la campaña jugada y perder
-// sus estrellas por un cambio de decorado no vale la pena. Se corren los
-// índices y, a quien ya hubiera pasado de Nueva York, se le dan los dos tramos
-// nuevos por superados —o se quedaría con México bloqueado sin haber perdido
-// nada—. Estrellas de los dos nuevos: ninguna, están ahí para jugarlas.
-const CORTE_NY = 30   // el primero de los dos nuevos
-const METIDOS = 2
-
-function migrarDeV2 () {
-  let viejo = null
-  try {
-    const txt = localStorage.getItem(CLAVE_V2)
-    if (!txt) return null
-    viejo = JSON.parse(txt)
-  } catch { return null }
-  if (!viejo || typeof viejo !== 'object') return null
+// Nunca se empieza de cero: Isidro tiene la campaña jugada y perder sus
+// estrellas por un cambio de decorado no vale la pena.
+const rangosCon = (p, destino) => {
   const rangos = {}
-  for (const k in viejo.rangos ?? {}) {
+  for (const k in p?.rangos ?? {}) {
     const i = Number(k)
-    if (!Number.isFinite(i)) continue
-    rangos[i < CORTE_NY ? i : i + METIDOS] = viejo.rangos[k]
-  }
-  const n = Number(viejo.superados)
-  const superados = Number.isFinite(n) ? (n <= CORTE_NY ? n : n + METIDOS) : 0
-  const nuevo = { superados, rangos }
-  try {
-    localStorage.setItem(CLAVE_V3, JSON.stringify(nuevo))
-    // La clave vieja se deja: si algo sale mal en la versión nueva, el progreso
-    // de verdad sigue estando donde estaba.
-  } catch { /* modo privado */ }
-  return nuevo
-}
-
-// v4 desde que Nigeria tiene un solo tramo (09/10: Isidro dejó solo Lagos). Abuja
-// y Kano eran los tramos 16 y 17, así que todo lo de después —de la India a
-// Brasil— baja dos sitios. Nadie pierde nada: Lagos se queda con la mejor nota
-// de las tres, y quien iba por Abuja o Kano sigue en la puerta de la India.
-const LAGOS = 15
-const QUITADOS = 2
-
-function migrarDeV3 () {
-  let viejo = null
-  try {
-    const txt = localStorage.getItem(CLAVE_V3)
-    viejo = txt ? JSON.parse(txt) : migrarDeV2()
-  } catch { return null }
-  if (!viejo || typeof viejo !== 'object') return null
-  const rangos = {}
-  for (const k in viejo.rangos ?? {}) {
-    const i = Number(k)
-    const v = Number(viejo.rangos[k])
+    const v = Number(p.rangos[k])
     if (!Number.isFinite(i) || !Number.isFinite(v)) continue
-    const a = i <= LAGOS ? i : i <= LAGOS + QUITADOS ? LAGOS : i - QUITADOS
+    const a = destino(i)
     rangos[a] = Math.max(rangos[a] ?? 0, v)
   }
-  const n = Number(viejo.superados)
-  const superados = !Number.isFinite(n) ? 0 : n <= LAGOS + 1 ? n : Math.max(LAGOS + 1, n - QUITADOS)
-  const nuevo = { superados, rangos }
-  try { localStorage.setItem(CLAVE, JSON.stringify(nuevo)) } catch { /* modo privado */ }
-  return nuevo
+  return rangos
+}
+const cuantos = p => { const n = Number(p?.superados); return Number.isFinite(n) ? n : 0 }
+
+// v3: Nueva York pasó de un tramo a tres. Se metieron DOS misiones (Times Square
+// y la Isla de la Libertad) detrás de la Quinta Avenida, que era el tramo 29, así
+// que México, Dominicana y Brasil se movieron dos sitios. A quien ya hubiera
+// pasado Nueva York se le dan los dos nuevos por superados —o se quedaría con
+// México bloqueado sin haber perdido nada—, sin estrellas: están para jugarlas.
+const CORTE_NY = 30   // el primero de los dos nuevos
+const METIDOS = 2
+const aV3 = p => ({
+  superados: cuantos(p) <= CORTE_NY ? cuantos(p) : cuantos(p) + METIDOS,
+  rangos: rangosCon(p, i => i < CORTE_NY ? i : i + METIDOS)
+})
+
+// v4: Nigeria se quedó en un solo tramo (09/10: Isidro dejó solo Lagos). Abuja y
+// Kano eran el 16 y el 17, así que de la India a Brasil todo baja dos sitios.
+// Lagos se queda con la mejor nota de las tres, y quien iba por Abuja o Kano
+// sigue en la puerta de la India.
+const LAGOS = 15
+const QUITADOS = 2
+const aV4 = p => ({
+  superados: cuantos(p) <= LAGOS + 1 ? cuantos(p) : Math.max(LAGOS + 1, cuantos(p) - QUITADOS),
+  rangos: rangosCon(p, i => i <= LAGOS ? i : i <= LAGOS + QUITADOS ? LAGOS : i - QUITADOS)
+})
+
+// v5: Nueva York se quedó en dos tramos (10/10: Isidro quitó el de la Quinta
+// Avenida al ver el portaaviones). Era el 27, así que Times Square pasa a serlo
+// y todo lo de después baja un sitio. Times Square se queda con la mejor nota de
+// las dos, y quien ya había pasado la Quinta Avenida tiene pasado el primero de
+// Nueva York, que ahora es Times Square.
+const QUINTA = 27
+const aV5 = p => ({
+  superados: cuantos(p) <= QUINTA ? cuantos(p) : Math.max(QUINTA + 1, cuantos(p) - 1),
+  rangos: rangosCon(p, i => i <= QUINTA ? i : i - 1)
+})
+
+const PASOS = { 2: aV3, 3: aV4, 4: aV5 }
+
+// Lleva un progreso guardado en la versión `desde` a la de ahora.
+export function subirProgreso (p, desde) {
+  if (!p || typeof p !== 'object') return null
+  let q = { superados: cuantos(p), rangos: { ...(p.rangos ?? {}) } }
+  for (let v = desde; v < VERSION_PROGRESO; v++) q = PASOS[v] ? PASOS[v](q) : q
+  return q
 }
 
-function leerCrudo () {
+// El progreso de este móvil, tal como está guardado y ya en la versión de ahora.
+// Si solo hay uno de una versión vieja, se sube y se guarda; las claves viejas se
+// dejan donde están: si algo saliera mal, el progreso de verdad sigue ahí.
+export function leerProgresoLocal () {
   try {
     const txt = localStorage.getItem(CLAVE)
-    if (!txt) return migrarDeV3()
-    return JSON.parse(txt)
+    if (txt) return JSON.parse(txt)
+    for (const v of [4, 3, 2]) {
+      const viejo = localStorage.getItem(CLAVES_VIEJAS[v])
+      if (!viejo) continue
+      const nuevo = subirProgreso(JSON.parse(viejo), v)
+      if (!nuevo) continue
+      try { localStorage.setItem(CLAVE, JSON.stringify(nuevo)) } catch { /* modo privado */ }
+      return nuevo
+    }
+    return null
   } catch {
     // Almacén bloqueado (modo privado), lleno, o texto que no es JSON.
     return null
@@ -123,7 +132,7 @@ export const RANGOS = ESTRELLAS
 export const rangoDe = porcentaje => estrellasDe(porcentaje) - 1
 
 export function cargarProgreso () {
-  const crudo = leerCrudo()
+  const crudo = leerProgresoLocal()
   const n = Number(crudo?.superados)
   // Los rangos vienen del almacén, que es texto que el usuario puede editar:
   // se filtra índice por índice en vez de confiar en el objeto entero.
@@ -211,5 +220,10 @@ export function estrellasQueFaltan (indice, progreso = cargarProgreso()) {
 }
 
 export function borrarProgreso () {
-  try { localStorage.removeItem(CLAVE) } catch {}
+  // También las de versiones viejas: si no, al no encontrar la de ahora se
+  // volvería a subir la anterior y el progreso «borrado» reaparecería.
+  try {
+    localStorage.removeItem(CLAVE)
+    for (const k of Object.values(CLAVES_VIEJAS)) localStorage.removeItem(k)
+  } catch {}
 }

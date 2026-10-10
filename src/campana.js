@@ -608,17 +608,9 @@ export const PAISES = [
         cierre: 'Las formas del puerto respiraban bajo el agua. Se siguen adaptando.',
         waves: OLEADAS.formas
       },
-      {
-        name: 'Nueva York', lugar: 'Quinta Avenida · frente al Empire State', mapa: sitio(40.76, -73.97), bioma: 'costa',
-        // Rascacielos de piedra pegados a las dos aceras, las banderas saliendo
-        // de las fachadas y los taxis amarillos parados.
-        escenario: 'nuevaYorkQuinta', suelo: 'carretera',
-        resumen: 'Suben por la avenida, entre los rascacielos.',
-        parte: ['El emisor está en la antena del edificio más alto de la isla. Para llegar hay que subir la avenida a pie.',
-          'Entre las fachadas no hay por dónde salirse: lo que entre por la calle, entra de frente.'],
-        cierre: 'La avenida queda despejada hasta la calle 42. Desde ahí se oye el zumbido de las pantallas encendidas.',
-        waves: OLEADAS.formas
-      },
+      // (El tramo de la Quinta Avenida, frente al Empire State, salió de la campaña el
+      // 10/10: Isidro, al ver el portaaviones, «elimina el del Empire State». Nueva
+      // York queda en dos: Times Square y el portaaviones. Ver progreso.js, v5.)
       {
         name: 'Nueva York', lugar: 'Times Square · de noche', mapa: sitio(40.758, -73.985), bioma: 'costa',
         fondo: { hora: 'noche', cielo: 0x0b1020, niebla: 0x161d31, ambiente: 0x1b2230 },
@@ -626,7 +618,7 @@ export const PAISES = [
         // dan casi toda la luz del nivel.
         escenario: 'nuevaYorkTimes', suelo: 'carretera',
         resumen: 'De noche, con las pantallas encendidas.',
-        parte: ['Las pantallas siguen dando las noticias de hace cuatro meses, a nadie.',
+        parte: ['El emisor está en algún sitio de la isla. Entramos de noche por la plaza: las pantallas siguen dando las noticias de hace cuatro meses, a nadie.',
           'Con esa luz se les ve venir tarde: salen de la sombra ya encima.'],
         cierre: 'Las pantallas se apagaron una por una al cortar el cable. Debajo estaba el acceso al túnel que va a la bahía.',
         waves: OLEADAS.colmena

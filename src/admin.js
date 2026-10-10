@@ -38,7 +38,7 @@ function hace (ms) {
 
 // Los tramos de la campaña. Se piden aquí y no se cablea un 39 a mano: si
 // mañana entra otro país, el filtro de «campaña acabada» sigue valiendo.
-const TOTAL_TRAMOS = 39
+const TOTAL_TRAMOS = 38
 
 const ORDENES = {
   ultima: { nombre: 'Últimos en jugar', valor: u => u.ultima ?? 0, mayor: true },

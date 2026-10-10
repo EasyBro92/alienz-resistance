@@ -3959,7 +3959,7 @@ if (import.meta.env.DEV) {
     },
     borrarTodo: () => {
       localStorage.removeItem('alienz-cartera-v1')
-      localStorage.removeItem('alienz-progreso-v2')
+      for (const v of [2, 3, 4, 5]) localStorage.removeItem('alienz-progreso-v' + v)
       return 'recarga para empezar de cero'
     },
     abrir: pantalla => {
