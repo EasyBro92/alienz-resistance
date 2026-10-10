@@ -944,4 +944,28 @@ function anchorageSeward () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, ...LUGARES }
+// Seattle: la calle de Pike Place Market, una tarde de lluvia
+// (herramientas/blender/lugar_seattle.py, 10/10; elegido por mí). Al fondo, el
+// mercado con su galería encendida y el rótulo rojo con el reloj en el tejado;
+// los alienz suben del puerto y salen por la boca de la galería (`entrada` con
+// `abanico`, en la misión). Ladrillo mojado, toldos, neones y la base alien en
+// un ruedo de la acera.
+function seattlePike () {
+  const g = new THREE.Group()
+  g.name = 'lugar:seattlePike'
+  Object.assign(g.userData, {
+    modelo: 'lugar-seattle',
+    modeloCiudad: 'lugar-seattle-ciudad',
+    luz: 'lugar-seattle',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    baseX: 12.6,
+    baseZ: -44
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, seattlePike, ...LUGARES }

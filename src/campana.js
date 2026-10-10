@@ -594,9 +594,14 @@ export const PAISES = [
         waves: OLEADAS.colmena
       },
       {
-        name: 'Seattle', lugar: 'I-5 · junto al puerto', mapa: sitio(47.61, -122.33), bioma: 'monzon',
-        // El viaducto, los bloques de cristal y las grúas del muelle.
-        escenario: 'seattle', suelo: 'carretera', hitos: [['spaceNeedle']],
+        name: 'Seattle', llegada: 'seattle', lugar: 'Pike Place Market · la calle del mercado', mapa: sitio(47.61, -122.33), bioma: 'monzon',
+        // Hecho en Blender (herramientas/blender/lugar_seattle.py): tarde de lluvia.
+        // Suben del puerto por dentro del mercado y salen por la boca de la galería (6 m),
+        // en abanico cerrado; se abren en la calle.
+        fondo: { hora: 'dia', cielo: 0x8d98a4, niebla: 0xaab3ba, nieblaCerca: 110, nieblaLejos: 410, cupula: [0x5c6672, 0xb4bcc2], sol: 0xe6eef6 },
+        escenario: 'seattlePike', suelo: 'losas', tonoSuelo: 0x6e443c, hitos: [],
+        entrada: { z: -76, fondo: 3, prisa: { desde: -78, hasta: -68, por: 2.5 }, abanico: { ancho: 0.9, hasta: -64.5 } },
+        sinPajaros: true, sinNubes: true,
         resumen: 'Formas nuevas bajo la lluvia.',
         parte: ['Llueve desde que llegamos. Las formas de aquí salen del agua del puerto.',
           'No se parecen a nada que hayamos visto en Europa ni en Asia.'],

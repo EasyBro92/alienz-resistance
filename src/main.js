@@ -2166,6 +2166,15 @@ const ANCHORAGE_PLANOS = [
   { k: 0.76, pos: [4, 36, 78], mira: [0, 5, -64] },
   { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
 ]
+// Seattle (10/10): el rótulo del mercado de cerca, bajo la lluvia; la cámara
+// retrocede calle arriba, por debajo de los cables, subiendo a su sitio.
+const SEATTLE_PLANOS = [
+  { k: 0, pos: [2, 3.5, -36], mira: [0, 9, -71] },
+  { k: 0.3, pos: [1, 9, -4], mira: [0, 7, -71] },
+  { k: 0.56, pos: [2, 24, 46], mira: [0, 5, -66] },
+  { k: 0.76, pos: [4, 34, 74], mira: [0, 5, -60] },
+  { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
+]
 // Las llegadas «de película»: un recorrido por planos, largo la primera vez y
 // más corto (pero empezando también fuera) las siguientes. Cada una abre la
 // niebla y el corte de lejos a su medida, y enciende el modelo de la ciudad.
@@ -2191,6 +2200,7 @@ const LLEGADAS = {
   moscu: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-moscu-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: MOSCU_PLANOS },
   novosibirsk: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-novosibirsk-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: NOVOSIBIRSK_PLANOS },
   anchorage: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-anchorage-v1', niebla: { cerca: 900, lejos: 3600 }, lejos: 4600, planos: ANCHORAGE_PLANOS },
+  seattle: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-seattle-v1', niebla: { cerca: 600, lejos: 2600 }, lejos: 4400, planos: SEATTLE_PLANOS },
   gizeh: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-gizeh-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: GIZEH_PLANOS },
   marsella: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-marsella-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: MARSELLA_PLANOS }
 }
