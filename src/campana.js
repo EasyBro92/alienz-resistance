@@ -684,9 +684,12 @@ export const PAISES = [
         waves: OLEADAS.colmena
       },
       {
-        name: 'Ciudad de México', lugar: 'Paseo de la Reforma · glorieta del Ángel', mapa: sitio(19.43, -99.13),
-        // Los jacarandás en flor y las torres del tramo nuevo.
-        escenario: 'ciudadDeMexico', suelo: 'carretera', hitos: [['angel']],
+        name: 'Ciudad de México', llegada: 'cdmx', lugar: 'Paseo de la Reforma · glorieta del Ángel', mapa: sitio(19.43, -99.13),
+        // Hecho en Blender (herramientas/blender/lugar_cdmx.py): de día, en primavera, con
+        // las jacarandas en flor. LA MADRE y los suyos llegan en nave.
+        fondo: { hora: 'dia', cielo: 0x8fbdee, niebla: 0xd6dde6, nieblaCerca: 140, nieblaLejos: 470 },
+        escenario: 'cdmxReforma', suelo: 'losas', tonoSuelo: 0x8e8c8a, hitos: [],
+        sinPajaros: true, sinNubes: true,
         resumen: 'La MADRE del altiplano.',
         parte: ['Veinte kilómetros de campamento a lo largo de la calzada.',
           'Al fondo hay otra MADRE, y ha tenido tiempo de aprender de todas las anteriores.'],

@@ -1014,4 +1014,26 @@ function guadalajaraCatedral () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, seattlePike, monterreyMacroplaza, guadalajaraCatedral, ...LUGARES }
+// Ciudad de México: el Paseo de la Reforma con las jacarandas en flor
+// (herramientas/blender/lugar_cdmx.py, 10/10; elegido por mí). Al fondo, en su
+// glorieta, el Ángel de la Independencia entero, a 0,28 de su tamaño; a los
+// lados, jacarandas, bancas y las estatuas de los próceres. LA MADRE, en nave.
+function cdmxReforma () {
+  const g = new THREE.Group()
+  g.name = 'lugar:cdmxReforma'
+  Object.assign(g.userData, {
+    modelo: 'lugar-cdmx',
+    modeloCiudad: 'lugar-cdmx-ciudad',
+    luz: 'lugar-cdmx',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    baseX: 12.6,
+    baseZ: -44
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, seattlePike, monterreyMacroplaza, guadalajaraCatedral, cdmxReforma, ...LUGARES }

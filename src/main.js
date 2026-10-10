@@ -2193,6 +2193,15 @@ const GUADALAJARA_PLANOS = [
   { k: 0.76, pos: [4, 34, 74], mira: [0, 5, -62] },
   { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
 ]
+// Ciudad de México (10/10): el Ángel de cerca y desde abajo, dorado contra el
+// cielo, entre las jacarandas; la cámara retrocede por la calzada subiendo.
+const CDMX_PLANOS = [
+  { k: 0, pos: [2, 3, -52], mira: [0, 8.5, -84] },
+  { k: 0.3, pos: [1, 9, -16], mira: [0, 7, -84] },
+  { k: 0.56, pos: [2, 24, 44], mira: [0, 5, -72] },
+  { k: 0.76, pos: [4, 34, 74], mira: [0, 5, -62] },
+  { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
+]
 // Las llegadas «de película»: un recorrido por planos, largo la primera vez y
 // más corto (pero empezando también fuera) las siguientes. Cada una abre la
 // niebla y el corte de lejos a su medida, y enciende el modelo de la ciudad.
@@ -2221,6 +2230,7 @@ const LLEGADAS = {
   seattle: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-seattle-v1', niebla: { cerca: 600, lejos: 2600 }, lejos: 4400, planos: SEATTLE_PLANOS },
   monterrey: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-monterrey-v1', niebla: { cerca: 900, lejos: 3800 }, lejos: 4600, planos: MONTERREY_PLANOS },
   guadalajara: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-guadalajara-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: GUADALAJARA_PLANOS },
+  cdmx: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-cdmx-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: CDMX_PLANOS },
   gizeh: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-gizeh-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: GIZEH_PLANOS },
   marsella: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-marsella-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: MARSELLA_PLANOS }
 }
