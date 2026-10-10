@@ -185,15 +185,11 @@ elipsoide('EV', BRONCE, en(0.0, ZA + 2.6, 2.3), (0.9, 0.6, 0.6))                
 # La columna, su capitel y la Victoria alada, dorada.
 torno('P', MARMOL, en(0.0, ZA, 4.3), [(0.85, 0.0), (0.72, 0.3), (0.66, 5.4), (0.9, 5.6), (1.05, 6.0), (1.05, 6.2)], lados=14, u_rep=4, v_m=2.0, tapas=(False, True))
 YV = 10.5
-elipsoide('EV', ORO, en(0.0, ZA, YV + 0.25), (0.3, 0.3, 0.25))                         # la peana
-elipsoide('EV', ORO, en(0.0, ZA, YV + 1.05), (0.24, 0.22, 0.62))                       # el cuerpo
-elipsoide('EV', ORO, en(0.0, ZA + 0.02, YV + 1.78), (0.13, 0.13, 0.15))                # la cabeza
-for s in (-1, 1):                                                                    # las alas, abiertas
-    cara('EV', ORO, [P(s * 0.12, ZA - 0.14, YV + 1.3), P(s * 1.25, ZA - 0.3, YV + 2.1), P(s * 1.05, ZA - 0.3, YV + 1.0), P(s * 0.3, ZA - 0.2, YV + 0.7)], hacia=V((0, -1, 0)))
-    cara('EV', ORO, [P(s * 0.12, ZA - 0.16, YV + 1.3), P(s * 0.3, ZA - 0.22, YV + 0.7), P(s * 1.05, ZA - 0.32, YV + 1.0), P(s * 1.25, ZA - 0.32, YV + 2.1)], hacia=V((0, 1, 0)))
-barra('EV', ORO, P(0.18, ZA + 0.1, YV + 1.5), P(0.62, ZA + 0.3, YV + 2.3), 0.07)       # el brazo con la corona de laurel
-torno('EV', ORO, en(0.66, ZA + 0.32, YV + 2.34), [(0.16, 0.0), (0.2, 0.05), (0.16, 0.1)], lados=8, tapas=(False, False))
-print('ÁNGEL', YV + 2.44, 'm')
+# La Victoria es de MESHY (10/10, 30 créditos; Isidro: «haz todas estas con Meshy»):
+# la de antes eran tres bolas doradas con dos alas planas (está en el historial).
+victoria = importar(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'modelos', 'victoria.glb'), 'VV', 2.45, 0.0, ZA)
+victoria.data.transform(M.Translation((0, 0, YV)))
+print('ÁNGEL', YV + 2.45, 'm')
 
 comprobar_paso(('E', 'EP', 'P', 'EV', 'GN'), z_lejos=-61.0)
 
@@ -245,12 +241,13 @@ terminar(
         'P': ('luzS-pista', 'atlas', 'luzS'),
         'GN': ('luzG-cerca', 'planta', 'luzG'),
         'EV': ('vert-cerca', 'vert', None),
+        'VV': ('vert-victoria', 'vert', None),
         'EP': ('planoE', 'plano', None),
         'G': ('luzG', 'planta', 'luzG'),
         'T': ('vertT', 'vert', None),
         'CP': ('planoC', 'plano', None),
     },
-    exportes=[('lugar-cdmx', ['P', 'GN', 'EV', 'EP']), ('lugar-cdmx-ciudad', ['G', 'T', 'CP'])],
+    exportes=[('lugar-cdmx', ['P', 'GN', 'EV', 'VV', 'EP']), ('lugar-cdmx-ciudad', ['G', 'T', 'CP'])],
     # De día, la receta de Salónica: sol fuerte y algo dorado, cielo muy flojo.
     sol_hacia=SOL, sol_color=(1.0, 0.9, 0.74), sol_fuerza=7.5, cielo_fuerza=0.12, cielo_altura=42, cielo_giro=150,
     escala=0.62, satura=0.9, no_alumbran=('CP',), suaves=('monte-lejos',), fundir=True)

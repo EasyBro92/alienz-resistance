@@ -377,26 +377,14 @@ for x, y, r in ((-1.1, 1.2, 0.32), (0.7, 2.6, 0.4), (1.3, 0.9, 0.22), (-0.4, 4.2
     cara('EP', BRILLO_HONDO if r > 0.25 else VERDE, [P(x + r * math.cos(a_), Z_ATRAS + 0.93, y + r * 0.85 * math.sin(a_)) for a_ in np.linspace(0, 2 * math.pi, 8, endpoint=False)], hacia=V((0, -1, 0)))
 
 def coloso (x, z):
-    """Un coloso sentado de granito, mirando a la avenida: la peana, el trono, el
-    rey con las manos en las rodillas y la doble corona."""
-    m = en(x, z)
-    caja_ = lambda cx, cz, ancho, fondo, y0, y1: caja('P', GRANITO, x + cx - ancho / 2, x + cx + ancho / 2, z + cz - fondo / 2, z + cz + fondo / 2, y0, y1, baldosa=3.0)
-    caja_(0, 0, 2.4, 3.0, 0.0, 0.9)                                                 # la peana
-    caja_(0, -0.55, 1.9, 1.5, 0.9, 2.7)                                             # el trono
-    caja_(0, -1.15, 1.9, 0.3, 2.7, 4.5)                                             # y su respaldo
-    for s in (-1, 1):
-        caja_(s * 0.42, 0.75, 0.56, 0.6, 0.9, 2.7)                                  # las piernas
-        caja_(s * 0.42, 1.12, 0.56, 0.62, 0.9, 1.2)                                 # los pies
-        caja_(s * 0.42, 0.2, 0.6, 1.7, 2.7, 3.25)                                   # los muslos
-        caja_(s * 0.86, -0.42, 0.34, 0.5, 3.1, 4.7)                                 # los brazos
-        caja_(s * 0.78, 0.3, 0.3, 1.0, 3.2, 3.5)                                    # y los antebrazos, sobre los muslos
-    caja_(0, -0.45, 1.5, 0.75, 3.2, 4.9)                                            # el torso
-    caja_(0, -0.45, 1.9, 0.6, 4.6, 5.0)                                             # los hombros
-    elipsoide('P', GRANITO, m @ T(0, 0.38, 5.55), (0.42, 0.42, 0.5))                # la cabeza
-    for s in (-1, 1):                                                                # el nemes, que cae sobre los hombros
-        cara('P', GRANITO, [P(x + s * 0.34, z - 0.2, 6.0), P(x + s * 0.86, z - 0.3, 5.0), P(x + s * 0.86, z - 0.75, 5.0), P(x + s * 0.34, z - 0.72, 6.0)], hacia=V((s, 0, 0.4)))
-        cara('P', GRANITO, [P(x + s * 0.34, z - 0.2, 6.0), P(x + s * 0.86, z - 0.3, 5.0), P(x + s * 0.5, z - 0.12, 5.0)], hacia=V((0, -1, 0)))
-    torno('P', GRANITO, en(x, z - 0.45, 5.95), [(0.44, 0.0), (0.4, 0.5), (0.24, 1.05), (0.18, 1.2)], lados=10, tapas=(False, True))    # la doble corona
+    """Un coloso sentado de granito, mirando a la avenida. De MESHY (10/10, 30
+    créditos; Isidro: «haz todas estas con Meshy»): el de antes era de cajas (está
+    en el historial). Con el frente de la peana donde estaba, que por delante
+    pasan los alienz al abrirse."""
+    o = importar(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'modelos', 'coloso.glb'), 'KV', 6.9, x, z)
+    vs = np.array([v.co[:] for v in o.data.vertices])
+    o.data.transform(M.Translation((0, -(z + 1.5) - float(vs[:, 1].min()), 0)))       # en Blender, hacia la cámara es -Y
+    print('COLOSO: ancho', round(float(vs[:, 0].max() - vs[:, 0].min()), 2), 'fondo', round(float(vs[:, 1].max() - vs[:, 1].min()), 2))
 for s in (-1, 1):
     coloso(s * 4.95, Z_P + 2.0)
 # El obelisco de granito rosa, a la izquierda, con la punta dorada.
@@ -513,13 +501,14 @@ terminar(
         'E': ('luzE', 'atlas', 'luzE'),
         'GN': ('luzG-cerca', 'planta', 'luzG'),
         'EV': ('vert-cerca', 'vert', None),
+        'KV': ('vert-colosos', 'vert', None),
         'EP': ('planoE', 'plano', None),
         'C': ('luzC', 'atlas', 'luzC'),
         'G': ('luzG', 'planta', 'luzG'),
         'T': ('vertT', 'vert', None),
         'CP': ('planoC', 'plano', None),
     },
-    exportes=[('lugar-luxor', ['P', 'E', 'GN', 'EV', 'EP']), ('lugar-luxor-ciudad', ['C', 'G', 'T', 'CP'])],
+    exportes=[('lugar-luxor', ['P', 'E', 'GN', 'EV', 'KV', 'EP']), ('lugar-luxor-ciudad', ['C', 'G', 'T', 'CP'])],
     # Mediodía: el sol casi a plomo, blanco y fuerte; sombras cortas y duras.
     sol_hacia=SOL, sol_color=(1.0, 0.9, 0.72), sol_fuerza=7.0, sol_ancho=1.5, cielo_fuerza=0.09, cielo_altura=62, cielo_giro=150,
     escala=0.56, satura=0.85, no_alumbran=('CP',), suaves=('monte-lejos',), fundir=True)

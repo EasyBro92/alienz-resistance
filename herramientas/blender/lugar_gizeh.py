@@ -237,44 +237,15 @@ for k in range(9):                                                              
 # ==================================================================================
 # 3. LA ESFINGE
 # ==================================================================================
-PERFIL = [(1.0, 0.0), (1.01, 0.22), (0.97, 0.56), (0.82, 0.84), (0.5, 0.97), (0.0, 1.0)]     # media sección: (x / medio, y / alto)
-def seccion (z, medio, alto):
-    media = [(-px * medio, py * alto) for px, py in PERFIL]
-    return [P(x, z, y) for x, y in media + [(-x, y) for x, y in reversed(media[:-1])]]
-# El cuerpo: del pecho a la grupa, con el lomo redondo.
-cuerpo = [seccion(z, medio, alto) for z, medio, alto in (
-    (-86.4, 3.1, 6.3), (Z_PECHO - 0.8, 4.5, 7.3), (-92.0, 5.6, 7.4), (-100.0, 5.7, 7.2), (-110.0, 5.6, 7.0), (-117.0, 5.7, 7.0), (-121.0, 5.0, 6.3), (-123.0, 3.2, 4.4), (Z_GRUPA, 1.2, 1.6))]
-malla('P', ESTRATOS, cuerpo, lambda c: V((c.x, 0, c.z - 3.2)), u_rep=1.0, v_rep=6.0, girar=True)
-cara('P', ESTRATOS, cuerpo[0], hacia=V((0, -1, 0)), baldosa=4.0)
-cara('P', ESTRATOS, cuerpo[-1], hacia=V((0, 1, 0)), baldosa=4.0)
-# El forro de sillares del pie, que es lo restaurado, y las dos patas tendidas.
-for s in (-1, 1):
-    viga('P', SILLAR, min(s * 5.55, s * 6.0), max(s * 5.55, s * 6.0), -121.5, Z_PECHO - 1.0, 0.0, 1.9, u_m=3.0)
-    x0, x1 = (2.0, 4.7) if s > 0 else (-4.7, -2.0)
-    viga('P', SILLAR, x0, x1, Z_PECHO - 1.0, Z_PATAS + 0.5, 0.0, 1.9, u_m=3.0, techo=SILLAR)
-    for k in range(4):                                                             # los dedos
-        elipsoide('P', PIEDRA, en(x0 + 0.34 + k * 0.68, Z_PATAS + 0.5, 0.75), (0.36, 0.7, 0.75))
-    caja('P', SILLAR, min(s * 4.6, s * 6.2), max(s * 4.6, s * 6.2), -121.5, -112.0, 0.0, 2.3, baldosa=3.0)   # las ancas, recogidas
-caja('P', SILLAR, -5.6, 5.6, Z_GRUPA - 0.6, -121.5, 0.0, 1.9, baldosa=3.0)
-# Entre las patas, la estela del Sueño.
-viga('P', ESTELA, -0.8, 0.8, Z_PECHO + 0.5, Z_PECHO + 0.9, 0.0, 2.3, u_m=1.6, techo=GRANITO_ROJO)
-bloque('P', GRANITO_ROJO, en(0.0, Z_PECHO + 2.2), (1.1, 0.9, 0.5), mella=0.02)
-
-# --- la cabeza: el nemes, la cara y lo que le queda de los rasgos -------------------------------
-Z_CARA = -87.0
-CONTORNO_NEMES = [(-2.25, 6.9), (2.25, 6.9), (2.8, 8.6), (2.55, 10.4), (1.75, 11.55), (0.6, 12.0), (-0.6, 12.0), (-1.75, 11.55), (-2.55, 10.4), (-2.8, 8.6)]
-extruido('P', NEMES, en(0.0, Z_CARA - 1.9, 0.0), CONTORNO_NEMES, 3.4, baldosa=2.0)
-elipsoide('P', PIEDRA, en(0.0, Z_CARA - 3.2, 9.9), (2.3, 2.2, 2.05))                 # la nuca
-elipsoide('P', PIEDRA, en(0.0, Z_CARA - 1.0, 7.3), (1.6, 1.5, 1.2))                  # el cuello
-elipsoide('P', PIEDRA, en(0.0, Z_CARA, 9.55), (1.3, 0.85, 1.65), sub=2)              # la cara
-elipsoide('P', PIEDRA, en(0.0, Z_CARA + 0.45, 8.35), (0.7, 0.5, 0.42))               # el mentón
-for s in (-1, 1):
-    elipsoide('EP', RASGO, en(s * 0.5, Z_CARA + 0.74, 10.0), (0.27, 0.06, 0.11))     # los ojos
-    bloque('EP', RASGO, en(s * 0.5, Z_CARA + 0.7, 10.24), (0.6, 0.08, 0.06), mella=0.0)   # las cejas
-    elipsoide('P', PIEDRA, en(s * 1.42, Z_CARA - 0.6, 9.7), (0.2, 0.5, 0.62))        # las orejas
-elipsoide('EP', RASGO, en(0.0, Z_CARA + 0.84, 9.4), (0.2, 0.06, 0.2))                # el hueco de la nariz
-bloque('EP', RASGO, en(0.0, Z_CARA + 0.8, 8.86), (0.74, 0.08, 0.07), mella=0.0)      # la boca
-bloque('P', PIEDRA, en(0.0, Z_CARA + 0.5, 11.25), (0.34, 0.5, 0.42), mella=0.05)     # el arranque de la cobra
+# De MESHY (10/10, 30 créditos; Isidro: «haz todas estas con Meshy»): la que se
+# hacía aquí por piezas —el cuerpo por secciones, el nemes extruido, la cara una
+# bola con los rasgos pegados— está en el historial de git. El modelo trae su
+# zócalo de sillares; va en un grupo `vert` (su textura, y la luz en los vértices),
+# con las patas donde estaban: en el borde de la rampa.
+esfinge = importar(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'modelos', 'esfinge.glb'), 'SV', 12.4, 0.0, -100.0)
+vs = np.array([v.co[:] for v in esfinge.data.vertices])
+esfinge.data.transform(M.Translation((0, -Z_PATAS - float(vs[:, 1].min()), 0)))      # en Blender, hacia la cámara es -Y
+print('ESFINGE: ancho', round(float(vs[:, 0].max() - vs[:, 0].min()), 1), 'largo', round(float(vs[:, 1].max() - vs[:, 1].min()), 1), len(esfinge.data.polygons), 'caras')
 print('ESFINGE', 12.0, 'm')
 
 # ==================================================================================
@@ -384,13 +355,14 @@ terminar(
         'E': ('luzE', 'atlas', 'luzE'),
         'GP': ('luzG-meseta', 'planta', 'luzG'),
         'EV': ('vert-cerca', 'vert', None),
+        'SV': ('vert-esfinge', 'vert', None),
         'EP': ('planoE', 'plano', None),
         'C': ('luzC', 'atlas', 'luzC'),
         'G': ('luzG', 'planta', 'luzG'),
         'T': ('vertT', 'vert', None),
         'CP': ('planoC', 'plano', None),
     },
-    exportes=[('lugar-gizeh', ['P', 'E', 'GP', 'EV', 'EP']), ('lugar-gizeh-ciudad', ['C', 'G', 'T', 'CP'])],
+    exportes=[('lugar-gizeh', ['P', 'E', 'GP', 'EV', 'SV', 'EP']), ('lugar-gizeh-ciudad', ['C', 'G', 'T', 'CP'])],
     # Atardecer, como en Atenas: está en el COLOR del sol. Muy naranja y fuerte, cielo flojo.
     sol_hacia=SOL, sol_color=(1.0, 0.56, 0.24), sol_fuerza=7.5, sol_ancho=4.0, cielo_fuerza=0.3, cielo_altura=6, cielo_giro=200,
     # La escala va más alta que en Atenas: con el sol a 20° al suelo le llega un tercio
