@@ -1786,6 +1786,11 @@ function simulate (dt) {
     for (let l = 0; l < FIELD.lanes; l++) presion[l] *= Math.max(0, 1 - dt * 0.06)
 
     separarHuespedes()
+    if (FIELD.ascensor) {
+      for (const z of zombies) world.sujetarAlAscensor(z)
+      const suceso = world.ascensor(dt, zombies)
+      if (suceso === 'arriba') audio.thud()
+    }
 
     // En duelo, además, aprieta con el reloj: Isidro echaba en falta que la
     // música se pusiera seria en los últimos minutos.  va de 0
@@ -1819,6 +1824,7 @@ function simulate (dt) {
   updateCorpses(dt)
   if (running) updateBrasas(dt)
   ambient.update(dt)
+  world.quietud(calidad.nivel === 'baja')
   world.animarArena(dt)
   // Fuera del bloque de partida en curso: al perder, la nave tiene que poder
   // terminar de irse en vez de quedarse congelada sobre la carretera.
@@ -2238,6 +2244,16 @@ const RIO_PLANOS = [
   { k: 0.76, pos: [6, 32, 76], mira: [0, 5, -66] },
   { k: 0.9, pos: [-2, 20, 43], mira: [0, 3, -40] }
 ]
+// El portaaviones de Nueva York (10/10): la postal —la Estatua de la Libertad con
+// el sur de Manhattan detrás—, y la cámara retrocede sobre el agua hasta la proa,
+// pasa por encima de los cazas y baja a la cubierta.
+const PORTAAVIONES_PLANOS = [
+  { k: 0, pos: [-14, 30, -300], mira: [-5, 46, -521] },
+  { k: 0.3, pos: [-30, 48, -190], mira: [-5, 38, -521] },
+  { k: 0.56, pos: [8, 40, 70], mira: [0, 0, -90] },
+  { k: 0.76, pos: [4, 26, 62], mira: [0, 4, -60] },
+  { k: 0.9, pos: [-1, 16, 40], mira: [0, 2, -30] }
+]
 // Manaos (10/10): el teatro de cerca y desde abajo, con la cúpula de azulejos
 // contra la tormenta; la cámara retrocede por la plaza subiendo a su sitio.
 const MANAOS_PLANOS = [
@@ -2279,6 +2295,7 @@ const LLEGADAS = {
   puntacana: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-puntacana-v1', niebla: { cerca: 900, lejos: 3600 }, lejos: 4600, planos: PUNTACANA_PLANOS },
   santodomingo: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-santodomingo-v1', niebla: { cerca: 900, lejos: 3600 }, lejos: 4600, planos: SANTODOMINGO_PLANOS },
   puertoplata: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-puertoplata-v1', niebla: { cerca: 900, lejos: 3600 }, lejos: 4600, planos: PUERTOPLATA_PLANOS },
+  portaaviones: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-portaaviones-v1', niebla: { cerca: 900, lejos: 15000 }, lejos: 8200, planos: PORTAAVIONES_PLANOS },
   rio: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-rio-v2', niebla: { cerca: 1500, lejos: 13000 }, lejos: 7600, planos: RIO_PLANOS },
   manaos: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-manaos-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: MANAOS_PLANOS },
   gizeh: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-gizeh-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: GIZEH_PLANOS },
@@ -2859,6 +2876,9 @@ function start (indice = nivelActual) {
   // Y si salen por una puerta estrecha, vienen en abanico cerrado hasta cruzarla
   // (`abanico: { ancho, hasta }`: lo que se separan y la z de la puerta).
   FIELD.abanico = nivelDeHoy.entrada?.abanico ?? null
+  // Y si suben por un ascensor (el portaaviones), sus medidas: las usan el mundo
+  // (a qué altura va cada uno) y los propios huéspedes (ver `intocable`).
+  FIELD.ascensor = nivelDeHoy.entrada?.ascensor ?? null
   // Un estorbo en medio del campo que los huéspedes rodean (la ruina del Coliseo).
   FIELD.ruina = nivelDeHoy.ruina ?? null
   FIELD.columnas = nivelDeHoy.columnas ?? null
@@ -2867,6 +2887,7 @@ function start (indice = nivelActual) {
   dropship.ponerAltura(nivelDeHoy.alturaNave)
   if (sinNave) dropship.ocultar()
   world.vestir(nivelDeHoy.bioma, nivelDeHoy.hitos, nivelDeHoy.suelo, nivelDeHoy.tonoSuelo, nivelDeHoy.escenario, nivelDeHoy.fondo)
+  world.reiniciarAscensor()
   // Lo que arrastra el viento en este sitio, y por dónde vuelan las naves de paso.
   ambient.vestir(nivelDeHoy, world.alturaEn)
   billetesPartida = 0

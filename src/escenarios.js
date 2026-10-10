@@ -1156,4 +1156,33 @@ function manaosTeatro () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, seattlePike, monterreyMacroplaza, guadalajaraCatedral, cdmxReforma, puntaCanaBavaro, santoDomingoAlcazar, puertoPlataFortaleza, rioCorcovado, manaosTeatro, ...LUGARES }
+// Nueva York: la cubierta de un portaaviones fondeado en la bahía, al atardecer
+// (herramientas/blender/lugar_portaaviones.py, 10/10). Isidro: «una batalla en un
+// portaaviones en el mar de Nueva York, que se vea la Estatua de la Libertad
+// cerca y de fondo Nueva York con un skyline totalmente reconocible, con sus
+// puentes». Sustituye al tramo de la Isla de la Libertad. Es el primer mapa con
+// TODO el fondo en el modelo de juego (no desaparece al empezar la batalla), con
+// el agua moviéndose (`agua`), las banderas ondeando y un ferry que cruza
+// (`moviles`). La cámara, más baja (`picado: 16`): se ve cielo. Los alienz
+// suben por el ascensor del hangar (`entrada.ascensor` en la misión).
+function nuevaYorkPortaaviones () {
+  const g = new THREE.Group()
+  g.name = 'lugar:nuevaYorkPortaaviones'
+  Object.assign(g.userData, {
+    modelo: 'lugar-portaaviones',
+    luz: 'lugar-portaaviones',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    picado: 16,
+    lejos: 8200,
+    baseX: -12.6,
+    baseZ: -44,
+    agua: { claro: 0xf0b48c },
+    moviles: [{ malla: 'vert-ferry', eje: [330, 0, 0], dura: 160 }]
+  })
+  return g
+}
+
+export const ESCENARIOS = { nuevaYorkPortaaviones,  puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, seattlePike, monterreyMacroplaza, guadalajaraCatedral, cdmxReforma, puntaCanaBavaro, santoDomingoAlcazar, puertoPlataFortaleza, rioCorcovado, manaosTeatro, ...LUGARES }

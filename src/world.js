@@ -1699,6 +1699,100 @@ export function createWorld (canvas) {
     }
     return mapasDeLuz.get(ruta)
   }
+  // --- lo que se MUEVE en un modelo de Blender (10/10) -------------------------
+  // Isidro: «los árboles no tienen animación… el agua no se mueve». Todo esto va
+  // en el sombreador, con un solo reloj: no cuesta llamadas ni geometría nueva.
+  //   · el AGUA (materiales `agua-*`): dos mares de fondo que se cruzan y un
+  //     rizado encima; las crestas cogen la luz del cielo (`agua.claro` en el
+  //     escenario) y hacia el horizonte se vuelve una lámina de ese color;
+  //   · lo que se MECE (banderas, copas de árbol): en las mallas `vert`, el alfa
+  //     del color de cada vértice dice cuánto (lo pone `mecer` en horneado.py:
+  //     1 = quieto). Los mapas de antes llevan todos 1 y no se mueven.
+  // En calidad baja el reloj se para (`quietud`): se ve igual, pero quieto.
+  const reloj = { value: 0 }
+  let relojQuieto = false
+  function hacerAgua (m, cfg = {}) {
+    const claro = new THREE.Color(cfg.claro ?? 0xbfd8e8)
+    m.onBeforeCompile = sh => {
+      sh.uniforms.uT = reloj
+      sh.uniforms.uClaro = { value: claro }
+      sh.vertexShader = sh.vertexShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vMundo;')
+        .replace('#include <project_vertex>', '#include <project_vertex>\nvMundo = (modelMatrix * vec4(transformed, 1.0)).xyz;')
+      sh.fragmentShader = sh.fragmentShader
+        .replace('#include <common>', `#include <common>
+varying vec3 vMundo; uniform float uT; uniform vec3 uClaro;
+float azarAgua (vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float olaAgua (vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(azarAgua(i), azarAgua(i + vec2(1.0, 0.0)), f.x), mix(azarAgua(i + vec2(0.0, 1.0)), azarAgua(i + vec2(1.0, 1.0)), f.x), f.y); }`)
+        .replace('#include <map_fragment>', `#include <map_fragment>
+{
+  vec2 p = vMundo.xz;
+  float lejos = smoothstep(150.0, 3200.0, distance(cameraPosition, vMundo));
+  // Cuánta agua tapa un píxel. A ras de agua y lejos son decenas de metros: una
+  // ola más pequeña que eso no se dibuja, que si no los píxeles bailan a puntos.
+  float tapa = max(length(dFdx(p)), length(dFdy(p)));
+  // Las olas van TENDIDAS de lado a lado (largas en x, cortas en z), que es como
+  // se ve el reflejo del cielo en el agua; redondas, eran manchas de pintura.
+  // Tres tamaños, cada uno girado un poco para que no se vea la rejilla del ruido.
+  vec2 q = vec2(p.x * 0.94 + p.y * 0.34, p.y * 0.94 - p.x * 0.34);
+  float mar = olaAgua(vec2(p.x * 0.012, p.y * 0.05) + vec2(uT * 0.03, uT * 0.05)) - 0.5;
+  float ola = olaAgua(vec2(q.x * 0.045, q.y * 0.2) + vec2(-uT * 0.06, uT * 0.16)) - 0.5;
+  float rizo = olaAgua(vec2(p.x * 0.22, p.y * 0.95) + vec2(uT * 0.25, uT * 0.5)) - 0.5;
+  float fina = ola * 0.8 * (1.0 - smoothstep(1.6, 5.0, tapa)) + rizo * 0.6 * (1.0 - smoothstep(0.35, 1.0, tapa));
+  diffuseColor.rgb *= 1.0 + (mar * (1.0 - smoothstep(6.0, 22.0, tapa)) + fina) * 0.5;
+  // Solo el filo de las olas pequeñas coge la luz del cielo (con el mar de fondo
+  // en la cuenta salían charcos de color); hacia el horizonte, toda el agua.
+  float filo = smoothstep(0.3, 0.4, fina);
+  diffuseColor.rgb = mix(diffuseColor.rgb, uClaro, filo * 0.3 + lejos * 0.5);
+}`)
+    }
+    m.customProgramCacheKey = () => 'agua'
+  }
+  function hacerMecer (m) {
+    m.onBeforeCompile = sh => {
+      sh.uniforms.uT = reloj
+      sh.vertexShader = sh.vertexShader
+        .replace('#include <common>', '#include <common>\nuniform float uT;')
+        .replace('#include <begin_vertex>', `#include <begin_vertex>
+#ifdef USE_COLOR_ALPHA
+  float mece = 1.0 - color.a;
+  if (mece > 0.004) {
+    // Una copa de árbol se va entera de lado; una bandera hace ondas: cuanto más
+    // se mece un punto, más corta es la onda que lo mueve.
+    float onda = 0.25 + 2.2 * mece * mece;
+    float f = uT * 2.4 - (position.x + position.z) * onda + position.y * 0.3;
+    float cuanto = mece * mece * 0.8;
+    transformed.x += sin(f) * cuanto * 0.5;
+    transformed.z += cos(f * 0.83) * cuanto;
+    transformed.y += sin(f * 1.31) * cuanto * 0.2;
+  }
+#endif`)
+    }
+    m.customProgramCacheKey = () => 'mece'
+  }
+  function conMovimiento (raiz, datos) {
+    raiz.traverse(o => {
+      if (!o.isMesh) return
+      const m = o.material
+      if (m.userData.conMovimiento) return
+      if (/^agua/.test(m.name)) {
+        m.userData.conMovimiento = true
+        hacerAgua(m, datos.agua)
+      } else if (m.vertexColors && o.geometry.attributes.color?.itemSize === 4) {
+        m.userData.conMovimiento = true
+        hacerMecer(m)
+      }
+    })
+  }
+  // --- el ascensor del hangar (el portaaviones de Nueva York) --------------------
+  // Los alienz nacen en el hangar, bajo la cubierta, donde no se ven; pasan a la
+  // plataforma cuando está ABAJO, suben con ella y salen a la cubierta cuando
+  // está ARRIBA. La plataforma es una malla del modelo (`vert-ascensor`) y la
+  // geometría la da la misión (`entrada.ascensor` → FIELD.ascensor).
+  const asc = { y: 0, estado: 'arriba', t: 0, espera: 0, malla: null }
+  const suave = k => k * k * (3 - 2 * k)
+
   // Solo resplandece lo de DENTRO del estadio: el halo se dibuja sin tapar con
   // lo demás, y un farol de la calle brillaría a través de los edificios.
   const RESPLANDECE = /^brillo-(focos|video|cinta)/
@@ -1792,8 +1886,10 @@ export function createWorld (canvas) {
         const ruta = n => `${import.meta.env.BASE_URL}models/${n}`
         const esperas = []
         const montar = gltf => {
-          if (crudo.userData.luz) esperas.push(conLuzHorneada(gltf.scene, ruta(crudo.userData.luz)))
-          else {
+          if (crudo.userData.luz) {
+            esperas.push(conLuzHorneada(gltf.scene, ruta(crudo.userData.luz)))
+            conMovimiento(gltf.scene, crudo.userData)
+          } else {
             gltf.scene.traverse(o => {
               if (!o.isMesh) return
               // Solo brilla lo que se llama brillo-*: los escaparates de la
@@ -2133,6 +2229,23 @@ export function createWorld (canvas) {
 
   function animarArena (dt) {
     escenarioVisto?.userData.humo?.userData.animar(Math.min(dt, 0.1))
+    if (!relojQuieto) reloj.value += Math.min(dt, 0.1)
+    const sitio = escenarioVisto
+    if (sitio && sitio.userData.listo !== false) {
+      // Lo que va y viene por su cuenta (`moviles` en el escenario: una malla del
+      // modelo, hasta dónde se aparta de su sitio y cuánto tarda en ir y volver).
+      for (const mv of sitio.userData.moviles ?? []) {
+        mv.o ??= sitio.getObjectByName(mv.malla)
+        if (!mv.o) continue
+        const k = Math.sin(reloj.value * 2 * Math.PI / mv.dura + (mv.fase ?? 0))
+        mv.o.position.set(mv.eje[0] * k, mv.eje[1] * k, mv.eje[2] * k)
+      }
+      // En calidad baja, fuera lo que solo adorna (las mallas `…-extra`).
+      if (sitio.userData.sinExtras !== relojQuieto) {
+        sitio.userData.sinExtras = relojQuieto
+        sitio.traverse(o => { if (/-extra/.test(o.name)) o.visible = !relojQuieto })
+      }
+    }
     const g = arenaVista
     if (!g) return
     const t = performance.now() / 1000
@@ -2372,11 +2485,77 @@ export function createWorld (canvas) {
     // La altura del suelo dentro del `hueco` de un escenario (el túnel de París):
     // negativa, de `-hondo` al fondo a cero en el borde de la rampa. Cero fuera.
     alturaHueco (x, z) {
+      const a = FIELD.ascensor
+      if (a && Math.abs(x) <= a.x + 0.6) {
+        if (z < a.zFondo) return -a.hondo
+        if (z < a.zBorde) return asc.y
+      }
       const h = escenarioVisto?.userData.hueco
       if (!h || Math.abs(x) > h.x || z > h.zBorde) return 0
       if (z <= h.zFondo) return -h.hondo
       return -h.hondo * (h.zBorde - z) / (h.zBorde - h.zFondo)
     },
+    // El ascensor del hangar, cada fotograma: decide cuándo sube y cuándo baja
+    // según quién espera abajo y quién va encima. Devuelve 'sube', 'arriba' o
+    // 'baja' en el fotograma en que cambia, para el sonido.
+    ascensor (dt, huespedes) {
+      const c = FIELD.ascensor
+      if (!c) return null
+      let encima = 0; let abajo = 0
+      for (const z of huespedes) {
+        if (z.dead) continue
+        if (z.zona === 1) encima++
+        else if (!z.zona) abajo++
+      }
+      let suceso = null
+      asc.t += dt
+      if (asc.estado === 'arriba') {
+        asc.y = 0
+        // Baja a por más en cuanto se queda vacía y hay alguien esperando.
+        if (!encima && abajo && asc.t > 0.4) { asc.estado = 'bajando'; asc.t = 0; suceso = 'baja' }
+      } else if (asc.estado === 'bajando') {
+        const k = Math.min(1, asc.t / (c.baja ?? 1.8))
+        asc.y = -c.hondo * suave(k)
+        if (k >= 1) { asc.estado = 'abajo'; asc.t = 0; asc.espera = 0 }
+      } else if (asc.estado === 'abajo') {
+        asc.y = -c.hondo
+        asc.espera = encima ? asc.espera + dt : 0
+        // Sube cuando va llena, cuando lleva un rato esperando o cuando ya no viene nadie más.
+        if (encima && (encima >= (c.cabe ?? 7) || asc.espera > (c.espera ?? 1.8) || (!abajo && asc.espera > 0.6))) {
+          asc.estado = 'subiendo'; asc.t = 0; suceso = 'sube'
+        }
+      } else {
+        const k = Math.min(1, asc.t / (c.sube ?? 2.6))
+        asc.y = -c.hondo * (1 - suave(k))
+        if (k >= 1) { asc.estado = 'arriba'; asc.t = 0; asc.y = 0; suceso = 'arriba' }
+      }
+      asc.malla ??= escenarioVisto?.getObjectByName('vert-ascensor') ?? null
+      if (asc.malla) asc.malla.position.y = asc.y
+      return suceso
+    },
+    // Que nadie cruce una raya del ascensor cuando no toca: del hangar a la
+    // plataforma solo con ella abajo, y de la plataforma a la cubierta solo con
+    // ella arriba. Va DESPUÉS de todo lo que mueve a los huéspedes (su paso y los
+    // empujones entre ellos), por zonas: 0 el hangar, 1 la plataforma, 2 la cubierta.
+    sujetarAlAscensor (z) {
+      const c = FIELD.ascensor
+      const p = z.mesh.position
+      z.zona ??= p.z < c.zFondo ? 0 : p.z < c.zBorde ? 1 : 2
+      if (z.zona === 0 && p.z >= c.zFondo) { if (asc.estado === 'abajo') z.zona = 1; else p.z = c.zFondo - 0.01 }
+      if (z.zona === 1) {
+        if (p.z < c.zFondo) p.z = c.zFondo
+        if (p.z >= c.zBorde) { if (asc.estado === 'arriba') z.zona = 2; else p.z = c.zBorde - 0.01 }
+      }
+      if (z.zona === 2 && p.z < c.zBorde) p.z = c.zBorde
+    },
+    reiniciarAscensor () {
+      Object.assign(asc, { y: 0, estado: 'arriba', t: 0, espera: 0, malla: null })
+      const m = escenarioVisto?.getObjectByName('vert-ascensor')
+      if (m) m.position.y = 0
+    },
+    estadoAscensor: () => ({ estado: asc.estado, y: asc.y }),
+    // En calidad baja, el agua y lo que se mece se quedan quietos.
+    quietud (si) { relojQuieto = !!si },
     vitorear: (fuerza = 1) => { vitoreo = Math.min(1, vitoreo + fuerza) },
     // La base del fondo de esta misión: el asalto final la hace reventar.
     baseActual: () => baseVisible,

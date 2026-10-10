@@ -632,15 +632,22 @@ export const PAISES = [
         waves: OLEADAS.colmena
       },
       {
-        name: 'Nueva York', lugar: 'Isla de la Libertad · al pie del pedestal', mapa: sitio(40.689, -74.045), bioma: 'costa',
-        // El sitio de la estatua es SU isla, con el agua alrededor y Manhattan
-        // al otro lado de la bahía. La explanada del pedestal es estrecha, así
-        // que el campo queda en cuatro carriles.
-        escenario: 'nuevaYorkIsla', suelo: 'losas', tonoSuelo: 0xb9b2a4, hitos: [['libertad3d']],
+        name: 'Nueva York', llegada: 'portaaviones', lugar: 'Bahía de Nueva York · cubierta del portaaviones', mapa: sitio(40.689, -74.045), bioma: 'costa',
+        // Hecho en Blender (herramientas/blender/lugar_portaaviones.py, 10/10; antes
+        // era la Isla de la Libertad): la cubierta de un portaaviones fondeado ante
+        // la Estatua, con Manhattan y sus puentes al fondo, al atardecer. La niebla,
+        // muy abierta: todo eso se ve jugando.
+        fondo: { hora: 'ocaso', cielo: 0xe9a367, niebla: 0xe8b48e, nieblaCerca: 900, nieblaLejos: 15000, cupula: [0x5c66a8, 0xf4a86c], sol: 0xffc890 },
+        escenario: 'nuevaYorkPortaaviones', suelo: 'losas', tonoSuelo: 0x45484c, hitos: [],
+        sinNubes: true, aves: { color: 0xe8e6e0, sube: 5 },
+        // Sin nave: nacen en el hangar, bajo la cubierta, y suben por el ascensor de
+        // los aviones (la plataforma del fondo del pasillo, de z = -64 a -52). En el
+        // hangar vienen deprisa, que ahí no se les ve.
+        entrada: { z: -68, fondo: 6, prisa: { desde: -76, hasta: -52, por: 3 }, ascensor: { x: 7.6, zFondo: -64, zBorde: -52, hondo: 6.5, cabe: 12, espera: 1.4, sube: 2.3, baja: 1.5 } },
         resumen: 'Todas las formas y dos MADRES.',
-        parte: ['La isla es su centro de mando en el norte. Por agua solo se entra por el muelle, y el muelle es esto.',
-          'Bajarán todas las formas a la vez, y al final vienen dos.'],
-        cierre: 'Las dos cayeron al pie del pedestal. Por la antena del edificio seguía entrando una voz desde el sur.',
+        parte: ['El portaaviones lleva semanas fondeado frente a la Estatua, sin una luz. Lo que guarda en el hangar ya no son aviones.',
+          'Suben por el ascensor de la cubierta: todas las formas a la vez, y al final vienen dos.'],
+        cierre: 'Las dos cayeron sobre la cubierta. Por la antena del barco seguía entrando una voz desde el sur.',
         waves: OLEADAS.todas
       }
     ]

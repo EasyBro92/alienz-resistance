@@ -650,6 +650,39 @@ def importar (ruta, grupo, altura, x, z, giro=0.0):
     importados.setdefault(grupo, []).append(o)
     return o
 
+# Lo que se MECE con el viento (10/10; Isidro: «los árboles no tienen animación»):
+# banderas, toldos y copas de árbol. En los grupos `vert`, el canal alfa del
+# color de cada vértice dice cuánto se mueve (1 = quieto, 0 = todo lo que da) y el
+# juego lo mueve en el sombreador (`mece` en world.js). `cuanto` es un número
+# de 0 a 1 o una función del punto (en coordenadas de Blender) que lo devuelve:
+# una bandera no se mueve junto al mástil y sí en la punta.
+se_mece = {}
+def mecer (mat, cuanto=1.0):
+    se_mece[mat.name] = cuanto
+    return mat
+
+def copiar (o, grupo, m4):
+    """Otra copia de un modelo ya importado (`importar` lo trae una vez), puesta
+    con la matriz `m4` de Blender en el grupo que se diga."""
+    c = o.copy()
+    c.data = o.data.copy()
+    bpy.context.collection.objects.link(c)
+    c.data.transform(m4)
+    c.data.update()
+    importados.setdefault(grupo, []).append(c)
+    return c
+
+def aligerar (o, caras):
+    """Deja un modelo importado en unas `caras` caras (conserva su textura)."""
+    antes = len(o.data.polygons)
+    if antes <= caras:
+        return o
+    bpy.ops.object.select_all(action='DESELECT')
+    o.select_set(True); bpy.context.view_layer.objects.active = o
+    d = o.modifiers.new('aligerar', 'DECIMATE'); d.ratio = caras / antes
+    bpy.ops.object.modifier_apply(modifier=d.name)
+    return o
+
 def comprobar_paso (grupos, salvo=(), ancho=7.4, z_lejos=-60, z_cerca=5):
     """Nada macizo donde andan los bichos."""
     malos = set()
@@ -1069,7 +1102,10 @@ def terminar (grupos, exportes, sol_hacia, sol_color=(1.0, 0.96, 0.88), sol_fuer
             atr.data.foreach_get('color', col)
             np.save(f'{crudo}-vert-{grupo}.npy', col)
         col = col.reshape(-1, 4)
-        lisos = [i for i, m in enumerate(o.data.materials) if m and m.name in suaves]
+        # (`suaves` admite también la clave de un GRUPO entero: un modelo importado —un
+        # caza, una estatua— con la luz por vértice no enseña las facetas y, al
+        # compartir vértices, el archivo pesa la mitad.)
+        lisos = [i for i, m in enumerate(o.data.materials) if m and (m.name in suaves or grupo in suaves)]
         if lisos:
             me = o.data
             vert = np.empty(len(me.loops), np.int32); me.loops.foreach_get('vertex_index', vert)
@@ -1080,6 +1116,24 @@ def terminar (grupos, exportes, sol_hacia, sol_color=(1.0, 0.96, 0.88), sol_fuer
             np.add.at(suma, vert[es], col[es, :3]); np.add.at(cuantas, vert[es], 1)
             col[es, :3] = (suma[vert[es]] / cuantas[vert[es]][:, None]).astype(np.float32)
         col[:, :3] = np.clip(saturar(curva(col[:, :3] * escala)), 0, 1)
+        # Lo que se mece: el alfa, ANTES de fundir materiales (después ya no se
+        # sabe cuál era cada uno).
+        alfa = np.ones(len(col), np.float32)
+        if se_mece:
+            me = o.data
+            mat_cara = np.empty(len(me.polygons), np.int32); me.polygons.foreach_get('material_index', mat_cara)
+            lados = np.empty(len(me.polygons), np.int32); me.polygons.foreach_get('loop_total', lados)
+            de_esquina = np.repeat(mat_cara, lados)
+            vert = np.empty(len(me.loops), np.int32); me.loops.foreach_get('vertex_index', vert)
+            for i, m in enumerate(me.materials):
+                if not m or m.name not in se_mece:
+                    continue
+                es = np.nonzero(de_esquina == i)[0]
+                cuanto = se_mece[m.name]
+                if callable(cuanto):
+                    alfa[es] = 1 - np.clip([cuanto(me.vertices[v].co) for v in vert[es]], 0, 1)
+                else:
+                    alfa[es] = 1 - cuanto
         if fundir:
             # Los materiales de color liso se quedan en UNO: su color pasa a los
             # vértices, multiplicado por la luz (el juego hace esa misma cuenta).
@@ -1102,7 +1156,7 @@ def terminar (grupos, exportes, sol_hacia, sol_color=(1.0, 0.96, 0.88), sol_fuer
                     mat_cara[mat_cara == i] = comun
             me.polygons.foreach_set('material_index', mat_cara)
             me.update()
-        col[:, 3] = 1
+        col[:, 3] = alfa
         atr.data.foreach_set('color', col.ravel())
         print('VERTICES', grupo, 'media', np.round(col[:, :3].mean(axis=0), 3))
 

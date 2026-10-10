@@ -83,13 +83,17 @@ export function createAmbient (scene) {
   // con la cámara tan picada, y en Milán eso es DENTRO de la Galleria: se veía
   // una bola blanca cruzando la bóveda y atravesando el Duomo en la llegada.
   let sinNubes = false
+  // Las aves de cada sitio (`aves` en la misión): de qué color son y cuánto más
+  // alto vuelan (donde la cámara va más baja se ve más cielo). Isidro: «muchos
+  // mapas tienen los mismos pájaros». En una bahía, gaviotas: claras y altas.
+  let subenAves = 0
 
   function launchFlock () {
     flockActive = true
     const dir = Math.random() < 0.5 ? 1 : -1
     // Medido sobre la cámara real: la franja de cielo del encuadre corresponde a
     // y≈6-11 y z más allá de -60. Más cerca, un pájaro se ve como un manchón.
-    flock.position.set(dir * -170, rand(6.5, 10.5), rand(-115, -62))
+    flock.position.set(dir * -170, rand(6.5, 10.5) + subenAves, rand(-115, -62))
     flock.rotation.y = dir > 0 ? 0 : Math.PI
     flock.userData.speed = dir * rand(11, 17)
   }
@@ -564,6 +568,8 @@ export function createAmbient (scene) {
       if (sinCapsulas) for (const p of pods) { p.active = false; p.mesh.visible = false }
       if (sinNodriza) mother.visible = false
       sinPajaros = !!destino.sinPajaros
+      birdMat.color.setHex(destino.aves?.color ?? 0x2b2b30)
+      subenAves = destino.aves?.sube ?? 0
       if (sinPajaros) {
         flockActive = false
         flock.visible = false
@@ -738,7 +744,7 @@ export function createAmbient (scene) {
       // buitres en círculo
       for (const v of vultures) {
         v.angle += v.speed * dt
-        v.bird.position.set(Math.cos(v.angle) * v.radius, v.height, v.centerZ + Math.sin(v.angle) * v.radius * 0.7)
+        v.bird.position.set(Math.cos(v.angle) * v.radius, v.height + subenAves, v.centerZ + Math.sin(v.angle) * v.radius * 0.7)
         v.bird.rotation.y = -v.angle + Math.PI / 2
         v.bird.rotation.z = 0.25
         flap(v.bird)

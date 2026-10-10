@@ -137,7 +137,12 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
     // Los brincos con que avanza el Saltador (`libre`) no cuentan: son su forma
     // de andar, y en el aire se le dispara igual. Solo le hace intocable el
     // salto de verdad, el que pasa por encima de una barrera o de la ruina.
-    get intocable () { return this.bajoTierra || (!!this.salto && !this.salto.libre) || (!!this.cavar && !this.cavar.tocable) },
+    // Ni mientras está BAJO LA CUBIERTA, en el hangar o subiendo en el ascensor
+    // (el portaaviones): dispararle ahí sería disparar a través del suelo.
+    get intocable () {
+      return this.bajoTierra || (!!this.salto && !this.salto.libre) || (!!this.cavar && !this.cavar.tocable) ||
+        (!!FIELD.ascensor && this.mesh.position.z < FIELD.ascensor.zBorde && this.suelo < -0.4)
+    },
 
     curar (n) {
       if (this.hp >= this.maxHp) return 0
