@@ -500,11 +500,12 @@ export const PAISES = [
         waves: OLEADAS.contraflujo
       },
       {
-        name: 'Chongqing', lugar: 'Yuzhong · rampa del río', mapa: sitio(29.56, 106.55),
-        // La terraza sobre el Yangtsé, con el monorraíl pasando y el río veinte
-        // metros más abajo. Al anochecer, que es cuando Hongyadong se enciende.
-        fondo: { hora: 'ocaso', cielo: 0xc08a72, niebla: 0xbfa091 },
-        escenario: 'chongqing', suelo: 'adoquin', tonoSuelo: 0x7e7870, hitos: [['hongyadong']],
+        name: 'Chongqing', llegada: 'chongqing', lugar: 'Hongyadong · el paseo del Jialing', mapa: sitio(29.56, 106.55),
+        // Hecho en Blender (herramientas/blender/lugar_chongqing.py): de noche, que es
+        // cuando Hongyadong se enciende. Los alienz llegan en nave.
+        fondo: { hora: 'noche', cielo: 0x141228, niebla: 0x2a2036, nieblaCerca: 130, nieblaLejos: 460, ambiente: 0x2c2630, cupula: [0x060818, 0x3a2440], sol: 0xffd0a0 },
+        escenario: 'chongqingHongya', suelo: 'losas', tonoSuelo: 0x55545c, hitos: [],
+        sinPajaros: true, sinNubes: true,
         resumen: 'El campamento más grande del mundo.',
         parte: ['Todas las formas a la vez, desde las torres del río.',
           'Si cae este, cae la mitad de lo que tienen en Asia.'],

@@ -2130,6 +2130,15 @@ const SHANGHAI_PLANOS = [
   { k: 0.76, pos: [5, 34, 74], mira: [0, 5, -62] },
   { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
 ]
+// Chongqing (10/10): Hongyadong entero desde el río, con la ciudad encima; la
+// cámara cruza el pretil y baja al paseo.
+const CHONGQING_PLANOS = [
+  { k: 0, pos: [-130, 40, 90], mira: [30, 30, -100] },
+  { k: 0.3, pos: [-70, 44, 110], mira: [10, 18, -96] },
+  { k: 0.56, pos: [-14, 44, 104], mira: [0, 6, -76] },
+  { k: 0.76, pos: [4, 36, 78], mira: [0, 5, -64] },
+  { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
+]
 // Las llegadas «de película»: un recorrido por planos, largo la primera vez y
 // más corto (pero empezando también fuera) las siguientes. Cada una abre la
 // niebla y el corte de lejos a su medida, y enciende el modelo de la ciudad.
@@ -2151,6 +2160,7 @@ const LLEGADAS = {
   calcuta: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-calcuta-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: CALCUTA_PLANOS },
   pekin: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-pekin-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: PEKIN_PLANOS },
   shanghai: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-shanghai-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: SHANGHAI_PLANOS },
+  chongqing: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-chongqing-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: CHONGQING_PLANOS },
   gizeh: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-gizeh-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: GIZEH_PLANOS },
   marsella: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-marsella-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: MARSELLA_PLANOS }
 }

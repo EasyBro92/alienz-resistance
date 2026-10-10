@@ -851,4 +851,26 @@ function shanghaiYuyuan () {
   return g
 }
 
-export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, ...LUGARES }
+// Chongqing: el paseo del río al pie de Hongyadong, de noche
+// (herramientas/blender/lugar_chongqing.py, 10/10; elegido por mí). Las casas
+// sobre pilotes llenan el fondo, encendidas en oro; el río a la izquierda, los
+// puestos con sus farolillos a la derecha y la base alien en un ruedo entre ellos.
+function chongqingHongya () {
+  const g = new THREE.Group()
+  g.name = 'lugar:chongqingHongya'
+  Object.assign(g.userData, {
+    modelo: 'lugar-chongqing',
+    modeloCiudad: 'lugar-chongqing-ciudad',
+    luz: 'lugar-chongqing',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    baseX: 12.6,
+    baseZ: -44
+  })
+  return g
+}
+
+export const ESCENARIOS = { puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, ...LUGARES }
