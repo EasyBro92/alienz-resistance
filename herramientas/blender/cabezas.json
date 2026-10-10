@@ -60,7 +60,7 @@
       "peinado": "melena", "flequillo": 3, "flequillo_giro": -0.2, "pecas": 34, "labio": "#c76a5e"
     },
     "flamer-m": {
-      "de": "el", "cuerpo": "soldado-lanzallamas-m", "casco": "#9c2a20", "casco_extra": ["gafas"], "gafas_color": "#2b3a44",
+      "de": "el", "cuerpo": "soldado-ignifugo", "casco": "#9c2a20", "casco_extra": ["gafas"], "gafas_color": "#2b3a44",
       "piel": "#d79b78", "pelo": "#2a1d16", "iris": "#7a4a1e",
       "mandibula": 0.24, "peinado": "rapado", "rapado": 0.18, "barba": "perilla",
       "cejas": { "grosor": 1.15, "arco": 3.0, "dentro": -0.2 },
@@ -68,13 +68,13 @@
       "sombra_barba": 0.25, "cicatrices": [[-62, 22, -55, -8], [-52, 6, -46, -26], [-64, -12, -56, -42]]
     },
     "flamer-f": {
-      "de": "ella", "cuerpo": "soldado-lanzallamas-f", "casco": "#9c2a20", "casco_extra": ["gafas"], "gafas_color": "#2b3a44",
+      "de": "ella", "cuerpo": "soldado-ignifugo", "casco": "#9c2a20", "casco_extra": ["gafas"], "gafas_color": "#2b3a44",
       "piel": "#f0c8a4", "pelo": "#17120f", "iris": "#6a4020",
       "peinado": "mono", "flequillo": 3, "flequillo_giro": -0.25, "labio": "#b5524c",
       "lunares": [[30, -44, 1.3]]
     },
     "archer-m": {
-      "de": "el", "cuerpo": "soldado-tirador-m", "casco": null, "capucha": "#5d6a34",
+      "de": "el", "cuerpo": "soldado-arquero", "casco": null, "capucha": "#5d6a34",
       "piel": "#e9b792", "pelo": "#5a3a22", "iris": "#6f8a3a",
       "ancho": 0.08, "mandibula": 0.32, "nariz": 0.015,
       "ojo": { "rx": 15.6, "arriba": 12.6, "iris": 9.6 },
@@ -83,7 +83,7 @@
       "flequillo": 4, "flequillo_giro": 0.25, "pecas": 14, "pintura": "#3f5a2a"
     },
     "archer-f": {
-      "de": "ella", "cuerpo": "soldado-tirador-f", "casco": null, "capucha": "#5d6a34",
+      "de": "ella", "cuerpo": "soldado-arquero", "casco": null, "capucha": "#5d6a34",
       "piel": "#eab58f", "pelo": "#8a4a22", "ceja": "#5f3418", "iris": "#7a6a2a",
       "flequillo": 4, "flequillo_giro": -0.2, "pecas": 18, "pintura": "#3f5a2a", "labio": "#b96258"
     },

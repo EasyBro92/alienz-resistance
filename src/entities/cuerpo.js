@@ -73,7 +73,9 @@ const ESTILOS = {
   flamer: { culata: [-0.12, -0.34, -0.05], inclina: 0.24, abre: 0.2 },
   // El arquero tira con el culatín en la mejilla: más alto que un fusil y con
   // los pies un poco abiertos, como se tira de verdad.
-  archer: { culata: [-0.07, 0.2, 0], inclina: 0.03, abre: 0.08 },
+  // (0,12 y no 0,2: su cuerpo de Meshy del 10/10 trae el hombro siete centímetros más
+  // arriba que el del Tirador que llevaba, y la flecha le pasaba por encima de la capucha.)
+  archer: { culata: [-0.07, 0.12, 0], inclina: 0.03, abre: 0.08 },
   gunner: { culata: [-0.11, -0.16, -0.06], inclina: 0.18, abre: 0.16 },
   mortar: { culata: [-0.1, -0.2, -0.04], inclina: 0.14, abre: 0.12 },
   misil: { culata: [-0.13, 0.14, -0.05], inclina: 0.1, abre: 0.12 },
@@ -333,29 +335,43 @@ export function crearCuerpo ({ figure, cuerpo, arma, key, clips = [] }) {
   const clip = clips.find(c => /walk/i.test(c.name)) ?? clips[0] ?? null
   const mixer = clip ? new THREE.AnimationMixer(cuerpo) : null
   const accion = clip ? mixer.clipAction(clip) : null
+  // El ciclo de CORRER, en los cuerpos que lo traen (los de Meshy del 10/10: el
+  // Arquero y el Lanzallamas; se lo une `herramientas/unir-animacion.mjs`). Los
+  // demás siguen corriendo con el de andar estirado por código, más abajo.
+  const clipCorrer = clip ? clips.find(c => /run/i.test(c.name)) ?? null : null
+  const accionCorrer = clipCorrer ? mixer.clipAction(clipCorrer) : null
   // A qué velocidad avanza el ciclo tal cual, medido sobre el propio pie: con eso
   // el ritmo sale de la velocidad de verdad y los pies no patinan.
-  let pasoNatural = 1.2
-  if (accion) {
-    accion.play()
-    accion.setEffectiveWeight(1)
+  const medirPaso = (a, c, defecto) => {
+    let paso = defecto
+    a.play()
+    a.setEffectiveWeight(1)
     if (b.pieL && b.cadera) {
       let min = Infinity
       let max = -Infinity
       for (let i = 0; i < 24; i++) {
-        mixer.setTime((i / 24) * clip.duration)
+        a.time = (i / 24) * c.duration
+        mixer.update(0)
         cuerpo.updateMatrixWorld(true)
         const dz = b.pieL.getWorldPosition(_a).z - b.cadera.getWorldPosition(_b).z
         min = Math.min(min, dz)
         max = Math.max(max, dz)
       }
-      if (max - min > 0.05) pasoNatural = (max - min) / (clip.duration * 0.5)
+      if (max - min > 0.05) paso = (max - min) / (c.duration * 0.5)
     }
-    accion.setEffectiveWeight(0)
+    a.setEffectiveWeight(0)
+    return paso
+  }
+  let pasoNatural = 1.2
+  let pasoCorrer = 3.2
+  if (accion) {
+    pasoNatural = medirPaso(accion, clip, 1.2)
+    if (accionCorrer) pasoCorrer = medirPaso(accionCorrer, clipCorrer, 3.2)
     mixer.setTime(0)
     // Cada figura empieza su ciclo en un punto distinto: todas desde el primer
     // fotograma daban un pelotón que pisaba con el mismo pie a la vez.
     accion.time = Math.random() * clip.duration
+    if (accionCorrer) accionCorrer.time = Math.random() * clipCorrer.duration
     for (const [o, r] of reposo) {
       o.quaternion.copy(r.q)
       o.position.copy(r.p)
@@ -445,10 +461,14 @@ export function crearCuerpo ({ figure, cuerpo, arma, key, clips = [] }) {
         // Corriendo, zancada más larga (el muslo abre un 30 % más) y el ciclo
         // a la velocidad que cuadra con ella: velocidad / (paso natural ×
         // zancada). Así el pie pisa y no patina.
-        const amplitud = 1 + carrera * 0.3
-        accion.setEffectiveWeight(peso)
+        // Con ciclo de correr propio no hay nada que estirar: se cruza del de
+        // andar al de correr según el modo, cada uno a su ritmo.
+        const amplitud = accionCorrer ? 1 : 1 + carrera * 0.3
+        accion.setEffectiveWeight(accionCorrer ? peso * (1 - carrera) : peso)
+        accionCorrer?.setEffectiveWeight(peso * carrera)
         if (peso > 0.01) {
           accion.timeScale = THREE.MathUtils.clamp(Math.max(e.velocidad, 0.8) / (pasoNatural * amplitud), 0.5, 2.4)
+          if (accionCorrer) accionCorrer.timeScale = THREE.MathUtils.clamp(Math.max(e.velocidad, 0.8) / pasoCorrer, 0.5, 2)
           mixer.update(dt)
           if (amplitud > 1.01) {
             for (const h of [b.musloL, b.musloR]) if (h) amplificar(h, reposo.get(h).q, 1 + (amplitud - 1) * peso)
@@ -482,7 +502,8 @@ export function crearCuerpo ({ figure, cuerpo, arma, key, clips = [] }) {
       // pone los pies el ciclo, se sube la cadera y luego (paso 5) cada pierna
       // vuelve a llevar el pie a ese mismo sitio: la rodilla se estira y el pie
       // no se mueve del suelo.
-      const levanta = conPiernas ? ESTIRA_ANDANDO * andar * (1 - tumbado) * (1 - agachado) * (1 - deRodilla) : 0
+      // (Con ciclo de correr propio, corriendo no: correr ES pisar con la rodilla doblada.)
+      const levanta = conPiernas ? ESTIRA_ANDANDO * andar * (1 - tumbado) * (1 - agachado) * (1 - deRodilla) * (accionCorrer ? 1 - carrera : 1) : 0
       if (levanta > 0.001) {
         figure.worldToLocal(b.pieL.getWorldPosition(pisaL))
         figure.worldToLocal(b.pieR.getWorldPosition(pisaR))
@@ -494,7 +515,8 @@ export function crearCuerpo ({ figure, cuerpo, arma, key, clips = [] }) {
       if (b.columna) {
         const respira = Math.sin(e.t * 1.3) * 0.015
         // Andando, casi recto (0,05); corriendo, echado hacia delante (0,27).
-        const inclina = andar * (0.05 + carrera * 0.22) + agachado * 0.25 + apunta * estilo.inclina + deRodilla * 0.05
+        // (El ciclo de correr de Meshy ya trae el cuerpo echado hacia delante: no se le suma nada.)
+        const inclina = andar * (0.05 + carrera * (accionCorrer ? 0 : 0.22)) + agachado * 0.25 + apunta * estilo.inclina + deRodilla * 0.05
         inclinar(b.columna, figure, (inclina + respira - e.encogido * 0.3) * (1 - tumbado * 0.8))
       }
 
@@ -529,7 +551,7 @@ export function crearCuerpo ({ figure, cuerpo, arma, key, clips = [] }) {
             // talón hacia el glúteo): es lo que separa correr de andar deprisa.
             // Solo hay ciclo de andar en los modelos (Meshy da el de correr al
             // montar el esqueleto, pero rehacerlo cuesta créditos).
-            if (carrera > 0) {
+            if (carrera > 0 && !accionCorrer) {
               const enAire = Math.max(0, pisa.y - pie0.y)
               pisa.y += enAire * 1.3 * carrera
               pisa.z += enAire * 1.1 * carrera
