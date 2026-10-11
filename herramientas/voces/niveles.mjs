@@ -3,7 +3,10 @@
 // «oír» desde aquí: que nada sature, que nada quede mudo y que las voces no
 // queden por debajo de los disparos.
 //
-//   node herramientas/voces/niveles.mjs [--mp3]     (--mp3 deja además vistas/sonidos-demo.mp3)
+//   node herramientas/voces/niveles.mjs [--mp3] [--solo-voces]
+//
+// `--mp3` deja además vistas/sonidos-demo.mp3; con `--solo-voces`, solo el trozo
+// de las frases, en vistas/voces-demo.mp3.
 import fs from 'node:fs'
 import { Mp3Encoder } from '@breezystack/lamejs'
 
@@ -26,11 +29,14 @@ for (let k = 0; k < marcas.length - 1; k++) {
   console.log(marcas[k][0].padEnd(30), 'pico', db(pico), 'dB · media', db(Math.sqrt(suma / Math.max(1, cuenta))), 'dB · suena', ((ultimo - a) / hz).toFixed(2), 's')
 }
 if (process.argv.includes('--mp3')) {
+  const soloVoces = process.argv.includes('--solo-voces')
+  const desde = soloVoces ? Math.max(0, Math.round((marcas.find(m => m[0].startsWith('voz'))?.[1] ?? 0) * hz) - Math.round(hz * 0.3)) : 0
   const cod = new Mp3Encoder(2, hz, 128)
   const a16 = Int16Array.from(izq, v => v * 32767); const b16 = Int16Array.from(der, v => v * 32767)
   const trozos = []
-  for (let i = 0; i < n; i += 1152) { const t = cod.encodeBuffer(a16.subarray(i, i + 1152), b16.subarray(i, i + 1152)); if (t.length) trozos.push(Buffer.from(t)) }
+  for (let i = desde; i < n; i += 1152) { const t = cod.encodeBuffer(a16.subarray(i, i + 1152), b16.subarray(i, i + 1152)); if (t.length) trozos.push(Buffer.from(t)) }
   trozos.push(Buffer.from(cod.flush()))
-  fs.writeFileSync('vistas/sonidos-demo.mp3', Buffer.concat(trozos))
-  console.log('vistas/sonidos-demo.mp3', (fs.statSync('vistas/sonidos-demo.mp3').size / 1024).toFixed(0), 'KB')
+  const salida = soloVoces ? 'vistas/voces-demo.mp3' : 'vistas/sonidos-demo.mp3'
+  fs.writeFileSync(salida, Buffer.concat(trozos))
+  console.log(salida, (fs.statSync(salida).size / 1024).toFixed(0), 'KB')
 }

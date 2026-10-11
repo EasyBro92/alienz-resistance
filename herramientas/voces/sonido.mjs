@@ -70,6 +70,28 @@ export function filtrar (d, hz, tipo, f, q = 0.707) {
   return s
 }
 
+// Cambiar de frecuencia de muestreo y, de paso, de tono: `tono` 1,1 la deja un
+// 10 % más aguda y un 10 % más corta (quien la pide ya la encargó un 10 % más
+// larga, y se queda en lo que tenía que durar). Antes de quitar muestras se
+// filtra lo que no cabe en la frecuencia nueva, o vuelve doblado como un siseo.
+export function afinar (d, hzEntrada, hzSalida, tono = 1) {
+  const paso = tono * hzEntrada / hzSalida
+  if (Math.abs(paso - 1) < 1e-6) return d
+  let s = d
+  if (paso > 1) {
+    const corte = 0.45 * hzEntrada / paso
+    s = filtrar(filtrar(s, hzEntrada, 'paso-bajo', corte, 0.54), hzEntrada, 'paso-bajo', corte, 1.31)
+  }
+  const n = Math.floor((s.length - 1) / paso)
+  const sale = new Float32Array(n)
+  for (let i = 0; i < n; i++) {
+    const x = i * paso
+    const a = Math.floor(x)
+    sale[i] = s[a] + (s[a + 1] - s[a]) * (x - a)
+  }
+  return sale
+}
+
 // La voz por una radio de campaña, para las muestras que se mandan a oír. En el
 // juego esto mismo lo hace `voces.js` con nodos de audio; aquí va a mano.
 export function porRadio (d, hz, { grave = 420, agudo = 3000, empuje = 2.6, ruido = 0.012 } = {}) {

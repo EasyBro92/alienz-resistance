@@ -1,8 +1,8 @@
 // Quién habla en el juego y qué dice (Isidro, 11/10: «sonidos de los personajes
 // que hablen en algún momento, que tengan frases recurrentes»).
 //
-// Cada hablante tiene su voz (una de las de Windows, con su tono y su ritmo) y
-// sus frases por momento. Para cambiar una frase, o añadirle otra a alguien, se
+// Cada hablante tiene su voz (una de las cinco de Piper, con su tono y su ritmo)
+// y sus frases por momento. Para cambiar una frase, o añadirle otra a alguien, se
 // toca aquí y se pasa `node herramientas/voces/montar.mjs`: rehace solo lo que
 // haya cambiado.
 //
@@ -69,53 +69,65 @@ const SOLDADOS = {
   }
 }
 
-// La voz de cada uno: [chica, chico]. Con tres voces en Windows (Pablo, Helena y
-// Laura), lo que distingue a un soldado de otro es el tono y el ritmo.
+// Las voces de Piper (`bajar-piper.mjs`): dos hombres y una mujer de España y un
+// hombre y una mujer de México. `windows` es la que la sustituye si se montan
+// con las de Windows (`montar.mjs --windows`).
+export const VOCES_PIPER = {
+  dave: { modelo: 'es_ES-davefx-medium', windows: 'pablo' },
+  sharM: { modelo: 'es_ES-sharvard-medium', hablante: 0, windows: 'pablo' },
+  sharF: { modelo: 'es_ES-sharvard-medium', hablante: 1, windows: 'helena' },
+  ald: { modelo: 'es_MX-ald-medium', windows: 'pablo' },
+  claude: { modelo: 'es_MX-claude-high', windows: 'laura' }
+}
+
+// La voz de cada uno: [chica, chico], y de cada cual [voz, tono %, ritmo %]. Con
+// cinco voces, lo que distingue a un soldado de otro que comparte la suya es el
+// tono (más grave: más corpulento; más agudo: más joven) y el ritmo.
 const VOZ = {
-  archer: [['laura', -4, 8], ['pablo', -4, 8]],
-  rifle: [['helena', 0, 18], ['pablo', 2, 18]],
-  shotgun: [['laura', -12, 12], ['pablo', -20, 12]],
-  sniper: [['helena', -8, 2], ['pablo', -10, 2]],
-  flamer: [['laura', 8, 22], ['pablo', 9, 22]],
-  gunner: [['helena', -10, 20], ['pablo', -14, 20]],
-  misil: [['laura', 2, 16], ['pablo', 5, 16]],
-  mortar: [['helena', 4, 12], ['pablo', -7, 12]],
-  capitan: [['laura', -14, 8], ['pablo', -16, 8]]
+  archer: [['sharF', -3, 6], ['sharM', -3, 6]],
+  rifle: [['sharF', 3, 12], ['dave', 0, 12]],
+  shotgun: [['claude', -8, 8], ['dave', -12, 8]],
+  sniper: [['sharF', -8, 0], ['sharM', -9, 0]],
+  flamer: [['claude', 5, 16], ['sharM', 6, 16]],
+  gunner: [['sharF', -12, 14], ['dave', -7, 14]],
+  misil: [['claude', 0, 12], ['ald', -4, 18]],
+  mortar: [['sharF', 8, 8], ['ald', -11, 16]],
+  capitan: [['claude', -13, 4], ['dave', -16, 4]]
 }
 
 // Las cinco de la caja alienígena: son quien son, con una sola voz. Frases
 // propias del juego, ninguna sacada de los suyos.
 const UNICAS = {
   jill: {
-    voz: ['helena', -4, 12],
+    voz: ['sharF', -5, 8],
     sale: ['Yo me encargo.', 'Jill, en posición.', 'Abro paso.'],
     baja: ['Fuera de combate.', 'Demasiado fácil.', 'Siguiente.'],
     herido: ['¡Me tienen rodeada!', '¡Necesito un respiro!'],
     mejora: ['Pistola a punto.']
   },
   claire: {
-    voz: ['laura', 6, 16],
+    voz: ['claude', 7, 12],
     sale: ['¡Claire, lista!', 'Esto va a arder.', '¡Granada cargada!'],
     baja: ['¡Toma esa!', '¡Chamuscado!', '¡Y no vuelvas!'],
     herido: ['¡Son demasiados!', '¡Ayuda por aquí!'],
     mejora: ['Mejor munición.']
   },
   ada: {
-    voz: ['helena', -14, 0],
+    voz: ['sharF', -14, 0],
     sale: ['Trabajo sola.', 'Ni me oirán llegar.', 'Ada, en el campo.'],
     baja: ['Sin hacer ruido.', 'Elegante.', 'Uno menos del que preocuparse.'],
     herido: ['Esto no estaba en el plan.', 'Se complica.'],
     mejora: ['Interesante.']
   },
   rebecca: {
-    voz: ['laura', 12, 14],
+    voz: ['claude', 12, 10],
     sale: ['¡Rebecca, médica en posición!', '¡Aguantad, que os curo!', 'Botiquín listo.'],
     baja: ['¡También sé disparar!', '¡Le he dado!', '¡Fuera de aquí!'],
     herido: ['¡Ahora la herida soy yo!', '¡Necesito ayuda!'],
     mejora: ['Vendas nuevas.']
   },
   sheva: {
-    voz: ['laura', -10, 6],
+    voz: ['claude', -5, 4],
     sale: ['Sheva, cubriendo el flanco.', 'Objetivo fijado.', 'Estoy lista.'],
     baja: ['Abatido.', 'Buen disparo.', 'Camino despejado.'],
     herido: ['¡Los tengo encima!', '¡Me alcanzan!'],
@@ -126,7 +138,7 @@ const UNICAS = {
 // La radio: quien manda (oleadas, la base, el final) y quien trae el apoyo.
 const RADIO = {
   mando: {
-    voz: ['pablo', -10, 14],
+    voz: ['sharM', -12, 14],
     inicio: ['Soldados, defended la línea.', 'Que no pase ni uno.', 'En posición. Ya vienen.'],
     oleada: ['¡Ahí vienen!', '¡Nueva oleada!', '¡Contacto al frente!', '¡Atentos, llegan más!', 'Movimiento al fondo.'],
     ultima: ['¡Última oleada! ¡Aguantad!', '¡Es la última! ¡Dadlo todo!'],
@@ -141,7 +153,7 @@ const RADIO = {
     derrota: ['¡Nos desbordan! ¡Retirada!', 'Hemos perdido la posición.']
   },
   apoyo: {
-    voz: ['pablo', 4, 24],
+    voz: ['ald', -5, 22],
     grenade: ['¡Granada va!'],
     airstrike: ['Aquí Halcón. Bombas fuera.', 'Ataque aéreo en camino.'],
     napalm: ['Napalm en camino. ¡A cubierto!', 'Aquí Halcón. Soltando napalm.'],
