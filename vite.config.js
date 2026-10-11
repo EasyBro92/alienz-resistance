@@ -89,7 +89,9 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,mp3,ogg}'],
         // Firebase (la cuenta de Google) solo lo descarga quien entra: fuera de la
         // precarga, que si no casi la duplicaba.
-        globIgnores: ['**/firebase-*.js'],
+        // Las voces (un archivo por hablante, un mega entre todas) tampoco: cada
+        // una se baja cuando su soldado sale al campo.
+        globIgnores: ['**/firebase-*.js', 'voces/**'],
         // Pero sí se guardan en cuanto se piden una vez, así que a partir de la
         // segunda partida están en el aparato y la aplicación sigue funcionando
         // entera sin red, que es de lo que va ser una PWA.
@@ -101,6 +103,16 @@ export default defineConfig({
           options: {
             cacheName: 'modelos-3d',
             expiration: { maxEntries: 120, maxAgeSeconds: 60 * 60 * 24 * 90 },
+            cacheableResponse: { statuses: [0, 200] }
+          }
+        }, {
+          // Las voces llevan la huella de su contenido en el nombre: la que se
+          // guarda no caduca nunca, y una frase nueva llega con otro nombre.
+          urlPattern: /\/voces\/.*\.mp3$/,
+          handler: 'CacheFirst',
+          options: {
+            cacheName: 'voces',
+            expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 180 },
             cacheableResponse: { statuses: [0, 200] }
           }
         }],

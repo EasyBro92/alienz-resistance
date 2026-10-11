@@ -238,8 +238,8 @@ function ruleta ({ premio, relleno, titulo, caja, nota, fondo, audio, retratos, 
         <button class="big-btn ruleta-recoger" type="button">RECOGER</button>`
       final.querySelector('.ruleta-carta').classList.add('gana', 'grande')
       final.hidden = false
-      if (premio.rareza === 'comun' || premio.rareza === 'poco') audio?.coin?.()
-      else audio?.desbloqueo?.()
+      // De dos monedas a un premio gordo de tragaperras, según lo raro que sea.
+      audio?.premio?.(premio.rareza)
       final.querySelector('.ruleta-recoger').addEventListener('click', async () => {
         capa.classList.add('ruleta-fuera')
         setTimeout(() => capa.remove(), 300)

@@ -15,6 +15,8 @@ import { crearMarcas } from './systems/marcas.js'
 import { crearCuenta, haySesionGuardada } from './systems/cuenta.js'
 import { createAmbient } from './systems/ambient.js'
 import { createAudio } from './audio.js'
+import { crearVoces } from './systems/voces.js'
+import { sexoDe } from './assets.js'
 import { createUI, devolucion } from './ui.js'
 import { crearGuia } from './guia.js'
 import { renderPortraits } from './portraits.js'
@@ -58,6 +60,9 @@ const economy = createEconomy(scene)
 // El ambiente vive aunque la partida esté parada: en el menú también sopla viento.
 const ambient = createAmbient(scene)
 const audio = createAudio()
+// Quién habla y cuándo (`voces.js`): los soldados, con la voz de chica o de
+// chico que lleve puesta cada unidad, y la radio del mando y del apoyo.
+const voces = crearVoces(audio, { sexoDe })
 // La nave vive fuera de la partida: se queda oculta hasta que el director avisa.
 // Va después del sonido porque le pasa un aviso por cada tramo de la secuencia.
 const dropship = createDropship(fase => audio.nave(fase))
@@ -160,6 +165,7 @@ const ui = createUI({
     soldier.upgrade()
     soldier.invertido = (soldier.invertido ?? soldier.spec.cost ?? 0) + cost   // lo que devuelve retirarlo
     audio.place()
+    if (!soldier.spec.fija) voces.soldado(soldier.key, 'mejora', { x: soldier.mesh.position.x / 7, prioridad: 2 })
     effects.floatText(soldier.mesh.position, `NV ${soldier.level}`, '#5fd97a', 52)
     ui.refreshInspector(soldier, economy.coins)
   },
@@ -259,7 +265,7 @@ function buyUpgrade (item) {
   document.getElementById('recolector')?.classList.remove('hidden')
   ui.removeCard('collector')
   ui.clearSelection()
-  audio.coin()
+  audio.cobro()
   ui.banner('RECOLECTOR')
 }
 
@@ -396,6 +402,8 @@ async function place (item, lane, row) {
   occupied.set(key, s)
   s.invertido = item.cost
   audio.place()
+  // Se presenta al salir: es su frase de siempre (las barreras no hablan).
+  if (!spec.fija) voces.soldado(item.key, 'sale', { x: laneX(lane) / 7, prioridad: 2 })
   guia.hecho('carta')
 
   if (!economy.canAfford(item.cost)) { ui.clearSelection(); world.setSlotsVisible(false) }
@@ -421,7 +429,7 @@ function retirarSoldado (s) {
     economy.add(vuelve)
     effects.floatText(s.mesh.position, `+${vuelve}`, '#f3cf62', 52)
   }
-  audio.coin()
+  audio.monedas(3 + vuelve / 40)
 }
 
 // --- velocidad ×2 ------------------------------------------------------------------
@@ -454,6 +462,7 @@ function useStrike (item, point) {
   if ((recargas.get(item.key)?.resto ?? 0) > 0) return audio.denied()
   if (!economy.spend(item.cost)) return audio.denied()
   guia.hecho('apoyo')
+  voces.apoyo(item.key)
   const total = (spec.recarga ?? 0) * factorMejora(item.key, 'recarga')
   if (total > 0) {
     recargas.set(item.key, { resto: total, total })
@@ -663,7 +672,12 @@ canvas.addEventListener('pointerdown', e => {
       let total = 0
       const donde = alcanzadas[0].mesh.position.clone()
       for (const p of alcanzadas) total += economy.collect(p)
-      if (total) { audio.coin(); effects.floatText(donde, `+${total}`); guia.hecho('monedas') }
+      if (total) {
+        // Una suelta tintinea; varias de un toque caen en chorro.
+        if (alcanzadas.length > 1) audio.monedas(alcanzadas.length + 1)
+        else audio.coin()
+        effects.floatText(donde, `+${total}`); guia.hecho('monedas')
+      }
       return
     }
   }
@@ -1025,6 +1039,8 @@ function soldierFire (soldier, target) {
   const to = tmpB.copy(target.mesh.position).setY(1.0)
   const pierce = spec.armorPierce ?? 0
   soldier.onFire()
+  // Quién le tiró el último: si cae, es quien lo celebra (`killZombie`).
+  target.tirador = soldier
   // Cada arma suena en su lado: el campo mide unos doce de ancho.
   audio.shot(spec.arma ?? soldier.key, from.x / 7)
 
@@ -1330,6 +1346,10 @@ function actualizarJefes (dt, t) {
 const SONIDO_GOLPE = { tank: 'peso', boss: 'peso', bloater: 'peso', armored: 'peso', spitter: 'baba', burrower: 'broca', healer: 'pincho' }
 function alMorder (z, blocker) {
   const p = blocker.mesh.position
+  // Con menos de un tercio de vida pide ayuda, una vez por soldado.
+  if (!blocker.spec.fija && !blocker.pidioAyuda && blocker.hp > 0 && blocker.hp < blocker.maxHp * 0.35) {
+    blocker.pidioAyuda = voces.soldado(blocker.key, 'herido', { x: p.x / 7, prioridad: 2, hueco: 9 })
+  }
   const fuerza = Math.min(1, z.spec.damage / 70)
   tmpB.set(p.x, blocker.spec.fija ? 0.6 : 1.05, p.z)
   effects.burst(tmpB, blocker.spec.fija ? 0xd9c9a0 : z.spec.rangedAttack ? 0xa05fb8 : 0xc8322a, 4 + Math.round(fuerza * 9), 0.6 + fuerza)
@@ -1380,6 +1400,13 @@ function killZombie (z, index) {
   economy.drop(z.mesh.position, Math.max(1, Math.round(z.spec.coins * (z.premio ?? 1) * (nivelActivo().botin ?? ECONOMY.botinHuesped))))
   effects.burst(z.mesh.position, 0x8fbf4a, z.spec.boss ? 30 : 8, z.spec.boss ? 2.4 : 1)
   audio.groan(z.spec.boss || (z.spec.scale ?? 1) > 1.5)
+  // Quien lo tumbó lo comenta: de tarde en tarde con los pequeños, casi siempre
+  // con los grandes, y nunca más de una vez cada ocho segundos entre todos.
+  const tirador = z.tirador
+  if (tirador && !tirador.dead && !tirador.spec.fija && running) {
+    const gordo = (z.spec.scale ?? 1) > 1.5
+    voces.soldado(tirador.key, 'baja', { x: tirador.mesh.position.x / 7, prob: gordo ? 0.9 : 0.22, hueco: gordo ? 3 : 8 })
+  }
   if (z.spec.boss) ui.banner('NIDO PURGADO')
 }
 
@@ -1455,7 +1482,8 @@ function damageBase (amount) {
   ui.setBase(baseHp / BASE.hp)
   vibrar(40)
   audio.thud()
-  if (baseHp <= 0) lose()
+  if (baseHp <= 0) return lose()
+  voces.mando(baseHp < BASE.hp * 0.35 ? 'apurada' : 'base', { hueco: 14 })
 }
 
 // ---------------------------------------------------------------------------
@@ -1540,6 +1568,7 @@ function simulate (dt) {
         s.bar.group.visible = false
         dropCorpse(s.mesh, 1)          // cae hacia delante, sobre lo que le mordía
         effects.burst(s.mesh.position, 0xd8d8d8, 6, 1)
+        if (!s.spec.fija) voces.mando('caido', { prioridad: 2, prob: 0.7, hueco: 12 })
         if (ui.inspected === s) ui.closeInspector()
         continue
       }
@@ -2674,6 +2703,7 @@ function empezarAsalto () {
   pintarAtras()
   ui.closeInspector()
   ui.banner('¡A POR LA BASE!')
+  voces.mando('asalto')
   const base = world.baseActual()
   const tiradores = soldiers.filter(s => !s.dead && !s.spec.fija)
   asalto = { t: 0, fase: 'andar', base, tiradores, sitio: base ? base.position.clone() : null }
@@ -2802,6 +2832,7 @@ function actualizarAsalto (dt) {
 function win () {
   running = false
   audio.stopMusic()
+  voces.mando('victoria')
   cerrarCuentas()
   vibrar([50, 40, 50])
   // Un reto no es una misión de campaña: no desbloquea nada, no da estrellas y
@@ -2886,6 +2917,7 @@ function win () {
 function lose () {
   running = false
   audio.stopMusic()
+  voces.mando('derrota')
   // En el duelo, caer es perder contra el otro: ni monedas a la cartera ni
   // cofre de consolación.
   if (dueloEnCurso) { ui.banner('DESBORDADOS'); return duelo.perdi() }
@@ -2936,7 +2968,12 @@ function limpiarPartida () {
 
 function alAparecer (z) {
   // Visto queda: su ficha de Enemigos deja de ser una silueta (`vistos.js`).
-  if (marcarVisto(z.key)) barajaVieja = true
+  if (marcarVisto(z.key)) {
+    barajaVieja = true
+    // La primera vez que se ve una forma, el mando avisa (menos del jefe, que
+    // ya tiene su aviso, y de las dos con las que se empieza).
+    if (!z.spec.boss && z.key !== 'walker' && z.key !== 'runner') voces.mando('nuevo', { prioridad: 2, hueco: 6, cola: true })
+  } else if (z.key === 'tank') voces.mando('grande', { prioridad: 2, hueco: 25, cola: true })
   // Con los pies puestos desde el primer fotograma: si no, el que nace en lo
   // alto del graderío aparece un instante hundido en la piedra.
   z.suelo = alturaBajoElPie(z)
@@ -3007,6 +3044,8 @@ function start (indice = nivelActual) {
   document.getElementById('pais-capa')?.classList.add('hidden')
   audio.unlock()
   audio.startMusic()
+  // Las voces de quien puede salir en esta partida, bajando ya de fondo.
+  voces.precargar(ui.catalog.filter(c => c.type === 'soldier').map(c => c.key))
   // El invitado tiene que vestir SU escenario igual que el del anfitrión, o
   // estaría defendiendo una playa mientras el otro defiende una avenida.
   if (coop?.esAnfitrion) coop.transporte.mandar('partida', { nivel: nivelActual })
@@ -3017,6 +3056,8 @@ function start (indice = nivelActual) {
       ui.setWave(`Oleada ${n} / ${total}`)
       ui.banner(boss ? 'LA MADRE' : `OLEADA ${n}`)
       if (boss) audio.groan(true)
+      // El mando la canta: la primera, la del jefe y la última tienen la suya.
+      voces.mando(boss ? 'jefe' : n === 1 ? 'inicio' : n === total ? 'ultima' : 'oleada')
     },
     // En el duelo la horda no se acaba (y si alguien la vaciara, sigue ahí).
     () => { if (!dueloEnCurso) setTimeout(empezarAsalto, 1200) },
@@ -3266,8 +3307,8 @@ const CLAVE_SONIDO = 'alienz-sonido-v1'
 function sonidoGuardado () {
   try {
     const v = JSON.parse(localStorage.getItem(CLAVE_SONIDO) || '{}')
-    return { efectos: v.efectos ?? 100, musica: v.musica ?? 100, vibracion: v.vibracion ?? true }
-  } catch { return { efectos: 100, musica: 100, vibracion: true } }
+    return { efectos: v.efectos ?? 100, musica: v.musica ?? 100, voces: v.voces ?? 100, vibracion: v.vibracion ?? true }
+  } catch { return { efectos: 100, musica: 100, voces: 100, vibracion: true } }
 }
 function guardarSonido (s) {
   try { localStorage.setItem(CLAVE_SONIDO, JSON.stringify(s)) } catch { /* modo privado */ }
@@ -3275,6 +3316,7 @@ function guardarSonido (s) {
 function aplicarSonido (s) {
   audio.setVolumen('efectos', s.efectos / 100)
   audio.setVolumen('musica', s.musica / 100)
+  voces.setVolumen(s.voces / 100)
   document.documentElement.dataset.vibracion = s.vibracion ? 'si' : 'no'
 }
 function vibrar (patron) {
@@ -3285,11 +3327,14 @@ aplicarSonido(sonidoGuardado())
 
 const elVolEfectos = document.getElementById('vol-efectos')
 const elVolMusica = document.getElementById('vol-musica')
+const elVolVoces = document.getElementById('vol-voces')
 const elVibracionOps = document.getElementById('vibracion-ops')
 function pintarSonido () {
   const s = sonidoGuardado()
   elVolEfectos.value = s.efectos
   elVolMusica.value = s.musica
+  elVolVoces.value = s.voces
+  document.getElementById('vol-voces-valor').textContent = s.voces ? `${s.voces} %` : 'apagadas'
   document.getElementById('vol-efectos-valor').textContent = s.efectos ? `${s.efectos} %` : 'apagado'
   document.getElementById('vol-musica-valor').textContent = s.musica ? `${s.musica} %` : 'apagada'
   elVibracionOps.innerHTML = ''
@@ -3309,7 +3354,7 @@ function pintarSonido () {
     elVibracionOps.appendChild(b)
   }
 }
-for (const [el, clave] of [[elVolEfectos, 'efectos'], [elVolMusica, 'musica']]) {
+for (const [el, clave] of [[elVolEfectos, 'efectos'], [elVolMusica, 'musica'], [elVolVoces, 'voces']]) {
   el.addEventListener('input', () => {
     const nuevo = { ...sonidoGuardado(), [clave]: Number(el.value) }
     guardarSonido(nuevo)
@@ -3317,6 +3362,8 @@ for (const [el, clave] of [[elVolEfectos, 'efectos'], [elVolMusica, 'musica']]) 
     pintarSonido()
     // Al mover los efectos suena uno, para oír a qué volumen queda.
     if (clave === 'efectos') { audio.unlock(); audio.coin() }
+    // Y al mover las voces habla el mando (al soltar, no a cada paso del mando).
+    if (clave === 'voces') { audio.unlock(); voces.presentar('mando', 'oleada') }
   })
 }
 
@@ -3917,6 +3964,7 @@ let retratosAlien = new Map()
 // armería —la mejora se lee al crear cada soldado—, así que no hace falta.
 const tienda = crearTienda({
   audio,
+  voces,
   retratos: () => retratosGuardados,
   alCerrar: (origen, cambio) => { if (cambio) window.volverA(origen) }
 })
@@ -3979,6 +4027,8 @@ if (import.meta.env.DEV) {
   window.__zr = {
     start,
     simulate,
+    audio,
+    voces,
     // El mundo entero, para las herramientas de medida del navegador
     // (`herramientas/navegador/`): hace falta para preguntarle por la caja del
     // monumento y por dónde se planta la base alien.

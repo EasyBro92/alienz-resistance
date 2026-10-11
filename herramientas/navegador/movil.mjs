@@ -39,6 +39,9 @@ const perfil = fs.mkdtempSync(path.join(os.tmpdir(), 'alienz-movil-'))
 const navegador = spawn(EDGE, [
   '--headless=new', `--remote-debugging-port=${PUERTO}`, `--user-data-dir=${perfil}`, `--window-size=${ANCHO},${ALTO}`,
   '--no-first-run', '--no-default-browser-check', '--disable-extensions', '--mute-audio', '--hide-scrollbars',
+  // Sin esto el sonido no arranca hasta que alguien toca la pantalla, y aquí no
+  // toca nadie: las voces y lo que se mida del audio se quedarían sin sonar.
+  '--autoplay-policy=no-user-gesture-required',
   '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--disable-background-timer-throttling', '--disable-renderer-backgrounding',
   'about:blank'
 ], { stdio: 'ignore' })

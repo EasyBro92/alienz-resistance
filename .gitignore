@@ -22,3 +22,6 @@ vistas/
 herramientas/paquetes/
 
 __pycache__/
+
+# Las voces recién dichas por Windows, en .wav: de ahí salen los MP3 de public/voces.
+herramientas/voces/crudo/

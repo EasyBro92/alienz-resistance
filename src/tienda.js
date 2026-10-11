@@ -68,7 +68,7 @@ const tope = (lista, f) => Math.max(...lista.map(f))
 const danoPorSegundo = s => s.damage * (s.pellets ?? 1) * s.fireRate
 const rotuloSexo = clave => `${sexoDe(clave) ? 'Chico' : 'Chica'} · toca para cambiar`
 
-function fichaTienda (grupo) {
+function fichaTienda (grupo, voces) {
   const soldados = grupo === 'soldados'
   const specs = soldados ? SOLDIERS : grupo === 'defensas' ? DEFENSES : { ...STRIKES, ...UPGRADES }
   const todas = Object.values(specs)
@@ -141,7 +141,13 @@ function fichaTienda (grupo) {
     // para las partidas (`sexoDe` en assets.js).
     insignia: clave => soldados && dosSexos(clave) ? `<span class="carta-sexo">${rotuloSexo(clave)}</span>` : '',
     alTocar (clave, carta) {
-      if (!soldados || cambiarSexo(clave) == null) return false
+      if (!soldados) return false
+      // Al tocarlo se presenta con su frase: así se oye la voz de cada uno, y la
+      // de la chica o el chico recién elegidos. Las de la caja no se cambian,
+      // pero también contestan.
+      const cambiado = cambiarSexo(clave) != null
+      voces?.presentar(clave)
+      if (!cambiado) return false
       carta.ventana.querySelector('.carta-sexo').textContent = rotuloSexo(clave)
     },
     construir: (clave, s) => soldados ? buildSoldierMesh(clave, s) : grupo === 'defensas' ? buildDefensaMesh(clave, s) : figuraDeApoyo(clave),
@@ -173,7 +179,7 @@ function fichaTienda (grupo) {
 }
 const billete = '<svg aria-hidden="true"><use href="#i-billete"></use></svg>'
 
-export function crearTienda ({ audio, retratos, alCerrar }) {
+export function crearTienda ({ audio, voces, retratos, alCerrar }) {
   const capa = document.getElementById('tienda-capa')
   const elPestanas = document.getElementById('tienda-pestanas')
   const elLista = document.getElementById('tienda-lista')
@@ -277,7 +283,7 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
     const contenedor = document.createElement('div')
     contenedor.className = 'baraja baraja-tienda'
     elLista.replaceChildren(contenedor)
-    const ficha = fichaTienda(grupo)
+    const ficha = fichaTienda(grupo, voces)
     const api = crearBaraja({ contenedor, pie: null, capa, claves: Object.keys(ficha.specs), ficha })
     const caras = retratos?.()
     if (caras) api.ponerCaras(caras)
@@ -353,7 +359,11 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
     if (compra) {
       if (comprar(compra.dataset.comprar)) {
         cambio = true
-        audio?.desbloqueo?.()
+        // La caja que cobra y, detrás, el arpegio de arsenal liberado.
+        audio?.cobro?.()
+        setTimeout(() => audio?.desbloqueo?.(), 380)
+        // Y el recién llegado se presenta (las defensas y el apoyo no hablan).
+        if (SOLDIERS[compra.dataset.comprar]) setTimeout(() => voces?.presentar(compra.dataset.comprar), 1300)
         pintar()
       } else {
         audio?.denied?.()
@@ -364,7 +374,7 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
     if (mejora) {
       const [clave, tipo] = mejora.dataset.mejora.split(':')
       if (comprarMejora(clave, tipo)) {
-        audio?.place?.()
+        audio?.ficha?.()
         pintar()
       } else {
         audio?.denied?.()
@@ -373,8 +383,9 @@ export function crearTienda ({ audio, retratos, alCerrar }) {
   })
 
   elCanjear.addEventListener('click', () => {
-    if (canjear().billetes) {
-      audio?.coin?.()
+    const { billetes } = canjear()
+    if (billetes) {
+      audio?.canje?.(billetes)
       pintar()
     }
   })

@@ -1,6 +1,7 @@
-// Todo el sonido se genera por código: cero archivos, cero licencias que revisar
-// y la descarga sigue pesando nada. Cuando quieras música compuesta, se sustituye
-// startMusic() por un <audio> en bucle.
+// Todo el sonido de aquí se genera por código: cero archivos, cero licencias que
+// revisar y la descarga sigue pesando nada. Cuando quieras música compuesta, se
+// sustituye startMusic() por un <audio> en bucle. Lo único que llega grabado son
+// las voces (`systems/voces.js`), que salen por esta misma mesa (`enchufe`).
 export function createAudio () {
   let ctx = null
   let master = null
@@ -140,6 +141,56 @@ export function createAudio () {
   // Un clic de metal: la corredera, el cerrojo, el casquillo.
   const clic = (s, t, f, pico = 0.1) => soplo(s, t, { f0: f, q: 2.5, pico, cae: 0.022 })
 
+  // --- las piezas del dinero (11/10: «sonidos de casino para las monedas») ---------
+  // Una moneda que cae sobre otras. Lo que la hace sonar a metal y no a pitido
+  // son tres parciales altos que NO casan entre sí, cada uno apagándose a su
+  // ritmo, y el golpecito seco del canto al tocar.
+  function moneda (s, t, v = 1, fuerza = 1) {
+    tono(s, t, { f0: 2650 * v, pico: 0.19 * fuerza, ataque: 0.001, cae: 0.17 })
+    tono(s, t, { f0: 4180 * v, pico: 0.135 * fuerza, ataque: 0.001, cae: 0.11 })
+    tono(s, t, { f0: 6730 * v, pico: 0.07 * fuerza, ataque: 0.001, cae: 0.07 })
+    soplo(s, t, { tipo: 'highpass', f0: 5200, pico: 0.15 * fuerza, cae: 0.012 })
+  }
+
+  // Un puñado cayendo en la bandeja de una tragaperras: `n` monedas, cada vez
+  // más juntas y cada una a su altura. Devuelve cuándo cae la última.
+  function chorro (s, t, n, fuerza = 1) {
+    let cuando = t
+    for (let i = 0; i < n; i++) {
+      moneda(s, cuando, 0.84 + Math.random() * 0.38, fuerza * (0.55 + Math.random() * 0.45))
+      cuando += 0.07 - 0.035 * (i / n) + Math.random() * 0.014
+    }
+    return cuando
+  }
+
+  // Una campanilla: la nota y dos parciales de campana por encima.
+  function campana (s, t, f, pico = 0.2, cae = 0.6) {
+    tono(s, t, { f0: f, pico, ataque: 0.002, cae })
+    tono(s, t, { f0: f * 2.76, pico: pico * 0.42, ataque: 0.002, cae: cae * 0.55 })
+    tono(s, t, { f0: f * 5.4, pico: pico * 0.18, ataque: 0.001, cae: cae * 0.3 })
+  }
+
+  // «Ka-ching»: la palanca y el cajón que salta, la campanilla y las monedas
+  // del cajón, que bailan un momento.
+  function registradora (s, t, fuerza = 1) {
+    soplo(s, t, { tipo: 'lowpass', f0: 1500, f1: 300, pico: 0.6 * fuerza, cae: 0.07 })
+    tono(s, t, { forma: 'square', f0: 170, f1: 70, pico: 0.3 * fuerza, cae: 0.07 })
+    clic(s, t + 0.035, 2600, 0.17 * fuerza)
+    clic(s, t + 0.062, 3100, 0.14 * fuerza)
+    campana(s, t + 0.09, 2093, 0.36 * fuerza, 0.85)
+    campana(s, t + 0.11, 3136, 0.16 * fuerza, 0.6)
+    for (let i = 0; i < 4; i++) moneda(s, t + 0.17 + i * 0.05 + Math.random() * 0.02, 0.9 + Math.random() * 0.3, 0.45 * fuerza)
+  }
+
+  // El fajo pasando por la contadora de billetes: aleteo de papel y su motor.
+  function contadora (s, t, dura = 0.36) {
+    const golpes = Math.round(dura / 0.033)
+    for (let i = 0; i < golpes; i++) {
+      soplo(s, t + i * 0.033, { f0: 3000 + Math.random() * 900, q: 1.2, pico: 0.24, cae: 0.02 })
+    }
+    tono(s, t, { forma: 'sawtooth', f0: 92, f1: 118, pico: 0.07, ataque: 0.02, cae: dura })
+  }
+
   const ARMAS = {
     // Fusil: chasquido seco, cuerpo corto y un golpe grave debajo.
     rifle (s, t, v) {
@@ -257,12 +308,32 @@ export function createAudio () {
       const k = Math.max(0, Math.min(1, v))
       if (tipo === 'efectos') {
         volEfectos = k
-        if (sfxGain) sfxGain.gain.value = 0.55 * k
+        // Con automatizaciones pendientes (`agachar`), escribir `.value` a secas se ignora.
+        if (sfxGain) {
+          sfxGain.gain.cancelScheduledValues(ctx.currentTime)
+          sfxGain.gain.setValueAtTime(0.55 * k, ctx.currentTime)
+        }
       }
       if (tipo === 'musica') {
         volMusica = k
         if (musicGain) musicGain.gain.value = 0.22 * k
       }
+    },
+    // Lo que necesita `voces.js` para hablar por esta misma salida: el
+    // contexto, la mesa de mezclas y el trozo de ruido (la paja de la radio).
+    enchufe () {
+      ensure()
+      preparar()
+      return { ctx, master, ruido }
+    },
+    // Mientras alguien habla, los efectos bajan un poco: una frase de un segundo
+    // debajo de veinte fusiles no se entiende.
+    agachar (segundos = 1.2) {
+      if (!ctx || muted) return
+      const t = ctx.currentTime
+      sfxGain.gain.cancelScheduledValues(t)
+      sfxGain.gain.setTargetAtTime(0.55 * volEfectos * 0.55, t, 0.05)
+      sfxGain.gain.setTargetAtTime(0.55 * volEfectos, t + segundos, 0.18)
     },
     toggleMute () {
       muted = !muted
@@ -290,16 +361,82 @@ export function createAudio () {
       })
     },
 
+    // Una moneda: el tintineo y su rebote. Antes era un pitido que subía; ahora
+    // suena a metal cayendo en una bandeja (Isidro, 11/10: «sonidos de casino
+    // para las monedas»). Suena muchísimo —cada goteo, cada cobro—, así que es
+    // corta y lleva su hueco mínimo.
     coin () {
       play(() => {
-        const o = ctx.createOscillator()
-        o.type = 'triangle'
-        o.frequency.setValueAtTime(880, ctx.currentTime)
-        o.frequency.exponentialRampToValueAtTime(1620, ctx.currentTime + 0.09)
-        const g = ctx.createGain()
-        env(g, 0.22, 0.005, 0.14)
-        o.connect(g).connect(sfxGain)
-        o.start(); o.stop(ctx.currentTime + 0.2)
+        const t = ctx.currentTime
+        if (t - (ultimo.moneda ?? -1) < 0.05) return
+        ultimo.moneda = t
+        const s = voz(0, 0.1)
+        const v = 0.92 + Math.random() * 0.2
+        moneda(s, t, v, 1)
+        moneda(s, t + 0.055 + Math.random() * 0.02, v * 1.12, 0.5)
+      })
+    },
+
+    // Varias a la vez (recoger lo que han soltado, retirar a un soldado, las que
+    // sobran al acabar): un chorrito de tragaperras, más largo cuanto más se cobra.
+    monedas (cuantas = 4) {
+      play(() => {
+        const t = ctx.currentTime
+        if (t - (ultimo.chorro ?? -1) < 0.12) return
+        ultimo.chorro = t
+        chorro(voz(0, 0.12), t, Math.max(2, Math.min(14, Math.round(cuantas))))
+      })
+    },
+
+    // Cambiar monedas por billetes en la tienda: las monedas volcadas en la
+    // bandeja, el fajo pasando por la contadora y la caja que se abre.
+    canje (billetes = 1) {
+      play(() => {
+        const t = ctx.currentTime
+        const s = voz(0, 0.14)
+        const fin = chorro(s, t, Math.min(18, 8 + billetes * 2))
+        contadora(s, fin + 0.05, 0.3 + Math.min(0.3, billetes * 0.03))
+        registradora(s, fin + 0.42 + Math.min(0.3, billetes * 0.03))
+      })
+    },
+
+    // Comprar en la tienda: la caja que cobra. Quien llama pone después lo suyo
+    // (el arpegio de arsenal liberado, la ficha de una mejora).
+    cobro () {
+      play(() => registradora(voz(0, 0.14), ctx.currentTime, 0.85))
+    },
+
+    // Una ficha de casino sobre el tapete y su campanilla: subir una mejora.
+    ficha () {
+      play(() => {
+        const t = ctx.currentTime
+        const s = voz(0, 0.1)
+        soplo(s, t, { f0: 2300, q: 2.2, pico: 0.45, cae: 0.02 })
+        tono(s, t, { f0: 640, f1: 420, pico: 0.24, cae: 0.04 })
+        soplo(s, t + 0.06, { f0: 2700, q: 2.2, pico: 0.3, cae: 0.018 })
+        campana(s, t + 0.1, 1568, 0.25, 0.4)
+      })
+    },
+
+    // Lo que toca en la ruleta del botín, según su rareza: de dos monedas a un
+    // premio gordo de tragaperras con sus campanas, su arpegio y su lluvia.
+    premio (rareza = 'comun') {
+      play(() => {
+        const t = ctx.currentTime
+        const s = voz(0, 0.16)
+        const nivel = { comun: 0, poco: 1, raro: 2, epico: 3, legendario: 4, unico: 5 }[rareza] ?? 0
+        if (nivel === 0) { chorro(s, t, 4); return }
+        if (nivel === 1) { chorro(s, t, 6); campana(s, t + 0.12, 1568, 0.3, 0.5); return }
+        // Las dos campanas que se turnan, tanto más rato cuanto más raro.
+        const golpes = 8 + nivel * 4
+        for (let i = 0; i < golpes; i++) campana(s, t + i * 0.068, i % 2 ? 1760 : 1318.5, 0.24, 0.13)
+        const t1 = t + golpes * 0.068
+        ;[1046.5, 1318.5, 1568, 2093].forEach((hz, i) => campana(s, t1 + i * 0.09, hz, 0.3, i === 3 ? 1.1 : 0.3))
+        chorro(s, t + 0.2, 6 + nivel * 3, 0.7)
+        if (nivel >= 4) {
+          // Y la sirena del gordo por debajo.
+          for (let i = 0; i < 6; i++) tono(s, t + i * 0.17, { forma: 'square', f0: i % 2 ? 880 : 1108, pico: 0.07, ataque: 0.01, cae: 0.15 })
+        }
       })
     },
 
@@ -567,36 +704,27 @@ export function createAudio () {
     // Un clic seco por cada pieza del cofre que pasa bajo la marca. Tiene que
     // ser cortísimo y flojo: suena decenas de veces seguidas y cualquier cola
     // se amontonaría en un zumbido.
+    // Desde el 11/10 es el clac de la lengüeta de una ruleta contra sus clavos
+    // (un golpe de ruido estrecho y un toque de madera, cada uno a su altura)
+    // en vez de un pitido cuadrado. Sin sala: la cola la amontonaría.
     tic () {
       play(() => {
+        preparar()
         const t = ctx.currentTime
-        const o = ctx.createOscillator()
-        o.type = 'square'
-        o.frequency.setValueAtTime(1800, t)
-        const g = ctx.createGain()
-        env(g, 0.05, 0.001, 0.025)
-        o.connect(g).connect(sfxGain)
-        o.start(t); o.stop(t + 0.05)
+        const v = 0.9 + Math.random() * 0.22
+        soplo(sfxGain, t, { f0: 2500 * v, q: 3, pico: 0.22, cae: 0.012 })
+        tono(sfxGain, t, { f0: 1150 * v, f1: 780 * v, pico: 0.1, ataque: 0.001, cae: 0.02 })
       })
     },
 
-    // El billete: dos notas que suben, más alegres que la moneda. Suena poco
-    // —uno cada 30 monedas— y tiene que distinguirse de ella a oído.
+    // El billete: el fajo que se abanica y una campanilla. Se distingue de la
+    // moneda a oído: aquella es metal, este es papel.
     billete () {
       play(() => {
         const t = ctx.currentTime
-        ;[660, 990].forEach((hz, i) => {
-          const t0 = t + i * 0.07
-          const o = ctx.createOscillator()
-          o.type = 'triangle'
-          o.frequency.setValueAtTime(hz, t0)
-          const g = ctx.createGain()
-          g.gain.setValueAtTime(0.0001, t0)
-          g.gain.exponentialRampToValueAtTime(0.18, t0 + 0.01)
-          g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.18)
-          o.connect(g).connect(sfxGain)
-          o.start(t0); o.stop(t0 + 0.22)
-        })
+        const s = voz(0, 0.12)
+        for (let i = 0; i < 6; i++) soplo(s, t + i * 0.028, { f0: 2800 + i * 260, q: 1.1, pico: 0.26, cae: 0.022 })
+        campana(s, t + 0.17, 1760, 0.26, 0.45)
       })
     },
 
@@ -653,29 +781,7 @@ export function createAudio () {
     // La caja registradora del final de la lluvia de billetes: el golpe seco
     // del cajón y dos campanillas altas, «ka-ching».
     caja () {
-      play(() => {
-        const t = ctx.currentTime
-        const o = ctx.createOscillator()
-        o.type = 'square'
-        o.frequency.setValueAtTime(180, t)
-        o.frequency.exponentialRampToValueAtTime(60, t + 0.06)
-        const g = ctx.createGain()
-        env(g, 0.2, 0.002, 0.06)
-        o.connect(g).connect(sfxGain)
-        o.start(t); o.stop(t + 0.08)
-        ;[1318.5, 1760].forEach((hz, i) => {
-          const t0 = t + 0.06 + i * 0.09
-          const c = ctx.createOscillator()
-          c.type = 'sine'
-          c.frequency.setValueAtTime(hz, t0)
-          const gc = ctx.createGain()
-          gc.gain.setValueAtTime(0.0001, t0)
-          gc.gain.exponentialRampToValueAtTime(0.22, t0 + 0.005)
-          gc.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.6)
-          c.connect(gc).connect(sfxGain)
-          c.start(t0); c.stop(t0 + 0.65)
-        })
-      })
+      play(() => registradora(voz(0, 0.16), ctx.currentTime))
     },
 
     // Arsenal liberado. Un arpegio corto que sube, con la última nota más larga
