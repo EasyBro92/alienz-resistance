@@ -28,7 +28,160 @@ const sitio = (lat, lon) => ({ x: (lon + 180) / 360, y: (90 - lat) / 180 })
 // misiones con el mismo dibujo se juegan igual.
 const ESCENA = { avanzadilla: 1, formas: 2, madre: 3, contraflujo: 4, colmena: 5, todas: 6 }
 const NOMBRE_TABLA = new Map(Object.entries(OLEADAS).map(([nombre, tabla]) => [tabla, nombre]))
-export const escenaDe = destino => ESCENA[NOMBRE_TABLA.get(destino.waves)] ?? 1
+export const escenaDe = destino => ESCENA[destino.tabla ?? NOMBRE_TABLA.get(destino.waves)] ?? 1
+
+// --- quién sale en cada país (10/10) --------------------------------------------
+//
+// Isidro: «haz que vayan apareciendo tras los niveles». Antes las seis tablas de
+// oleadas traían las diez formas desde el segundo tramo (en Valencia ya escupían,
+// saltaban y reventaban). Ahora cada país estrena UNA: España solo tiene
+// Portadores y Corredores, y de ahí en adelante entra una más por país, en el
+// orden en que la traen las tablas que ese país usa. Desde Rusia salen todas.
+// LA MADRE no cuenta: sale en las misiones de jefe, como siempre.
+export const NUEVO_EN_PAIS = [null, 'armored', 'spitter', 'leaper', 'bloater', 'burrower', 'healer', 'tank']
+export function elencoDe (paisIndice) {
+  const hay = new Set(['walker', 'runner'])
+  for (let i = 1; i <= paisIndice && i < NUEVO_EN_PAIS.length; i++) hay.add(NUEVO_EN_PAIS[i])
+  return hay
+}
+// Lo que PESA cada forma al medir una oleada: cuánto cuesta pararla, no lo que
+// suelta al morir. Salió de sus monedas (`coins` en ZOMBIES) y se corrigió
+// midiendo: con el mismo peso total, los tramos de «colmena» (Encostrados e
+// Injertadoras) se perdían siempre y los de «contraflujo» (Corredores) se ganaban
+// sin un rasguño. El caparazón y la cura pesan más de lo que pagan; correr, menos.
+const PESO = { walker: 14, runner: 13, armored: 54, spitter: 36, tank: 110, leaper: 20, bloater: 34, healer: 80, burrower: 34 }
+// Quién hace de quién mientras un país no tiene una forma. Casi todo cae en el
+// Portador: mandándolo al Encostrado, la «colmena» de Lyon eran 188 caparazones.
+const SUPLENTES = {
+  armored: ['walker'], spitter: ['walker'], leaper: ['runner'], bloater: ['walker'],
+  burrower: ['leaper', 'runner'], healer: ['walker'], tank: ['armored', 'walker']
+}
+// Lo que puede salir en las tres primeras oleadas de CUALQUIER tramo, por lejos que
+// esté: se empieza siempre con cien monedas, y abrir con cuatro Encostrados (la
+// «colmena») o con un Coloso en la segunda era perder la base antes de plantar al
+// tercer soldado. Lo pesado entra de la cuarta oleada en adelante.
+const DE_ENTRADA = [['walker', 'runner'], ['walker', 'runner', 'leaper'], ['walker', 'runner', 'leaper', 'armored', 'spitter']]
+// Cuántos del que se estrena, como mucho, en una oleada de presentación.
+const TOPE_NUEVO = { tank: 1, healer: 2, bloater: 3 }
+
+// --- la curva de la campaña (10/10) ----------------------------------------------
+//
+// Isidro: «se tiene que sentir gradualmente la dificultad a medida que vas pasando
+// ciudades y países». No se sentía, y no podía: cada misión jugaba su tabla tal
+// cual, así que Lyon (tramo 5) traía 9 oleadas y Bombay (tramo 17) 5, y de un tramo
+// al siguiente la horda se doblaba o se quedaba en un tercio. Lo único que subía
+// en línea recta era la vida de más por oleada (`dureza`).
+//
+// Ahora las tablas de oleadas.js son solo el CARÁCTER de la misión —qué formas
+// vienen juntas y en qué orden— y de ellas se saca, para cada tramo, una tanda a
+// su medida. La regla que manda es cómo crece el dinero del jugador: se empieza
+// SIEMPRE con cien monedas, en Tarragona y en Manaos, y lo que se cobra de una
+// oleada paga la defensa de la siguiente. Así que:
+//   · la PRIMERA oleada pesa casi lo mismo en toda la campaña (`primera`: la
+//     biomasa —suma de `PESO`— que aguantan cien monedas bien puestas). Con una
+//     primera oleada a la medida del tramo 30, la base caía antes de plantar al
+//     tercer soldado;
+//   · cada oleada pesa `crece` veces la anterior. Es el número que hace la
+//     partida apretada o un paseo: por debajo de lo que crece el dinero, la línea
+//     se va sobrando; por encima, se ahoga;
+//   · y hay más OLEADAS cuanto más lejos (`olas`): crecer más veces es lo que
+//     hace largo y duro el final de la campaña.
+// Aparte, lo que AGUANTA cada alien: `vida` multiplica la de su ficha en todo el
+// tramo (es lo que obliga a ir abriendo armas mejores) y `dureza` le suma por
+// cada oleada que pasa. Y `botin`, la parte de sus monedas que suelta al morir.
+// Todo sube con el AVANCE (0 en el primer tramo, 1 en el último), sin escalones.
+//
+// En una oleada no salen más de `tope` alienz (un móvil no mueve trescientos):
+// lo que pase de ahí se convierte en vida —y en botín— de los que sí salen
+// (`vida` de la oleada, que aplica waves.js).
+//
+// Los números están MEDIDOS con el jugador automático (`herramientas/navegador/
+// guion-equilibrio.mjs`), no puestos a ojo: ver «Equilibrio medido» en CLAUDE.md.
+// En desarrollo se pueden probar otros sin tocar el archivo: el guion los deja en
+// `localStorage['alienz-curva']` y recarga.
+export const CURVA = {
+  olas: [5, 10],
+  primera: [90, 100],
+  crece: [1.5, 1.5],
+  vida: [2, 2],
+  dureza: [0.04, 0.22],
+  botin: [0.75, 0.75],
+  tope: 60,
+  // Los que nacen lejos (ver más abajo): cuántos más y cuánto más rápidos, como mucho.
+  lejosMas: 0.3,
+  lejosRitmo: 0.25,
+  ...(import.meta.env?.DEV && typeof localStorage !== 'undefined' ? JSON.parse(localStorage.getItem('alienz-curva') ?? '{}') : {})
+}
+const entre = ([a, b], t) => a + (b - a) * t
+
+function oleadasDe (tabla, paisIndice, avance) {
+  const hay = elencoDe(paisIndice)
+  const nuevo = NUEVO_EN_PAIS[paisIndice] ?? null
+  const jefe = tabla.at(-1).boss ? tabla.at(-1) : null
+  const fuente = jefe ? tabla.slice(0, -1) : tabla
+  const traeAlNuevo = fuente.some(o => o.spawns.some(s => s.type === nuevo))
+  const N = Math.round(entre(CURVA.olas, avance))
+  const primera = entre(CURVA.primera, avance)
+  const crece = entre(CURVA.crece, avance)
+  return Array.from({ length: N }, (_, k) => {
+    const deJefe = jefe && k === N - 1
+    // Qué oleada de la tabla le presta el reparto: la que cae a esa altura del tramo.
+    const cuantas = jefe ? N - 1 : N
+    const o = deJefe ? jefe : fuente[Math.round((cuantas > 1 ? k / (cuantas - 1) : 0) * (fuente.length - 1))]
+    // Lo que el país aún no tiene, o lo que es demasiado para abrir, por su suplente.
+    const vale = k < DE_ENTRADA.length ? new Set(DE_ENTRADA[k].filter(t => hay.has(t))) : hay
+    let salen = o.spawns.filter(s => s.type !== 'boss').map(s => {
+      if (vale.has(s.type)) return { ...s, dura: s.count * s.every }
+      return { ...s, type: SUPLENTES[s.type].find(t => vale.has(t)) ?? 'walker', dura: s.count * s.every }
+    })
+    // Al que se estrena, si la tabla no lo trae, se le presenta de la segunda
+    // oleada en adelante (el Coloso, de la mitad en adelante).
+    const meta = primera * crece ** k
+    let presentado = null
+    if (nuevo && !traeAlNuevo && k >= (nuevo === 'tank' ? Math.ceil(N / 2) : 1)) {
+      const cuantos = Math.max(1, Math.min(TOPE_NUEVO[nuevo] ?? 4, Math.round(meta * 0.2 / PESO[nuevo])))
+      presentado = { type: nuevo, count: cuantos, every: 4 }
+    }
+    // Y a su medida: tantos de cada uno como haga falta para sumar la biomasa que
+    // le toca a esta oleada, guardando las proporciones de la tabla.
+    const queda = meta - (presentado ? presentado.count * PESO[nuevo] : 0)
+    const trae = salen.reduce((n, s) => n + s.count * PESO[s.type], 0)
+    let veces = Math.max(0, queda) / trae
+    // Sin pasar del tope de cabezas: lo que sobre va a la vida de los que salen.
+    const cabezas = salen.reduce((n, s) => n + s.count * veces, 0) + (presentado?.count ?? 0)
+    const vida = Math.max(1, cabezas / CURVA.tope)
+    veces /= vida
+    salen = salen.map(s => ({ ...s, justo: s.count * veces, count: Math.round(s.count * veces) }))
+    if (!salen.some(s => s.count > 0)) salen.sort((a, b) => b.justo - a.justo)[0].count = 1
+    const spawns = salen.filter(s => s.count > 0).map(({ dura, justo, ...s }) => ({
+      ...s,
+      // Salen en lo mismo que tardaba ese grupo en la tabla: si son más, más seguidos.
+      every: +Math.min(6, Math.max(0.35, dura / s.count)).toFixed(2)
+    }))
+    if (presentado) spawns.push(presentado)
+    if (deJefe) spawns.unshift(...o.spawns.filter(s => s.type === 'boss'))
+    return { gap: o.gap, ...(deJefe ? { boss: true } : {}), ...(vida > 1.001 ? { vida: +vida.toFixed(2) } : {}), spawns }
+  })
+}
+
+// --- los que nacen lejos (10/10) -------------------------------------------------
+//
+// Isidro: «los que vienen de lejos vienen corriendo pero luego se ralentizan; haz
+// que las oleadas sean un poco más grandes si vienen de muy lejos», y al
+// preguntarle: «corren siempre igual, a velocidad normal, pero un 25 % más
+// rápidos», solo donde nacen lejos. Así que la carrera con frenazo desaparece
+// (ver `prisaDeEntrada` en zombie.js) y cada misión con `entrada` lleva un
+// `ritmo` fijo y unas oleadas más largas, las dos cosas según lo LEJOS que nazcan:
+// nada a -60 y el tope (un 25 % más rápidos, un 30 % más alienz) de -125 en
+// adelante, que son Valencia, Marsella, Lyon, París y Milán. Graduado y no a
+// todo o nada: en Luxor nacen a nueve metros de donde se posaría la nave.
+const lejania = z => Math.min(1, Math.max(0, (-z - 60) / 65))
+function engordar (tabla, veces) {
+  return tabla.map(o => ({
+    ...o,
+    spawns: o.spawns.map(s => s.type === 'boss' ? s : { ...s, count: Math.max(1, Math.round(s.count * veces)) })
+  }))
+}
 
 // --- los trece países ---------------------------------------------------------
 //
@@ -80,13 +233,13 @@ export const PAISES = [
         // Salen por la puerta del Palau de les Arts (z = -124) y vienen andando
         // por el paseo, sin nave: nacen detrás de la puerta y hasta pasar el puente
         // vienen a cuatro veces su paso, como en Milán.
-        entrada: { z: -127, fondo: 6, prisa: { desde: -118, hasta: -70, por: 4 } },
+        entrada: { z: -127, fondo: 6 },
         // De día y con el aire limpio: la bruma del juego lavaba el Palau.
         fondo: { hora: 'dia', cielo: 0x8fc0ee, niebla: 0xcfe2f0, nieblaCerca: 140, nieblaLejos: 460 },
         sinPajaros: true, sinNubes: true,
-        resumen: 'Ya no vienen todos iguales.',
+        resumen: 'Ya no vienen todos iguales: algunos corren.',
         parte: ['El puerto era una de sus zonas de descarga. Aquí llegaban los camiones con la gente que desaparecía.',
-          'Hay quien escupe y quien salta. El experimento va más avanzado de lo que creíamos.'],
+          'Algunos corren, y no por prisa: los han hecho así. El experimento va más avanzado de lo que creíamos.'],
         cierre: 'En los muelles había contenedores con literas dentro. Vacías.',
         waves: OLEADAS.formas
       },
@@ -131,13 +284,13 @@ export const PAISES = [
         escenario: 'marsellaPuerto', suelo: 'losas', tonoSuelo: 0xc9c2b2, hitos: [],
         // Desembarcan: nacen dentro de las barcazas varadas en la dársena del
         // fondo, junto al Quai des Belges, y bajan por la rampa al muelle (z = -124), deprisa hasta -74.
-        entrada: { z: -130, fondo: 7, prisa: { desde: -120, hasta: -74, por: 4 } },
+        entrada: { z: -130, fondo: 7 },
         fondo: { hora: 'dia', cielo: 0x8fc0ee, niebla: 0xd3e2ee, nieblaCerca: 140, nieblaLejos: 460 },
         sinPajaros: true, sinNubes: true,
-        resumen: 'Escupen a distancia, saltan las barreras y revientan al caer.',
+        resumen: 'Los primeros con caparazón: las balas les rebotan.',
         parte: ['El campamento del puerto lleva más tiempo montado, y se nota: los huéspedes ya no vienen todos iguales.',
           'No están improvisando. Están probando qué funciona contra nosotros.'],
-        cierre: 'Tres formas nuevas en un solo muelle. Esto no es una plaga: es un taller con turnos.',
+        cierre: 'Una forma nueva, hecha para parar nuestras balas. Esto no es una plaga: es un taller con turnos.',
         waves: OLEADAS.formas
       },
       {
@@ -147,12 +300,12 @@ export const PAISES = [
         escenario: 'lyonSaona', suelo: 'adoquin', tonoSuelo: 0xbdb5a4, hitos: [],
         // Bajan de Fourvière y cruzan la pasarela: nacen donde llega al muelle
         // (z = -133) y vienen deprisa hasta -80.
-        entrada: { z: -131, fondo: 4, prisa: { desde: -128, hasta: -80, por: 3 } },
+        entrada: { z: -131, fondo: 4 },
         fondo: { hora: 'dia', cielo: 0x8fc0ee, niebla: 0xd3e2ee, nieblaCerca: 140, nieblaLejos: 460 },
         sinPajaros: true, sinNubes: true,
-        resumen: 'Se cosen entre ellos mientras les disparas.',
+        resumen: 'Vienen acorazados, y en fila.',
         parte: ['Encontramos la primera sala de experimentos entera. Camillas, correas, y un olor que no se va de la ropa.',
-          'Los de aquí se curan unos a otros. Hay que elegir a quién matar primero.'],
+          'Los que salen de aquí vienen con la coraza puesta. Hace falta con qué atravesarla.'],
         cierre: 'En la sala había una lista de nombres. Algunos los conocía alguien de la compañía.',
         waves: OLEADAS.colmena
       },
@@ -210,10 +363,10 @@ export const PAISES = [
         ruina: { x: 0, z: -32, radio: 4.4 },
         // Salen del túnel de la puerta del fondo: nacen dentro, a oscuras, y
         // vienen deprisa hasta la boca (z = -63,5).
-        entrada: { z: -86, fondo: 6, prisa: { desde: -84, hasta: -64, por: 3 } },
+        entrada: { z: -86, fondo: 6 },
         fondo: { hora: 'dia', cielo: 0x8fc0ee, niebla: 0xd3e2ee, nieblaCerca: 140, nieblaLejos: 460 },
         sinPajaros: true, sinNubes: true,
-        resumen: 'Se curan y el caparazón devuelve las balas.',
+        resumen: 'Escupen desde lejos y el caparazón devuelve las balas.',
         parte: ['Han instalado algo dentro del estadio olímpico. Desde el aire se ve la luz verde por las gradas.',
           'Los que protegen la zona vienen blindados. Hace falta con qué atravesarlos.'],
         cierre: 'Dentro del estadio no había nadie. Solo filas de capullos vacíos, abiertos desde dentro.',
@@ -231,7 +384,7 @@ export const PAISES = [
         // a -140), y la cara del arco está en -40. Hasta -105 vienen a cuatro
         // veces su paso y van frenando hasta el suyo a -68, antes de verse bien.
         // Sin nave.
-        entrada: { z: -120, fondo: 10, prisa: { desde: -105, hasta: -68, por: 4 } },
+        entrada: { z: -120, fondo: 10 },
         // Sin pájaros ni nubes: la bandada, los buitres y las nubes, que vuelan
         // bajas, cruzaban por dentro del Duomo y de la Galleria.
         sinPajaros: true, sinNubes: true,
@@ -245,7 +398,7 @@ export const PAISES = [
         // Isidro, después de jugarla: «el nivel es muy fácil, haz las hordas más
         // largas, pero solo en este mapa». La misma tabla con cada horda de 1,75
         // veces más bichos y saliendo algo más seguidos.
-        waves: alargar(OLEADAS.formas, 1.75, 0.85)
+        waves: OLEADAS.formas
       }
     ]
   },
@@ -268,13 +421,13 @@ export const PAISES = [
         // Salen del Partenón: nacen dentro, sobre el pozo, y vienen deprisa hasta
         // el pórtico. Las columnas del centro (las mismas del guion de Blender,
         // las dos filas) las esquivan: cada carril pasa por su hueco.
-        entrada: { z: -84, fondo: 6, prisa: { desde: -82, hasta: -67, por: 3 } },
+        entrada: { z: -84, fondo: 6 },
         columnas: [-4.5, -1.5, 1.5, 4.5].flatMap(x => [{ x, z: -62.95, radio: 1.5 }, { x, z: -66.15, radio: 1.5 }]),
         // `cupula`: el cielo de la partida, del mismo atardecer que el del vuelo;
         // `sol`: la luz naranja sobre soldados y alienz.
         fondo: { hora: 'ocaso', cielo: 0xd9a27c, niebla: 0xe6b796, nieblaCerca: 150, nieblaLejos: 470, cupula: [0x8f84b4, 0xf2aa7a], sol: 0xffc890 },
         sinPajaros: true, sinNubes: true,
-        resumen: 'Se curan entre ellos y el caparazón devuelve las balas.',
+        resumen: 'Saltan por encima de las barreras, y el caparazón devuelve las balas.',
         parte: ['El templo está lleno. No de cuerpos: de estructura.',
           'Han dejado de fabricar soldados y han empezado a fabricar oficio.'],
         cierre: 'Encontramos la primera cámara de cría intacta. Tibia, y con sitio para muchas más de las que hemos matado.',
@@ -301,7 +454,7 @@ export const PAISES = [
         escenario: 'heraclionCnosos', suelo: 'losas', tonoSuelo: 0xb9a888, hitos: [],
         // Salen del laberinto: nacen dentro de la puerta, a oscuras, y suben la rampa
         // deprisa hasta el patio. LA MADRE también, por el centro.
-        entrada: { z: -86, fondo: 6, prisa: { desde: -84, hasta: -66, por: 3 } },
+        entrada: { z: -86, fondo: 6 },
         // `cupula` y `sol`: el cielo y la luz de primera hora, como en el vuelo.
         fondo: { hora: 'manana', cielo: 0xa9c6e6, niebla: 0xecd9c4, nieblaCerca: 150, nieblaLejos: 470, cupula: [0x86aede, 0xf6d8b6], sol: 0xffe3c0 },
         sinPajaros: true, sinNubes: true,
@@ -331,7 +484,7 @@ export const PAISES = [
         escenario: 'alejandriaQaitbay', suelo: 'losas', tonoSuelo: 0xcdbb96, hitos: [],
         // Salen de la fortaleza: nacen dentro de la torre, cruzan el patio deprisa y
         // pasan la puerta del muro en abanico cerrado (es estrecha); se abren después.
-        entrada: { z: -89, fondo: 4, prisa: { desde: -89, hasta: -70, por: 3 }, abanico: { ancho: 0.7, hasta: -65.4 } },
+        entrada: { z: -89, fondo: 4, abanico: { ancho: 0.7, hasta: -65.4 } },
         fondo: { hora: 'dia', cielo: 0x8fc0ee, niebla: 0xd3e2ee, nieblaCerca: 140, nieblaLejos: 460 },
         sinPajaros: true, sinNubes: true,
         resumen: 'Subimos al barco. De frente y en masa.',
@@ -347,7 +500,7 @@ export const PAISES = [
         escenario: 'luxorEsfinges', suelo: 'arena', tonoSuelo: 0xd9c08f, hitos: [],
         // Salen del templo: nacen detrás de la puerta del pilono y la cruzan en
         // abanico cerrado (es estrecha); se abren al pasar los colosos.
-        entrada: { z: -69, fondo: 6, prisa: { desde: -72, hasta: -63, por: 2.5 }, abanico: { ancho: 0.7, hasta: -58.2 } },
+        entrada: { z: -69, fondo: 6, abanico: { ancho: 0.7, hasta: -58.2 } },
         fondo: { hora: 'alto', cielo: 0x7fb6e6, niebla: 0xe9dcc0, nieblaCerca: 140, nieblaLejos: 460 },
         sinPajaros: true, sinNubes: true,
         resumen: 'El valle está lleno de formas nuevas.',
@@ -365,7 +518,7 @@ export const PAISES = [
         escenario: 'gizehEsfinge', suelo: 'arena', tonoSuelo: 0xd8bf92, hitos: [],
         // Salen de debajo de la Esfinge: nacen en la sala de abajo, a oscuras, y suben
         // la rampa deprisa hasta el patio. LA MADRE también, por el centro.
-        entrada: { z: -81, fondo: 6, prisa: { desde: -84, hasta: -66, por: 3 } },
+        entrada: { z: -81, fondo: 6 },
         sinPajaros: true, sinNubes: true,
         resumen: 'El campamento de la meseta, y lo que lo dirige.',
         parte: ['De aquí salió todo. Las naves se posan en la meseta a la vista de las pirámides.',
@@ -398,7 +551,7 @@ export const PAISES = [
         sinPajaros: true, sinNubes: true,
         resumen: 'Llegan deprisa. Hay que aguantar el puente.',
         parte: ['Si cae el paso elevado, aquí no vuelve a entrar nadie.',
-          'El búnker dice que aguantemos hasta que evacúen. No dice cuánto.'],
+          'El búnker dice que aguantemos hasta que evacúen. No dice cuánto. Y algunos ya no vienen por arriba: cavan.'],
         cierre: 'El puente sigue en pie. La primera columna de evacuados ya ha cruzado.',
         waves: OLEADAS.contraflujo
       }
@@ -422,7 +575,7 @@ export const PAISES = [
         // abren al salir a la explanada.
         fondo: { hora: 'dia', cielo: 0x8fc0ee, niebla: 0xdbe3e4, nieblaCerca: 140, nieblaLejos: 460 },
         escenario: 'bombayPuerta', suelo: 'losas', tonoSuelo: 0x9c958a, hitos: [],
-        entrada: { z: -90, fondo: 5, prisa: { desde: -90, hasta: -68, por: 3 }, abanico: { ancho: 0.9, hasta: -64.5 } },
+        entrada: { z: -90, fondo: 5, abanico: { ancho: 0.9, hasta: -64.5 } },
         sinPajaros: true, sinNubes: true,
         resumen: 'Otra vez de frente, pero nada de esto es como en Tarragona.',
         parte: ['Catorce millones de personas y un campamento en medio.',
@@ -438,7 +591,7 @@ export const PAISES = [
         // cerrado y se abren al pie de la escalinata.
         fondo: { hora: 'manana', cielo: 0xe7b9a8, niebla: 0xeecbc0, nieblaCerca: 120, nieblaLejos: 430, cupula: [0x8fa0d8, 0xf3c0b0], sol: 0xffd9c4 },
         escenario: 'agraTaj', suelo: 'losas', tonoSuelo: 0xc08468, hitos: [],
-        entrada: { z: -79, fondo: 3, prisa: { desde: -80, hasta: -68, por: 2.5 }, abanico: { ancho: 0.45, hasta: -67.5 } },
+        entrada: { z: -79, fondo: 3, abanico: { ancho: 0.45, hasta: -67.5 } },
         sinPajaros: true, sinNubes: true,
         resumen: 'Se curan, se blindan, y son muchos.',
         parte: ['El campamento está montado dentro del Taj Mahal. El jardín es la única entrada.',
@@ -491,7 +644,7 @@ export const PAISES = [
         // otoño. Salen de la torre: la puerta mide 3 m, así que la cruzan en abanico.
         fondo: { hora: 'dia', cielo: 0x86b8ee, niebla: 0xcfdcea, nieblaCerca: 160, nieblaLejos: 520 },
         escenario: 'pekinMuralla', suelo: 'losas', tonoSuelo: 0xb2aa9c, hitos: [],
-        entrada: { z: -77, fondo: 3, prisa: { desde: -78, hasta: -68, por: 2.5 }, abanico: { ancho: 0.55, hasta: -66 } },
+        entrada: { z: -77, fondo: 3, abanico: { ancho: 0.55, hasta: -66 } },
         sinPajaros: true, sinNubes: true,
         resumen: 'Llegan deprisa por la muralla.',
         parte: ['El búnker de Pekín es el más grande del mundo. Su entrada de emergencia está en la montaña, al pie de la Gran Muralla.',
@@ -545,7 +698,7 @@ export const PAISES = [
         // la noche azul del invierno. Salen de debajo del hielo, por el boquete del fondo.
         fondo: { hora: 'noche', cielo: 0x1c2a52, niebla: 0x33466e, nieblaCerca: 130, nieblaLejos: 460, ambiente: 0x3a4a6a, cupula: [0x070c26, 0x34508a], sol: 0xcfe0ff },
         escenario: 'novosibirskObi', suelo: 'nieve', tonoSuelo: 0xcfdcea, hitos: [],
-        entrada: { z: -81, fondo: 5, prisa: { desde: -84, hasta: -66, por: 3 } },
+        entrada: { z: -81, fondo: 5 },
         sinPajaros: true, sinNubes: true,
         resumen: 'Se curan en el hielo.',
         parte: ['El centro de Siberia. Aquí se refugiaron los que huyeron de China.',
@@ -560,7 +713,7 @@ export const PAISES = [
         // y suben la rampa. LA MADRE también.
         fondo: { hora: 'dia', cielo: 0xb9cfe6, niebla: 0xdfe6ee, nieblaCerca: 140, nieblaLejos: 460, cupula: [0x7fa4d8, 0xf0dccb], sol: 0xffe6c8 },
         escenario: 'moscuPlaza', suelo: 'nieve', tonoSuelo: 0xdfe3ea, hitos: [],
-        entrada: { z: -81, fondo: 6, prisa: { desde: -84, hasta: -66, por: 3 } },
+        entrada: { z: -81, fondo: 6 },
         sinPajaros: true, sinNubes: true,
         resumen: 'La MADRE del norte.',
         parte: ['La señal que emiten sale de debajo del Kremlin.',
@@ -600,7 +753,7 @@ export const PAISES = [
         // en abanico cerrado; se abren en la calle.
         fondo: { hora: 'dia', cielo: 0x8d98a4, niebla: 0xaab3ba, nieblaCerca: 110, nieblaLejos: 410, cupula: [0x5c6672, 0xb4bcc2], sol: 0xe6eef6 },
         escenario: 'seattlePike', suelo: 'losas', tonoSuelo: 0x6e443c, hitos: [],
-        entrada: { z: -76, fondo: 3, prisa: { desde: -78, hasta: -68, por: 2.5 }, abanico: { ancho: 0.9, hasta: -64.5 } },
+        entrada: { z: -76, fondo: 3, abanico: { ancho: 0.9, hasta: -64.5 } },
         sinPajaros: true, sinNubes: true,
         resumen: 'Formas nuevas bajo la lluvia.',
         parte: ['Llueve desde que llegamos. Las formas de aquí salen del agua del puerto.',
@@ -674,7 +827,7 @@ export const PAISES = [
         // Salen de la catedral: la puerta mide 2,4 m, así que la cruzan en abanico.
         fondo: { hora: 'dia', cielo: 0x9cc0e6, niebla: 0xe2dccb, nieblaCerca: 140, nieblaLejos: 460, cupula: [0x6f9cd8, 0xf0dcb8], sol: 0xffe4b8 },
         escenario: 'guadalajaraCatedral', suelo: 'losas', tonoSuelo: 0xd2c0ac, hitos: [],
-        entrada: { z: -79, fondo: 2.5, prisa: { desde: -80, hasta: -68, por: 2.5 }, abanico: { ancho: 0.36, hasta: -66 } },
+        entrada: { z: -79, fondo: 2.5, abanico: { ancho: 0.36, hasta: -66 } },
         sinPajaros: true, sinNubes: true,
         resumen: 'Se curan y se blindan.',
         parte: ['La ciudad es su segundo hospital: aquí reparan lo que les rompemos.',
@@ -714,7 +867,7 @@ export const PAISES = [
         // el muelle alien del fondo (8 m de ancho) y bajan a la arena en abanico.
         fondo: { hora: 'dia', cielo: 0x6fc0f2, niebla: 0xd0ecf2, nieblaCerca: 170, nieblaLejos: 520 },
         escenario: 'puntaCanaBavaro', suelo: 'arena', tonoSuelo: 0xf2e6cc, hitos: [],
-        entrada: { z: -86, fondo: 8, prisa: { desde: -90, hasta: -66, por: 3 }, abanico: { ancho: 1.4, hasta: -63 } },
+        entrada: { z: -86, fondo: 8, abanico: { ancho: 1.4, hasta: -63 } },
         sinPajaros: true, sinNubes: true,
         resumen: 'Salen del mar y cruzan la arena.',
         parte: ['La playa de Bávaro era su muelle: las naves se posan junto al agua y la siembra sale andando por la arena.',
@@ -741,7 +894,7 @@ export const PAISES = [
         // Suben del mar por la rampa del pie de la muralla. LA MADRE también.
         fondo: { hora: 'ocaso', cielo: 0xe9a367, niebla: 0xe4b98f, nieblaCerca: 150, nieblaLejos: 480, cupula: [0x7d7fb0, 0xf2a878], sol: 0xffc890 },
         escenario: 'puertoPlataFortaleza', suelo: 'losas', tonoSuelo: 0xd8c8ac, hitos: [],
-        entrada: { z: -81, fondo: 5, prisa: { desde: -84, hasta: -66, por: 3 } },
+        entrada: { z: -81, fondo: 5 },
         sinPajaros: true, sinNubes: true,
         resumen: 'La MADRE del Caribe.',
         parte: ['El muelle nuevo está aquí, al pie de la vieja fortaleza. De aquí sale todo lo que cruza hacia el sur.',
@@ -823,8 +976,16 @@ PAISES.forEach((pais, ip) => {
   pais.primera = DESTINOS.length
   pais.misiones.forEach((m, im) => {
     const i = DESTINOS.length
+    const tabla = NOMBRE_TABLA.get(m.waves)
+    const avance = i / (TOTAL - 1)
+    const lejos = m.entrada && !m.entrada.ascensor ? lejania(m.entrada.z) : 0
+    let waves = oleadasDe(m.waves, ip, avance)
+    if (lejos > 0) waves = engordar(waves, 1 + CURVA.lejosMas * lejos)
     DESTINOS.push({
       ...m,
+      waves,
+      tabla,
+      ritmo: +(1 + CURVA.lejosRitmo * lejos).toFixed(3),
       pais: pais.nombre,
       paisIndice: ip,
       misionIndice: im,
@@ -834,21 +995,14 @@ PAISES.forEach((pais, ip) => {
       // Dos estrellas por misión ya pasada: seis por país mientras todos tenían tres,
       // y lo justo ahora que Nigeria tiene una sola.
       estrellas: pais.primera * 2,
-      // De 0,06 a 0,56 en línea recta a lo largo de toda la campaña.
-      dureza: 0.06 + (i / (TOTAL - 1)) * 0.5
+      // Lo que aguantan de más: en todo el tramo (`vida`) y por cada oleada que
+      // pasa (`dureza`). Las dos salen de la curva de la campaña.
+      vida: +entre(CURVA.vida, avance).toFixed(3),
+      botin: +entre(CURVA.botin, avance).toFixed(3),
+      dureza: +entre(CURVA.dureza, avance).toFixed(3)
     })
   })
   pais.ultima = DESTINOS.length - 1
 })
-
-// Una tabla de oleadas con más bichos en cada horda: `veces` multiplica cuántos
-// salen de cada tipo y `seguido` acorta lo que tardan en salir uno detrás de
-// otro. Copia la tabla: las seis de oleadas.js las comparten muchos destinos.
-function alargar (tabla, veces, seguido = 1) {
-  return tabla.map(o => ({
-    ...o,
-    spawns: o.spawns.map(s => ({ ...s, count: Math.ceil(s.count * veces), every: +(s.every * seguido).toFixed(2) }))
-  }))
-}
 
 export const paisDe = indice => PAISES[DESTINOS[indice]?.paisIndice ?? 0]

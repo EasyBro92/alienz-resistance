@@ -108,16 +108,15 @@ export async function createZombie (key, spec, lane, waveScale = 1) {
     // tiempo a recolocar media línea antes de que asome.
     get velocidad () {
       const base = this.spec.speed * (this.bajoTierra ? (this.spec.escarba.prisa ?? 1) : 1)
-      return base * (this.tLastre > 0 ? this.lastre : 1) * this.prisaDeEntrada
+      return base * (this.tLastre > 0 ? this.lastre : 1) * this.prisaDeEntrada * FIELD.ritmo
     },
 
-    // En Milán nacen al fondo de la galería, dentro de la niebla, para que no se
-    // vea el momento en que aparecen (Isidro: «que vengan de mucho más atrás,
-    // que no se llegue a distinguir el momento en el que aparecen»). Andando a
-    // su paso tardarían veinte segundos más en llegar a la plaza, así que dentro
-    // de la niebla vienen deprisa y van frenando hasta su paso normal antes de
-    // verse bien. Con el paso ligado a la velocidad, se lee como que salen
-    // corriendo de la galería. Fuera de Milán vale siempre 1.
+    // La prisa de la entrada: donde nacen sin que se les vea, vienen deprisa y
+    // van frenando hasta su paso antes de salir a la vista. Nació para Milán y
+    // llegó a llevarla media campaña, pero A LA VISTA se leía mal (Isidro, 10/10:
+    // «vienen corriendo pero luego se ralentizan»): ahora solo la lleva el
+    // portaaviones, donde corren bajo la cubierta y nadie los ve. Los demás mapas
+    // de entrada lejana van siempre a un mismo paso, algo más vivo (`FIELD.ritmo`).
     get prisaDeEntrada () {
       const p = FIELD.prisa
       const z = this.mesh.position.z

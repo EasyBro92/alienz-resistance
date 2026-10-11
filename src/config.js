@@ -28,7 +28,11 @@ export const FIELD = {
   // el escalón de arriba y se reparten a lo ancho de ella. En campaña salen por
   // la rampa de la nave, que mide 7,2, y ahí el abanico tiene que ser estrecho.
   porElFondo: false,
-  entradaAncho: 6
+  entradaAncho: 6,
+  // A qué ritmo andan TODOS los alienz en esta misión (1 = el de su ficha). Lo
+  // pone la misión: donde nacen lejos van más ligeros todo el camino (`ritmo`
+  // en campana.js).
+  ritmo: 1
 }
 
 // -82 y no más lejos por una razón medida: la niebla cierra del todo a 152 de
@@ -62,12 +66,17 @@ export const BASE = { hp: 100 }
 
 // Economía: el goteo automático te da aire, las bajas te dan el sueldo de verdad.
 export const ECONOMY = {
-  startCoins: 200,
+  // 100 y no 200 (Isidro, 10/10: «nada más iniciar es muy fácil, tienes demasiadas
+  // monedas para empezar»): con 200 se plantaba media línea antes de ver al primero.
+  startCoins: 100,
   // Parte de las `coins` de su ficha que suelta cada huésped al morir. Bajado un
   // 25 %: los billetes salen de las monedas y tienen que costar partidas.
   botinHuesped: 0.75,
-  dripEvery: 4.5,     // segundos entre monedas gratis: es un salvavidas, no un sueldo
-  dripValue: 15,
+  // El goteo, de 15 cada 4,5 s a 5 cada 5 s (lo pidió él con esos números): a
+  // 200 por minuto era un sueldo; a 60, lo que tiene que ser, un salvavidas. Lo
+  // que se cobra de verdad es lo que sueltan los alienz.
+  dripEvery: 5,
+  dripValue: 5,
   pickupLifetime: 9,  // segundos antes de que una moneda del suelo se pierda
   autoCollect: false  // lo activa la mejora "Recolector"
 }
@@ -85,7 +94,9 @@ export const SOLDIERS = {
     damage: 8, fireRate: 1.1, range: 15, armorPierce: 0.0,
     magazine: 1, reloadTime: 0.5, projectile: 'arrow', silent: true,
     // Rasgo: la flecha se queda clavada y el huésped cojea.
-    clava: { factor: 0.55, dura: 2.4 },
+    // (El freno de las armas quedó a la mitad el 10/10 —Isidro: «al dispararles se
+    // ralentizan, pero quizás demasiado»—: del 55 % al 78 % aquí, y así en las demás.)
+    clava: { factor: 0.78, dura: 2.4 },
     blurb: 'Lo más barato que hay. Flojo, pero deja la flecha clavada y lo que toca camina cojo.'
   },
   rifle: {
@@ -125,7 +136,7 @@ export const SOLDIERS = {
     damage: 6, fireRate: 11, range: 20, armorPierce: 0.15, shake: true,
     magazine: 90, reloadTime: 2.6,
     // Rasgo: no mata rápido, pero lo que tiene enfrente casi no avanza.
-    suprime: { factor: 0.45, dura: 0.7 },
+    suprime: { factor: 0.72, dura: 0.7 },
     blurb: 'Un chorro de balas que clava en el sitio lo que tenga delante. Se atasca con los blindados.'
   },
   // La octava. Va entre el Ametrallador y el Mortero de precio, pero no es un
@@ -180,7 +191,7 @@ export const SOLDIERS = {
     damage: 11, fireRate: 5.0, range: 18, armorPierce: 0.4,
     magazine: 15, reloadTime: 0.8,
     asienta: { porSegundo: 0.3, tope: 0.9 },
-    suprime: { factor: 0.75, dura: 0.5 },
+    suprime: { factor: 0.88, dura: 0.5 },
     blurb: 'Solo en la caja alienígena. Pistola de las fuerzas especiales: dispara rapidísimo, cada vez más certera, y frena al que le da. Aguanta mucho.'
   },
   // Claire: el lanzagranadas incendiario. Como el Mortero, pero más rápida, de
@@ -198,7 +209,7 @@ export const SOLDIERS = {
     name: 'Ada', cost: 290, hp: 110, color: 0xb0183a, accent: 0x4a0a18, arma: 'ballesta', sinGalones: true,
     damage: 46, fireRate: 1.1, range: 36, armorPierce: 0.9,
     magazine: 1, reloadTime: 0.55, projectile: 'arrow', silent: true,
-    clava: { factor: 0.4, dura: 3 },
+    clava: { factor: 0.7, dura: 3 },
     buscaDuro: true,
     blurb: 'Solo en la caja alienígena. Ballesta: atraviesa blindajes, elige al más duro y lo deja clavado casi en el sitio.'
   },
@@ -379,7 +390,9 @@ export const ZOMBIES = {
     coins: 16, scale: 0.9, color: 0xb8d14a, accent: 0x6d7d24
   },
   armored: {
-    name: 'Encostrado', hp: 70, speed: 2.8, damage: 26, attackRate: 1.0,
+    // Los cuatro grandes (este, el Revientaesporas, el Coloso y LA MADRE) andan un
+    // 30 % más desde el 10/10: «son lentos los alienz grandes, algunos casi ni avanzan».
+    name: 'Encostrado', hp: 70, speed: 3.6, damage: 26, attackRate: 1.0,
     coins: 28, scale: 1.1, color: 0x6b7a86, accent: 0x39434b, armor: 0.7
   },
   spitter: {
@@ -387,7 +400,7 @@ export const ZOMBIES = {
     coins: 30, scale: 1, color: 0xa05fb8, accent: 0x5c2f6d, rangedAttack: 11
   },
   tank: {
-    name: 'Coloso', hp: 340, speed: 1.8, damage: 70, attackRate: 0.8,
+    name: 'Coloso', hp: 340, speed: 2.35, damage: 70, attackRate: 0.8,
     coins: 85, scale: 1.9, color: 0xd39a8f, accent: 0x8d5a52, wide: true
   },
   // --- los cuatro con maneras ------------------------------------------------
@@ -405,7 +418,7 @@ export const ZOMBIES = {
   // Rompe la aglomeración: al morir revienta y se lleva por delante lo que
   // tenga cerca. Apilar siete soldados en un carril deja de salir gratis.
   bloater: {
-    name: 'Revientaesporas', hp: 92, speed: 2.4, damage: 16, attackRate: 0.9,
+    name: 'Revientaesporas', hp: 92, speed: 3.1, damage: 16, attackRate: 0.9,
     coins: 34, scale: 1.25, color: 0xd8b04a, accent: 0x7a5a18,
     revienta: { daño: 42, radio: 3.4 }
   },
@@ -427,7 +440,7 @@ export const ZOMBIES = {
   },
 
   boss: {
-    name: 'LA MADRE', hp: 2185, speed: 1.4, damage: 120, attackRate: 0.7,
+    name: 'LA MADRE', hp: 2185, speed: 1.8, damage: 120, attackRate: 0.7,
     coins: 500, scale: 3.4, color: 0xe0a397, accent: 0x9a5b52, boss: true, wide: true
   }
 }

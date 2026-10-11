@@ -52,7 +52,10 @@ function soltar (raiz) {
 }
 
 // La ficha de un huésped: lo que la baraja de Enemigos ha pintado siempre.
-function fichaHuesped (zombies, textos, claves) {
+// `visto(clave)` dice si el jugador se lo ha encontrado ya (10/10, Isidro: «que
+// salgan solo las siluetas, sin nombre, hasta que te los encuentras»): del que no,
+// la carta enseña la silueta en negro y ni nombre, ni números, ni qué hace.
+function fichaHuesped (zombies, textos, claves, visto = () => true) {
   const specs = claves.map(k => zombies[k])
   const max = {
     hp: Math.max(...specs.map(s => s.hp)),
@@ -64,16 +67,20 @@ function fichaHuesped (zombies, textos, claves) {
   return {
     specs: zombies,
     etiqueta: 'Huésped',
-    tinte: (clave, spec) => spec.color,
-    rol: clave => ROL[clave] ?? '',
-    barras: (clave, spec) => [
-      ['Vida', spec.hp, max.hp, spec.hp],
-      ['Velocidad', spec.speed, max.speed, spec.speed],
-      ['Daño', spec.damage, max.damage, spec.damage],
-      ['Botín', spec.coins, max.coins, spec.coins]
-    ],
-    texto: clave => textos[clave] ?? '',
-    dones,
+    oculto: clave => !visto(clave),
+    nombre: (clave, spec) => visto(clave) ? spec.name : '? ? ?',
+    tinte: (clave, spec) => visto(clave) ? spec.color : 0x5b6660,
+    rol: clave => visto(clave) ? (ROL[clave] ?? '') : 'Forma sin identificar',
+    barras: (clave, spec) => visto(clave)
+      ? [
+          ['Vida', spec.hp, max.hp, spec.hp],
+          ['Velocidad', spec.speed, max.speed, spec.speed],
+          ['Daño', spec.damage, max.damage, spec.damage],
+          ['Botín', spec.coins, max.coins, spec.coins]
+        ]
+      : ['Vida', 'Velocidad', 'Daño', 'Botín'].map(n => [n, 0, 0, '?']),
+    texto: clave => visto(clave) ? (textos[clave] ?? '') : 'Todavía no te la has encontrado. Su ficha se abre la primera vez que la veas en una partida.',
+    dones: (spec, clave) => visto(clave) ? dones(spec) : [],
     pieTexto: (k, N) => k < N - 1 ? 'Desliza la carta hacia la izquierda para pasar la página.' : 'Última forma confirmada. Desliza a la derecha para volver.',
     async construir (clave, spec) {
       const malla = await buildZombieMesh(clave, spec)
@@ -106,8 +113,11 @@ function fichaHuesped (zombies, textos, claves) {
   }
 }
 
-export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos, ficha = null }) {
-  const F = ficha ?? fichaHuesped(zombies, textos, claves)
+export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos, ficha = null, visto }) {
+  const F = ficha ?? fichaHuesped(zombies, textos, claves, visto)
+  // Cómo se llama cada carta: su nombre, salvo que la ficha diga otra cosa (una
+  // forma que aún no se ha visto no lo enseña).
+  const nombreDe = (clave, spec) => F.nombre?.(clave, spec) ?? spec.name
 
   contenedor.innerHTML = ''
   const pila = document.createElement('div')
@@ -118,7 +128,7 @@ export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos, f
   const cartas = claves.map((clave, i) => {
     const spec = F.specs[clave]
     const el = document.createElement('article')
-    el.className = 'carta'
+    el.className = F.oculto?.(clave) ? 'carta oculta' : 'carta'
     el.style.setProperty('--a-tinte', hex(F.tinte(clave, spec) ?? 0x8fbf5a))
     // Una barra sin tope (un apoyo que no hace daño) sale vacía y con un guion.
     const barra = (nombre, valor, tope, texto) =>
@@ -129,10 +139,10 @@ export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos, f
         <div class="carta-ventana">
           <div class="carta-halo"></div>
           ${F.icono?.(clave) ?? ''}
-          <img class="carta-cara" alt="${spec.name}" hidden>
+          <img class="carta-cara" alt="${nombreDe(clave, spec)}" hidden>
           ${F.insignia?.(clave) ?? ''}
         </div>
-        <h3 class="carta-nombre">${spec.name}</h3>
+        <h3 class="carta-nombre">${nombreDe(clave, spec)}</h3>
         <p class="carta-rol">${F.rol(clave, spec)}</p>
         <ul class="carta-stats">
           ${F.barras(clave, spec).map(b => barra(...b)).join('')}
@@ -174,7 +184,7 @@ export function crearBaraja ({ contenedor, pie, capa, claves, zombies, textos, f
   const botonesPunto = cartas.map((c, i) => {
     const b = document.createElement('button')
     b.type = 'button'
-    b.setAttribute('aria-label', F.specs[c.clave].name)
+    b.setAttribute('aria-label', nombreDe(c.clave, F.specs[c.clave]))
     b.addEventListener('click', () => ir(i))
     puntos.appendChild(b)
     return b

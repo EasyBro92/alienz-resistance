@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import './style.css'
 import { FIELD, BASE, NIVELES, SOLDIERS, DEFENSES, STRIKES, ZOMBIES, ECONOMY, carrilAbierto, carrilesAbiertos, estrecharCampo, entrarPorElFondo } from './config.js'
 import { createWorld, rowZ, laneX } from './world.js'
-import { createSoldier, upgradeCost, muzzleWorld, ejectorWorld, ponerVecinos } from './entities/soldier.js'
+import { createSoldier, upgradeCost, muzzleWorld, ejectorWorld, ponerVecinos, ponerEnemigos } from './entities/soldier.js'
 // El invitado del cooperativo crea copias de los huéspedes que le manda el
 // anfitrión; la campaña los crea dentro del director de oleadas.
 import { createZombie } from './entities/zombie.js'
@@ -18,6 +18,7 @@ import { createAudio } from './audio.js'
 import { createUI, devolucion } from './ui.js'
 import { crearGuia } from './guia.js'
 import { renderPortraits } from './portraits.js'
+import { marcarVisto, formasVistas } from './systems/vistos.js'
 import { pintarMapa } from './mapa.js'
 import { montarZoomMapa } from './mapaZoom.js'
 import { cargarCartera, sumarBilletes, sumarMonedas, PRECIOS, MONEDAS_POR_DOLAR, PREMIOS_UNIDAD, ponerSinMejoras, factorMejora } from './systems/cartera.js'
@@ -102,6 +103,7 @@ const calidad = crearCalidad({
 const soldiers = []
 // Los que andan miran a los demás para no atravesarlos (soldier.js).
 ponerVecinos(() => soldiers)
+ponerEnemigos(() => zombies)
 const zombies = []
 const occupied = new Map()            // "carril-fila" -> soldado
 const slotKey = (lane, row) => `${lane}-${row}`
@@ -1330,7 +1332,7 @@ function killZombie (z, index) {
   // dónde han caído ayuda, tener el asfalto alfombrado de manchas, no.
   if (!z.bajoTierra) marcas.poner(z.mesh.position.x, z.mesh.position.z, 'icor', 1.1 * (z.spec.scale ?? 1))
   dropCorpse(z.mesh, -1)          // cae de espaldas, hacia donde venía
-  economy.drop(z.mesh.position, Math.max(1, Math.round(z.spec.coins * ECONOMY.botinHuesped)))
+  economy.drop(z.mesh.position, Math.max(1, Math.round(z.spec.coins * (z.premio ?? 1) * (nivelActivo().botin ?? ECONOMY.botinHuesped))))
   effects.burst(z.mesh.position, 0x8fbf4a, z.spec.boss ? 30 : 8, z.spec.boss ? 2.4 : 1)
   audio.groan(z.spec.boss || (z.spec.scale ?? 1) > 1.5)
   if (z.spec.boss) ui.banner('NIDO PURGADO')
@@ -1752,7 +1754,10 @@ function simulate (dt) {
         // Se planta a distancia de mordisco y ahí se queda. Sin este tope, la
         // cola que empuja por detrás acababa colando al de delante AL OTRO LADO
         // del soldado, y desde allí ya nadie le bloqueaba el paso a la base.
-        z.mesh.position.z = Math.min(z.mesh.position.z, blocker.pz - reach)
+        // (Solo ante quien está quieto en su sitio. A uno que viene andando no se
+        // le guarda la distancia: sería él quien empujara al alien hacia atrás.
+        // Ese se planta donde se encuentran: `trabado` en soldier.js.)
+        if (!blocker.andando) z.mesh.position.z = Math.min(z.mesh.position.z, blocker.pz - reach)
         z.attackCd -= dt
         if (z.attackCd <= 0) {
           z.attackCd = 1 / z.spec.attackRate
@@ -2866,6 +2871,8 @@ function limpiarPartida () {
 }
 
 function alAparecer (z) {
+  // Visto queda: su ficha de Enemigos deja de ser una silueta (`vistos.js`).
+  if (marcarVisto(z.key)) barajaVieja = true
   // Con los pies puestos desde el primer fotograma: si no, el que nace en lo
   // alto del graderío aparece un instante hundido en la piedra.
   z.suelo = alturaBajoElPie(z)
@@ -2897,6 +2904,7 @@ function start (indice = nivelActual) {
   // Y si nacen muy al fondo, dentro de la niebla, traen prisa hasta salir de
   // ella (ver `velocidad` en zombie.js).
   FIELD.prisa = nivelDeHoy.entrada?.prisa ?? null
+  FIELD.ritmo = nivelDeHoy.ritmo ?? 1
   // Y si salen por una puerta estrecha, vienen en abanico cerrado hasta cruzarla
   // (`abanico: { ancho, hasta }`: lo que se separan y la z de la puerta).
   FIELD.abanico = nivelDeHoy.entrada?.abanico ?? null
@@ -3274,25 +3282,36 @@ const elAmenazas = document.getElementById('amenazas')
 const elAmenazasPie = document.getElementById('amenazas-pie')
 const elAmenazasN = document.getElementById('amenazas-n')
 let barajaAmenazas = null
+// Los retratos, guardados: la baraja se rehace cuando se descubre una forma
+// nueva, y la nueva tiene que volver a llevarlos.
+let carasAmenazas = null
+// La baraja se montó con lo que se había visto ENTONCES: si desde aquello ha
+// salido una forma nueva en una partida, toca rehacerla al abrir la pantalla.
+let barajaVieja = false
 
 function pintarAmenazas (caras = null) {
+  if (caras) carasAmenazas = caras
   // La primera pasada monta la baraja sin retratos; la segunda, cuando las
   // fotos están listas, solo rellena las imágenes. Montarla dos veces perdería
   // la carta que el jugador tuviera abierta.
-  if (!barajaAmenazas) {
+  if (!barajaAmenazas || barajaVieja) {
+    barajaVieja = false
     const claves = Object.keys(ZOMBIES).filter(k => !ZOMBIES[k].boss)
-    elAmenazasN.textContent = claves.length
+    const vistas = formasVistas()
+    // Cuántas hay se dice siempre; cuáles son, solo de las que ya se han visto.
+    elAmenazasN.textContent = `${claves.filter(k => vistas.has(k)).length} de ${claves.length}`
     barajaAmenazas = crearBaraja({
       contenedor: elAmenazas,
       pie: elAmenazasPie,
       capa: document.getElementById('enemigos-capa'),
       claves,
       zombies: ZOMBIES,
-      textos: QUE_HACE
+      textos: QUE_HACE,
+      visto: k => vistas.has(k)
     })
     if (import.meta.env.DEV) window.__baraja = barajaAmenazas
   }
-  if (caras) barajaAmenazas.ponerCaras(caras)
+  if (carasAmenazas) barajaAmenazas.ponerCaras(carasAmenazas)
 }
 
 pintarAmenazas()
@@ -3558,6 +3577,7 @@ const ofrecerCuenta = setInterval(() => {
 }, 700)
 document.getElementById('ir-enemigos').addEventListener('click', () => {
   audio.unlock()
+  if (barajaVieja) pintarAmenazas()
   elEnemigosCapa.classList.remove('hidden')
 })
 document.getElementById('enemigos-volver').addEventListener('click', () => elEnemigosCapa.classList.add('hidden'))

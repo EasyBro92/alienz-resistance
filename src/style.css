@@ -2242,6 +2242,11 @@ html, body {
 .carta-vivo { opacity: 0; }
 .carta.vivo .carta-vivo { opacity: 1; }
 .carta.vivo .carta-cara { opacity: 0; }
+/* Una forma que el jugador aún no se ha encontrado: solo la silueta, en negro,
+   tanto el retrato como la figura viva; y el nombre y los números, apagados. */
+.carta.oculta .carta-cara, .carta.oculta .carta-vivo { filter: brightness(0); }
+.carta.oculta .carta-nombre { letter-spacing: 6px; opacity: 0.55; }
+.carta.oculta .carta-stats, .carta.oculta .carta-texto { opacity: 0.6; }
 
 .carta-nombre { margin: 2px 0 0; text-align: center; font-size: clamp(18px, 2.7dvh, 24px); font-weight: 900; letter-spacing: 1px; line-height: 1.1; }
 .carta-rol {

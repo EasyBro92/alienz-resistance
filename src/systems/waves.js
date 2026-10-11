@@ -96,8 +96,12 @@ export function createWaveDirector (level, onSpawn, onWaveStart, onCleared, onLl
         // Cada oleada endurece un poco a la horda: el mismo zombi aguanta más.
         // Cuánto, lo decide el nivel: el primero enseña y apenas sube, el último
         // tiene que apretar de verdad en las oleadas finales.
-        const scale = (1 + (level.dureza ?? 0.09) * waveIndex) * (level.escala?.() ?? 1)
-        createZombie(type, spec, lane, scale).then(z => { pending--; onSpawn(z) })
+        // `vida` del tramo y `vida` de la oleada (lo que no cabe en cabezas): ver
+        // la curva de la campaña en campana.js. La de la oleada se cobra también
+        // en monedas (`premio`): un alien que vale por dos suelta por dos.
+        const deMas = level.waves[waveIndex].vida ?? 1
+        const scale = (level.vida ?? 1) * deMas * (1 + (level.dureza ?? 0.09) * waveIndex) * (level.escala?.() ?? 1)
+        createZombie(type, spec, lane, scale).then(z => { z.premio = deMas; pending--; onSpawn(z) })
       }
 
       // En cuanto ha salido el último, la nave ya no pinta nada ahí y se va:

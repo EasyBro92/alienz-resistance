@@ -203,6 +203,28 @@ function pisada (fase, apoyo, recorrido, altura) {
 // opuestos y no se bloquean.
 let vecinos = () => []
 export function ponerVecinos (fn) { vecinos = fn }
+
+// Y a los alienz (10/10). Isidro: «cuando saco a un soldado, si el enemigo está
+// dentro de su espacio para salir chocan de forma extraña y el alienz retrocede;
+// deberían luchar justo donde se encuentran». Pasaba porque el soldado, andando
+// a su casilla, no veía a nadie: seguía de frente, y el alien, que lo tomaba por
+// su barrera, iba quedando clavado «a distancia de mordisco» de alguien que no
+// paraba de avanzar, o sea, empujado hacia atrás. Ahora quien va de camino y se
+// topa con un alien se PLANTA ahí (`trabado`): deja de andar, levanta el arma y
+// pelea donde está; cuando el alien cae, sigue a su casilla.
+let enemigos = () => []
+export function ponerEnemigos (fn) { enemigos = fn }
+function alienEncima (yo) {
+  for (const b of enemigos()) {
+    if (b.dead || b.intocable) continue
+    const p = b.mesh.position
+    if (Math.abs(p.x - yo.px) > 1.15) continue
+    // Delante (hacia -z) y a distancia de mordisco, o ya encima.
+    const hueco = yo.pz - p.z
+    if (hueco > -0.6 && hueco < 1.45 + (b.spec.scale ?? 1) * 0.35) return true
+  }
+  return false
+}
 const RADIO_CUERPO = 0.95                // de centro a centro, lo mínimo entre dos
 const MIRA_DELANTE = 2.2                 // hasta dónde mira si hay alguien en el camino
 const _rumboEsquiva = { x: 0, z: 0 }
@@ -355,7 +377,9 @@ export async function createSoldier (key, spec, lane, row) {
     // diferencia entre las dos armas y ahora se ve sin leer ninguna ficha.
     calor: 0,
 
-    get canShoot () { return (!spec.fija || !!spec.dispara) && !this.andando },
+    // Andando no dispara, salvo que se haya topado con un alien por el camino.
+    trabado: false,
+    get canShoot () { return (!spec.fija || !!spec.dispara) && (!this.andando || this.trabado) },
     // Cada mejora sube daño y cadencia: pagar por uno bueno compite de verdad
     // con pagar por uno más.
     get damage () { return spec.damage * (1 + 0.55 * (this.level - 1)) * mejoraDano },
@@ -425,7 +449,10 @@ export async function createSoldier (key, spec, lane, row) {
       // nadie: bajar el arma para cruzar el descampado es parte del precio de
       // mover una pieza en mitad de una oleada.
       let rumbo = null
-      if (this.andando && this.espera > 0) {
+      this.trabado = this.andando && this.espera <= 0 && !this.enAsalto && alienEncima(this)
+      if (this.trabado) {
+        // Se queda donde está y pelea: ni avanza ni baja el arma.
+      } else if (this.andando && this.espera > 0) {
         this.espera -= dt
         this.hasTarget = false
         this.targetPos = null
@@ -776,8 +803,8 @@ export async function createSoldier (key, spec, lane, row) {
         ud.cuerpo.actualizar(dt, {
           // Mientras espera para arrancar no anda en el sitio: solo se pone de pie
           // (`forzarPie`), que es lo que le da tiempo al tirador a levantarse.
-          andando: this.andando && this.espera <= 0,
-          velocidad: this.andando && this.espera <= 0 ? PASO * (VELOCIDAD_PASO[this.modoPaso] ?? 1) * this.ritmo : 0,
+          andando: this.andando && this.espera <= 0 && !this.trabado,
+          velocidad: this.andando && this.espera <= 0 && !this.trabado ? PASO * (VELOCIDAD_PASO[this.modoPaso] ?? 1) * this.ritmo : 0,
           modo: this.modoPaso,
           forzarPie: this.enAsalto || this.andando,
           apuntar: this.aim,
