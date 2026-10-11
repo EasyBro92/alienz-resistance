@@ -19,6 +19,7 @@ import { createUI, devolucion } from './ui.js'
 import { crearGuia } from './guia.js'
 import { renderPortraits } from './portraits.js'
 import { marcarVisto, formasVistas } from './systems/vistos.js'
+import { MUERTES } from './entities/gestos.js'
 import { pintarMapa } from './mapa.js'
 import { montarZoomMapa } from './mapaZoom.js'
 import { cargarCartera, sumarBilletes, sumarMonedas, PRECIOS, MONEDAS_POR_DOLAR, PREMIOS_UNIDAD, ponerSinMejoras, factorMejora } from './systems/cartera.js'
@@ -868,20 +869,44 @@ const tmpC = new THREE.Vector3()
 // que convierte una baja en algo que pasa, en vez de en un objeto que
 // desaparece del tablero.
 const corpses = []
-function dropCorpse (mesh, hint = 0) {
+// `clave`: de qué forma de alien es el cuerpo. Cada una cae a su manera
+// (`MUERTES` en gestos.js: el Corredor da de bruces y resbala, el Saltador sale
+// dando una vuelta, al Escarbador se lo traga la tierra…); los soldados, y lo
+// que no tenga la suya, de lado o de espaldas como siempre.
+function dropCorpse (mesh, hint = 0, clave = null) {
   const tilt = hint || (Math.random() < 0.5 ? -1 : 1)
-  corpses.push({ mesh, t: 0, tilt, yaw: (Math.random() - 0.5) * 2.4, y0: mesh.position.y })
+  // La figura deja de andar y de atacar: se queda con el último gesto.
+  mesh.userData.ataqueFase = null
+  corpses.push({
+    mesh, t: 0, tilt, yaw: (Math.random() - 0.5) * 2.4, clave,
+    lado: Math.random() < 0.5 ? -1 : 1,
+    y0: mesh.position.y, z0: mesh.position.z, s0: mesh.scale.x
+  })
 }
 
 function updateCorpses (dt) {
   for (let i = corpses.length - 1; i >= 0; i--) {
     const c = corpses[i]
     c.t += dt
-    const k = Math.min(1, c.t / 0.55)
-    const ease = 1 - (1 - k) * (1 - k)              // cae acelerando y frena al tocar
-    c.mesh.rotation.x = c.tilt * ease * 1.5
-    c.mesh.rotation.y += c.yaw * dt * (1 - k)
-    c.mesh.position.y = c.y0 - Math.max(0, c.t - 1.2) * 1.4
+    const suya = c.clave && MUERTES[c.clave]
+    if (suya) {
+      // Su caída (parte siempre de su altura), y encima el hundirse de todos
+      // pasado un segundo largo.
+      c.mesh.position.y = c.y0
+      if (suya(c, dt)) {
+        // Los grandes, al dar en el suelo: tiembla y levanta polvo.
+        temblar(c.clave === 'boss' ? 0.5 : 0.25)
+        effects.burst(tmpB.set(c.mesh.position.x, 0.2, c.mesh.position.z), 0xb8a888, 16, 2.2)
+        audio.thud()
+      }
+      c.mesh.position.y -= Math.max(0, c.t - 1.2) * 1.4
+    } else {
+      const k = Math.min(1, c.t / 0.55)
+      const ease = 1 - (1 - k) * (1 - k)              // cae acelerando y frena al tocar
+      c.mesh.rotation.x = c.tilt * ease * 1.5
+      c.mesh.rotation.y += c.yaw * dt * (1 - k)
+      c.mesh.position.y = c.y0 - Math.max(0, c.t - 1.2) * 1.4
+    }
     if (c.t > 2.1) { scene.remove(c.mesh); corpses.splice(i, 1) }
   }
 }
@@ -1297,6 +1322,26 @@ function actualizarJefes (dt, t) {
   }
 }
 
+// El golpe de un alien, a la vista y al oído (Isidro, 10/10: «golpes que se
+// notan»). Antes todo mordisco eran tres chispas grises y ningún sonido: no se
+// distinguía el zarpazo de un Portador del puñetazo de un Coloso. Ahora salta
+// más cuanto más pega (sangre en un soldado, astillas en una barrera), suena a
+// lo que es, y los grandes hacen temblar el suelo y levantan polvo.
+const SONIDO_GOLPE = { tank: 'peso', boss: 'peso', bloater: 'peso', armored: 'peso', spitter: 'baba', burrower: 'broca', healer: 'pincho' }
+function alMorder (z, blocker) {
+  const p = blocker.mesh.position
+  const fuerza = Math.min(1, z.spec.damage / 70)
+  tmpB.set(p.x, blocker.spec.fija ? 0.6 : 1.05, p.z)
+  effects.burst(tmpB, blocker.spec.fija ? 0xd9c9a0 : z.spec.rangedAttack ? 0xa05fb8 : 0xc8322a, 4 + Math.round(fuerza * 9), 0.6 + fuerza)
+  audio.mordisco(SONIDO_GOLPE[z.key] ?? 'zarpa', p.x / 7)
+  if ((z.spec.scale ?? 1) >= 1.5) {
+    temblar(z.spec.boss ? 0.45 : 0.2)
+    effects.burst(tmpB.set(p.x, 0.15, p.z), 0xb8a888, 12, 1.7)
+  }
+  // El barrigazo del Revientaesporas suelta su nube.
+  if (z.key === 'bloater') effects.burst(tmpB.set(p.x, 1, p.z), 0xe8c84a, 8, 1.1)
+}
+
 function killZombie (z, index) {
   zombies.splice(index, 1)
   // El suelo que rompió el Escarbador se recupera ahora, despacio.
@@ -1331,7 +1376,7 @@ function killZombie (z, index) {
   // El charco que deja al caer. Se borra solo a los pocos segundos: ver por
   // dónde han caído ayuda, tener el asfalto alfombrado de manchas, no.
   if (!z.bajoTierra) marcas.poner(z.mesh.position.x, z.mesh.position.z, 'icor', 1.1 * (z.spec.scale ?? 1))
-  dropCorpse(z.mesh, -1)          // cae de espaldas, hacia donde venía
+  dropCorpse(z.mesh, -1, z.key)   // cada forma cae a su manera (`MUERTES`)
   economy.drop(z.mesh.position, Math.max(1, Math.round(z.spec.coins * (z.premio ?? 1) * (nivelActivo().botin ?? ECONOMY.botinHuesped))))
   effects.burst(z.mesh.position, 0x8fbf4a, z.spec.boss ? 30 : 8, z.spec.boss ? 2.4 : 1)
   audio.groan(z.spec.boss || (z.spec.scale ?? 1) > 1.5)
@@ -1758,9 +1803,29 @@ function simulate (dt) {
         // le guarda la distancia: sería él quien empujara al alien hacia atrás.
         // Ese se planta donde se encuentran: `trabado` en soldier.js.)
         if (!blocker.andando) z.mesh.position.z = Math.min(z.mesh.position.z, blocker.pz - reach)
+        // Al llegar, toma impulso antes del primer golpe: caía en el mismo
+        // fotograma del encuentro, sin que se le viera levantar el brazo. Solo
+        // si venía ANDANDO de verdad (`sinAtacar`): el que ataca de lejos se
+        // planta justo al borde de su alcance y entra y sale de él de un
+        // fotograma al siguiente, y reiniciándole el impulso cada vez no
+        // llegaba a pegar nunca (dos Sembradores parados para siempre frente a
+        // una fila de Escopeteros que no les alcanzaban: la partida no acababa).
+        if ((z.sinAtacar ?? 9) > 0.5) z.attackCd = Math.max(z.attackCd, 0.35 / z.spec.attackRate)
+        z.sinAtacar = 0
         z.attackCd -= dt
+        // Por dónde va del golpe (0 recién dado, 1 al dar): con esto la figura
+        // descarga el brazo en el fotograma en que cae el daño (`ATAQUES`).
+        const figura = z.mesh.userData
+        figura.ataqueFase = Math.min(1, Math.max(0, 1 - z.attackCd * z.spec.attackRate))
+        // El Sembrador suelta el escupitajo ANTES, para que llegue con el daño.
+        if (z.spec.rangedAttack && !z.escupido && z.attackCd <= 0.32) {
+          z.escupido = true
+          effects.escupir(z.mesh.position.clone().setY(1.5 * (z.spec.scale ?? 1)), blocker.mesh.position.clone().setY(1), Math.max(0.1, z.attackCd))
+        }
         if (z.attackCd <= 0) {
           z.attackCd = 1 / z.spec.attackRate
+          z.escupido = false
+          figura.ataqueLado = figura.ataqueLado ? 0 : 1
           blocker.hurt(z.spec.damage)
           // La carga enterrada no muere: detona. Se mira DESPUÉS del mordisco,
           // que es cuando puede haber bajado a cero, y antes de que el bucle la
@@ -1777,12 +1842,11 @@ function simulate (dt) {
             z.hurt(blocker.espinas, 0.5)
             effects.burst(z.mesh.position, 0x9c2f24, 2, 0.5)
           }
-          effects.burst(blocker.mesh.position, z.spec.rangedAttack ? 0xa05fb8 : 0xd8d8d8, 3, 0.6)
-          if (z.spec.rangedAttack) {
-            effects.tracer(z.mesh.position.clone().setY(1.2), blocker.mesh.position.clone().setY(1))
-          }
+          alMorder(z, blocker)
         }
       } else {
+        z.sinAtacar = (z.sinAtacar ?? 9) + dt
+        if (z.sinAtacar > 0.15) z.mesh.userData.ataqueFase = null
         z.mesh.position.z += z.velocidad * dt
         if (z.z >= FIELD.baseZ) {
           damageBase(z.spec.damage)
@@ -4040,6 +4104,9 @@ if (import.meta.env.DEV) {
     // Quitar la pausa desde la consola: al medir, un toque perdido en el botón
     // deja `simulate` sin hacer nada y todo sale a cero sin decir por qué.
     despausar: () => pausar(false),
+    // Y ponerla: para posar una figura sin que el bucle le pise lo que se le escribe
+    // (`herramientas/navegador/guion-gestos.mjs`).
+    pausar: () => pausar(true),
     pausado: () => pausado
   }
 }

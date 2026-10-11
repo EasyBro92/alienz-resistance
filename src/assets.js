@@ -3,6 +3,7 @@ import { brilla, apagarEmision } from './systems/resplandor.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { crearCuerpo, crearManosDePiezas } from './entities/cuerpo.js'
+import { ATAQUES, PASOS } from './entities/gestos.js'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { clone as clonarConHuesos } from 'three/examples/jsm/utils/SkeletonUtils.js'
@@ -3232,6 +3233,27 @@ async function alienAnimado (key, spec) {
   // Piernas en reposo (pose A, rectas) para poder acortar la zancada.
   const piernas = def.piernas == null ? [] : ['LeftUpLeg', 'LeftLeg', 'RightUpLeg', 'RightLeg']
     .map(n => modelo.getObjectByName(n)).filter(Boolean).map(b => ({ b, reposo: b.quaternion.clone() }))
+  // Los brazos COLGANDO, para los ataques. Cada modelo trae los suyos a su manera
+  // (pegados, en cruz, con el codo doblado) y su ciclo de andar los deja donde
+  // sea: girarlos «hacia delante» desde ahí levantaba el brazo en unos y lo
+  // retorcía en otros (al Revientaesporas se le iban las manos a la cara y la
+  // Injertadora pinchaba al cielo). Así que al atacar se parte de una postura
+  // conocida —el brazo recto hacia abajo— y sobre ella se escribe el gesto. Se
+  // mide ahora, con el esqueleto todavía en su pose de reposo.
+  modelo.updateMatrixWorld(true)
+  const haciaAbajo = new THREE.Vector3(0, -1, 0)
+  const colgando = ['Left', 'Right'].map(lado => {
+    const brazo = modelo.getObjectByName(lado + 'Arm')
+    const codo = modelo.getObjectByName(lado + 'ForeArm')
+    if (!brazo || !codo) return null
+    const a = brazo.getWorldPosition(new THREE.Vector3())
+    const hacia = codo.getWorldPosition(new THREE.Vector3()).sub(a).normalize()
+    const baja = new THREE.Quaternion().setFromUnitVectors(hacia, haciaAbajo)
+    return {
+      brazo: brazo.parent.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(baja.multiply(brazo.getWorldQuaternion(new THREE.Quaternion()))),
+      codo: codo.quaternion.clone()
+    }
+  })
   const mixer = new THREE.AnimationMixer(modelo)
   const accion = mixer.clipAction(clip)
   accion.play()
@@ -3243,7 +3265,12 @@ async function alienAnimado (key, spec) {
   pivote.scale.setScalar(k)
   pivote.rotation.y = Math.PI
   modelo.position.y = -caja.min.y
-  pivote.add(modelo)
+  // Entre el pivote y el modelo, la figura ENTERA: es lo que mueven los gestos
+  // (echarse encima, agacharse, ladearse al andar). Aparte del pivote, que es
+  // el que sacuden los golpes (`figura`), para que no se pisen.
+  const gesto = new THREE.Group()
+  gesto.add(modelo)
+  pivote.add(gesto)
 
   const g = new THREE.Group()
   g.userData.esqueleto = true
@@ -3290,16 +3317,36 @@ async function alienAnimado (key, spec) {
       if (a.gira && a.pieza.userData.gira) a.pieza.userData.gira.rotation.y = t * (g.userData.andando === false ? 34 : 9)
     }
   }
-  // Girar un hueso sobre un eje del mundo, sea cual sea su orientación local.
+  // Girar un hueso —o la figura entera— sobre un eje de la FIGURA en el mundo, sea
+  // cual sea su orientación local: 'x' el lateral, 'y' el vertical y 'z' el de la
+  // marcha. Signos sobre el lateral: positivo lleva hacia delante lo que cuelga
+  // (un brazo) y hacia atrás lo que se levanta (el tronco se echa adelante con
+  // negativo).
   const qMundo = new THREE.Quaternion()
   const qPadre = new THREE.Quaternion()
-  const lateral = new THREE.Vector3()
-  const girar = (b, ang) => {
+  const ejes = { x: new THREE.Vector3(), y: new THREE.Vector3(0, 1, 0), z: new THREE.Vector3() }
+  const gira = (b, eje, ang) => {
     if (!b || !ang) return
     b.parent.getWorldQuaternion(qPadre)
-    qMundo.setFromAxisAngle(lateral, ang)
+    qMundo.setFromAxisAngle(ejes[eje], ang)
     b.quaternion.premultiply(qPadre.clone().invert().multiply(qMundo).multiply(qPadre))
   }
+  // Mover la figura entera, en metros de un huésped de talla uno: hacia delante
+  // (adonde anda) y hacia arriba. El Coloso da el paso a su medida.
+  const talla = spec.scale ?? 1
+  const tramo = new THREE.Vector3()
+  const medida = new THREE.Vector3()
+  const mueve = (adelante, arriba) => {
+    pivote.getWorldQuaternion(qPadre).invert()
+    const escala = pivote.getWorldScale(medida).x || 1
+    tramo.copy(ejes.z).multiplyScalar(adelante * talla).addScaledVector(ejes.y, arriba * talla)
+    gesto.position.add(tramo.applyQuaternion(qPadre).multiplyScalar(1 / escala))
+  }
+  const pose = { gira, mueve, tronco, pecho, cabeza, brazos, antebrazos, todo: gesto }
+  const coreografia = ATAQUES[key] ?? ATAQUES.walker
+  const andar = PASOS[key] ?? {}
+  // Cada individuo anda a su manera: más o menos marcado, a su compás y algo torcido.
+  const yo = { amp: 0.7 + Math.random() * 0.6, compas: Math.random() * 6.28, torcido: (Math.random() - 0.5) * 0.12, lado: Math.random() < 0.5 ? -1 : 1 }
 
   const fase = Math.random() * 10
   let ultimo = -1
@@ -3317,28 +3364,37 @@ async function alienAnimado (key, spec) {
     const vueltas = paso / (Math.PI * 2) * def.ciclos * (1 - ataque * 0.7)
     mixer.setTime(((vueltas % 1) + 1) % 1 * clip.duration)
     for (const p of piernas) p.b.quaternion.slerp(p.reposo, 1 - def.piernas)
-    if (ataque < 0.01) { colocarAdornos(t); return }
 
-    // Zarpazos alternos encima del ciclo: carga el brazo arriba despacio, lo
-    // descarga de golpe; el tronco se echa encima en cada golpe.
-    modelo.updateMatrixWorld(true)
-    lateral.set(1, 0, 0).applyQuaternion(g.getWorldQuaternion(qMundo))
-    // Signos sobre el eje lateral: positivo lleva hacia delante lo que cuelga
-    // (brazo arriba, codo cerrado) y hacia atrás lo que se levanta (el tronco
-    // se echa adelante con negativo).
-    const zarpa = c => c < 0.55 ? suave(0, 0.55, c) * 2.0 : c < 0.7 ? lerp(2.0, -0.5, suave(0.55, 0.7, c)) : lerp(-0.5, 0, suave(0.7, 1, c))
-    const golpe = c => (c > 0.55 && c < 0.85) ? Math.sin((c - 0.55) / 0.3 * Math.PI) : 0
-    const ciclo = paso / (Math.PI * 2)
-    const cI = ((ciclo % 1) + 1) % 1
-    const cD = (cI + 0.5) % 1
-    const impacto = Math.max(golpe(cI), golpe(cD))
-    girar(tronco, -(0.25 + impacto * 0.3) * ataque)
-    girar(pecho, -0.1 * ataque)
-    girar(cabeza, 0.3 * ataque)
-    girar(brazos[0], zarpa(cI) * ataque)
-    girar(brazos[1], zarpa(cD) * ataque)
-    girar(antebrazos[0], 0.5 * ataque)
-    girar(antebrazos[1], 0.5 * ataque)
+    // Los gestos suman sobre cero: la figura entera vuelve a su sitio cada fotograma.
+    gesto.position.set(0, 0, 0)
+    gesto.quaternion.identity()
+    ejes.x.set(1, 0, 0).applyQuaternion(g.getWorldQuaternion(qMundo))
+    ejes.z.crossVectors(ejes.y, ejes.x)
+
+    // --- su forma de andar, encima del ciclo de Meshy (ver `PASOS` en gestos.js) ---
+    const anda = 1 - ataque
+    if (anda > 0.01) {
+      const zancada = vueltas * Math.PI * 2
+      gira(gesto, 'x', -(andar.inclina ?? 0) * anda)
+      gira(gesto, 'z', ((andar.balanceo ?? 0) * yo.amp * Math.sin(zancada) +
+        (andar.cojera ?? 0) * 0.06 * Math.max(0, Math.sin(zancada)) * yo.lado) * anda)
+      gira(gesto, 'y', yo.torcido * anda)
+      mueve(0, (andar.bote ?? 0) * yo.amp * Math.abs(Math.sin(zancada)) * anda)
+      gira(cabeza, 'y', (andar.cabeza ?? 0) * Math.sin(t * 1.3 + yo.compas) * anda)
+    }
+
+    // --- su ataque (ver `ATAQUES` en gestos.js), al compás del mordisco de verdad ---
+    // La fase la da el juego (`ataqueFase`: 0 recién pegado, 1 al pegar); sin
+    // ella —una carta, un retrato— va con el paso.
+    if (ataque > 0.01) {
+      for (let i = 0; i < 2; i++) {
+        if (!colgando[i]) continue
+        brazos[i]?.quaternion.slerp(colgando[i].brazo, ataque)
+        antebrazos[i]?.quaternion.slerp(colgando[i].codo, ataque)
+      }
+      const f = g.userData.ataqueFase ?? (((paso / (Math.PI * 2)) % 1) + 1) % 1
+      coreografia(pose, f, g.userData.ataqueLado ?? 0, ataque, t)
+    }
     colocarAdornos(t)
   }
 

@@ -105,6 +105,23 @@ export function createEffects (scene, camera) {
     }
   }
 
+  // El escupitajo del Sembrador: una bola que sube y cae en arco y revienta al
+  // llegar. `dura` es lo que tarda: quien la lanza la suelta ANTES de que caiga
+  // el daño, para que las dos cosas lleguen a la vez.
+  const baba = new THREE.SphereGeometry(0.14, 8, 6)
+  const babas = new Map()
+  function escupir (from, to, dura = 0.3, color = 0xb86fe0) {
+    if (!babas.has(color)) babas.set(color, new THREE.MeshBasicMaterial({ color }))
+    const m = new THREE.Mesh(baba, babas.get(color))
+    m.position.copy(from)
+    scene.add(m)
+    debris.push({
+      mesh: m, life: dura,
+      arc: { from: from.clone(), to: to.clone(), t: 0, total: dura, height: 0.5 + from.distanceTo(to) * 0.12 },
+      onDone: p => burst(p, color, 7, 0.9)
+    })
+  }
+
   // La flecha vuela de verdad: se ve salir y llegar, que es la gracia del arquero.
   function arrow (from, to) {
     const m = new THREE.Mesh(arrowShaft, arrowMat)
@@ -228,7 +245,7 @@ export function createEffects (scene, camera) {
 
   const api = {
     fuego: null,
-    tracer, burst, floatText, shell, smoke, arrow, flame, mortar, misil, update,
+    tracer, burst, floatText, shell, smoke, arrow, escupir, flame, mortar, misil, update,
     setDensidad (v) { densidad = v }
   }
   return api

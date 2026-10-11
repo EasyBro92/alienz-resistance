@@ -321,6 +321,37 @@ export function createAudio () {
 
     // La explosión (misil, mortero, granada, bombas): el estampido, el cuerpo
     // que se hunde, el golpe en el pecho y los cascotes que caen después.
+    // El golpe de un alien, cada uno con el suyo (10/10: «golpes que se notan»):
+    // el zarpazo raspa, el Coloso retumba, el Sembrador chasquea húmedo, el
+    // Escarbador zumba. Con su hueco mínimo: una fila de Portadores mordiendo a
+    // la vez no puede ser una pasta.
+    mordisco (clase = 'zarpa', x = 0) {
+      play(() => {
+        const t = ctx.currentTime
+        if (t - (ultimo['m-' + clase] ?? -1) < 0.07) return
+        ultimo['m-' + clase] = t
+        const s = voz(x, 0.2)
+        const v = 0.9 + Math.random() * 0.2
+        if (clase === 'peso') {
+          tono(s, t, { f0: 120 * v, f1: 34, pico: 0.8, ataque: 0.003, cae: 0.32 })
+          soplo(s, t, { tipo: 'lowpass', f0: 900, f1: 120, pico: 0.5, cae: 0.28, viaje: 0.2 })
+        } else if (clase === 'baba') {
+          soplo(s, t, { f0: 700 * v, f1: 260, q: 3, pico: 0.3, cae: 0.12 })
+          soplo(s, t + 0.03, { tipo: 'lowpass', f0: 500, pico: 0.22, cae: 0.09 })
+        } else if (clase === 'broca') {
+          tono(s, t, { forma: 'sawtooth', f0: 210 * v, f1: 150, pico: 0.16, cae: 0.2 })
+          soplo(s, t, { tipo: 'highpass', f0: 3000, pico: 0.14, cae: 0.16 })
+        } else if (clase === 'pincho') {
+          soplo(s, t, { tipo: 'highpass', f0: 3600 * v, pico: 0.22, cae: 0.03 })
+          tono(s, t, { f0: 420 * v, f1: 180, pico: 0.2, cae: 0.06 })
+        } else {
+          // zarpa: el raspado y un golpe sordo debajo.
+          soplo(s, t, { f0: 1700 * v, f1: 600, q: 1.4, pico: 0.3, cae: 0.07 })
+          tono(s, t, { f0: 150 * v, f1: 70, pico: 0.32, cae: 0.09 })
+        }
+      })
+    },
+
     boom () {
       play(() => {
         const t = ctx.currentTime

@@ -425,7 +425,9 @@ export async function createSoldier (key, spec, lane, row) {
     hurt (amount) {
       this.hp -= amount
       this.bar.set(this.hp / this.maxHp)
-      this.flinch = 1
+      // El respingo va con lo que pega: un zarpazo de Portador lo encoge, el puño
+      // del Coloso lo echa un palmo atrás.
+      this.flinch = Math.min(1.5, 0.75 + amount / 60)
       this.gesture = null     // un mordisco corta cualquier gesto a medias
       if (this.hp <= 0) this.dead = true
     },
