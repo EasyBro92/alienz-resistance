@@ -40,6 +40,35 @@ export function recortar (d, hz, umbral = 0.012) {
   return s
 }
 
+// Las pausas de dentro, a raya. Una frase de dos golpes («Aquí Halcón. Bombas
+// fuera.») sale con medio segundo de silencio entre uno y otro, que leyendo un
+// cuento está bien y en mitad de una batalla es una eternidad: todo silencio de
+// más de `tope` segundos se queda en `tope`, con una rampa a cada lado del corte.
+export function apretar (d, hz, tope = 0.14, umbral = 0.012) {
+  const max = Math.round(hz * tope)
+  const rampa = Math.round(hz * 0.004)
+  const trozos = []
+  let desde = 0; let i = 0
+  while (i < d.length) {
+    if (Math.abs(d[i]) >= umbral) { i++; continue }
+    let j = i
+    while (j < d.length && Math.abs(d[j]) < umbral) j++
+    if (j - i > max && i > 0 && j < d.length) {
+      // Se queda la mitad del tope pegada a cada lado y se tira lo de en medio.
+      const a = d.slice(desde, i + (max >> 1)); const b = j - (max >> 1)
+      for (let k = 0; k < rampa && k < a.length; k++) a[a.length - 1 - k] *= k / rampa
+      trozos.push(a)
+      desde = b
+    }
+    i = j
+  }
+  if (!trozos.length) return d
+  const resto = d.slice(desde)
+  for (let k = 0; k < rampa && k < resto.length; k++) resto[k] *= k / rampa
+  trozos.push(resto)
+  return juntar(trozos)
+}
+
 // Todas las frases igual de fuertes: se iguala la energía media de lo que suena
 // (no la del silencio de entre palabras) y se pone un techo al pico.
 export function igualar (d, objetivo = 0.13, techo = 0.89) {
@@ -110,7 +139,7 @@ export function porRadio (d, hz, { grave = 420, agudo = 3000, empuje = 2.6, ruid
   return filtrar(todo, hz, 'paso-bajo', 3400)
 }
 
-// Float32 → MP3 de una pista. A 32 kbps y 16 kHz una frase de un segundo pesa 4 KB.
+// Float32 → MP3 de una pista. A 24 kbps y 16 kHz una frase de un segundo pesa 3 KB.
 export function aMp3 (d, hz, kbps = 32) {
   const cod = new Mp3Encoder(1, hz, kbps)
   const pcm = new Int16Array(d.length)

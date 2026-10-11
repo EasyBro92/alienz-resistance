@@ -3057,7 +3057,10 @@ function start (indice = nivelActual) {
       ui.banner(boss ? 'LA MADRE' : `OLEADA ${n}`)
       if (boss) audio.groan(true)
       // El mando la canta: la primera, la del jefe y la última tienen la suya.
-      voces.mando(boss ? 'jefe' : n === 1 ? 'inicio' : n === total ? 'ultima' : 'oleada')
+      // La del jefe corta a quien esté hablando; las demás esperan a que acabe
+      // (las frases son chistes de dos segundos, y cortados a medias no hacen gracia).
+      if (boss) voces.mando('jefe')
+      else voces.mando(n === 1 ? 'inicio' : n === total ? 'ultima' : 'oleada', { prioridad: 2, cola: true })
     },
     // En el duelo la horda no se acaba (y si alguien la vaciara, sigue ahí).
     () => { if (!dueloEnCurso) setTimeout(empezarAsalto, 1200) },

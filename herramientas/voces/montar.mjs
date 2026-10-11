@@ -10,7 +10,8 @@
 // dice con Piper (`bajar-piper.mjs` lo trae) y deja un .wav por frase en `crudo/`
 // (fuera de git; el nombre es la huella de motor + voz + tono + ritmo + texto,
 // así que solo se vuelve a decir lo que cambia); (3) a cada una le pone su tono,
-// le quita el silencio, la iguala de volumen y la pasa a MP3; (4) junta las de
+// le quita el silencio de las puntas, le acorta las pausas de dentro, la iguala
+// de volumen y la pasa a MP3; (4) junta las de
 // cada hablante en UN archivo, `public/voces/<hablante>.<huella>.mp3`, y apunta
 // en `src/voces.json` en qué byte empieza cada frase.
 //
@@ -31,7 +32,7 @@ import { execFileSync, spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { reparto, VOCES_PIPER } from './frases.mjs'
 import { EJECUTABLE, modeloDe, entornoPiper } from './bajar-piper.mjs'
-import { leerWav, recortar, igualar, afinar, porRadio, aMp3, silencio, juntar } from './sonido.mjs'
+import { leerWav, recortar, apretar, igualar, afinar, porRadio, aMp3, silencio, juntar } from './sonido.mjs'
 
 const aqui = path.dirname(fileURLToPath(import.meta.url))
 const raiz = path.resolve(aqui, '../..')
@@ -101,9 +102,9 @@ for (const [quien, { frases }] of Object.entries(todos)) {
     for (const l of lineas.filter(l => l.quien === quien && l.momento === momento)) {
       const { hz, datos } = leerWav(wav(l))
       // A 16 kHz y, si viene de Piper, con su tono.
-      const d = igualar(recortar(afinar(datos, hz, HZ, l.motor === 'piper' ? 1 + l.tono / 100 : 1), HZ))
+      const d = igualar(apretar(recortar(afinar(datos, hz, HZ, l.motor === 'piper' ? 1 + l.tono / 100 : 1), HZ), HZ))
       limpias.set(l, d)
-      const mp3 = aMp3(d, HZ, 32)
+      const mp3 = aMp3(d, HZ, 24)
       trozos.push(mp3)
       suyas[momento].push([p, mp3.length])
       p += mp3.length
