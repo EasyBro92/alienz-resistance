@@ -560,7 +560,17 @@ def suelo (grupo, mat, x0, x1, z0, z1, y, baldosa=8.0, carriles=None):
                 rect(grupo, mat, a, b, c, d, y, baldosa=baldosa)
 
 # --- cosas de calle -----------------------------------------------------------------
+# Las hojas de cada árbol, apuntadas por quien lo planta: nombre del material →
+# cuánto se mece. Antes solo se mecía (y solo llevaría textura de hoja) lo que se
+# LLAMABA como un árbol (`FOLLAJE`), y los de otoño de Pekín, que se llaman
+# `otono-…`, se quedaban quietos.
+follaje = {}
+def _es_hoja (mats_, cuanto):
+    for m in (mats_ if isinstance(mats_, (list, tuple)) else [mats_]):
+        follaje.setdefault(m.name, cuanto)
+
 def arbol (grupo, tronco, hojas, x, z, tam=1.0, fino=False, y=0.0):
+    _es_hoja(hojas, 0.5)
     alto_tronco = 2.6 * tam
     cubo(grupo, tronco, P(x, z, y + alto_tronco / 2 - 0.3), (0.35 * tam, 0.35 * tam, alto_tronco + 0.6))
     bm, _, _ = lote(grupo, random.choice(hojas))
@@ -571,6 +581,8 @@ def arbol (grupo, tronco, hojas, x, z, tam=1.0, fino=False, y=0.0):
 
 def palmera (grupo, tronco, hojas, x, z, alto=7.0, y=0.0):
     """Tronco fino algo torcido y una corona de hojas caídas."""
+    for m in hojas:
+        se_mece.setdefault(m.name, 0.6)          # se mece, pero sin textura de hoja: son láminas
     dx, dz = random.uniform(-0.5, 0.5), random.uniform(-0.5, 0.5)
     barra(grupo, tronco, P(x, z, y), P(x + dx, z + dz, y + alto), 0.34)
     cima = P(x + dx, z + dz, y + alto)
@@ -671,10 +683,51 @@ FOLLAJE = [(re.compile(r'^palma'), 0.6), (re.compile(r'^(pino|cipres|abeto)(-|d|
 def cuanto_mece (nombre):
     if nombre in se_mece:
         return se_mece[nombre]
+    if nombre in follaje:
+        return follaje[nombre]
     for patron, cuanto in FOLLAJE:
         if patron.match(nombre):
             return cuanto
     return None
+
+def es_follaje (nombre):
+    """Copas, palmas y matas (por el nombre del material): lo que lleva la textura de hoja."""
+    return nombre in follaje or any(patron.match(nombre) for patron, _ in FOLLAJE[1:])     # las palmas no: son láminas
+
+# Las copas, con hoja (10/10; Isidro: «no quiero que el juego sea tan poligonal,
+# quiero más detalles hasta en los lugares más simples»). Un árbol era una bola de
+# veinte caras planas de un solo verde, cada cara con su luz: se le veían todas.
+# Ahora, sin tocar la malla (así vale `--reusar`), `terminar` hace tres cosas con
+# todo material de follaje de color liso: le promedia la luz por vértice (la copa
+# sale redonda, no a facetas), pasa su verde a los vértices y le pone ESTA textura
+# —manojos de hojas claros sobre el hueco oscuro de entre ramas, en gris para que
+# valga con cualquier verde—, proyectada en el mundo (`BALDOSA_HOJA` metros por
+# baldosa): todas las copas llevan la hoja del mismo tamaño, sea la copa grande o
+# pequeña.
+BALDOSA_HOJA = 4.5
+_tex_hojas = []
+def tex_hojas ():
+    if _tex_hojas:
+        return _tex_hojas[0]
+    rng = np.random.default_rng(81)                               # azar propio: el del mapa no se toca
+    n, k = 256, 210
+    pts, brillo = rng.random((k, 2)), 0.8 + 0.2 * rng.random(k)
+    yy, xx = np.mgrid[0:n, 0:n].astype(np.float32) / n
+    cerca, quien = np.full((n, n), 9.0, np.float32), np.zeros((n, n), np.int32)
+    for i, (px, py) in enumerate(pts):
+        dx, dy = np.abs(xx - px), np.abs(yy - py)
+        d = np.hypot(np.minimum(dx, 1 - dx), np.minimum(dy, 1 - dy))
+        m = d < cerca
+        cerca[m] = d[m]; quien[m] = i
+    # Más claro que oscuro (el hueco entre ramas es poco y estrecho): la textura
+    # solo puede oscurecer, y con una media baja había que subir tanto el color
+    # de los vértices que las jacarandas, que son claras, se quemaban a blanco.
+    manojo = np.clip(1 - cerca / 0.06, 0, 1) ** 0.5
+    a = (0.5 + 0.5 * manojo) * brillo[quien] * (0.8 + 0.2 * _manchas_fft(rng, n, 0.6)) * (0.88 + 0.12 * _manchas_fft(rng, n, 1.8))
+    a = np.clip(a / np.percentile(a, 99.5), 0, 1)
+    media = float((((a + 0.055) / 1.055) ** 2.4).mean())
+    _tex_hojas.append((guardar('hojas', np.repeat(a[..., None], 3, axis=2), calidad=80), media))
+    return _tex_hojas[0]
 
 def copiar (o, grupo, m4):
     """Otra copia de un modelo ya importado (`importar` lo trae una vez), puesta
@@ -817,54 +870,210 @@ def viga (grupo, mat, x0, x1, z0, z1, y0, y1, u_m=1.5, v_rep=1.0, tapas=True, te
 # Nacieron en lugar_atenas.py (que conserva los suyos, ya dados por buenos) y
 # quedan aquí para los mapas siguientes. Todo esto va en grupos 'vert'; a los
 # montes les sienta bien ir en `suaves` de `terminar`, o se les ven las facetas.
-def monte (grupo, mat, cx, cz, radio, alto, y0=0.0, seg=18, anillos=7, pico=0.75, baldosa=26.0):
+# Los montes, rehechos el 10/10 (Isidro: «las montañas son muy cutres»): eran
+# conos lisos de dieciocho lados y un solo color. Ahora:
+#   · el triple de caras en cada sentido (`fino`; el doble en las lomas tendidas,
+#     que de lejos no lo lucen), con ARISTAS VIVAS: contrafuertes que bajan de la
+#     cima en punta, con la vaguada redonda entre uno y otro (`_filo`), cada uno a
+#     su distancia del de al lado. Una ondulación suave (la primera prueba) dejaba
+#     el monte como una bola de plastilina. El pie y la cima no cambian, así que
+#     lo que ya estaba colocado alrededor sigue en su sitio;
+#   · la luz horneada les saca el relieve (van solos en `suaves`), y encima un
+#     MATIZ por vértice (`matices`, lo aplica `terminar`): en lo más empinado de
+#     CADA monte asoma la roca —oscura bajo la nieve, parda bajo el verde, con sus
+#     estratos en uno de piedra— y todo va a manchas grandes.
+# Gastan las MISMAS tiradas de azar que antes (lo nuevo usa un azar propio): el
+# resto del mapa no se mueve. Pero la malla cambia, así que un mapa con montes no
+# vale con `--reusar` hasta que se hornee entero otra vez.
+#   · y una TEXTURA de detalle (`tex_monte`), que es lo que les quita el aire de
+#     plastilina: gris, para que valga con cualquier color (el color del monte
+#     pasa a los vértices, con la luz), y enrollada al monte —u da la vuelta, v
+#     sube del pie a la cima—, así sus manchas, alargadas, bajan por la ladera
+#     como torrenteras y se juntan en la cumbre. Cuatro: roca (torrenteras y
+#     vetas), nieve (blanca, con las costillas de peña que asoman), bosque (copas
+#     vistas desde arriba, con el grano de la hoja) y arena (lisa, con las ondas
+#     del viento: las dunas y las lomas nevadas que apenas levantan). Y la roca
+#     tiene una versión floja, `loma`, para los cerros tendidos. La elige el color del material; uno que ya trae textura se queda
+#     con la suya.
+matices = {}
+_tex_montes = {}
+def _tipo_monte (mat):
+    """'bosque', 'nieve' o 'roca' según el color liso del material ('arena' lo decide `monte`,
+    por lo tendido); None si ya lleva textura."""
+    b = mat.node_tree.nodes['Principled BSDF'].inputs['Base Color']
+    if b.is_linked:
+        return None
+    r, g, a = b.default_value[:3]
+    return 'bosque' if g > r * 1.15 and g > a * 1.15 else 'nieve' if min(r, g, a) > 0.5 else 'roca'
+
+def _manchas_fft (rng, n, beta, estira=(1.0, 1.0)):
+    """Ruido de manchas que repite en los bordes, de 0 a 1. `estira` las alarga a lo alto o a lo ancho."""
+    fy = np.fft.fftfreq(n)[:, None] * estira[0]
+    fx = np.fft.fftfreq(n)[None, :] * estira[1]
+    fr = np.sqrt(fx * fx + fy * fy); fr[0, 0] = 1
+    esp = (rng.normal(size=(n, n)) + 1j * rng.normal(size=(n, n))) / fr ** beta
+    esp[0, 0] = 0
+    a = np.fft.ifft2(esp).real
+    lo, hi = np.percentile(a, (1, 99))
+    return np.clip((a - lo) / (hi - lo), 0, 1).astype(np.float32)
+
+def tex_monte (tipo):
+    """La textura de detalle de los montes y su valor medio en lineal (para compensarlo en los vértices)."""
+    if tipo in _tex_montes:
+        return _tex_montes[tipo]
+    rng = np.random.default_rng({'roca': 71, 'nieve': 72, 'bosque': 73, 'arena': 74, 'loma': 75}[tipo])   # azar propio: el del mapa no se toca
+    n = 512
+    grande = _manchas_fft(rng, n, 1.7, (3.0, 1.0))
+    fino = _manchas_fft(rng, n, 0.9)
+    if tipo == 'bosque':
+        # Copas vistas desde arriba: cada punto, un árbol; claro en el centro y oscuro entre uno y otro.
+        k = 420
+        pts, brillo = rng.random((k, 2)), 0.8 + 0.2 * rng.random(k)
+        yy, xx = np.mgrid[0:n, 0:n].astype(np.float32) / n
+        cerca, quien = np.full((n, n), 9.0, np.float32), np.zeros((n, n), np.int32)
+        for i, (px, py) in enumerate(pts):
+            dx, dy = np.abs(xx - px), np.abs(yy - py)
+            d = np.hypot(np.minimum(dx, 1 - dx), np.minimum(dy, 1 - dy))
+            m = d < cerca
+            cerca[m] = d[m]; quien[m] = i
+        copa = np.clip(1 - cerca / 0.04, 0, 1) ** 0.8
+        # Sobre las copas, el grano de la hoja: solo con los redondeles, de lejos era
+        # una piel de escamas.
+        hoja = _manchas_fft(rng, n, 0.55) ** 1.3
+        a = (0.74 + 0.26 * copa) * brillo[quien] * (0.6 + 0.4 * hoja) * (0.78 + 0.22 * grande)
+    else:
+        # Torrenteras: las curvas de nivel de otro ruido, alargado ladera abajo.
+        surco = np.clip(np.abs(_manchas_fft(rng, n, 1.5, (4.5, 1.0)) - 0.5) * 2 / 0.1, 0, 1)
+        veta = np.clip(np.abs(_manchas_fft(rng, n, 1.3, (1.0, 3.0)) - 0.5) * 2 / 0.07, 0, 1)      # estratos, de lado a lado
+        if tipo == 'arena':
+            # Lisa, con las ondas que le deja el viento, de lado a lado.
+            onda = (1 - np.abs(2 * _manchas_fft(rng, n, 1.4, (1.0, 5.0)) - 1)) ** 2
+            a = (0.9 + 0.1 * grande) * (1 - 0.14 * onda) * (0.97 + 0.03 * fino)
+        elif tipo == 'nieve':
+            # Costillas de peña que asoman entre la nieve, ladera abajo y de borde roto:
+            # es lo que tiene una montaña nevada vista de lejos. (Solo con vetas finas
+            # parecía mármol.)
+            pena = np.clip((_manchas_fft(rng, n, 1.15, (3.5, 1.0)) + 0.2 * (fino - 0.5) - 0.66) / 0.05, 0, 1)
+            a = (0.93 + 0.07 * grande) * (1 - pena * (0.4 + 0.1 * veta)) * (0.92 + 0.08 * surco)
+        else:
+            # Torrenteras a tres tamaños, de borde blando (las curvas de nivel de tres
+            # ruidos): con una sola línea fina por tamaño, la ladera parecía garabateada.
+            cauce = sum(peso * (1 - np.abs(2 * _manchas_fft(rng, n, beta, (est, 1.0)) - 1)) ** 3
+                        for peso, beta, est in ((0.5, 1.7, 4.0), (0.32, 1.3, 3.0), (0.18, 0.9, 2.0)))
+            if tipo == 'loma':
+                a = (0.88 + 0.12 * grande) * (1 - 0.16 * cauce) * (0.97 + 0.03 * fino)
+            else:
+                a = (0.8 + 0.2 * grande) * (1 - 0.5 * cauce) * (0.9 + 0.1 * veta) * (0.94 + 0.06 * fino)
+    a = np.clip(a / np.percentile(a, 99.5), 0, 1)
+    media = float((((a + 0.055) / 1.055) ** 2.4).mean())
+    _tex_montes[tipo] = (guardar('monte-' + tipo, np.repeat(a[..., None], 3, axis=2), calidad=80), media)
+    return _tex_montes[tipo]
+
+def _filo (x):
+    """Una arista: en punta en la cresta, redonda en la vaguada, y centrada en cero."""
+    return 1.0 - abs(math.sin(x)) - 0.363
+
+def monte (grupo, mat, cx, cz, radio, alto, y0=0.0, seg=18, anillos=7, pico=0.75, baldosa=26.0, fino=None):
     """Un cerro. Devuelve una función con su altura en (x, z) —o None fuera de él—,
     para plantarle cosas encima. `pico` menor que 1 lo hace cúpula; mayor, cono.
     La textura va proyectada en planta: dándole la vuelta al cerro se aprieta en
     la cima y de cerca es una mancha borrosa."""
     fases = [random.uniform(0, 6.28) for _ in range(3)]
-    def r_en (t, a):
-        return radio * (1 - t) ** pico * (1 + 0.14 * math.sin(a * 2 + fases[0]) + 0.08 * math.sin(a * 5 + fases[1] + t * 3))
-    def y_en (t, a):
-        return y0 + alto * math.sin(t * math.pi / 2) * (1 + 0.05 * math.sin(a * 3 + fases[2]))
-    angs = [2 * math.pi * i / seg for i in range(seg)]
-    filas = [[P(cx + r_en(j / anillos, a) * math.cos(a), cz + r_en(j / anillos, a) * math.sin(a), y_en(j / anillos, a)) for a in angs] for j in range(anillos + 1)]
+    az = random.Random(int(fases[0] * 1e6) + int(radio))
+    g = [az.uniform(0, 6.28) for _ in range(6)]
+    k1, k2 = az.choice((5, 6, 7, 8)), az.choice((11, 13, 15))
+    fino = fino or (3 if alto > 0.9 * radio else 2)
+    # Cada arista necesita sus cuatro o seis caras de ancho, o sale en dientes de sierra.
+    k1, k2 = min(k1, max(3, seg * fino // 6)), min(k2, max(5, seg * fino // 4))
+    tipo = _tipo_monte(mat)
+    if alto < 0.3 * radio and (tipo == 'nieve' or (tipo == 'roca' and mat.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value[0] > 0.5)):
+        tipo = 'arena'                                            # una duna, o una loma nevada: lisa, sin grietas ni peñas
+    elif tipo == 'roca' and alto < 0.45 * radio:
+        tipo = 'loma'                                             # un cerro tendido: con las torrenteras de un pico parecía un pedrusco
+    tipo = matices.setdefault(mat.name, tipo)
+    u_rep, v_rep = (16, 4.0) if tipo == 'bosque' else (8, 2.0) if tipo == 'nieve' else (6, 1.5)
+    # Una loma tendida lleva las aristas más flojas: marcadas, parecería un pastel a gajos.
+    brio = min(1.0, 0.45 + 1.1 * alto / radio)
+    def forma (t, a):
+        lomo = math.sin(math.pi * t)
+        b = a + 0.22 * math.sin(a * 3 + g[5])                     # cada arista, a su distancia de la de al lado
+        c1 = _filo(b * k1 / 2 + g[0] + t * 1.1) * (0.7 + 0.3 * math.sin(a * 2 + g[2])) * brio
+        c2 = _filo(b * k2 / 2 + g[1] - t * 1.7) * brio
+        r = radio * (1 - t) ** pico * (1 + 0.14 * math.sin(a * 2 + fases[0]) + 0.08 * math.sin(a * 5 + fases[1] + t * 3)
+                                       + lomo * (0.2 * c1 + 0.08 * c2))
+        # (El vaivén de la altura se apaga al llegar arriba: la cima es UN punto. Antes
+        # cada lado subía a su altura y la cumbre de una cúpula era un abanico de
+        # rajas por las que se veía el cielo.)
+        y = y0 + alto * (math.sin(t * math.pi / 2) * (1 + 0.05 * math.sin(a * 3 + fases[2]) * (1 - t ** 6))
+                         + lomo * (0.075 * c1 + 0.03 * c2 + 0.02 * math.sin(t * 11 + g[4])))
+        return r, y
+    seg, anillos = seg * fino, anillos * fino
+    paso = 2 * math.pi / seg
+    tabla = [[forma(j / anillos, paso * i) for i in range(seg)] for j in range(anillos + 1)]
+    filas = [[P(cx + r * math.cos(paso * i), cz + r * math.sin(paso * i), y) for i, (r, y) in enumerate(fila)] for fila in tabla]
     for j in range(anillos):
         for i in range(seg):
             k = (i + 1) % seg
             pts = [filas[j][i], filas[j][k], filas[j + 1][k], filas[j + 1][i]]
-            cara(grupo, mat, pts[:3] if j == anillos - 1 else pts, hacia=ARRIBA, baldosa=baldosa)
+            cuantos = 3 if j == anillos - 1 else 4
+            if tipo:
+                uvs = [(i / seg * u_rep, j / anillos * v_rep), ((i + 1) / seg * u_rep, j / anillos * v_rep),
+                       ((i + 1) / seg * u_rep, (j + 1) / anillos * v_rep), (i / seg * u_rep, (j + 1) / anillos * v_rep)]
+                cara(grupo, mat, pts[:cuantos], uvs=uvs[:cuantos], hacia=ARRIBA)
+            else:
+                cara(grupo, mat, pts[:cuantos], hacia=ARRIBA, baldosa=baldosa)
     def altura (x, z):
-        a, d = math.atan2(z - cz, x - cx), math.hypot(x - cx, z - cz)
-        if d >= r_en(0, a):
+        # Por la MALLA, no por la fórmula: con aristas en punta, entre dos vértices
+        # la cara corta por debajo de la cresta y lo plantado quedaría en el aire.
+        a, d = math.atan2(z - cz, x - cx) % (2 * math.pi), math.hypot(x - cx, z - cz)
+        i = int(a / paso) % seg
+        k, f = (i + 1) % seg, a / paso - int(a / paso)
+        def en (j):
+            (ra, ya), (rb, yb) = tabla[j][i], tabla[j][k]
+            return ra * (1 - f) + rb * f, ya * (1 - f) + yb * f
+        r0, h0 = en(0)
+        if d >= r0:
             return None
         for j in range(anillos):                                  # entre qué dos anillos cae
-            r0, r1 = r_en(j / anillos, a), r_en((j + 1) / anillos, a)
+            r1, h1 = en(j + 1)
             if d >= r1:
-                f = (r0 - d) / max(1e-6, r0 - r1)
-                return y_en(j / anillos, a) * (1 - f) + y_en((j + 1) / anillos, a) * f
-        return y_en(1, a)
+                u = (r0 - d) / max(1e-6, r0 - r1)
+                return h0 * (1 - u) + h1 * u
+            r0, h0 = r1, h1
+        return h0
     return altura
 
-def sierra (grupo, mat, x0, z0, x1, z1, ancho, alto, y0=0.0, n=28, m=4):
+def sierra (grupo, mat, x0, z0, x1, z1, ancho, alto, y0=0.0, n=28, m=4, fino=2):
     """Una sierra de lejos: una loma larga de (x0, z0) a (x1, z1), con la cresta
-    que sube y baja. El pie va en `y0`: si queda DEBAJO de otro suelo, sus
-    vértices se hornean a oscuras y dibujan una franja negra."""
+    que sube y baja en picos y contrafuertes que bajan de ella. El pie va en `y0`: si queda
+    DEBAJO de otro suelo, sus vértices se hornean a oscuras y dibujan una franja negra."""
     largo = math.hypot(x1 - x0, z1 - z0)
     ux, uz = (x1 - x0) / largo, (z1 - z0) / largo
     f = [random.uniform(0, 6.28) for _ in range(4)]
+    az = random.Random(int(f[0] * 1e6) + int(largo))
+    g = [az.uniform(0, 6.28) for _ in range(5)]
+    kc = az.choice((24, 29, 34))
+    n, m = n * fino, m * fino
     filas = []
     for j in range(-m, m + 1):                                    # de un pie al otro, pasando por la cresta
         s = j / m
         fila = []
         for i in range(n + 1):
             t = i / n
-            cresta = alto * math.sin(math.pi * t) ** 0.55 * (0.74 + 0.15 * math.sin(t * 8 + f[0]) + 0.11 * math.sin(t * 21 + f[1]))
+            cresta = alto * math.sin(math.pi * t) ** 0.55 * (0.74 + 0.15 * math.sin(t * 8 + f[0]) + 0.11 * math.sin(t * 21 + f[1])
+                                                             + 0.09 * _filo(t * 19 + g[0]) + 0.04 * _filo(t * 47 + g[3]))
             lado = ancho * (0.8 + 0.2 * math.sin(t * 6 + f[2])) * s
             comba = 0.05 * largo * math.sin(math.pi * t) * math.sin(f[3])
-            fila.append(P(x0 + ux * largo * t - uz * (lado + comba), z0 + uz * largo * t + ux * (lado + comba), y0 + cresta * (1 - abs(s) ** 1.4)))
+            falda = 1 - abs(s) ** 1.4
+            # Los contrafuertes: aristas que bajan de la cresta, más marcadas a media falda
+            # y echadas un poco de lado según bajan.
+            contra = 1 + math.sin(math.pi * abs(s)) * (0.34 * _filo(t * kc + g[1] + abs(s) * 1.3) + 0.13 * _filo(t * kc * 2.3 + g[2] - s))
+            fila.append(P(x0 + ux * largo * t - uz * (lado + comba), z0 + uz * largo * t + ux * (lado + comba), y0 + cresta * falda * contra))
         filas.append(fila)
-    malla(grupo, mat, filas, ARRIBA)
+    if matices.setdefault(mat.name, _tipo_monte(mat)):
+        malla(grupo, mat, filas, ARRIBA, u_rep=max(2, round(largo / ancho * (3.0 if matices[mat.name] == 'bosque' else 1.0))), v_rep=6.0 if matices[mat.name] == 'bosque' else 2.0)
+    else:
+        malla(grupo, mat, filas, ARRIBA)
 
 def copa (grupo, mat, x, z, y, rx, ry, sub=1, baila=0.12):
     """Una masa de hojas: una bola de caras planas, algo deformada."""
@@ -876,16 +1085,19 @@ def copa (grupo, mat, x, z, y, rx, ry, sub=1, baila=0.12):
 
 def pino (grupo, tronco, hojas, x, z, tam=1.0, y=0.0):
     """Pino piñonero: tronco largo y la copa ancha y chata, como un paraguas."""
+    _es_hoja(hojas, 0.35)
     alto = random.uniform(4.2, 6.0) * tam
     dx, dz = random.uniform(-0.5, 0.5) * tam, random.uniform(-0.5, 0.5) * tam
     barra(grupo, tronco, P(x, z, y - 0.8), P(x + dx, z + dz, y + alto), 0.36 * tam)
     copa(grupo, random.choice(hojas), x + dx, z + dz, y + alto + 0.6 * tam, random.uniform(2.4, 3.3) * tam, random.uniform(1.0, 1.4) * tam)
 
 def cipres (grupo, mat, x, z, tam=1.0, y=0.0):
+    _es_hoja(mat, 0.35)
     torno(grupo, mat, en(x, z, y - 0.6), [(0.85 * tam, 0.0), (1.0 * tam, 2.4 * tam), (0.6 * tam, 6.5 * tam), (0.0, random.uniform(9, 12) * tam)], lados=6, tapas=(False, False))
 
 def platano (grupo, tronco, hojas, x, z, tam=1.0, y=0.0):
     """Árbol de paseo (plátano, tilo): tronco recto y la copa en tres masas."""
+    _es_hoja(hojas, 0.5)
     alto = random.uniform(3.2, 4.2) * tam
     barra(grupo, tronco, P(x, z, y - 0.3), P(x, z, y + alto), 0.4 * tam)
     for k in range(3):
@@ -1120,7 +1332,7 @@ def terminar (grupos, exportes, sol_hacia, sol_color=(1.0, 0.96, 0.88), sol_fuer
         # (`suaves` admite también la clave de un GRUPO entero: un modelo importado —un
         # caza, una estatua— con la luz por vértice no enseña las facetas y, al
         # compartir vértices, el archivo pesa la mitad.)
-        lisos = [i for i, m in enumerate(o.data.materials) if m and (m.name in suaves or grupo in suaves)]
+        lisos = [i for i, m in enumerate(o.data.materials) if m and (m.name in suaves or grupo in suaves or m.name in matices or es_follaje(m.name))]
         if lisos:
             me = o.data
             vert = np.empty(len(me.loops), np.int32); me.loops.foreach_get('vertex_index', vert)
@@ -1131,6 +1343,63 @@ def terminar (grupos, exportes, sol_hacia, sol_color=(1.0, 0.96, 0.88), sol_fuer
             np.add.at(suma, vert[es], col[es, :3]); np.add.at(cuantas, vert[es], 1)
             col[es, :3] = (suma[vert[es]] / cuantas[vert[es]][:, None]).astype(np.float32)
         col[:, :3] = np.clip(saturar(curva(col[:, :3] * escala)), 0, 1)
+        # El matiz de los montes (ver `monte`): multiplica la luz, vértice a vértice.
+        if matices:
+            me = o.data
+            mat_cara = np.empty(len(me.polygons), np.int32); me.polygons.foreach_get('material_index', mat_cara)
+            lados = np.empty(len(me.polygons), np.int32); me.polygons.foreach_get('loop_total', lados)
+            de_esquina = np.repeat(mat_cara, lados)
+            vert = np.empty(len(me.loops), np.int32); me.loops.foreach_get('vertex_index', vert)
+            sitios = np.empty(len(me.vertices) * 3, np.float32); me.vertices.foreach_get('co', sitios)
+            normales = np.empty(len(me.vertices) * 3, np.float32); me.vertices.foreach_get('normal', normales)
+            sitios, normales = sitios.reshape(-1, 3), normales.reshape(-1, 3)
+            for i, m in enumerate(me.materials):
+                if not m or m.name not in matices:
+                    continue
+                es = np.nonzero(de_esquina == i)[0]
+                if not len(es):
+                    continue
+                pos, nz = sitios[vert[es]], normales[vert[es], 2]
+                bsdf = m.node_tree.nodes['Principled BSDF']
+                base = np.array(bsdf.inputs['Base Color'].default_value[:3], np.float32)
+                liso = not bsdf.inputs['Base Color'].is_linked
+                verde = liso and base[1] > base[0] * 1.15 and base[1] > base[2] * 1.15
+                nieve = liso and base.min() > 0.5
+                # La roca asoma en lo más empinado DE ESTE monte (el cuarenta por ciento
+                # de más pendiente, y del todo en el diez): medida con un número fijo,
+                # un cono afilado salía entero de roca y una cúpula, sin ninguna. Y a
+                # una loma que apenas levanta no le sale.
+                q_poca, q_toda = np.percentile(nz, (40, 10))
+                fuerza = float(np.clip((0.93 - q_toda) / 0.22, 0, 1))
+                roca = (np.clip((q_poca - nz) / max(q_poca - q_toda, 0.03), 0, 1) * fuerza)[:, None]
+                if nieve:
+                    a_roca = np.array((0.27, 0.26, 0.3), np.float32) / base      # la peña oscura bajo la nieve
+                elif verde:
+                    a_roca = np.array((0.3, 0.27, 0.23), np.float32) / np.maximum(base, 0.02)
+                else:
+                    a_roca = np.float32(0.66)
+                alto_ = max(float(pos[:, 2].max() - pos[:, 2].min()), 1.0)
+                # Estratos: bandas a la altura, algo torcidas. Solo se ven en la roca.
+                bandas = 0.5 + 0.5 * np.sin((pos[:, 2] - pos[:, 2].min()) / alto_ * 46 + 1.8 * np.sin(pos[:, 0] * 0.013) + 1.3 * np.sin(pos[:, 1] * 0.017))
+                manchas = 0.5 + 0.5 * np.sin(pos[:, 0] * 0.021 + 2.3 * np.sin(pos[:, 1] * 0.017)) * np.cos(pos[:, 1] * 0.026 + 1.7 * np.sin(pos[:, 2] * 0.04))
+                grano = 0.5 + 0.5 * np.sin(pos[:, 0] * 0.19 + pos[:, 2] * 0.23) * np.sin(pos[:, 1] * 0.17)
+                tono = (0.86 + 0.22 * manchas + 0.08 * grano)[:, None] * (1 - 0.16 * roca * bandas[:, None])
+                col[es, :3] *= (1 - roca + roca * a_roca) * tono
+                # Y la textura de detalle: el color del monte pasa a los vértices
+                # (entre la media de la textura, para que el conjunto no se oscurezca)
+                # y sus caras, al material de su tipo. Uno por tipo en cada malla.
+                tipo = matices[m.name]
+                if tipo:
+                    imagen, media = tex_monte(tipo)
+                    col[es, :3] = np.clip(col[es, :3] * base / media, 0, 1)
+                    det = material('monte-det-' + tipo, imagen, rug=1.0)
+                    ya = [k for k, otro in enumerate(me.materials) if otro == det]
+                    if ya:
+                        mat_cara[mat_cara == i] = ya[0]
+                    else:
+                        me.materials[i] = det
+            me.polygons.foreach_set('material_index', mat_cara)
+            me.update()
         # Lo que se mece: el alfa, ANTES de fundir materiales (después ya no se
         # sabe cuál era cada uno).
         alfa = np.ones(len(col), np.float32)
@@ -1149,6 +1418,46 @@ def terminar (grupos, exportes, sol_hacia, sol_color=(1.0, 0.96, 0.88), sol_fuer
                     alfa[es] = 1 - np.clip([cuanto(me.vertices[v].co) for v in vert[es]], 0, 1)
                 else:
                     alfa[es] = 1 - cuanto
+        # La hoja del follaje (ver `tex_hojas`). Después de apuntar lo que se mece,
+        # que va por el nombre del material y aquí el material cambia.
+        me = o.data
+        con_hoja = [i for i, m in enumerate(me.materials) if m and es_follaje(m.name) and not m.node_tree.nodes['Principled BSDF'].inputs['Base Color'].is_linked
+                    and m.node_tree.nodes['Principled BSDF'].inputs['Alpha'].default_value >= 1]
+        if con_hoja and me.uv_layers.active:
+            imagen, media = tex_hojas()
+            hoja = material('hojas-det', imagen, rug=1.0)
+            mat_cara = np.empty(len(me.polygons), np.int32); me.polygons.foreach_get('material_index', mat_cara)
+            lados = np.empty(len(me.polygons), np.int32); me.polygons.foreach_get('loop_total', lados)
+            de_esquina = np.repeat(mat_cara, lados)
+            vert = np.empty(len(me.loops), np.int32); me.loops.foreach_get('vertex_index', vert)
+            sitios = np.empty(len(me.vertices) * 3, np.float32); me.vertices.foreach_get('co', sitios)
+            p = sitios.reshape(-1, 3)[vert]
+            # Proyectada en el mundo y al sesgo (ninguna cara de una copa queda de canto
+            # a la vez en los dos ejes). Cada cara, con sus vueltas enteras quitadas: la
+            # textura repite, y con los números pequeños el archivo los guarda finos.
+            uv = np.stack(((p[:, 0] * 0.8 + p[:, 1] * 0.45 + p[:, 2] * 0.4) / BALDOSA_HOJA, (p[:, 2] * 0.85 + p[:, 1] * 0.5 - p[:, 0] * 0.15) / BALDOSA_HOJA), axis=1)
+            empieza = np.cumsum(lados) - lados
+            uv -= np.repeat(np.floor(np.minimum.reduceat(uv, empieza, axis=0)), lados, axis=0)
+            todas = np.empty(len(me.loops) * 2, np.float32); me.uv_layers.active.data.foreach_get('uv', todas)
+            todas = todas.reshape(-1, 2)
+            destino = None
+            for i in con_hoja:
+                es = de_esquina == i
+                if not es.any():
+                    continue
+                base = np.array(me.materials[i].node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value[:3], np.float32)
+                # Sin pasarse de uno: un verde claro se queda algo más oscuro antes que quemado.
+                sube = base / media
+                col[es, :3] = np.clip(col[es, :3] * sube / max(1.0, float(sube.max())), 0, 1)
+                todas[es] = uv[es]
+                if destino is None:
+                    destino = i
+                    me.materials[i] = hoja
+                else:
+                    mat_cara[mat_cara == i] = destino
+            me.uv_layers.active.data.foreach_set('uv', todas.ravel())
+            me.polygons.foreach_set('material_index', mat_cara)
+            me.update()
         if fundir:
             # Los materiales de color liso se quedan en UNO: su color pasa a los
             # vértices, multiplicado por la luz (el juego hace esa misma cuenta).
