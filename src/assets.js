@@ -68,7 +68,11 @@ export const MODELS = {
   ada: 'models/cuerpo-ada-f.glb',
   rebecca: 'models/cuerpo-rebecca-f.glb',
   sheva: 'models/cuerpo-sheva-f.glb',
-  sherry: 'models/cuerpo-sherry-f.glb'
+  sherry: 'models/cuerpo-sherry-f.glb',
+  // La ballestera (15/10): hecha por Isidro en Hunyuan3D, aligerada con
+  // cuerpo_de_fuera.py, con los ojos repintados y el esqueleto de Meshy. Trae su
+  // propia cabeza: no está en CON_CABEZA.
+  ballestera: 'models/soldado-ballestera.glb'
 }
 
 // Chico o chica, y SIEMPRE el mismo.

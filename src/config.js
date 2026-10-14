@@ -244,6 +244,18 @@ export const SOLDIERS = {
     magazine: 20, reloadTime: 1.1,
     asienta: { porSegundo: 0.3, tope: 0.9 },
     blurb: 'Solo en la caja alienígena. De prueba: un modelo realista hecho con otra herramienta. Todavía no anda ni apunta.'
+  },
+  // La ballestera (15/10): la primera hecha fuera que anda y dispara. Isidro la
+  // generó en Hunyuan3D («una chica sexy con poca ropa que tenga una ballesta»);
+  // el esqueleto es de Meshy y la ballesta, la del juego. De momento con los
+  // números de Ada: el nombre y lo que hace los decide él.
+  ballestera: {
+    name: 'Ballestera', cost: 290, hp: 110, color: 0x3f8a4a, accent: 0x1c4424, arma: 'ballesta', sinGalones: true,
+    damage: 46, fireRate: 1.1, range: 36, armorPierce: 0.9,
+    magazine: 1, reloadTime: 0.55, projectile: 'arrow', silent: true,
+    clava: { factor: 0.7, dura: 3 },
+    buscaDuro: true,
+    blurb: 'Solo en la caja alienígena. Ballesta: atraviesa blindajes, elige al más duro y lo deja clavado casi en el sitio.'
   }
 }
 
@@ -300,7 +312,7 @@ export const DEFENSES = {
 // alienígena entraron en SOLDIERS cuando las defensas ya tenían su número:
 // contando «soldados y luego defensas» se habrían corrido todas cinco puestos, y
 // un móvil sin actualizar vería una torreta donde el otro puso unos sacos.
-const TARDIAS = ['jill', 'claire', 'ada', 'rebecca', 'sheva', 'sherry']
+const TARDIAS = ['jill', 'claire', 'ada', 'rebecca', 'sheva', 'sherry', 'ballestera']
 export const CLAVES_RED = [
   ...Object.keys(SOLDIERS).filter(k => !TARDIAS.includes(k)),
   ...Object.keys(DEFENSES),

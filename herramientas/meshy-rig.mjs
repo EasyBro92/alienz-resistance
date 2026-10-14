@@ -73,7 +73,9 @@ const tarea = await pedir(clave, '/openapi/v1/rigging', {
   body: JSON.stringify({
     // `--tarea <id>`: la del modelo con textura recién generado en Meshy, que
     // aún no está publicado. Sin ella, se lee el .glb de la web.
-    ...(o.tarea ? { input_task_id: o.tarea } : { model_url: WEB + o.nombre + '.glb' }),
+    // `--archivo <glb>`: uno que está solo en este ordenador (un cuerpo hecho
+    // fuera y aligerado aquí), mandado dentro de la petición como data URI.
+    ...(o.tarea ? { input_task_id: o.tarea } : o.archivo ? { model_url: 'data:application/octet-stream;base64,' + fs.readFileSync(o.archivo).toString('base64') } : { model_url: WEB + o.nombre + '.glb' }),
     // De la altura saca las proporciones del esqueleto.
     height_meters: Number(o.altura ?? 1.8)
   })

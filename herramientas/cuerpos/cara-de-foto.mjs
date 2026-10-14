@@ -168,6 +168,10 @@ if (modo === 'pegar') {
     return z >= frente.z[py * frente.W + px] - 0.006
   }
   const suave = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t) }
+  // Lo que en la foto es FONDO (cielo, pared clara: luminoso y sin color) no se
+  // pinta: donde la cabeza del modelo abulta más que la de la foto, el rayo cae
+  // fuera de él y el pelo salía con trozos de cielo.
+  const fondo = c => { const l = (c[0] + c[1] + c[2]) / 3; const sat = Math.max(...c) - Math.min(...c); return suave(115, 155, l) * (1 - suave(25, 50, sat)) }
   // Primero se recogen los píxeles a pintar con su peso y su color de foto.
   const pintar = []
   for (let t = 0; t < I.length; t += 3) {
@@ -184,7 +188,12 @@ if (modo === 'pegar') {
       const e = Math.hypot((px - cx) / rx, (py - cy) / ry)
       const w = (1 - suave(0.78, 1.0, e)) * suave(0.2, 0.55, nz)
       if (w <= 0.003) return
-      pintar.push({ o: (y * tex.w + x) * 3, w, col: muestra(foto, px, py) })
+      let col = muestra(foto, px, py)
+      let wf = w * (1 - fondo(col))
+      // En lo alto, donde el pelo del modelo (hinchado) abulta más que el de la foto,
+      // el fondo se cambia por pelo: oscuro y con su grano, no la piel de la frente estirada.
+      if (Y > 1.62 && fondo(col) > 0.3) { const g = 18 + Math.random() * 22; col = [g + 4, g + 2, g]; wf = w }
+      if (wf > 0.003) pintar.push({ o: (y * tex.w + x) * 3, w: wf, col })
     })
   }
   // El tono: en la franja del borde se compara la piel del modelo con la de la
@@ -236,7 +245,181 @@ if (modo === 'pegar') {
   console.log(`${pintar.length} píxeles pintados; tono de la foto × ${razon.map(r => r.toFixed(2)).join(' / ')}`)
 }
 
-if (modo === 'pegar' || modo === 'fotos') {
+// --- una foto de LADO encima de lo que ya hay (15/10) -----------------------------
+//   node … lado <clave> <foto> --puntos "x,y,z>px,py; …"
+// Con cinco o más puntos (en metros del modelo y en píxeles de la foto) se ajusta
+// una cámara afín —girar, inclinar, escalar y mover—, que para una cara a dos
+// metros es casi lo mismo que la de verdad. Pinta lo que esa foto ve de cara,
+// respetando lo que ya pintó la de frente (cuanto más de frente mira un punto,
+// menos lo toca), y lo pinta también en el OTRO lado, reflejado: sus fotos solo
+// enseñan un perfil y una cara es casi simétrica.
+if (modo === 'lado') {
+  const tex = await leer(actual)
+  const foto = await leer(fotoRuta)
+  const pares = process.argv[process.argv.indexOf('--puntos') + 1].split(';').map(p => p.split('>').map(t => t.split(',').map(Number)))
+  // Mínimos cuadrados: [px, py] = A · [x, y, z, 1]
+  const ajustar = col => {
+    const M = Array.from({ length: 4 }, () => new Float64Array(5))
+    for (const [[x, y, z], q] of pares) {
+      const r = [x, y, z, 1]
+      for (let i = 0; i < 4; i++) { for (let j = 0; j < 4; j++) M[i][j] += r[i] * r[j]; M[i][4] += r[i] * q[col] }
+    }
+    for (let c = 0; c < 4; c++) {
+      let p = c; for (let r = c + 1; r < 4; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r
+      ;[M[c], M[p]] = [M[p], M[c]]
+      for (let r = 0; r < 4; r++) if (r !== c) { const k = M[r][c] / M[c][c]; for (let j = c; j < 5; j++) M[r][j] -= k * M[c][j] }
+    }
+    return M.map((fila, i) => fila[4] / fila[i])
+  }
+  const ax = ajustar(0); const ay = ajustar(1)
+  const aFoto = (x, y, z) => [ax[0] * x + ax[1] * y + ax[2] * z + ax[3], ay[0] * x + ay[1] * y + ay[2] * z + ay[3]]
+  let err = 0
+  for (const [[x, y, z], q] of pares) { const [px, py] = aFoto(x, y, z); err = Math.max(err, Math.hypot(px - q[0], py - q[1])) }
+  // Hacia dónde mira la cámara: lo que la afinidad no ve (el producto de sus filas),
+  // con el signo que apunta a la cara.
+  let d = [ax[1] * ay[2] - ax[2] * ay[1], ax[2] * ay[0] - ax[0] * ay[2], ax[0] * ay[1] - ax[1] * ay[0]]
+  const ld = Math.hypot(...d); d = d.map(v => v / ld)
+  if (d[2] < 0) d = d.map(v => -v)
+  console.log('error máximo de los puntos', err.toFixed(1), 'px; la cámara mira desde', d.map(v => v.toFixed(2)).join(', '))
+  // Profundidad vista desde esa cámara: se rasteriza la cabeza en coordenadas de la foto.
+  const prof = new Float32Array(foto.w * foto.h).fill(-Infinity)
+  const enFoto = i => { const [px, py] = aFoto(P[i * 3], P[i * 3 + 1], P[i * 3 + 2]); return [px, py, P[i * 3] * d[0] + P[i * 3 + 1] * d[1] + P[i * 3 + 2] * d[2]] }
+  for (let t = 0; t < I.length; t += 3) {
+    const [i, j, k] = [I[t], I[t + 1], I[t + 2]]
+    if (P[i * 3 + 1] < yCabeza - 0.08) continue
+    const A = enFoto(i); const B = enFoto(j); const C = enFoto(k)
+    triangulo(A[0], A[1], B[0], B[1], C[0], C[1], (x, y, a, b, c) => {
+      if (x >= foto.w || y >= foto.h) return
+      const z = A[2] * a + B[2] * b + C[2] * c
+      if (z > prof[y * foto.w + x]) prof[y * foto.w + x] = z
+    })
+  }
+  const suave = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t) }
+  // Lo que en la foto es FONDO (cielo, pared clara: luminoso y sin color) no se
+  // pinta: donde la cabeza del modelo abulta más que la de la foto, el rayo cae
+  // fuera de él y el pelo salía con trozos de cielo.
+  const fondo = c => { const l = (c[0] + c[1] + c[2]) / 3; const sat = Math.max(...c) - Math.min(...c); return suave(115, 155, l) * (1 - suave(25, 50, sat)) }
+  const ves = (x, y, z) => {
+    const [px, py] = aFoto(x, y, z)
+    const ix = Math.round(px); const iy = Math.round(py)
+    if (ix < 1 || iy < 1 || ix >= foto.w - 1 || iy >= foto.h - 1) return null
+    const dd = x * d[0] + y * d[1] + z * d[2]
+    return dd >= prof[iy * foto.w + ix] - 0.006 ? [px, py] : null
+  }
+  const pintar = []
+  for (let t = 0; t < I.length; t += 3) {
+    const [i, j, k] = [I[t], I[t + 1], I[t + 2]]
+    if (U[i * 2] < 0.5 || P[i * 3 + 1] < yCabeza) continue
+    triangulo(U[i * 2] * tex.w, U[i * 2 + 1] * tex.h, U[j * 2] * tex.w, U[j * 2 + 1] * tex.h, U[k * 2] * tex.w, U[k * 2 + 1] * tex.h, (x, y, a, b, c) => {
+      if (x >= tex.w || y >= tex.h) return
+      let X = P[i * 3] * a + P[j * 3] * b + P[k * 3] * c
+      const Y = P[i * 3 + 1] * a + P[j * 3 + 1] * b + P[k * 3 + 1] * c
+      const Z = P[i * 3 + 2] * a + P[j * 3 + 2] * b + P[k * 3 + 2] * c
+      let nx = N[i * 3] * a + N[j * 3] * b + N[k * 3] * c
+      const ny = N[i * 3 + 1] * a + N[j * 3 + 1] * b + N[k * 3 + 1] * c
+      const nz = N[i * 3 + 2] * a + N[j * 3 + 2] * b + N[k * 3 + 2] * c
+      const ln = Math.hypot(nx, ny, nz) || 1
+      // El lado que la foto no ve se pinta con su reflejo.
+      const espejo = (X * d[0] < 0)
+      if (espejo) { X = -X; nx = -nx }
+      if (Y < 1.43) return
+      // La frente y las cejas, solo de la foto de frente: en las de lado la cara está
+      // girada y levantada, y sus cejas caían en mitad de la frente.
+      const frente = suave(1.575, 1.6, Y) * (1 - suave(0.045, 0.085, Math.abs(X)))
+      const de = ves(X, Y, Z)
+      if (!de) return
+      const mira = (nx * d[0] + ny * d[1] + nz * d[2]) / ln
+      // Lo que mira de frente ya lo pintó la foto de frente.
+      const w = suave(0.25, 0.6, mira) * (1 - suave(0.55, 0.85, nz / ln)) * (espejo ? 0.85 : 1) * (1 - frente)
+      if (w <= 0.01) return
+      let col = muestra(foto, de[0], de[1])
+      let wf = w * (1 - fondo(col))
+      if (Y > 1.62 && fondo(col) > 0.3) { const g = 18 + Math.random() * 22; col = [g + 4, g + 2, g]; wf = w }
+      if (wf > 0.01) pintar.push({ o: (y * tex.w + x) * 3, w: wf, col })
+    })
+  }
+  // El tono, igualado al de lo que ya hay donde se solapan.
+  const sum = [[0, 0, 0], [0, 0, 0]]; let n = 0
+  const piel = c => { const l = (c[0] + c[1] + c[2]) / 3; return l > 45 && l < 150 && c[0] > c[2] + 12 }
+  for (const p of pintar) { if (p.w > 0.2 && piel(p.col) && piel([tex.d[p.o], tex.d[p.o + 1], tex.d[p.o + 2]])) { for (let c = 0; c < 3; c++) { sum[0][c] += tex.d[p.o + c]; sum[1][c] += p.col[c] } n++ } }
+  const razon = [0, 1, 2].map(c => (n ? sum[0][c] / Math.max(1, sum[1][c]) : 1))
+  const sale = Buffer.from(tex.d)
+  for (const p of pintar) for (let c = 0; c < 3; c++) sale[p.o + c] = Math.round(tex.d[p.o + c] * (1 - p.w) + Math.min(255, p.col[c] * razon[c]) * p.w)
+  await sharp(sale, { raw: { width: tex.w, height: tex.h, channels: 3 } }).png().toFile(actual)
+  console.log(pintar.length + ' píxeles de lado; tono × ' + razon.map(r => r.toFixed(2)).join(' / '))
+}
+
+// --- ojos de persona (15/10, la ballestera) ---------------------------------------
+//   node … ojos <clave> --ojos "cx,cy;cx,cy" [--iris 0.0062] [--color 70,105,55]
+// Hunyuan le pintó los ojos de un verde chillón de lado a lado, sin blanco
+// (Isidro: «los ojos son poco realistas, no tiene la parte blanca, solo se ve
+// verde»). La abertura del ojo es justo esa mancha verde: dentro se pinta el
+// blanco (que oscurece hacia las comisuras y bajo el párpado de arriba), un iris
+// redondo de su verde pero apagado, con el aro oscuro del borde, la pupila y un
+// brillo pequeño. Centro de cada ojo en metros de la vista de frente (`ver`).
+if (modo === 'ojos') {
+  const tex = await leer(actual)
+  const centros = process.argv[process.argv.indexOf('--ojos') + 1].split(';').map(t => t.split(',').map(Number))
+  const R = arg('--iris', [0.0062])[0]
+  const base = arg('--color', [70, 105, 55])
+  const sale = Buffer.from(tex.d)
+  const suave = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t) }
+  let n = 0
+  const tocados = new Set()
+  for (let t = 0; t < I.length; t += 3) {
+    const [i, j, k] = [I[t], I[t + 1], I[t + 2]]
+    if (U[i * 2] < 0.5) continue
+    triangulo(U[i * 2] * tex.w, U[i * 2 + 1] * tex.h, U[j * 2] * tex.w, U[j * 2 + 1] * tex.h, U[k * 2] * tex.w, U[k * 2 + 1] * tex.h, (x, y, a, b, c) => {
+      if (x >= tex.w || y >= tex.h) return
+      const X = P[i * 3] * a + P[j * 3] * b + P[k * 3] * c
+      const Y = P[i * 3 + 1] * a + P[j * 3 + 1] * b + P[k * 3 + 1] * c
+      const Z = P[i * 3 + 2] * a + P[j * 3 + 2] * b + P[k * 3 + 2] * c
+      const ojo = centros.find(([cx, cy]) => Math.hypot(X - cx, Y - cy) < 0.03)
+      if (!ojo || Z < 0.02) return
+      const o = (y * tex.w + x) * 3
+      const [r, g, bl] = [tex.d[o], tex.d[o + 1], tex.d[o + 2]]
+      // Cuánto es «ojo»: lo verde, con el borde fundido.
+      const w = suave(4, 22, g - Math.max(r, bl))
+      if (w <= 0) return
+      const dx = (X - ojo[0]) / R; const dy = (Y - ojo[1]) / R
+      const d = Math.hypot(dx, dy)
+      let col
+      if (d < 1) {
+        // iris: rayado radial, más oscuro en el aro y hacia el centro, y la pupila
+        const ang = Math.atan2(dy, dx)
+        const fibra = 0.85 + 0.15 * Math.sin(ang * 23 + Math.sin(ang * 7) * 2)
+        const aro = 1 - 0.55 * suave(0.78, 1, d)
+        col = base.map(v => v * fibra * aro * (0.75 + 0.35 * d))
+        const pupila = 1 - suave(0.36, 0.44, d)
+        col = col.map(v => v * (1 - pupila) + 10 * pupila)
+        // el brillo, arriba a un lado
+        const br = 1 - suave(0.12, 0.2, Math.hypot(dx + 0.35, dy - 0.35))
+        col = col.map(v => v * (1 - br) + 235 * br)
+      } else {
+        // el blanco, que no es blanco: algo cálido y en sombra hacia los lados
+        const lado = suave(1.2, 2.6, Math.abs(dx))
+        col = [228, 220, 212].map(v => v * (1 - 0.3 * lado))
+      }
+      // la sombra del párpado de arriba
+      col = col.map(v => v * (1 - 0.35 * suave(0.2, 1.1, dy)))
+      for (let ch = 0; ch < 3; ch++) sale[o + ch] = Math.round(tex.d[o + ch] * (1 - w) + col[ch] * w)
+      tocados.add(o / 3)
+      n++
+    })
+  }
+  // Lo verde que queda en el margen de las islas (sin triángulo encima): a su gris.
+  for (let o = 0; o < sale.length; o += 3) {
+    const [r, g, b] = [sale[o], sale[o + 1], sale[o + 2]]
+    const i0 = o / 3
+    let cerca = false
+    for (let dy = -6; dy <= 6 && !cerca; dy++) for (let dx = -6; dx <= 6; dx++) if (tocados.has(i0 + dy * tex.w + dx)) { cerca = true; break }
+    if (cerca && g > r + 25 && g > b + 25) { const v = (r + b) / 2; sale[o + 1] = Math.round(v + (g - v) * 0.25) }
+  }
+  await sharp(sale, { raw: { width: tex.w, height: tex.h, channels: 3 } }).png().toFile(actual)
+  console.log(n + ' píxeles de ojo repintados')
+}
+
+if (modo === 'pegar' || modo === 'fotos' || modo === 'lado' || modo === 'ojos') {
   const tex = await leer(actual)
   const vistas = [0, 35, -35, 75].map(a => vista(tex, a, 1800))
   const fotos = await Promise.all(vistas.map(v => sharp(v.img, { raw: { width: v.W, height: v.H, channels: 3 } }).png().toBuffer()))
