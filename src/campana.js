@@ -214,6 +214,9 @@ export const PAISES = [
     cierre: 'España queda limpia. La primera trampilla de búnker se abre en Madrid, y sale gente que llevaba dos años sin ver el cielo.',
     misiones: [
       {
+        // Isidro, 14/10: «reduce la cantidad de alienz en los tres primeros niveles:
+        // un 40 % en Tarragona y un 15 % en Madrid; Valencia déjalo así».
+        menos: 0.6,
         name: 'Tarragona', lugar: 'Playa del Miracle · bajo el anfiteatro', mapa: sitio(41.12, 1.25),
         // La playa al pie del anfiteatro romano, hecha en Blender con texturas de
         // verdad (herramientas/blender/lugar_tarragona.py): el anfiteatro viene en el
@@ -244,6 +247,7 @@ export const PAISES = [
         waves: OLEADAS.formas
       },
       {
+        menos: 0.85,
         name: 'Madrid', llegada: 'estadio', lugar: 'Santiago Bernabéu · sobre el césped', mapa: sitio(40.42, -3.70),
         // Se juega DENTRO del estadio, sobre el cesped y con las gradas
         // cerrando los cuatro lados. Es el campo mas ancho del juego: los cinco
@@ -981,6 +985,8 @@ PAISES.forEach((pais, ip) => {
     const lejos = m.entrada && !m.entrada.ascensor ? lejania(m.entrada.z) : 0
     let waves = oleadasDe(m.waves, ip, avance)
     if (lejos > 0) waves = engordar(waves, 1 + CURVA.lejosMas * lejos)
+    // Menos alienz en un tramo concreto (`menos`: la parte que se queda).
+    if (m.menos) waves = engordar(waves, m.menos)
     DESTINOS.push({
       ...m,
       waves,
