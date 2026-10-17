@@ -347,6 +347,12 @@ function milanDuomo () {
   g.name = 'lugar:milanDuomo'
   Object.assign(g.userData, {
     modelo: 'lugar-milan',
+    // Desde el 17/10 con texturas y luz horneada (horneado.py), y la ciudad de
+    // alrededor aparte, solo para la llegada. La distribución es la de siempre.
+    modeloCiudad: 'lugar-milan-ciudad',
+    luz: 'lugar-milan',
+    // El humo de lo que arde: el tranvía, los coches y una ventana de los pórticos.
+    humos: [[-13.4, -9, 2.2, 14], [12.6, -18, 1.6, 10], [-12.0, 9.4, 1.4, 9], [11.0, -33, 1.6, 11], [-11.2, -40, 2.4, 22, 24]],
     carriles: 5,
     tapaElMundo: true,
     sinSombra: true,

@@ -394,7 +394,9 @@ export const PAISES = [
         sinPajaros: true, sinNubes: true,
         // Al anochecer, como en las fotos de la plaza: el cielo azul arriba, rosa
         // en el horizonte, y los escaparates de la galería encendidos.
-        fondo: { hora: 'ocaso', cielo: 0x7f9cc8, niebla: 0xd9b9b4 },
+        // Desde el 17/10, «un poco más apocalíptico»: el mismo atardecer, pero bajo
+        // el humo, más pardo, y con el sol naranja sobre soldados y alienz.
+        fondo: { hora: 'ocaso', cielo: 0x6e6a7c, niebla: 0xb8927c, cupula: [0x34384c, 0xc8865c], sol: 0xffb07a },
         resumen: 'Formas nuevas. Aquí prueban cosas.',
         parte: ['Milán era su laboratorio de diseño. Lo que funcionaba aquí lo copiaban en el resto de Europa.',
           'Espera formas que no has visto nunca.'],
