@@ -267,7 +267,8 @@ function rumboConEsquiva (yo, dx, dz, falta) {
 }
 
 export async function createSoldier (key, spec, lane, row) {
-  const mesh = spec.fija ? await buildDefensaMesh(key, spec) : await buildSoldierMesh(key, spec)
+  // En la partida, la versión ligera del cuerpo (ver `cuerpoLigero` en assets.js).
+  const mesh = spec.fija ? await buildDefensaMesh(key, spec) : await buildSoldierMesh(key, spec, { ligero: true })
   mesh.position.set(laneX(lane), 0, rowZ(row))
 
   // Figuras con esqueleto: el ciclo de andar viene dentro del archivo y lo

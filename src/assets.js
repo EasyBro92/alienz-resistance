@@ -7,6 +7,7 @@ import { ATAQUES, PASOS } from './entities/gestos.js'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { clone as clonarConHuesos } from 'three/examples/jsm/utils/SkeletonUtils.js'
+import { MeshoptSimplifier } from 'meshoptimizer'
 import { seg as lados, CON_OCLUSION, CON_ADORNOS } from './systems/detalle.js'
 
 // ---------------------------------------------------------------------------
@@ -334,10 +335,55 @@ async function ponerCabeza (key, cuerpo, url, sexo) {
   return true
 }
 
-async function armarPersona (key, spec, urls) {
+// La versión LIGERA de un cuerpo, para la partida.
+//
+// 17/10/2026: los soldados rehechos en Meshy traen 13.000 triángulos (menos, y
+// la cara se rompe de cerca: el «bigote» de la ballestera en la tienda). Medido
+// con `guion-tropa.mjs`: quince en el campo suben el dibujo de 86.000 a 362.000
+// triángulos, porque cada uno se dibuja dos veces (la figura y su sombra). En la
+// partida una figura mide unos 60 píxeles y con 6.000 se ve igual, así que al
+// cargarla se escogen los triángulos que cuentan (meshoptimizer, lo mismo que
+// `simplificar.mjs`) y se guarda una geometría que COMPARTE los vértices, la
+// textura y los pesos con la entera: solo cambia la lista de triángulos. La
+// tienda, las fotos y los retratos siguen con la entera.
+const TRIANGULOS_LIGERO = 6000
+const ligeras = new WeakMap()
+async function cuerpoLigero (geo) {
+  if (ligeras.has(geo)) return ligeras.get(geo)
+  const promesa = (async () => {
+    if (!geo.index || geo.index.count / 3 <= TRIANGULOS_LIGERO) return geo
+    await MeshoptSimplifier.ready
+    const pos = geo.attributes.position
+    const posiciones = new Float32Array(pos.count * 3)
+    for (let i = 0; i < pos.count; i++) { posiciones[i * 3] = pos.getX(i); posiciones[i * 3 + 1] = pos.getY(i); posiciones[i * 3 + 2] = pos.getZ(i) }
+    // Las costuras de la textura parten los vértices; sin `Permissive` no se
+    // juntan nunca y de 13.000 no se baja (los de Meshy tienen cientos de
+    // islas). Con él sí, pero entonces hay que darle también la UV: si no,
+    // junta vértices de dos islas y la textura se emborrona a manchas.
+    const uv = geo.attributes.uv
+    const uvs = new Float32Array(pos.count * 2)
+    for (let i = 0; i < pos.count; i++) { uvs[i * 2] = uv.getX(i); uvs[i * 2 + 1] = uv.getY(i) }
+    const [menos] = MeshoptSimplifier.simplifyWithAttributes(Uint32Array.from(geo.index.array), posiciones, 3, uvs, 2, [6, 6], null, TRIANGULOS_LIGERO * 3, 0.08, ['Permissive'])
+    const ligera = new THREE.BufferGeometry()
+    for (const [nombre, atributo] of Object.entries(geo.attributes)) ligera.setAttribute(nombre, atributo)
+    ligera.setIndex(new THREE.BufferAttribute(pos.count > 65535 ? menos : Uint16Array.from(menos), 1))
+    ligera.boundingBox = geo.boundingBox
+    ligera.boundingSphere = geo.boundingSphere
+    return ligera
+  })()
+  ligeras.set(geo, promesa)
+  return promesa
+}
+
+async function armarPersona (key, spec, urls, ligero = false) {
   const url = Array.isArray(urls) ? urls[sexoDe(key)] : urls
   const gltf = await cargarGLTF(url)
   const cuerpo = await loadModel(url)
+  if (ligero) {
+    const pieles = []
+    cuerpo.traverse(o => { if (o.isSkinnedMesh) pieles.push(o) })
+    for (const p of pieles) p.geometry = await cuerpoLigero(p.geometry)
+  }
   // Chica o chico lo dice la unidad, no el nombre del archivo: el Arquero y el
   // Lanzallamas tienen un solo cuerpo para los dos.
   const sexo = Array.isArray(urls) ? (sexoDe(key) === 0 ? 'f' : 'm') : (url.includes('-f.glb') ? 'f' : 'm')
@@ -2504,10 +2550,10 @@ function montarFogonazo (arma) {
   return flash
 }
 
-export async function buildSoldierMesh (key, spec) {
+export async function buildSoldierMesh (key, spec, { ligero = false } = {}) {
   if (MODELS[key]) {
     try {
-      return await armarPersona(key, spec, MODELS[key])
+      return await armarPersona(key, spec, MODELS[key], ligero)
     } catch (e) {
       // Un archivo que falta o que viene roto no puede tumbar la partida. La
       // figura procedural sigue ahí y hace exactamente lo mismo: se avisa por

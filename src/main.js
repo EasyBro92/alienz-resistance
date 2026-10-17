@@ -17,6 +17,7 @@ import { createAmbient } from './systems/ambient.js'
 import { createAudio } from './audio.js'
 import { crearVoces } from './systems/voces.js'
 import { sexoDe } from './assets.js'
+import { fpsGuardado, ponerFps } from './systems/fps.js'
 import { createUI, devolucion } from './ui.js'
 import { crearGuia } from './guia.js'
 import { renderPortraits } from './portraits.js'
@@ -3356,7 +3357,20 @@ function pintarSonido () {
     })
     elVibracionOps.appendChild(b)
   }
+  // El contador de FPS: mismo par de botones, guardado aparte (systems/fps.js).
+  const elFpsOps = document.getElementById('fps-ops')
+  elFpsOps.innerHTML = ''
+  for (const [valor, nombre] of [[true, 'Sí'], [false, 'No']]) {
+    const b = document.createElement('button')
+    b.type = 'button'
+    b.className = 'ajuste-op'
+    b.textContent = nombre
+    b.classList.toggle('elegida', fpsGuardado() === valor)
+    b.addEventListener('click', () => { ponerFps(valor); pintarSonido() })
+    elFpsOps.appendChild(b)
+  }
 }
+ponerFps(fpsGuardado())
 for (const [el, clave] of [[elVolEfectos, 'efectos'], [elVolMusica, 'musica'], [elVolVoces, 'voces']]) {
   el.addEventListener('input', () => {
     const nuevo = { ...sonidoGuardado(), [clave]: Number(el.value) }

@@ -1190,7 +1190,7 @@ async function empezarPartida (rolNuevo) {
   // Las figuras se cargan antes de empezar: el primer soldado no puede tardar
   // dos segundos en salir mientras el rival ya está andando.
   const claves = new Set([...bandos.azul.tengo, ...bandos.rojo.tengo].filter(k => SOLDIERS[k]))
-  await Promise.all([...claves].map(k => buildSoldierMesh(k, SOLDIERS[k]).catch(() => null)))
+  await Promise.all([...claves].map(k => buildSoldierMesh(k, SOLDIERS[k], { ligero: true }).catch(() => null)))
   $('gc-carga').hidden = true
   $('gc-hud').hidden = false
   jugando = true
