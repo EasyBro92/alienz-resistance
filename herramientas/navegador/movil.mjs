@@ -26,7 +26,8 @@ const guion = args.find((a, i) => !a.startsWith('--') && !['--ancho', '--alto', 
 const ANCHO = num('--ancho', 375)
 const ALTO = num('--alto', 812)
 const PUERTO = num('--puerto', 9377)
-const URL_JUEGO = 'http://localhost:5180/'
+// `JUEGO` en el entorno para abrir otra dirección (la publicada, para medir la carga de verdad).
+const URL_JUEGO = process.env.JUEGO ?? 'http://localhost:5180/'
 const EDGE = ['C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', 'C:/Program Files/Microsoft/Edge/Application/msedge.exe',
   'C:/Program Files/Google/Chrome/Application/chrome.exe'].find(p => fs.existsSync(p))
 if (!guion || !EDGE) {

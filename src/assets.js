@@ -127,6 +127,18 @@ async function cargarGLTF (url) {
   return cache.get(url)
 }
 
+// Bajar de fondo, uno detrás de otro, los cuerpos de quien puede salir en esta
+// partida (18/10/2026). Desde que los retratos vienen hechos ya no se baja
+// ningún soldado al arrancar, así que el primero de cada tipo tardaba en salir
+// lo que tardara su modelo (dos megas) en bajar. Uno cada vez, para no quitarle
+// la red al mapa, que es lo que hace falta antes.
+export async function precargarSoldados (claves) {
+  for (const k of claves) {
+    const url = Array.isArray(MODELS[k]) ? MODELS[k][sexoDe(k)] : MODELS[k]
+    if (url) await cargarGLTF(url).catch(() => null)
+  }
+}
+
 async function loadModel (url) {
   const gltf = await cargarGLTF(url)
   // `clone(true)` de three NO sirve para mallas con esqueleto: copia los huesos

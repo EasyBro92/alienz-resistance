@@ -16,7 +16,7 @@ import { crearCuenta, haySesionGuardada } from './systems/cuenta.js'
 import { createAmbient } from './systems/ambient.js'
 import { createAudio } from './audio.js'
 import { crearVoces } from './systems/voces.js'
-import { sexoDe } from './assets.js'
+import { sexoDe, precargarSoldados } from './assets.js'
 import { fpsGuardado, ponerFps } from './systems/fps.js'
 import { createUI, devolucion } from './ui.js'
 import { crearGuia } from './guia.js'
@@ -3047,6 +3047,8 @@ function start (indice = nivelActual) {
   audio.startMusic()
   // Las voces de quien puede salir en esta partida, bajando ya de fondo.
   voces.precargar(ui.catalog.filter(c => c.type === 'soldier').map(c => c.key))
+  // Y sus cuerpos, por la misma razón (ver `precargarSoldados`).
+  precargarSoldados(ui.catalog.filter(c => c.type === 'soldier').map(c => c.key))
   // El invitado tiene que vestir SU escenario igual que el del anfitrión, o
   // estaría defendiendo una playa mientras el otro defiende una avenida.
   if (coop?.esAnfitrion) coop.transporte.mandar('partida', { nivel: nivelActual })

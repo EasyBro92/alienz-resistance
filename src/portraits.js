@@ -51,7 +51,27 @@ function soltar (raiz) {
   raiz.traverse(o => { if (o.isMesh && o.userData.fundida) o.geometry.dispose() })
 }
 
-export async function renderPortraits (renderer, alAvanzar) {
+// Los retratos YA HECHOS (18/10/2026). Isidro: «ahora los tiempos de carga son
+// muy largos». Al rehacer los soldados en Meshy, fotografiarlos al arrancar
+// obligaba a bajarse los dieciséis modelos (32 MB) antes de quitar la pantalla
+// de carga: medido en la versión publicada, 37,6 MB antes de poder jugar. Ahora
+// las fotos se sacan una vez con `herramientas/navegador/guion-retratos.mjs`,
+// que las deja en public/retratos/ (webp, con la huella del contenido en el
+// nombre: una foto nueva llega con otro nombre y la caché no sirve la vieja) y
+// un `indice.json`. Al arrancar se usan esas; solo se fotografía en vivo lo que
+// no esté en el índice (una unidad nueva antes de volver a pasar el guion).
+// CADA VEZ QUE CAMBIE UN MODELO hay que volver a pasar el guion.
+async function retratosHechos () {
+  try {
+    const r = await fetch('retratos/indice.json', { cache: 'no-cache' })
+    if (!r.ok) return null
+    return await r.json()
+  } catch { return null }
+}
+
+export async function renderPortraits (renderer, alAvanzar, { vivo = false } = {}) {
+  const hechos = vivo ? null : await retratosHechos()
+  const yaHecho = (grupo, clave) => hechos?.[grupo]?.[clave] ? 'retratos/' + hechos[grupo][clave] : null
   // Cuántas figuras hay que fotografiar en total. Se cuenta antes de empezar
   // para que la barra de carga avance con el número de verdad y no con una
   // estimación que se quede corta en cuanto se añada una unidad.
@@ -149,10 +169,32 @@ export async function renderPortraits (renderer, alAvanzar) {
     await respirar()
   }
 
+  // La foto ya hecha, si la hay: ni se baja el modelo.
+  const usarHecho = (grupo, clave, destino) => {
+    const url = yaHecho(grupo, clave)
+    if (!url) return false
+    destino.set(clave, url)
+    alAvanzar?.(++hechas, total, clave)
+    return true
+  }
+
   for (const [clave, spec] of Object.entries(SOLDIERS)) {
-    await fotografiar(clave, await buildSoldierMesh(clave, spec))
+    if (usarHecho('soldados', clave, retratos)) continue
+    const malla = await buildSoldierMesh(clave, spec)
+    // Los de esqueleto se quedaban en la pose de reposo del modelo (brazos en
+    // cruz y el arma flotando delante): se les pone de pie con el arma, como en
+    // la carta de la tienda, y se les deja asentarse unos fotogramas.
+    const cuerpo = malla.userData.cuerpo
+    if (cuerpo) {
+      malla.updateMatrixWorld(true)
+      for (let i = 0; i < 20; i++) {
+        cuerpo.actualizar(1 / 30, { andando: false, velocidad: 0, modo: null, forzarPie: true, apuntar: 0.25, objetivo: null, retroceso: 0, recarga: 0, encogido: 0, mirar: null, t: i / 30 })
+      }
+    }
+    await fotografiar(clave, malla)
   }
   for (const [clave, spec] of Object.entries(DEFENSES)) {
+    if (usarHecho('defensas', clave, retratos)) continue
     const malla = await buildDefensaMesh(clave, spec)
     malla.position.y = 0.45          // los sacos son bajos: se suben al encuadre
     await fotografiar(clave, malla)
@@ -162,6 +204,7 @@ export async function renderPortraits (renderer, alAvanzar) {
   // Coloso es casi el doble de alto que un soldado y con el encuadre de la
   // armería salía sin cabeza, y LA MADRE ni eso.
   for (const [clave, spec] of Object.entries(ZOMBIES)) {
+    if (usarHecho('amenazas', clave, amenazas)) continue
     const malla = await buildZombieMesh(clave, spec)
     const escala = spec.scale ?? 1
     // Se encoge al tamaño de un soldado en vez de alejar la cámara: así los

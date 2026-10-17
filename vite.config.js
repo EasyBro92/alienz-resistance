@@ -98,11 +98,20 @@ export default defineConfig({
         runtimeCaching: [{
           // Los .webp también: son los mapas de luz de Madrid, las tiras del
           // fuego y las fotos de los premios, que sin red se quedaban sin llegar.
+          //
+          // 18/10/2026, al mirar por qué la carga era tan lenta: (1) el tope era de
+          // 120 y el juego tiene unos 300 entre modelos y mapas de luz, así que el
+          // móvil iba tirando los más viejos y volviéndolos a bajar; ahora 500.
+          // (2) Con `CacheFirst` un modelo que cambia SIN cambiar de nombre (el
+          // Arquero y el Lanzallamas rehechos el 17/10) no llegaba nunca: se
+          // servía el guardado tres meses. Con `StaleWhileRevalidate` se sirve el
+          // guardado al momento y de paso se pregunta si hay otro; si no ha
+          // cambiado, GitHub Pages contesta «igual» y no se baja nada.
           urlPattern: /\.(glb|webp)$/,
-          handler: 'CacheFirst',
+          handler: 'StaleWhileRevalidate',
           options: {
             cacheName: 'modelos-3d',
-            expiration: { maxEntries: 120, maxAgeSeconds: 60 * 60 * 24 * 90 },
+            expiration: { maxEntries: 500, maxAgeSeconds: 60 * 60 * 24 * 90 },
             cacheableResponse: { statuses: [0, 200] }
           }
         }, {
