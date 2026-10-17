@@ -11,10 +11,12 @@ if (!fs.existsSync(orig)) fs.copyFileSync(dir + clave + '.json', orig)
 const m = JSON.parse(fs.readFileSync(orig, 'utf8'))
 const aM = ([px, py]) => [px / 2500 - 0.18, 1.738 - py / 2500]
 const modelo = [[360,405],[545,403],[400,592],[500,592],[450,505],[405,515],[497,515],[450,720],[290,590],[612,590],[268,420],[628,420],[450,215],[290,300],[615,300],[450,55],[220,250],[665,250],[205,450],[668,450]].map(aM)
-const foto = [[227,290],[368,297],[247,428],[338,428],[292,375],[255,370],[330,372],[292,522],[175,430],[410,430],[163,300],[425,305],[300,150],[175,215],[420,220],[300,45],[140,180],[458,185],[133,330],[452,335]]
+// Los puntos de la foto (mismo orden que `modelo`) y el centro de la boca; con
+// FOTO y BOCA en el entorno se usan los de otra foto (JSON y "x,y").
+const foto = process.env.FOTO ? JSON.parse(process.env.FOTO) : [[227,290],[368,297],[247,428],[338,428],[292,375],[255,370],[330,372],[292,522],[175,430],[410,430],[163,300],[425,305],[300,150],[175,215],[420,220],[300,45],[140,180],[458,185],[133,330],[452,335]]
+const BOCA = process.env.BOCA ? process.env.BOCA.split(",").map(Number) : [292, 428]
 // foto → modelo con la afinidad de los ojos y la boca (la misma que usa pegar)
-const M3 = [modelo[0], modelo[1], [0, 1.5]]; const F3 = [foto[0], foto[1], foto[2].map((v, i) => i ? 428 : 292)]
-F3[2] = [292, 428]
+const M3 = [modelo[0], modelo[1], [0, 1.5]]; const F3 = [foto[0], foto[1], BOCA]
 const det = A => A[0][0]*(A[1][1]*A[2][2]-A[1][2]*A[2][1]) - A[0][1]*(A[1][0]*A[2][2]-A[1][2]*A[2][0]) + A[0][2]*(A[1][0]*A[2][1]-A[1][1]*A[2][0])
 const res = (P, k) => { const A = P.map(p => [p[0], p[1], 1]); const D = det(A); return [0,1,2].map(c => det(A.map((f, r) => f.map((v, j) => j === c ? k[r] : v))) / D) }
 // inversa: de foto a modelo

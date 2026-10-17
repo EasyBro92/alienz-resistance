@@ -1,4 +1,4 @@
-// Pegar la cara de una FOTO sobre la cabeza de un cuerpo hecho fuera (el de
+﻿// Pegar la cara de una FOTO sobre la cabeza de un cuerpo hecho fuera (el de
 // `cuerpo_de_fuera.py`, que deja en vistas/cuerpos/<clave>.json la malla y en
 // <clave>.png la textura, con la cabeza en la mitad derecha).
 //
@@ -320,7 +320,9 @@ if (modo === 'lado') {
       const nz = N[i * 3 + 2] * a + N[j * 3 + 2] * b + N[k * 3 + 2] * c
       const ln = Math.hypot(nx, ny, nz) || 1
       // El lado que la foto no ve se pinta con su reflejo.
-      const espejo = (X * d[0] < 0)
+      // --frente: una foto casi de frente que pinta toda la cara, sin reflejar nada.
+      const deFrente = process.argv.includes('--frente')
+      const espejo = !deFrente && (X * d[0] < 0)
       if (espejo) { X = -X; nx = -nx }
       if (Y < 1.43) return
       // La frente y las cejas, solo de la foto de frente: en las de lado la cara está
@@ -330,7 +332,7 @@ if (modo === 'lado') {
       if (!de) return
       const mira = (nx * d[0] + ny * d[1] + nz * d[2]) / ln
       // Lo que mira de frente ya lo pintó la foto de frente.
-      const w = suave(0.25, 0.6, mira) * (1 - suave(0.55, 0.85, nz / ln)) * (espejo ? 0.85 : 1) * (1 - frente)
+      const w = deFrente ? suave(0.15, 0.5, mira) : suave(0.25, 0.6, mira) * (1 - suave(0.55, 0.85, nz / ln)) * (espejo ? 0.85 : 1) * (1 - frente)
       if (w <= 0.01) return
       let col = muestra(foto, de[0], de[1])
       let wf = w * (1 - fondo(col))
@@ -342,7 +344,7 @@ if (modo === 'lado') {
   const sum = [[0, 0, 0], [0, 0, 0]]; let n = 0
   const piel = c => { const l = (c[0] + c[1] + c[2]) / 3; return l > 45 && l < 150 && c[0] > c[2] + 12 }
   for (const p of pintar) { if (p.w > 0.2 && piel(p.col) && piel([tex.d[p.o], tex.d[p.o + 1], tex.d[p.o + 2]])) { for (let c = 0; c < 3; c++) { sum[0][c] += tex.d[p.o + c]; sum[1][c] += p.col[c] } n++ } }
-  const razon = [0, 1, 2].map(c => (n ? sum[0][c] / Math.max(1, sum[1][c]) : 1))
+  const razon = [0, 1, 2].map(c => (n && !process.argv.includes('--frente') ? sum[0][c] / Math.max(1, sum[1][c]) : 1))
   const sale = Buffer.from(tex.d)
   for (const p of pintar) for (let c = 0; c < 3; c++) sale[p.o + c] = Math.round(tex.d[p.o + c] * (1 - p.w) + Math.min(255, p.col[c] * razon[c]) * p.w)
   await sharp(sale, { raw: { width: tex.w, height: tex.h, channels: 3 } }).png().toFile(actual)
@@ -350,7 +352,7 @@ if (modo === 'lado') {
 }
 
 // --- ojos de persona (15/10, la ballestera) ---------------------------------------
-//   node … ojos <clave> --ojos "cx,cy;cx,cy" [--iris 0.0062] [--color 70,105,55]
+//   node … ojos <clave> --ojos "cx,cy;cx,cy" [--iris 0.0062] [--color 70,105,55] [--delante 0.02] [--apagar]
 // Hunyuan le pintó los ojos de un verde chillón de lado a lado, sin blanco
 // (Isidro: «los ojos son poco realistas, no tiene la parte blanca, solo se ve
 // verde»). La abertura del ojo es justo esa mancha verde: dentro se pinta el
@@ -362,10 +364,18 @@ if (modo === 'ojos') {
   const centros = process.argv[process.argv.indexOf('--ojos') + 1].split(';').map(t => t.split(',').map(Number))
   const R = arg('--iris', [0.0062])[0]
   const base = arg('--color', [70, 105, 55])
+  // Lo que quede por detrás de esta profundidad no es la cara (la nuca, el pelo).
+  // Cada modelo trae la cara a una: la de la ballestera nueva, a 0, no a 2 cm.
+  const delante = arg('--delante', [0.02])[0]
+  const apagar = process.argv.includes('--apagar')
+  // Desde cuánto verde es «ojo». En la ballestera nueva el borde del ojo es un
+  // verde pálido que con 4-22 se quedaba a medias, a manchas: ahí va -6,8.
+  const verde = arg('--verde', [4, 22])
   const sale = Buffer.from(tex.d)
   const suave = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t) }
   let n = 0
   const tocados = new Set()
+  const suma = centros.map(() => [0, 0, 0])
   for (let t = 0; t < I.length; t += 3) {
     const [i, j, k] = [I[t], I[t + 1], I[t + 2]]
     if (U[i * 2] < 0.5) continue
@@ -375,12 +385,26 @@ if (modo === 'ojos') {
       const Y = P[i * 3 + 1] * a + P[j * 3 + 1] * b + P[k * 3 + 1] * c
       const Z = P[i * 3 + 2] * a + P[j * 3 + 2] * b + P[k * 3 + 2] * c
       const ojo = centros.find(([cx, cy]) => Math.hypot(X - cx, Y - cy) < 0.03)
-      if (!ojo || Z < 0.02) return
+      if (!ojo || Z < delante) return
       const o = (y * tex.w + x) * 3
       const [r, g, bl] = [tex.d[o], tex.d[o + 1], tex.d[o + 2]]
       // Cuánto es «ojo»: lo verde, con el borde fundido.
-      const w = suave(4, 22, g - Math.max(r, bl))
+      const w = suave(verde[0], verde[1], g - Math.max(r, bl))
       if (w <= 0) return
+      // Dónde cae de verdad lo verde de cada ojo, para afinar los centros.
+      const s = suma[centros.indexOf(ojo)]; s[0] += X * w; s[1] += Y * w; s[2] += w
+      const o3 = (y * tex.w + x) * 3
+      if (apagar) {
+        // La ballestera del 17/10 ya trae el blanco y la pupila: solo el iris
+        // brilla como un neón. Se le deja su dibujo y se lleva a un verde apagado
+        // con la misma luz que tenía, algo más oscura.
+        const luz = (r + g + bl) / 3 / 255
+        const col = base.map(v => v * luz * 1.5)
+        for (let ch = 0; ch < 3; ch++) sale[o3 + ch] = Math.round(tex.d[o3 + ch] * (1 - w) + col[ch] * w)
+        tocados.add(o3 / 3)
+        n++
+        return
+      }
       const dx = (X - ojo[0]) / R; const dy = (Y - ojo[1]) / R
       const d = Math.hypot(dx, dy)
       let col
@@ -416,7 +440,7 @@ if (modo === 'ojos') {
     if (cerca && g > r + 25 && g > b + 25) { const v = (r + b) / 2; sale[o + 1] = Math.round(v + (g - v) * 0.25) }
   }
   await sharp(sale, { raw: { width: tex.w, height: tex.h, channels: 3 } }).png().toFile(actual)
-  console.log(n + ' píxeles de ojo repintados')
+  console.log(n + ' píxeles de ojo repintados; centro de lo verde: ' + suma.map(([x, y, w]) => (x / w).toFixed(4) + ',' + (y / w).toFixed(4)).join(';'))
 }
 
 if (modo === 'pegar' || modo === 'fotos' || modo === 'lado' || modo === 'ojos') {
