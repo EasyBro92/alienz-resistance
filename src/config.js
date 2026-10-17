@@ -188,7 +188,8 @@ export const SOLDIERS = {
   // 17/10: Isidro pidió quitarles el nombre y cambiarles algo el aspecto a las
   // de Resident Evil (las claves siguen siendo las de antes: van en las partidas
   // guardadas y en el multijugador). Jill es Valeria, Claire es Carla, Rebecca es
-  // Rita, Sheva es Shani y Sherry es Sara; Ada pasa a ser un hombre, Duke.
+  // Rita y Sheva es Shani; Ada pasa a ser un hombre, Duke. Sherry NO cambia: el 18/10 Isidro
+  // pidió que volviera la de antes (ver su entrada).
   //
   // Valeria (antes Jill): la pistola. Rapidísima, se asienta en el blanco y además lo frena.
   jill: {
@@ -242,15 +243,18 @@ export const SOLDIERS = {
     empuja: 0.8,
     blurb: 'Solo en la caja alienígena. Fusil de tiradora semiautomático: dispara de pie, atraviesa blindajes, elige al más duro y lo echa para atrás.'
   },
-  // Sara (antes Sherry, la prueba de Hunyuan3D que era una `estatua`: posada, con
-  // el fusil fundido, sin andar ni apuntar). El 17/10 se rehizo en Meshy en pose A
-  // y con esqueleto, así que ya anda y lleva el fusil del juego.
+  // Sherry: el modelo realista hecho fuera (Hunyuan3D), tal como la dejó Isidro
+  // el 06/10. Es una `estatua`: viene posada y con su fusil fundido, así que se
+  // dibuja quieta en vez de la malla del esqueleto (`sinArma` esconde el arma del
+  // juego) y ni anda ni apunta. Para hacerla de verdad hace falta el modelo en
+  // pose A y sin arma. Se reduce con `cuerpo_de_fuera.py`. El 17/10 se rehizo en
+  // Meshy y pasó a llamarse Sara; Isidro pidió que volviera ella (18/10).
   sherry: {
-    name: 'Sara', cost: 260, hp: 140, color: 0x6f9fc8, accent: 0x2a4a66, arma: 'rifle', sinGalones: true,
+    name: 'Sherry', cost: 260, hp: 140, color: 0x6f9fc8, accent: 0x2a4a66, arma: 'rifle', sinGalones: true, sinArma: true, estatua: true,
     damage: 12, fireRate: 3.6, range: 18, armorPierce: 0.4,
     magazine: 20, reloadTime: 1.1,
     asienta: { porSegundo: 0.3, tope: 0.9 },
-    blurb: 'Solo en la caja alienígena. Fusil de asalto: dispara rápido y cada vez más certera mientras no se mueve.'
+    blurb: 'Solo en la caja alienígena. De prueba: un modelo realista hecho con otra herramienta. Todavía no anda ni apunta.'
   },
   // La ballestera (15/10): la primera hecha fuera que anda y dispara. Isidro la
   // generó en Hunyuan3D («una chica sexy con poca ropa que tenga una ballesta»);

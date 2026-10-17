@@ -74,7 +74,9 @@ export const MODELS = {
   ada: 'models/soldado-duke.glb',
   rebecca: 'models/soldado-rita.glb',
   sheva: 'models/soldado-shani.glb',
-  sherry: 'models/soldado-sara.glb',
+  // Sherry vuelve a ser la de Hunyuan3D (18/10, a petición de Isidro): el cuerpo
+  // de Meshy del 17/10 (soldado-sara.glb) queda sin usar.
+  sherry: 'models/cuerpo-sherry-f.glb',
   // La ballestera (15/10): hecha por Isidro en Hunyuan3D, aligerada con
   // cuerpo_de_fuera.py, con los ojos repintados y el esqueleto de Meshy. Trae su
   // propia cabeza: no está en CON_CABEZA.
