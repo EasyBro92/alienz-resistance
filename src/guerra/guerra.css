@@ -145,3 +145,98 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--fondo)
 .gc-escribir button { padding: 8px 12px; border-radius: 10px; border: 1px solid var(--borde); background: rgba(255,255,255,0.12); color: var(--tinta); font: 700 13px inherit; }
 /* La capa del radar va encima del menú: opaca, o se leían los dos a la vez. */
 #gc-espera { background: radial-gradient(circle at 50% 35%, #102018, #06090c 70%); z-index: 6; }
+
+/* --- los menús, con la estética del juego (18/10/2026) ---
+   Isidro: «algunos como la Guerra civil son diferentes, pero quiero que sea
+   estéticamente igual al resto». Las capas (menú, final, espera, carga) copian
+   lo que hacen los menús de la campaña —El mundo, la Tienda, el Multijugador—:
+   el fondo opaco de su tema (oscuro o claro, el que se haya elegido en
+   Ajustes), el botón redondo de atrás arriba a la izquierda, el antetítulo
+   verde pequeño, el titular grande en degradado verde, los botones de panel
+   con borde, el principal verde en píldora y «Volver» como chip. Los colores
+   son los de src/style.css; van SOLO dentro de las capas, porque el marcador
+   de la partida va encima del campo y se queda con los suyos. */
+.gc-capa {
+  --m-fondo: linear-gradient(180deg, #111820 0%, #0a0f14 55%, #06090c 100%);
+  --m-panel: rgba(14, 19, 26, 0.86);
+  --m-stroke: rgba(255, 255, 255, 0.13);
+  --m-velo-2: rgba(255, 255, 255, 0.06);
+  --m-velo-3: rgba(255, 255, 255, 0.09);
+  --m-tinta: #ffffff;
+  --m-tinta-3: rgba(255, 255, 255, 0.62);
+  --m-tinta-4: rgba(255, 255, 255, 0.34);
+  --m-green: #5fd97a;
+  --m-red: #e8523f;
+  --m-verde-texto: #6fe39a;
+  --m-titulo-alto: #eafff0;
+  place-items: start center;
+  overflow-y: auto;
+  padding-top: calc(env(safe-area-inset-top) + 62px);
+  padding-bottom: calc(env(safe-area-inset-bottom) + 24px);
+  background: var(--m-fondo);
+  color: var(--m-tinta);
+}
+:root[data-tema="claro"] .gc-capa {
+  --m-fondo: linear-gradient(180deg, #f6f3ea 0%, #ece7da 60%, #e2dccc 100%);
+  --m-panel: rgba(248, 246, 240, 0.9);
+  --m-stroke: rgba(24, 30, 26, 0.16);
+  --m-velo-2: rgba(24, 30, 26, 0.09);
+  --m-velo-3: rgba(24, 30, 26, 0.13);
+  --m-tinta: #111a14;
+  --m-tinta-3: rgba(17, 26, 20, 0.82);
+  --m-tinta-4: rgba(17, 26, 20, 0.56);
+  --m-green: #2a7d41;
+  --m-verde-texto: #1f6b36;
+  --m-titulo-alto: #0f4423;
+}
+.gc-capa .gc-caja { gap: 10px; }
+.gc-capa .gc-antetitulo {
+  font-size: 10px; font-weight: 800; letter-spacing: 2.4px;
+  color: var(--m-verde-texto); opacity: 0.75;
+}
+.gc-capa .gc-caja h1, .gc-capa .gc-espera-titulo {
+  margin: 0 0 4px;
+  font-size: clamp(28px, 9vw, 40px); font-weight: 900; letter-spacing: 2px;
+  background: linear-gradient(180deg, var(--m-titulo-alto), var(--m-green));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+#gc-espera.fallo .gc-espera-titulo { background: linear-gradient(180deg, #ffd9d3, var(--m-red)); -webkit-background-clip: text; background-clip: text; }
+.gc-capa .gc-texto { font-size: 13px; line-height: 1.5; color: var(--m-tinta-3); }
+.gc-capa .gc-boton {
+  padding: 13px 14px; border-radius: 14px;
+  border: 2px solid var(--m-stroke); background: var(--m-panel); color: var(--m-tinta);
+  font-family: inherit; font-size: 15px; font-weight: 900; line-height: 1.2; letter-spacing: 1px;
+}
+.gc-capa .gc-boton small { color: var(--m-tinta-3); font-weight: 600; letter-spacing: 0; }
+.gc-capa .gc-principal {
+  border: none; border-radius: 999px; color: #08160c;
+  background: linear-gradient(180deg, #8ff0a5, #3fbf62);
+  box-shadow: 0 5px 0 #2a7d41, 0 10px 22px rgba(0, 0, 0, 0.25);
+  margin-bottom: 4px;
+}
+.gc-capa .gc-principal small { color: rgba(8, 22, 12, 0.72); }
+.gc-capa .gc-principal:active { transform: translateY(3px); box-shadow: 0 2px 0 #2a7d41; }
+.gc-capa .gc-directo { border-color: var(--m-stroke); }
+.gc-capa .gc-volver {
+  align-self: center; margin-top: 6px;
+  padding: 7px 16px; border-radius: 999px;
+  background: var(--m-velo-3); font-size: 12px; font-weight: 800; letter-spacing: 0;
+}
+.gc-capa .gc-escudo { border: 2px solid var(--m-stroke); background: var(--m-panel); }
+.gc-capa .gc-escudo[aria-expanded="true"] { box-shadow: 0 0 0 3px color-mix(in srgb, var(--m-green) 40%, transparent); }
+.gc-capa .gc-compania-nombre span { color: var(--m-verde-texto); font-size: 10px; font-weight: 800; letter-spacing: 2px; opacity: 0.75; }
+.gc-capa input { border: 1px solid var(--m-stroke) !important; background: var(--m-velo-2) !important; color: var(--m-tinta) !important; }
+.gc-capa .gc-compania-nombre input::placeholder { color: var(--m-tinta-4); }
+.gc-capa .gc-iconos, .gc-capa .gc-sala { background: var(--m-panel); border: 2px solid var(--m-stroke); }
+.gc-capa .gc-iconos button { border-color: var(--m-stroke); background: var(--m-velo-2); }
+.gc-capa .gc-iconos button[aria-selected="true"] { border-color: var(--m-green); background: color-mix(in srgb, var(--m-green) 25%, transparent); }
+.gc-capa .gc-aviso { color: var(--m-red); }
+.gc-capa .gc-espera-reloj { color: var(--m-tinta-3); }
+#gc-espera { background: var(--m-fondo); }
+/* El botón redondo de atrás, el mismo de la campaña (`.icon-btn.atras`). */
+.gc-atras {
+  position: fixed; top: calc(env(safe-area-inset-top) + 10px); left: 12px; z-index: 7;
+  display: grid; place-items: center; width: 42px; height: 42px;
+  border-radius: 999px; border: 2px solid var(--m-stroke); background: var(--m-panel); color: var(--m-tinta);
+}
+.gc-atras svg { width: 22px; height: 22px; }

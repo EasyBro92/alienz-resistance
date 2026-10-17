@@ -2461,54 +2461,29 @@ html, body {
  * de rejilla y las esquinas oscurecidas son dos degradados, que no cuestan
  * nada.
  */
+/* 18/10/2026: Isidro, «la estética de los menús multijugador hazla tal y como
+ * son el resto de menús». Ya no hay sala de mando aparte: la misma paleta del
+ * tema (oscura o clara), el mismo fondo opaco, el panel sin tarjeta y el
+ * titular grande en verde, como El mundo o la Tienda. */
 .retos-capa, .coop-capa {
-  --panel: rgba(12, 17, 23, 0.9);
-  --panel-fondo: rgba(10, 15, 20, 0.92);
-  --stroke: rgba(255,255,255,0.14);
-  --velo-1: rgba(255,255,255,0.03);
-  --velo-2: rgba(255,255,255,0.06);
-  --velo-3: rgba(255,255,255,0.09);
-  --velo-4: rgba(255,255,255,0.16);
-  --borde-1: rgba(255,255,255,0.09);
-  --borde-2: rgba(255,255,255,0.13);
-  --borde-3: rgba(255,255,255,0.24);
-  --tinta: #ffffff;
-  --tinta-2: #cfd8d2;
-  --tinta-3: rgba(255,255,255,0.62);
-  --tinta-4: rgba(255,255,255,0.34);
-  --tinta-fria: #9fb0a6;
-  --green: #5fd97a;
-  --verde-texto: #6fe39a;
   color: var(--tinta);
-  background:
-    repeating-linear-gradient(0deg, rgba(110,220,150,0.045) 0 1px, transparent 1px 3px),
-    radial-gradient(120% 80% at 50% 0%, rgba(20,40,32,0.72), rgba(6,10,14,0.94) 62%, rgba(4,7,10,0.97)),
-    #05080b;
+  background: var(--fondo-capa);
+  backdrop-filter: none;
+  padding-top: calc(env(safe-area-inset-top) + 62px);
 }
 /* El botón verde apagado (CREAR EL RETO sin oleada, ABRIR UNA SALA sin cuenta)
    era letra negra sobre un gris verdoso a media opacidad encima del panel
    oscuro: no se leía (Isidro, 28/09). Aquí, solo en multijugador, apagado es
    un botón hueco con la letra clara. */
 .retos-capa .big-btn:disabled, .coop-capa .big-btn:disabled {
-  background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.62);
-  border: 1px solid rgba(255,255,255,0.18); filter: none; opacity: 1; box-shadow: none;
-}
-.retos-capa .panel, .coop-capa .panel {
-  background: linear-gradient(180deg, rgba(22,30,38,0.92), rgba(12,17,23,0.94));
-  border: 1px solid var(--borde-2);
-  border-radius: 18px;
-  padding: 16px 14px 18px;
-  box-shadow: 0 18px 40px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.07);
+  background: var(--velo-3); color: var(--tinta-4);
+  border: 1px solid var(--borde-2); filter: none; opacity: 1; box-shadow: none;
 }
 .retos-capa h2, .coop-capa h2 {
-  background: linear-gradient(180deg, #eafff1, var(--green));
+  margin: 0 0 10px;
+  font-size: clamp(28px, 9vw, 40px); font-weight: 900; letter-spacing: 2px;
+  background: linear-gradient(180deg, var(--titulo-alto), var(--green));
   -webkit-background-clip: text; background-clip: text; color: transparent;
-}
-.retos-capa .eyebrow::before, .coop-capa .eyebrow::before {
-  content: ''; display: inline-block; width: 6px; height: 6px; margin-right: 6px;
-  border-radius: 50%; background: var(--green); vertical-align: middle;
-  box-shadow: 0 0 6px var(--green);
-  animation: radio-late 2.2s ease-in-out infinite;
 }
 @keyframes radio-late { 0%, 100% { opacity: 1 } 50% { opacity: .25 } }
 
@@ -3009,45 +2984,9 @@ a.multi-boton { text-decoration: none; }
 .duelo-fijar[aria-pressed=true] { background: var(--verde-texto); color: var(--panel-fondo); opacity: 1; border-color: transparent; }
 
 /* ---------- multijugador en tema claro ---------- */
-/* Las pantallas de multijugador se pintaban SIEMPRE oscuras (fijan sus propias
-   variables en .retos-capa/.coop-capa). Isidro, 28/09: «con el modo claro, el
-   modo multijugador se sigue viendo oscuro». Con el tema claro vuelven a las
-   variables claras. Solo estas cinco: el expediente y la lista de usuarios
-   comparten la clase y se quedan como estaban. */
-:root[data-tema="claro"] :is(#multi-capa, #duelo-capa, #ranking-capa, #retos-capa, #coop-capa) {
-  --panel: rgba(255, 255, 255, 0.97);
-  --panel-fondo: #ffffff;
-  --stroke: #c9d3cd;
-  --velo-1: #ffffff;
-  --velo-2: #f2f5f3;
-  --velo-3: #e5ebe7;
-  --velo-4: #d3dcd6;
-  --borde-1: #d2dbd5;
-  --borde-2: #b9c5be;
-  --borde-3: #93a39a;
-  --tinta: #0a120d;
-  --tinta-2: #1c2a21;
-  --tinta-3: #2f3f35;
-  --tinta-4: #56675d;
-  --tinta-fria: #365446;
-  --green: #178041;
-  --verde-texto: #0c6330;
-  color: var(--tinta);
-  background:
-    repeating-linear-gradient(0deg, rgba(22,128,62,0.035) 0 1px, transparent 1px 3px),
-    linear-gradient(180deg, #f8faf8 0%, #eef2ef 55%, #e4eae6 100%);
-}
-:root[data-tema="claro"] :is(#multi-capa, #duelo-capa, #ranking-capa, #retos-capa, #coop-capa) .panel {
-  background: linear-gradient(180deg, #ffffff, #f5f8f6);
-  box-shadow: 0 14px 34px rgba(15,30,20,0.14), inset 0 1px 0 #ffffff;
-}
-:root[data-tema="claro"] :is(#multi-capa, #duelo-capa, #ranking-capa, #retos-capa, #coop-capa) h2 {
-  background: linear-gradient(180deg, #0f7a3a, #0a4f26);
-  -webkit-background-clip: text; background-clip: text;
-}
-:root[data-tema="claro"] :is(#duelo-capa, #retos-capa, #coop-capa) .big-btn:disabled {
-  background: var(--velo-3); color: var(--tinta-4); border-color: var(--borde-2);
-}
+/* Desde el 18/10 el multijugador usa las variables del tema como el resto de
+   menús, así que en claro ya sale claro sin nada aparte. Queda el tinte de los
+   botones grandes del menú, que en claro se mezcla con blanco. */
 :root[data-tema="claro"] #multi-capa .multi-boton {
   background: linear-gradient(100deg, color-mix(in srgb, var(--tinte) 20%, #ffffff), #ffffff 62%);
 }

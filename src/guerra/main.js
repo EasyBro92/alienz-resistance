@@ -27,6 +27,17 @@ import { crearCampo, CAMPO, carrilX, MITAD, COLOR } from './campo.js'
 import { crearRed } from './red.js'
 import { filtrar, FRASES, MAX_MENSAJE, ESPERA_MENSAJE } from '../systems/duelo.js'
 
+// El tema de Ajustes (oscuro, claro o el del móvil), con la misma clave y la
+// misma regla que la campaña (`aplicarTema` en src/main.js): desde el 18/10 los
+// menús de la Guerra civil se visten igual que los del resto del juego.
+{
+  let pref = 'auto'
+  try { pref = localStorage.getItem('alienz-tema-v1') ?? 'auto' } catch { /* modo privado */ }
+  document.documentElement.dataset.tema = pref === 'claro' || pref === 'oscuro'
+    ? pref
+    : (matchMedia('(prefers-color-scheme: light)').matches ? 'claro' : 'oscuro')
+}
+
 ponerSinMejoras(true)
 
 // --- números del modo (todos aquí, para reequilibrar sin buscar) ----------------
