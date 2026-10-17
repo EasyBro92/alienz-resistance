@@ -52,7 +52,7 @@ const ROL = {
   archer: 'El más barato', rifle: 'Constante', shotgun: 'Cuerpo a cuerpo', sniper: 'Matajefes',
   flamer: 'Fuego', gunner: 'Frena la horda', misil: 'Atraviesa la fila', mortar: 'Contra grupos',
   capitan: 'Anima a los suyos',
-  jill: 'Pistolera', claire: 'Granadas de fuego', ada: 'Ballesta', rebecca: 'Médica', sheva: 'Tiradora de pie', sherry: 'Modelo de prueba', ballestera: 'Ballesta',
+  jill: 'Pistolera', claire: 'Granadas de fuego', ada: 'Magnum', rebecca: 'Médica', sheva: 'Tiradora de pie', sherry: 'Fusil de asalto', ballestera: 'Ballesta',
   sandbags: 'Aguanta el golpe', spikes: 'Devuelve el mordisco', mines: 'Revienta', erizos: 'Frena sin parar',
   torreta: 'Dispara sola',
   grenade: 'A mano', airstrike: 'Desde el aire', napalm: 'Incendiario', artilleria: 'Un carril entero',

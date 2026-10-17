@@ -116,7 +116,7 @@ export const SOLDIERS = {
     blurb: 'Destroza de cerca, salpica a los vecinos y los manda para atrás de un culatazo.'
   },
   sniper: {
-    name: 'Tirador', cost: 175, hp: 70, color: 0x49b88a, accent: 0x1e5c43,
+    name: 'Tiradora', cost: 175, hp: 70, color: 0x49b88a, accent: 0x1e5c43,
     damage: 57, fireRate: 0.85, range: 44, armorPierce: 1.0,
     magazine: 5, reloadTime: 1.6,
     // Rasgo: no dispara al más cercano, dispara al más duro. Es el matajefes.
@@ -185,65 +185,72 @@ export const SOLDIERS = {
   // CUERPO (`cuerpos.py`), su ARMA propia (`arma`: de ahí salen el modelo de
   // `buildWeapon`, cómo la agarra y cómo suena) y un rasgo que no tiene nadie.
   //
-  // Jill: la pistola. Rapidísima, se asienta en el blanco y además lo frena.
+  // 17/10: Isidro pidió quitarles el nombre y cambiarles algo el aspecto a las
+  // de Resident Evil (las claves siguen siendo las de antes: van en las partidas
+  // guardadas y en el multijugador). Jill es Valeria, Claire es Carla, Rebecca es
+  // Rita, Sheva es Shani y Sherry es Sara; Ada pasa a ser un hombre, Duke.
+  //
+  // Valeria (antes Jill): la pistola. Rapidísima, se asienta en el blanco y además lo frena.
   jill: {
-    name: 'Jill', cost: 280, hp: 170, color: 0x3f6fd0, accent: 0x1a2f66, arma: 'pistola', sinGalones: true,
+    name: 'Valeria', cost: 280, hp: 170, color: 0x3f6fd0, accent: 0x1a2f66, arma: 'pistola', sinGalones: true,
     damage: 11, fireRate: 5.0, range: 18, armorPierce: 0.4,
     magazine: 15, reloadTime: 0.8,
     asienta: { porSegundo: 0.3, tope: 0.9 },
     suprime: { factor: 0.88, dura: 0.5 },
     blurb: 'Solo en la caja alienígena. Pistola de las fuerzas especiales: dispara rapidísimo, cada vez más certera, y frena al que le da. Aguanta mucho.'
   },
-  // Claire: el lanzagranadas incendiario. Como el Mortero, pero más rápida, de
+  // Carla (antes Claire): el lanzagranadas incendiario. Como el Mortero, pero más rápida, de
   // menos pegada, y donde cae la granada el suelo se queda ardiendo.
   claire: {
-    name: 'Claire', cost: 300, hp: 130, color: 0xc8323a, accent: 0x5f1418, arma: 'lanzagranadas', sinGalones: true,
+    name: 'Carla', cost: 300, hp: 130, color: 0xc8323a, accent: 0x5f1418, arma: 'lanzagranadas', sinGalones: true,
     damage: 50, fireRate: 0.75, range: 26, armorPierce: 0.6, splash: 3.2, mortarShot: true,
     magazine: 6, reloadTime: 2.0,
     buscaCorro: true,
     brasas: { daño: 8, dura: 2.6, radio: 1.7 },
     blurb: 'Solo en la caja alienígena. Lanzagranadas incendiario: seis granadas seguidas donde más apretados van, y el suelo se queda ardiendo.'
   },
-  // Ada: la ballesta. Silenciosa, busca al más duro y lo deja casi parado.
+  // Duke (antes Ada, que llevaba la ballesta: la repetía la Ballestera). Isidro
+  // quiso «algún hombre típico de películas de zombis que esté fuerte»: un
+  // grandullón con revólver Magnum. Lo que tenía Ada se queda (busca al más duro
+  // y le atraviesa el blindaje), pero en vez de clavarlo lo echa para atrás, y
+  // son seis tiros antes de recargar el tambor.
   ada: {
-    name: 'Ada', cost: 290, hp: 110, color: 0xb0183a, accent: 0x4a0a18, arma: 'ballesta', sinGalones: true,
-    damage: 46, fireRate: 1.1, range: 36, armorPierce: 0.9,
-    magazine: 1, reloadTime: 0.55, projectile: 'arrow', silent: true,
-    clava: { factor: 0.7, dura: 3 },
+    name: 'Duke', cost: 290, hp: 150, color: 0x7a6a3a, accent: 0x3a3218, arma: 'revolver', sinGalones: true,
+    damage: 40, fireRate: 1.2, range: 30, armorPierce: 0.9,
+    magazine: 6, reloadTime: 1.8,
     buscaDuro: true,
-    blurb: 'Solo en la caja alienígena. Ballesta: atraviesa blindajes, elige al más duro y lo deja clavado casi en el sitio.'
+    empuja: 0.6,
+    blurb: 'Solo en la caja alienígena. Revólver Magnum: atraviesa blindajes, elige al más duro y lo echa para atrás. Seis tiros y a recargar el tambor.'
   },
-  // Rebecca: la médica. Dispara poco, pero cura a los suyos mientras aguanta en pie.
+  // Rita (antes Rebecca): la médica. Dispara poco, pero cura a los suyos mientras aguanta en pie.
   rebecca: {
-    name: 'Rebecca', cost: 240, hp: 120, color: 0x3fa060, accent: 0x1a4a2a, arma: 'subfusil', sinGalones: true,
+    name: 'Rita', cost: 240, hp: 120, color: 0x3fa060, accent: 0x1a4a2a, arma: 'subfusil', sinGalones: true,
     damage: 8, fireRate: 2.6, range: 15, armorPierce: 0.2,
     magazine: 12, reloadTime: 1.1,
     // Rasgo: cura poco a poco a los soldados de su carril y de los de al lado.
     sana: { porSegundo: 7, carriles: 1 },
     blurb: 'Solo en la caja alienígena. Médica: cura sin parar a los soldados de su carril y de los de al lado.'
   },
-  // Sheva: la tiradora rápida. Menos pegada que el Tirador, casi el doble de
+  // Shani (antes Sheva): la tiradora rápida. Menos pegada que el Tirador, casi el doble de
   // cadencia, y dispara DE PIE: no se arrodilla, así que no pierde el medio
   // segundo de levantarse cada vez que se la mueve.
   sheva: {
-    name: 'Sheva', cost: 300, hp: 110, color: 0x8a5ad0, accent: 0x3a2466, arma: 'dragunov', sinGalones: true,
+    name: 'Shani', cost: 300, hp: 110, color: 0x8a5ad0, accent: 0x3a2466, arma: 'dragunov', sinGalones: true,
     damage: 42, fireRate: 1.5, range: 44, armorPierce: 1.0,
     magazine: 6, reloadTime: 1.4,
     buscaDuro: true,
     empuja: 0.8,
     blurb: 'Solo en la caja alienígena. Fusil de tiradora semiautomático: dispara de pie, atraviesa blindajes, elige al más duro y lo echa para atrás.'
   },
-  // Sherry: PRUEBA de un modelo hecho fuera (Hunyuan3D), para ver su realismo
-  // dentro del juego. Es una `estatua`: viene posada y con su fusil fundido, así
-  // que se dibuja quieta en vez de la malla del esqueleto (`sinArma` esconde el
-  // arma del juego) y ni anda ni apunta. Para hacerla de verdad hace falta el
-  // modelo en pose A y sin arma. Se reduce con `cuerpo_de_fuera.py`.
+  // Sara (antes Sherry, la prueba de Hunyuan3D que era una `estatua`: posada, con
+  // el fusil fundido, sin andar ni apuntar). El 17/10 se rehizo en Meshy en pose A
+  // y con esqueleto, así que ya anda y lleva el fusil del juego.
   sherry: {
-    name: 'Sherry', cost: 260, hp: 140, color: 0x6f9fc8, accent: 0x2a4a66, arma: 'rifle', sinGalones: true, sinArma: true, estatua: true,
+    name: 'Sara', cost: 260, hp: 140, color: 0x6f9fc8, accent: 0x2a4a66, arma: 'rifle', sinGalones: true,
     damage: 12, fireRate: 3.6, range: 18, armorPierce: 0.4,
     magazine: 20, reloadTime: 1.1,
     asienta: { porSegundo: 0.3, tope: 0.9 },
-    blurb: 'Solo en la caja alienígena. De prueba: un modelo realista hecho con otra herramienta. Todavía no anda ni apunta.'
+    blurb: 'Solo en la caja alienígena. Fusil de asalto: dispara rápido y cada vez más certera mientras no se mueve.'
   },
   // La ballestera (15/10): la primera hecha fuera que anda y dispara. Isidro la
   // generó en Hunyuan3D («una chica sexy con poca ropa que tenga una ballesta»);

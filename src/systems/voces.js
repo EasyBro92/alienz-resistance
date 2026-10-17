@@ -58,7 +58,10 @@ export function crearVoces (audio, { sexoDe = () => 1 } = {}) {
 
   // Quién es en el reparto: las cinco de la caja y la radio, por su nombre; los
   // soldados de la tienda, con la voz de chica o de chico que lleven puesta.
-  const hablante = clave => (INDICE[clave] ? clave : `${clave}-${sexoDe(clave) ? 'm' : 'f'}`)
+  // Duke (17/10) va con la clave de Ada, pero es un hombre: con la voz y las
+  // frases de ella no. Calla hasta que Isidro apruebe las suyas (`ada-m` no
+  // existe en el índice, así que no dice nada).
+  const hablante = clave => (INDICE[clave] && clave !== 'ada' ? clave : `${clave}-${sexoDe(clave) ? 'm' : 'f'}`)
 
   const decodificar = bytes => new Promise((resolve, reject) => {
     const c = taller ?? ctx

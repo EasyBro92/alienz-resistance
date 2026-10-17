@@ -65,6 +65,18 @@ const ESTILO_CRIATURA = [
   'clean game-ready asset, isolated, no ground plane, no background'
 ].join(', ')
 
+// Para personas «con la calidad de Sherry» (Isidro, 17/10/2026: rehacer los
+// soldados con Meshy, «más parecidos a Sherry en calidad, pero sin cambiarlos
+// demasiado»). Sherry vino de Hunyuan3D: cara realista y amable, piel, tela y
+// cuero con su textura. `--humano` cambia la estética común por esta; la común
+// pide lo contrario (bloques de color, nada de realismo).
+const ESTILO_HUMANO = [
+  'highly detailed realistic 3D game character, AAA quality like a modern survival horror game',
+  'realistic human face with natural skin, calm friendly but serious expression, mouth closed, natural eyes with white sclera',
+  'realistic fabric, leather and metal PBR textures',
+  'standing in A-pose, arms away from the body, isolated, no ground plane, no background'
+].join(', ')
+
 const RAIZ = path.resolve(import.meta.dirname, '..')
 const DESTINO = path.join(RAIZ, 'public', 'models')
 const API = 'https://api.meshy.ai'
@@ -194,7 +206,7 @@ const previo = await pedir(clave, '/openapi/v2/text-to-3d', {
     mode: 'preview',
     // El prompt del encargo y, detrás, la estética común. En este orden: lo
     // primero pesa más, así que el QUÉ manda sobre el CÓMO.
-    prompt: `${o.prompt}. ${o.criatura ? ESTILO_CRIATURA : o.realista ? ESTILO_REAL : ESTILO}`,
+    prompt: `${o.prompt}. ${o.humano ? ESTILO_HUMANO : o.criatura ? ESTILO_CRIATURA : o.realista ? ESTILO_REAL : ESTILO}`,
     art_style: 'realistic',
     // Los modelos baratos no admiten `lowpoly`: ahí el recorte lo hace el remallado.
     model_type: o.modelo ? 'standard' : 'lowpoly',
@@ -246,7 +258,7 @@ if (o.refinar) {
       // tocaba: las cinco naves salieron del mismo rojo y oro pese a que cada
       // prompt pedía su paleta. El color se decide al texturizar, así que es
       // aquí donde hay que repetirlo.
-      texture_prompt: `${o.prompt}. ${o.criatura ? ESTILO_CRIATURA : o.realista ? ESTILO_REAL : ESTILO}`,
+      texture_prompt: `${o.prompt}. ${o.humano ? ESTILO_HUMANO : o.criatura ? ESTILO_CRIATURA : o.realista ? ESTILO_REAL : ESTILO}`,
       // 2k y no 4k: la pieza se ve de lejos y en un móvil, y cada salto de
       // resolución multiplica por cuatro lo que hay que descargar y subir a la
       // tarjeta gráfica.
@@ -305,6 +317,11 @@ if (o.rig) {
   if (r.rigged_character_glb_url) {
     await descargar(r.rigged_character_glb_url, path.join(DESTINO, `${o.nombre}-reposo.glb`))
   }
+  // La carrera también: `unir-animacion.mjs` le copia sus curvas al de andar.
+  if (r.basic_animations?.running_glb_url) {
+    await descargar(r.basic_animations.running_glb_url, path.join(DESTINO, `${o.nombre}-correr.glb`))
+  }
+  console.log(`Esqueleto: ${rig.result} (se puede volver a bajar gratis mientras no caduque)`)
 }
 
 const destino = path.join(DESTINO, `${o.nombre}.glb`)

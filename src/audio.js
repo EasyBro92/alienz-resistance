@@ -63,7 +63,7 @@ export function createAudio () {
   let ruido = null
   let sala = null
   const ultimo = {}
-  const HUECO = { rifle: 0.04, gunner: 0.045, torreta: 0.05, flamer: 0.13, archer: 0.05, shotgun: 0.08, sniper: 0.1, misil: 0.12, mortar: 0.12, pistola: 0.04, subfusil: 0.04, lanzagranadas: 0.12, ballesta: 0.05, dragunov: 0.09 }
+  const HUECO = { rifle: 0.04, gunner: 0.045, torreta: 0.05, flamer: 0.13, archer: 0.05, shotgun: 0.08, sniper: 0.1, misil: 0.12, mortar: 0.12, pistola: 0.04, revolver: 0.1, subfusil: 0.04, lanzagranadas: 0.12, ballesta: 0.05, dragunov: 0.09 }
 
   function preparar () {
     if (ruido) return
@@ -258,6 +258,14 @@ export function createAudio () {
       tono(s, t, { f0: 240 * v, f1: 90, pico: 0.34, cae: 0.05 })
       clic(s, t + 0.12, 3600 * v, 0.045)
     },
+    // Revólver Magnum (Duke): más grave y gordo que la pistola, con cola, y el
+    // tambor que gira en vez del casquillo.
+    revolver (s, t, v) {
+      soplo(s, t, { tipo: 'highpass', f0: 2400 * v, pico: 0.55, cae: 0.04 })
+      soplo(s, t, { tipo: 'lowpass', f0: 1200 * v, f1: 200, pico: 0.62, cae: 0.16 })
+      tono(s, t, { f0: 170 * v, f1: 55, pico: 0.55, cae: 0.12 })
+      clic(s, t + 0.22, 2600 * v, 0.05)
+    },
     // Subfusil: más fino y seco que el fusil, hecho para ir en ráfaga.
     subfusil (s, t, v) {
       soplo(s, t, { tipo: 'highpass', f0: 2700 * v, pico: 0.34, cae: 0.024 })
@@ -296,6 +304,7 @@ export function createAudio () {
   Object.assign(ARMAS.misil, { sala: 0.3 })
   Object.assign(ARMAS.mortar, { sala: 0.36 })
   Object.assign(ARMAS.pistola, { sala: 0.2 })
+  Object.assign(ARMAS.revolver, { sala: 0.4 })
   Object.assign(ARMAS.subfusil, { sala: 0.16 })
   Object.assign(ARMAS.lanzagranadas, { sala: 0.3 })
   Object.assign(ARMAS.ballesta, { sala: 0.08 })

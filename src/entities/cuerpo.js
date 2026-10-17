@@ -59,6 +59,7 @@ const AGARRES = {
   // La pistola no tiene culata: `culata` es lo que se adelanta del hombro, o
   // sea, los brazos casi estirados. Las dos manos van a la empuñadura.
   pistola: { mano: [0, -0.055, 0.072], apoyo: [-0.014, -0.078, 0.062], culata: 0.33, escala: 1.2 },
+  revolver: { mano: [0, -0.055, 0.085], apoyo: [-0.014, -0.078, 0.075], culata: 0.33, escala: 1.2 },
   subfusil: { mano: [0, -0.11, 0.1], apoyo: [0, -0.1, -0.16], culata: 0.345, escala: 0.76 },
   lanzagranadas: { mano: [0, -0.11, 0.07], apoyo: [0, -0.075, -0.17], culata: 0.44, escala: 0.68 },
   ballesta: { mano: [0, -0.11, 0.12], apoyo: [0, -0.045, -0.1], culata: 0.365, escala: 0.74 },
@@ -83,6 +84,7 @@ const ESTILOS = {
   // La pistola se saca al centro y a la altura de la barbilla, con los pies
   // abiertos: es la postura que la distingue de todos los demás.
   pistola: { culata: [-0.13, 0.04, -0.02], inclina: 0.05, abre: 0.12 },
+  revolver: { culata: [-0.13, 0.04, -0.02], inclina: 0.06, abre: 0.14 },
   subfusil: { culata: [-0.09, 0.09, -0.05], inclina: 0.08, abre: 0.04 },
   lanzagranadas: { culata: [-0.09, 0.1, -0.05], inclina: 0.0, abre: 0.12 },
   ballesta: { culata: [-0.09, 0.11, -0.05], inclina: 0.05, abre: 0.05 },

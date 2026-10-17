@@ -51,24 +51,29 @@ import { seg as lados, CON_OCLUSION, CON_ADORNOS } from './systems/detalle.js'
 // Son un solo cuerpo cada uno: la chica y el chico se distinguen por la cabeza
 // (`ponerCabeza`), así que las dos casillas de su fila llevan el mismo archivo.
 // Traen además el ciclo de CORRER de Meshy junto al de andar (`cuerpo.js`).
+//
+// 17/10: TODOS rehechos en Meshy, cada uno una persona con su cara (Isidro: «los
+// quiero más parecidos a Sherry en calidad, pero sin cambiarlos demasiado, me
+// gustan sus vestimentas»). Eligió UN cuerpo por soldado, sin chico y chica —con
+// los dos no llegaban los créditos para los de la caja—, así que ya ninguno lleva
+// cabeza de Blender ni se cambia de sexo en la tienda.
 export const MODELS = {
-  rifle: ['models/soldado-fusil-f.glb', 'models/soldado-fusil-m.glb'],
-  shotgun: ['models/soldado-escopeta-f.glb', 'models/soldado-escopeta-m.glb'],
-  sniper: ['models/soldado-tirador-f.glb', 'models/soldado-tirador-m.glb'],
-  flamer: ['models/soldado-ignifugo.glb', 'models/soldado-ignifugo.glb'],
-  archer: ['models/soldado-arquero.glb', 'models/soldado-arquero.glb'],
-  mortar: ['models/soldado-escopeta-f.glb', 'models/soldado-escopeta-m.glb'],
-  gunner: ['models/soldado-lanzallamas-f.glb', 'models/soldado-lanzallamas-m.glb'],
-  misil: ['models/soldado-lanzallamas-f.glb', 'models/soldado-lanzallamas-m.glb'],
-  capitan: ['models/soldado-fusil-f.glb', 'models/soldado-fusil-m.glb'],
-  // Las cinco de la caja alienígena: una sola persona cada una (no hay chico),
-  // con el cuerpo de chica que mejor le va por color.
-  jill: 'models/cuerpo-jill-f.glb',
-  claire: 'models/cuerpo-claire-f.glb',
-  ada: 'models/cuerpo-ada-f.glb',
-  rebecca: 'models/cuerpo-rebecca-f.glb',
-  sheva: 'models/cuerpo-sheva-f.glb',
-  sherry: 'models/cuerpo-sherry-f.glb',
+  rifle: 'models/soldado-fusilero.glb',
+  shotgun: 'models/soldado-escopetero.glb',
+  sniper: 'models/soldado-tiradora.glb',
+  flamer: 'models/soldado-ignifugo.glb',
+  archer: 'models/soldado-arquero.glb',
+  mortar: 'models/soldado-mortero.glb',
+  gunner: 'models/soldado-ametrallador.glb',
+  misil: 'models/soldado-misilera.glb',
+  capitan: 'models/soldado-capitan.glb',
+  // Los de la caja alienígena, con su nombre nuevo (las claves, las de antes).
+  jill: 'models/soldado-valeria.glb',
+  claire: 'models/soldado-carla.glb',
+  ada: 'models/soldado-duke.glb',
+  rebecca: 'models/soldado-rita.glb',
+  sheva: 'models/soldado-shani.glb',
+  sherry: 'models/soldado-sara.glb',
   // La ballestera (15/10): hecha por Isidro en Hunyuan3D, aligerada con
   // cuerpo_de_fuera.py, con los ojos repintados y el esqueleto de Meshy. Trae su
   // propia cabeza: no está en CON_CABEZA.
@@ -86,12 +91,16 @@ export const MODELS = {
 // son siempre [chica, chico]: el Mortero y la Misilera sorteaban entre dos
 // hombres y no tenían chica que enseñar.
 const CLAVE_SEXO = 'alienz-sexo-v1'
-const SEXO_DE_SERIE = { archer: 1, rifle: 1, shotgun: 0, sniper: 0, flamer: 1, gunner: 1, misil: 0, mortar: 1, capitan: 1 }
+// Desde el 17/10 cada uno es quien es (un cuerpo por soldado): lo que diga aquí
+// manda, aunque el aparato guarde otra cosa de cuando se podía cambiar. Sirve
+// para la voz. Duke (`ada`) es chico.
+const SEXO_DE_SERIE = { archer: 1, rifle: 1, shotgun: 1, sniper: 0, flamer: 1, gunner: 1, misil: 0, mortar: 1, capitan: 1, ada: 1 }
 function sexosGuardados () {
   try { return JSON.parse(localStorage.getItem(CLAVE_SEXO)) ?? {} } catch { return {} }
 }
 // 0 = chica, 1 = chico.
 export function sexoDe (key) {
+  if (!dosSexos(key)) return SEXO_DE_SERIE[key] ?? 0
   const v = sexosGuardados()[key]
   return v === 0 || v === 1 ? v : (SEXO_DE_SERIE[key] ?? 1)
 }
@@ -230,8 +239,8 @@ function colgarDeHueso (hueso, pieza) {
 // Aquí se le quita al cuerpo la cabeza vieja y se cuelga la nueva del hueso
 // `Head`. Va RÍGIDA, como hija del hueso: no necesita pesos, la geometría la
 // comparten todas las copias y cuesta una llamada de dibujado por soldado.
-const CON_CABEZA = new Set(['archer', 'rifle', 'shotgun', 'sniper', 'flamer', 'gunner', 'misil', 'mortar', 'capitan',
-  'jill', 'claire', 'ada', 'rebecca', 'sheva'])
+// Vacío desde el 17/10: los cuerpos de Meshy traen su propia cara, realista.
+const CON_CABEZA = new Set([])
 const cuerposSinCabeza = new Map()
 
 // La malla del cuerpo sin los triángulos de la cabeza y el cuello viejos: los
@@ -1050,6 +1059,22 @@ function buildWeapon (key) {
     piece(w, box(0.006, 0.009, 0.008, 0.002), black, 0, 0.053, -0.1)              // punto de mira
     piece(w, box(0.022, 0.009, 0.01, 0.002), black, 0, 0.053, 0.088)              // alza
     piece(w, box(0.008, 0.018, 0.014, 0.003), steel, 0, 0.04, 0.108, -0.3)        // martillo
+  } else if (key === 'revolver') {
+    // Duke (17/10, el que sustituye a Ada): Isidro quiso «un tipo fuerte de
+    // película de zombis»; elegido, un grandullón con revólver. Magnum de cañón
+    // largo: el tambor gordo es lo que lo distingue de la pistola de Valeria.
+    piece(w, tube(0.012, 0.012, 0.2, 10), canonMat, 0, 0.03, -0.13, Math.PI / 2)  // cañón
+    piece(w, box(0.016, 0.014, 0.2, 0.004), steel, 0, 0.044, -0.13)               // costilla
+    piece(w, tube(0.026, 0.026, 0.055, 12), steel, 0, 0.022, 0.0, Math.PI / 2)     // tambor
+    for (let i = 0; i < 6; i++) {
+      const a = i * Math.PI / 3
+      piece(w, box(0.004, 0.006, 0.05, 0.001), black, Math.cos(a) * 0.026, 0.022 + Math.sin(a) * 0.026, 0.0)
+    }
+    piece(w, box(0.028, 0.05, 0.075, 0.01), steel, 0, 0.012, 0.045)              // armazón
+    piece(w, box(0.022, 0.035, 0.04, 0.008), black, 0, -0.022, 0.025)             // guardamonte
+    piece(w, box(0.034, 0.11, 0.05, 0.014), wood, 0, -0.056, 0.085, 0.3)          // cachas
+    piece(w, box(0.008, 0.02, 0.016, 0.003), steel, 0, 0.044, 0.08, -0.4)         // martillo
+    piece(w, box(0.006, 0.012, 0.01, 0.002), black, 0, 0.055, -0.225)             // punto de mira
   } else if (key === 'subfusil') {
     // Rebecca: subfusil corto de culata plegable, con la cinta verde de sanidad.
     piece(w, box(0.05, 0.08, 0.3, 0.016), black, 0, 0, -0.03)                     // cajón
@@ -1159,7 +1184,7 @@ function buildWeapon (key) {
   const g = bake(w)
   g.userData.muzzleZ = {
     sniper: -1.1, shotgun: -0.7, archer: -0.7, gunner: -1.02, flamer: -0.72, mortar: -0.4,
-    pistola: -0.14, subfusil: -0.33, lanzagranadas: -0.5, ballesta: -0.43, dragunov: -1.08
+    pistola: -0.14, revolver: -0.24, subfusil: -0.33, lanzagranadas: -0.5, ballesta: -0.43, dragunov: -1.08
   }[key] ?? -0.88
   // La malla del cañón, para poder calentarla. `bake` clona el material al
   // activarle el color por vértice, así que se busca por el original.
