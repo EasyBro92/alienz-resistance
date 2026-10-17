@@ -1,39 +1,39 @@
 {
  "soldados": {
   "archer": "s-archer.a6c62fe8.webp",
-  "rifle": "s-rifle.b314f674.webp",
-  "shotgun": "s-shotgun.01ef4f7e.webp",
-  "sniper": "s-sniper.caf51573.webp",
-  "flamer": "s-flamer.62f91961.webp",
-  "gunner": "s-gunner.fa203e4d.webp",
-  "misil": "s-misil.d289db41.webp",
-  "mortar": "s-mortar.78822273.webp",
-  "capitan": "s-capitan.2276c545.webp",
-  "jill": "s-jill.1c0b5a0e.webp",
-  "claire": "s-claire.204aec59.webp",
-  "ada": "s-ada.4c55e2f1.webp",
-  "rebecca": "s-rebecca.1cd27dac.webp",
-  "sheva": "s-sheva.a86732b1.webp",
-  "sherry": "s-sherry.8a5c5870.webp",
+  "rifle": "s-rifle.38874374.webp",
+  "shotgun": "s-shotgun.f185b2bf.webp",
+  "sniper": "s-sniper.10ce8dea.webp",
+  "flamer": "s-flamer.b6aac542.webp",
+  "gunner": "s-gunner.893e280d.webp",
+  "misil": "s-misil.f36816c1.webp",
+  "mortar": "s-mortar.4fb68b9f.webp",
+  "capitan": "s-capitan.eca74e14.webp",
+  "jill": "s-jill.7910a141.webp",
+  "claire": "s-claire.7ce316ca.webp",
+  "ada": "s-ada.e95968bc.webp",
+  "rebecca": "s-rebecca.6d62c666.webp",
+  "sheva": "s-sheva.35dc3fb6.webp",
+  "sherry": "s-sherry.2ddad56f.webp",
   "ballestera": "s-ballestera.e57f472d.webp"
  },
  "defensas": {
   "sandbags": "d-sandbags.c526b58d.webp",
   "spikes": "d-spikes.faf0de16.webp",
-  "mines": "d-mines.cf3d902b.webp",
+  "mines": "d-mines.1ea56369.webp",
   "erizos": "d-erizos.67547b54.webp",
-  "torreta": "d-torreta.0e2b79b6.webp"
+  "torreta": "d-torreta.9ecb3395.webp"
  },
  "amenazas": {
   "walker": "a-walker.4b4bfd36.webp",
   "runner": "a-runner.3c361e5e.webp",
   "armored": "a-armored.288defea.webp",
-  "spitter": "a-spitter.27142397.webp",
+  "spitter": "a-spitter.faf701c2.webp",
   "tank": "a-tank.9b169e01.webp",
   "leaper": "a-leaper.4c7e15eb.webp",
   "bloater": "a-bloater.18ea7178.webp",
   "healer": "a-healer.6643b649.webp",
-  "burrower": "a-burrower.11a191fb.webp",
+  "burrower": "a-burrower.a281a778.webp",
   "boss": "a-boss.3cc9e69a.webp"
  }
 }

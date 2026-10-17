@@ -24,6 +24,11 @@ if (!archivo || !fs.existsSync(archivo) || !objetivo) {
   process.exit(1)
 }
 const errorMax = Number(process.argv.includes('--error') ? process.argv[process.argv.indexOf('--error') + 1] : 0.03)
+// `--bordes`: no mover los vértices de borde (18/10/2026). Los cuerpos de Meshy
+// vienen partidos en cientos de islas de textura y, para el simplificador, cada
+// costura es un borde: al juntar vértices de borde se abrían agujeros que se
+// veían como triángulos oscuros en la frente y el cuello (Valeria, Tiradora…).
+const bordes = process.argv.includes('--bordes') ? ['LockBorder'] : []
 
 // --- leer el contenedor ----------------------------------------------------------
 const glb = fs.readFileSync(archivo)
@@ -69,7 +74,7 @@ for (const malla of json.meshes) {
     const total = json.meshes.reduce((s, m) => s + m.primitives.reduce((t, p) => t + (p.indices != null ? json.accessors[p.indices].count / 3 : 0), 0), 0)
     const meta = Math.max(12, Math.floor(objetivo * (ai.count / 3) / total) * 3)
     if (meta >= ai.count) { despues += ai.count / 3; continue }
-    const [menos] = MeshoptSimplifier.simplify(indices, posiciones, 3, meta, errorMax)
+    const [menos] = MeshoptSimplifier.simplify(indices, posiciones, 3, meta, errorMax, bordes)
     despues += menos.length / 3
 
     // Los vértices que siguen en uso, en el orden en que aparecen.
