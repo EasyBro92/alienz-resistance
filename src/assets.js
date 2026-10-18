@@ -1051,7 +1051,10 @@ function buildWeapon (key) {
     piece(w, tube(0.1, 0.1, 0.07, 12), black, 0, 0.02, -0.62, Math.PI / 2)            // boca
     // Tobera trasera, acampanada: por ahí sale el fogonazo.
     piece(w, tube(0.075, 0.115, 0.16, 12), black, 0, 0.02, 0.34, Math.PI / 2)
-    piece(w, cap(0.062, 0.2, 6, 10), mat(0xd94a6a, 0.45, 0.25), 0, 0.02, -0.72, -Math.PI / 2)  // ojiva
+    // La ojiva, en punta (18/10): era una cápsula redondeada y rosa que asomaba por
+    // la boca y se leía como cualquier cosa menos un misil. Cono con su banda amarilla.
+    piece(w, tube(0.008, 0.062, 0.27, 12), mat(0xd94a6a, 0.45, 0.25), 0, 0.02, -0.75, -Math.PI / 2)  // ojiva
+    piece(w, tube(0.064, 0.064, 0.03, 12), mat(0xd9b43a, 0.5, 0.3), 0, 0.02, -0.63, Math.PI / 2)     // banda
     piece(w, box(0.045, 0.14, 0.06, 0.015), black, 0, -0.1, -0.02)                    // empuñadura delantera
     piece(w, box(0.05, 0.12, 0.07, 0.015), black, 0, -0.09, 0.2)                      // empuñadura y gatillo
     piece(w, box(0.03, 0.1, 0.12, 0.012), steel, 0.075, 0.1, 0.02)                    // visor de codo
