@@ -17,47 +17,19 @@ import { seg as lados, CON_OCLUSION, CON_ADORNOS } from './systems/detalle.js'
 // articuladas que el juego anima. Cuando tengas un .glb, ponlo en public/models/
 // y decláralo aquí. Ver public/models/LEEME.md.
 // ---------------------------------------------------------------------------
-// Una lista por clave: el juego elige una al azar por figura. Es lo que evita
-// que los cinco fusileros del tablero sean gemelos, y es donde entran las
-// mujeres — cada unidad tiene su versión de las dos.
+// El cuerpo de cada soldado: un .glb con esqueleto y su propia cara.
+//
+// Historia corta (lo largo está en CLAUDE.md): primero fueron figuras de piezas;
+// luego cuatro cuerpos de Meshy repartidos entre las nueve unidades, con chico y
+// chica y una cabeza de Blender encima; el 17/10/2026 Isidro pidió que todos
+// tuvieran «la calidad de Sherry» y se rehicieron en Meshy uno a uno, con cara
+// realista. Eligió UN cuerpo por soldado, sin chico y chica (con los dos no
+// llegaban los créditos para los de la caja), así que cada clave es un solo
+// archivo y nadie se cambia de sexo en la tienda.
 //
 // El color de la unidad va en el chaleco y el casco, no en un brazalete: a la
 // distancia a la que se juega, un brazalete no existe, y el tablero se lee por
-// el color de cada pieza. Dos manchas de caqui no se distinguen de nada.
-//
-// La clave que no esté aquí sigue con su figura procedural, y el Mortero se
-// queda así a propósito.
-// El cuerpo de cada soldado.
-//
-// Isidro: «los personajes como el arquero que faltan por hacer bien». Y se
-// notaba: al lado del Fusilero —casco, chaleco, mochila, botas— el Arquero era
-// un muñeco de cajas con la cabeza de cilindro.
-//
-// No hacía falta ni Blender ni gastar créditos: son NUEVE unidades y un solo
-// ejército. Los cuatro cuerpos que ya existen valen para todos, que es como se
-// hace en cualquier juego con pelotón —el mismo soldado con otro equipo— y
-// además no pesa ni un byte más: esos .glb ya se los baja el jugador para las
-// otras cartas. Lo que distingue a cada uno es su arma, que sí es suya y está
-// hecha pieza a pieza (`buildWeapon`), y su complexión.
-//
-// Cada uno hereda el cuerpo que le pega:
-//   · el Mortero, el del Escopetero;
-//   · el Ametrallador y la Misilera, el primer cuerpo del Lanzallamas: cargan
-//     peso a la espalda y ese cuerpo ya viene con su mochila;
-//   · el Capitán, el del Fusilero, que es el soldado de línea.
-//
-// Dos tienen ya cuerpo PROPIO de Meshy (10/10, cuando Isidro consiguió créditos:
-// «hazlos»): el Arquero de su lámina —capucha y esclavina oliva, cuero, carcaj;
-// antes era el Tirador vestido por código— y el Lanzallamas con traje ignífugo.
-// Son un solo cuerpo cada uno: la chica y el chico se distinguen por la cabeza
-// (`ponerCabeza`), así que las dos casillas de su fila llevan el mismo archivo.
-// Traen además el ciclo de CORRER de Meshy junto al de andar (`cuerpo.js`).
-//
-// 17/10: TODOS rehechos en Meshy, cada uno una persona con su cara (Isidro: «los
-// quiero más parecidos a Sherry en calidad, pero sin cambiarlos demasiado, me
-// gustan sus vestimentas»). Eligió UN cuerpo por soldado, sin chico y chica —con
-// los dos no llegaban los créditos para los de la caja—, así que ya ninguno lleva
-// cabeza de Blender ni se cambia de sexo en la tienda.
+// el color de cada pieza. La clave que no esté aquí sigue con su figura de piezas.
 export const MODELS = {
   rifle: 'models/soldado-fusilero.glb',
   shotgun: 'models/soldado-escopetero.glb',
@@ -74,12 +46,12 @@ export const MODELS = {
   ada: 'models/soldado-duke.glb',
   rebecca: 'models/soldado-rita.glb',
   sheva: 'models/soldado-shani.glb',
-  // Sherry vuelve a ser la de Hunyuan3D (18/10, a petición de Isidro): el cuerpo
-  // de Meshy del 17/10 (soldado-sara.glb) queda sin usar.
+  // Sherry vuelve a ser la de Hunyuan3D (18/10, a petición de Isidro). El cuerpo
+  // de Meshy del 17/10 («Sara») se borró el 19/10; el original sigue en
+  // herramientas/revisar/meshy-soldados/.
   sherry: 'models/cuerpo-sherry-f.glb',
   // La ballestera (15/10): hecha por Isidro en Hunyuan3D, aligerada con
-  // cuerpo_de_fuera.py, con los ojos repintados y el esqueleto de Meshy. Trae su
-  // propia cabeza: no está en CON_CABEZA.
+  // cuerpo_de_fuera.py, con los ojos repintados y el esqueleto de Meshy.
   ballestera: 'models/soldado-ballestera.glb'
 }
 
@@ -241,113 +213,13 @@ function colgarDeHueso (hueso, pieza) {
   return grupo
 }
 
-// --- las cabezas de Blender --------------------------------------------------------
-// Isidro, 05/10: «son algo falsos; quiero que sus caras sean más reconocibles».
-// Eligió hacerlo solo con Blender, en el estilo de ahora y con el casco abierto.
-// Los cuerpos de Meshy traen la cara en una textura de 512, medio tapada por
-// barboquejos y máscaras; `herramientas/blender/cabezas.py` hace una cabeza
-// nueva por soldado y sexo (`models/cabeza-<clave>-<f|m>.glb`: cráneo modelado,
-// orejas, pelo, barba y casco, con la cara DIBUJADA en su textura —la primera
-// tanda, de rasgos de un solo color, no le gustó: «texturas poco detalladas,
-// dale caras más amigables»— y las sombras horneadas).
-//
-// Aquí se le quita al cuerpo la cabeza vieja y se cuelga la nueva del hueso
-// `Head`. Va RÍGIDA, como hija del hueso: no necesita pesos, la geometría la
-// comparten todas las copias y cuesta una llamada de dibujado por soldado.
-// Vacío desde el 17/10: los cuerpos de Meshy traen su propia cara, realista.
-const CON_CABEZA = new Set([])
-const cuerposSinCabeza = new Map()
+// --- las cabezas de Blender (05/10 – 17/10) -----------------------------------------
+// Hasta el 17/10 a los soldados se les quitaba la cabeza del cuerpo y se les
+// colgaba una hecha en Blender (`herramientas/blender/cabezas.py`). Desde que
+// todos se rehicieron en Meshy con su propia cara realista no la lleva nadie, y
+// el 19/10 (Isidro: «limpiar y dejarlo ordenado») se quitó el código y los
+// modelos `cabeza-*.glb`. Están en el historial de git si alguna vez vuelven.
 
-// La malla del cuerpo sin los triángulos de la cabeza y el cuello viejos: los
-// que mandan `Head` o `neck`, y lo que quede por encima del arranque del cuello
-// pegado a su eje (la piel del cuello, que cuelga del pecho). La MISMA regla que
-// `sin_cabeza` en cabezas.py, o las fotos de Blender no serían lo que se ve aquí.
-// Tres cuerpos traían un cuello alto grande y bajo y hay que cortar antes, o
-// asoman picos alrededor de la braga. Los mismos números que en cabezas.py.
-const CUELLO_ALTO = { 'soldado-escopeta-f': 0.02, 'soldado-escopeta-m': 0.03, 'soldado-fusil-f': 0.03 }
-
-function quitarCabeza (original, alto = 0.075) {
-  const geo = original.geometry
-  const { bones } = original.skeleton
-  const fuera = new Set(['Head', 'head_end', 'headfront', 'neck'].map(n => bones.findIndex(b => b.name === n)))
-  const cuello = new THREE.Vector3().setFromMatrixPosition(bones.find(b => b.name === 'neck').matrixWorld)
-  const indices = geo.attributes.skinIndex
-  const pesos = geo.attributes.skinWeight
-  const n = geo.attributes.position.count
-  const quita = new Uint8Array(n)
-  const v = new THREE.Vector3()
-  for (let i = 0; i < n; i++) {
-    let mayor = 0
-    for (let k = 1; k < 4; k++) if (pesos.getComponent(i, k) > pesos.getComponent(i, mayor)) mayor = k
-    original.getVertexPosition(i, v).applyMatrix4(original.matrixWorld)
-    const lejos = Math.hypot(v.x - cuello.x, v.z - cuello.z)
-    // Dos escalones: pegado al eje, todo lo que suba del arranque del cuello;
-    // algo más lejos, solo lo que suba mucho (capuchas y cuellos altos que
-    // rodeaban la cabeza vieja), para no morder los hombros.
-    const sobra = (lejos < 0.1 && v.y > cuello.y + 0.008) || (lejos < 0.2 && v.y > cuello.y + alto)
-    quita[i] = fuera.has(indices.getComponent(i, mayor)) || sobra ? 1 : 0
-  }
-  const viejo = geo.index.array
-  const nuevo = []
-  for (let t = 0; t < viejo.length; t += 3) {
-    if (!(quita[viejo[t]] && quita[viejo[t + 1]] && quita[viejo[t + 2]])) nuevo.push(viejo[t], viejo[t + 1], viejo[t + 2])
-  }
-  // Los mismos atributos, sin copiarlos: solo cambia qué triángulos se dibujan.
-  const g = new THREE.BufferGeometry()
-  for (const a in geo.attributes) g.setAttribute(a, geo.attributes[a])
-  g.setIndex(nuevo)
-  g.boundingBox = geo.boundingBox
-  g.boundingSphere = geo.boundingSphere
-  return g
-}
-async function ponerCabeza (key, cuerpo, url, sexo) {
-  if (!CON_CABEZA.has(key)) return
-  let escena
-  try {
-    escena = await moldeDefensa(`cabeza-${key}-${sexo}`)
-  } catch {
-    return   // sin la cabeza nueva, el soldado sale con la suya de siempre
-  }
-  let molde = null
-  escena.traverse(o => { if (!molde && o.isMesh) molde = o })
-  const original = (await cargarGLTF(url)).scene
-  original.updateMatrixWorld(true)
-  let mallaOriginal = null
-  original.traverse(o => { if (!mallaOriginal && o.isSkinnedMesh) mallaOriginal = o })
-  let malla = null
-  let hueso = null
-  cuerpo.traverse(o => {
-    if (!malla && o.isSkinnedMesh) malla = o
-    if (!hueso && o.name === 'Head') hueso = o
-  })
-  if (!molde || !mallaOriginal || !malla || !hueso) return
-  // Los cuerpos hechos en Blender (`cuerpo-*`, las de la caja alienígena) ya
-  // vienen sin cabeza: solo a los de Meshy hay que quitarles la suya.
-  if (!url.includes('/cuerpo-')) {
-    if (!cuerposSinCabeza.has(url)) {
-      const nombre = url.slice(url.lastIndexOf('/') + 1, -4)
-      cuerposSinCabeza.set(url, quitarCabeza(mallaOriginal, CUELLO_ALTO[nombre]))
-    }
-    malla.geometry = cuerposSinCabeza.get(url)
-  }
-  // La cabeza está medida en el mundo del modelo en reposo: como hija del
-  // hueso, su matriz es la inversa de la del hueso en ese reposo.
-  let reposo = null
-  original.traverse(o => { if (!reposo && o.name === 'Head') reposo = o })
-  escena.updateMatrixWorld(true)
-  // El material es el del modelo, con su textura (la cara dibujada y las
-  // sombras horneadas). La Guerra civil tiñe los materiales con el color del
-  // bando: a la cara, casi nada.
-  molde.material.userData.tinte = 0.12
-  const cabeza = new THREE.Mesh(molde.geometry, molde.material)
-  cabeza.name = 'cabeza'
-  cabeza.applyMatrix4(molde.matrixWorld)
-  cabeza.applyMatrix4(reposo.matrixWorld.clone().invert())
-  cabeza.castShadow = true
-  cabeza.receiveShadow = true
-  hueso.add(cabeza)
-  return true
-}
 
 // La versión LIGERA de un cuerpo, para la partida.
 //
@@ -398,10 +270,6 @@ async function armarPersona (key, spec, urls, ligero = false) {
     cuerpo.traverse(o => { if (o.isSkinnedMesh) pieles.push(o) })
     for (const p of pieles) p.geometry = await cuerpoLigero(p.geometry)
   }
-  // Chica o chico lo dice la unidad, no el nombre del archivo: el Arquero y el
-  // Lanzallamas tienen un solo cuerpo para los dos.
-  const sexo = Array.isArray(urls) ? (sexoDe(key) === 0 ? 'f' : 'm') : (url.includes('-f.glb') ? 'f' : 'm')
-  await ponerCabeza(key, cuerpo, url, sexo)
   // Un modelo de fuera que viene posado y con el arma en la mano (`estatua`: la
   // prueba de Sherry). No se puede repartir entre los huesos, así que se dibuja
   // tal cual, quieto, en vez de la malla del esqueleto: pegado a un hueso
