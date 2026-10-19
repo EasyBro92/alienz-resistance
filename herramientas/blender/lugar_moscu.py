@@ -9,8 +9,9 @@
 # «la señal sale de debajo del Kremlin»: los alienz salen DE DEBAJO de la catedral.
 #
 # Cómo está puesto:
-#   · SAN BASILIO VA A 0,27 DE SU TAMAÑO (12,8 m; mide 47): es su silueta entera
-#     —la torre de la tienda y las ocho cúpulas de colores— o no es nada.
+#   · SAN BASILIO VA A 0,55 DE SU TAMAÑO (25,6 m; mide 47). Iba a 0,27 para que
+#     cupiera entera jugando, y se veía de juguete (20/10): ahora jugando se ve
+#     su parte baja con las torres, y entera en la llegada.
 #   · Delante se abre una rampa de ±7,6 que baja 4,6 m a una boca a oscuras bajo
 #     la catedral (`hueco` y `entrada`, como en Gizeh): por ahí sube LA MADRE.
 #   · El adoquín con la nieve pisada; a la derecha la muralla del Kremlin, el
@@ -30,7 +31,14 @@ iniciar('moscu', 3423, eje=(0.0, -80.0), encendidas=0.06, reflejo=(0.2, 0.2, 0.2
 ZANJA = 7.6
 Z_BOCA, Z_PIE = -62.0, -78.0
 HONDO = 4.6
-ZC = -86.0                               # el centro de la catedral
+# 20/10/2026: Isidro, «me gusta dónde está pero los monumentos se ven muy
+# pequeños». San Basilio pasa de 0,27 a 0,55 de su tamaño (`K_SB`) y retrocede
+# para que su frente siga detrás de la boca del túnel; la muralla, los GUM, el
+# Museo, la Spásskaya y lo de dentro del Kremlin, también más altos.
+K_SB = 2.0                               # San Basilio, el doble que antes
+ZC = -92.0                               # el centro de la catedral (antes -86: con el doble de planta, el frente pisaba la boca)
+ALTO_MURO = 12.0                         # la muralla del Kremlin (antes 7)
+ALTO_GUM = 16.0                          # los GUM y el Museo (antes 9 y 9,6)
 BASE = (12.6, -44.0)
 MURALLA = 21.0                           # la cara de la muralla del Kremlin, a la derecha
 
@@ -220,27 +228,28 @@ def cebolla (x, z, y, r, mat, cruz=True):
     """Una cúpula de cebolla con su tambor y su cruz."""
     torno('P', mat, en(x, z, y), [(r * 0.62, 0.0), (r * 0.95, r * 0.35), (r * 1.0, r * 0.75), (r * 0.8, r * 1.2), (r * 0.42, r * 1.6), (r * 0.12, r * 1.95), (0.0, r * 2.2)], lados=14, u_rep=1.0, v_m=r * 2.2, tapas=(False, False))
     if cruz:
-        barra('EV', ORO, P(x, z, y + r * 2.1), P(x, z, y + r * 2.1 + 0.8), 0.06)
-        barra('EV', ORO, P(x - 0.2, z, y + r * 2.1 + 0.55), P(x + 0.2, z, y + r * 2.1 + 0.55), 0.05)
+        barra('EV', ORO, P(x, z, y + r * 2.1), P(x, z, y + r * 2.1 + 0.8 * K_SB), 0.06 * K_SB)
+        barra('EV', ORO, P(x - 0.2 * K_SB, z, y + r * 2.1 + 0.55 * K_SB), P(x + 0.2 * K_SB, z, y + r * 2.1 + 0.55 * K_SB), 0.05 * K_SB)
 def torre (x, z, r, alto, mat_cupula, r_cupula):
-    torno('P', LADRILLO, en(x, z), [(r * 1.08, 0.0), (r, alto * 0.5), (r * 1.12, alto * 0.54), (r * 0.9, alto * 0.6), (r * 0.9, alto - 0.5), (r * 1.05, alto - 0.4), (r * 0.66, alto)], lados=8, u_rep=4, v_m=3.2, tapas=(False, False))
+    torno('P', LADRILLO, en(x, z), [(r * 1.08, 0.0), (r, alto * 0.5), (r * 1.12, alto * 0.54), (r * 0.9, alto * 0.6), (r * 0.9, alto - 0.5 * K_SB), (r * 1.05, alto - 0.4 * K_SB), (r * 0.66, alto)], lados=8, u_rep=4, v_m=3.2, tapas=(False, False))
     cebolla(x, z, alto, r_cupula, mat_cupula)
+k = K_SB
 # El zócalo, con su galería, y la escalera de la entrada (a un lado: delante está la rampa).
-viga('P', LADRILLO, -5.6, 5.6, ZC - 5.6, ZC + 5.6, 0.0, 2.2, u_m=3.2, v_rep=0.7, techo=NIEVE)
+viga('P', LADRILLO, -5.6 * k, 5.6 * k, ZC - 5.6 * k, ZC + 5.6 * k, 0.0, 2.2 * k, u_m=3.2, v_rep=0.7 * k, techo=NIEVE)
 # La torre central: ocho lados, la tienda y su cupulín dorado.
-torno('P', LADRILLO, en(0.0, ZC), [(2.0, 2.2), (1.9, 5.6), (2.15, 5.8), (1.7, 6.4), (1.7, 7.2), (1.9, 7.3)], lados=8, u_rep=4, v_m=3.2, tapas=(False, False))
+torno('P', LADRILLO, en(0.0, ZC), [(2.0 * k, 2.2 * k), (1.9 * k, 5.6 * k), (2.15 * k, 5.8 * k), (1.7 * k, 6.4 * k), (1.7 * k, 7.2 * k), (1.9 * k, 7.3 * k)], lados=8, u_rep=4 * k, v_m=3.2, tapas=(False, False))
 TIENDA = material('tienda', tex_cebolla('tienda', (0.5, 0.14, 0.1), (0.1, 0.34, 0.2), 'gajos'), rug=0.7)
-torno('P', TIENDA, en(0.0, ZC, 7.3), [(1.9, 0.0), (0.42, 3.6), (0.42, 4.0)], lados=8, u_rep=1.0, v_m=4.0, tapas=(False, False))
-cebolla(0.0, ZC, 11.3, 0.42, material('cebolla-oro', tex_cebolla('oro', (0.86, 0.6, 0.14), (0.8, 0.5, 0.1), 'gajos'), rug=0.3))
+torno('P', TIENDA, en(0.0, ZC, 7.3 * k), [(1.9 * k, 0.0), (0.42 * k, 3.6 * k), (0.42 * k, 4.0 * k)], lados=8, u_rep=1.0, v_m=4.0 * k, tapas=(False, False))
+cebolla(0.0, ZC, 11.3 * k, 0.42 * k, material('cebolla-oro', tex_cebolla('oro', (0.86, 0.6, 0.14), (0.8, 0.5, 0.1), 'gajos'), rug=0.3))
 # Las cuatro torres grandes, en cruz, y las cuatro pequeñas, en las diagonales.
 for i, (dx, dz) in enumerate(((0, 1), (1, 0), (0, -1), (-1, 0))):
-    torre(dx * 3.6, ZC + dz * 3.6, 1.05, 6.0 + (0.5 if dz == 0 else 0.0), CEBOLLAS[i], 1.12)
+    torre(dx * 3.6 * k, ZC + dz * 3.6 * k, 1.05 * k, (6.0 + (0.5 if dz == 0 else 0.0)) * k, CEBOLLAS[i], 1.12 * k)
 for i, (dx, dz) in enumerate(((1, 1), (1, -1), (-1, -1), (-1, 1))):
-    torre(dx * 3.3, ZC + dz * 3.3, 0.72, 4.6, CEBOLLAS[4 + i], 0.84)
+    torre(dx * 3.3 * k, ZC + dz * 3.3 * k, 0.72 * k, 4.6 * k, CEBOLLAS[4 + i], 0.84 * k)
 # El campanario, a un lado, con su tejado de tienda verde.
-torno('P', LADRILLO, en(6.6, ZC - 3.8), [(1.1, 0.0), (1.0, 5.0), (1.2, 5.2)], lados=8, u_rep=4, v_m=3.2, tapas=(False, False))
-torno('EV', VERDE_T, en(6.6, ZC - 3.8, 5.2), [(1.2, 0.0), (0.2, 2.6), (0.0, 2.9)], lados=8, tapas=(False, False))
-print('SAN BASILIO', 11.3 + 0.42 * 2.1 + 0.8, 'm')
+torno('P', LADRILLO, en(6.6 * k, ZC - 3.8 * k), [(1.1 * k, 0.0), (1.0 * k, 5.0 * k), (1.2 * k, 5.2 * k)], lados=8, u_rep=4, v_m=3.2, tapas=(False, False))
+torno('EV', VERDE_T, en(6.6 * k, ZC - 3.8 * k, 5.2 * k), [(1.2 * k, 0.0), (0.2 * k, 2.6 * k), (0.0, 2.9 * k)], lados=8, tapas=(False, False))
+print('SAN BASILIO', round((11.3 + 0.42 * 2.1 + 0.8) * k, 1), 'm; su frente en z =', ZC + 5.6 * k)
 
 # ==================================================================================
 # 4. LOS LADOS DE LA PLAZA
@@ -255,14 +264,15 @@ z = 60.0
 while z > -116.0:                                                                    # la muralla del Kremlin, a tramos (de una pieza salía negra)
     z1 = max(-116.0, z - 30.0)
     g = 'P' if z1 > -96.0 and z < 30.0 else 'T'
-    caja(g, MURO_K, MURALLA, MURALLA + 3.0, z1 + 0.2, z - 0.2, -0.1, 7.0, techo=NIEVE, baldosa=4.0)
+    caja(g, MURO_K, MURALLA, MURALLA + 3.0, z1 + 0.2, z - 0.2, -0.1, ALTO_MURO, techo=NIEVE, baldosa=4.0)
     if g == 'P':
-        almenas(z1 + 0.6, z - 0.6, MURALLA + 0.4, 7.0)
+        almenas(z1 + 0.6, z - 0.6, MURALLA + 0.4, ALTO_MURO)
     z = z1
 # El mausoleo: la pirámide escalonada de granito rojo y negro, delante de la muralla.
 MZ0 = -18.0
-for k, (m, alto) in enumerate(((5.2, 1.2), (4.4, 1.1), (3.6, 1.0), (2.6, 1.6))):
-    y0 = sum(a_ for _, a_ in ((5.2, 1.2), (4.4, 1.1), (3.6, 1.0), (2.6, 1.6))[:k])
+PELDANOS_M = ((5.2, 1.7), (4.4, 1.55), (3.6, 1.4), (2.6, 2.25))      # 40 % más altos (20/10); de ancho no cabe más
+for k, (m, alto) in enumerate(PELDANOS_M):
+    y0 = sum(a_ for _, a_ in PELDANOS_M[:k])
     viga('P', GRANITO_R, MURALLA - 1.6 - 2 * m, MURALLA - 1.6, MZ0 - m, MZ0 + m, y0, y0 + alto, u_m=3.0, techo=NIEVE)
 # Abetos azules a lo largo de la muralla.
 for z in np.arange(26.0, -96.0, -7.0):
@@ -279,8 +289,8 @@ z = 70.0
 while z > -110.0:
     z1 = max(-110.0, z - 36.0)
     g = 'E' if z1 > -96.0 and z < 40.0 else 'C'
-    viga(g, GUM, GX - 22.0, GX, z1 + 0.3, z - 0.3, 0.0, 9.0, u_m=9.0, techo=AZOTEA)
-    torno('EV' if g == 'E' else 'T', VERDE_T, en(GX - 3.0, (z + z1) / 2, 9.0), [(2.4, 0.0), (1.2, 2.0), (0.2, 4.0), (0.0, 4.6)], lados=4, tapas=(False, False))
+    viga(g, GUM, GX - 22.0, GX, z1 + 0.3, z - 0.3, 0.0, ALTO_GUM, u_m=9.0, v_rep=ALTO_GUM / 9.0, techo=AZOTEA)
+    torno('EV' if g == 'E' else 'T', VERDE_T, en(GX - 3.0, (z + z1) / 2, ALTO_GUM), [(3.6, 0.0), (1.8, 3.0), (0.3, 6.0), (0.0, 7.0)], lados=4, tapas=(False, False))
     z = z1
 def farola (x, z, alto=5.0):
     torno('EV', FUNDICION, en(x, z), [(0.26, 0.0), (0.2, 0.6), (0.09, 0.9), (0.07, alto)], lados=6, tapas=(False, False))
@@ -304,36 +314,38 @@ comprobar_paso(('E', 'EP', 'P', 'EV'), z_lejos=-61.5)
 # 5. LO QUE SOLO SE VE EN EL VUELO: LA SPÁSSKAYA, EL KREMLIN, EL RÍO Y LA CIUDAD
 # ==================================================================================
 # La torre Spásskaya, en la muralla, junto a la catedral: cuerpo, reloj, aguja y estrella.
-# Va a la escala de la catedral (0,3): a su tamaño, a su lado, San Basilio era una maqueta.
+# Va a la escala de la catedral (0,6 desde el 20/10, al doble que antes): a su
+# tamaño, a su lado, San Basilio era una maqueta.
 SX, SZ = MURALLA + 1.5, -70.0
-viga('C', LADRILLO, SX - 1.8, SX + 1.8, SZ - 1.8, SZ + 1.8, 0.0, 9.0, u_m=3.2, v_rep=2.0, techo=NIEVE)
-viga('C', LADRILLO, SX - 1.3, SX + 1.3, SZ - 1.3, SZ + 1.3, 9.0, 13.0, u_m=3.2, v_rep=1.0, techo=NIEVE)
-cara('CP', NEGRO, [P(SX - 1.32, SZ + 0.7 * math.cos(a_), 11.4 + 0.7 * math.sin(a_)) for a_ in np.linspace(0, 2 * math.pi, 14, endpoint=False)], hacia=V((-1, 0, 0)))
-cara('CP', NEGRO, [P(SX + 0.7 * math.cos(a_), SZ + 1.32, 11.4 + 0.7 * math.sin(a_)) for a_ in np.linspace(0, 2 * math.pi, 14, endpoint=False)], hacia=V((0, -1, 0)))
-torno('T', VERDE_T, en(SX, SZ, 13.0), [(1.2, 0.0), (0.6, 2.6), (0.2, 7.0), (0.0, 8.4)], lados=8, tapas=(False, False))
-elipsoide('CP', ESTRELLA, en(SX, SZ, 21.8), (0.5, 0.14, 0.5))
+ks = 2.0
+viga('C', LADRILLO, SX - 1.8 * ks, SX + 1.8 * ks, SZ - 1.8 * ks, SZ + 1.8 * ks, 0.0, 9.0 * ks, u_m=3.2, v_rep=2.0 * ks, techo=NIEVE)
+viga('C', LADRILLO, SX - 1.3 * ks, SX + 1.3 * ks, SZ - 1.3 * ks, SZ + 1.3 * ks, 9.0 * ks, 13.0 * ks, u_m=3.2, v_rep=1.0 * ks, techo=NIEVE)
+cara('CP', NEGRO, [P(SX - 1.32 * ks, SZ + 0.7 * ks * math.cos(a_), 11.4 * ks + 0.7 * ks * math.sin(a_)) for a_ in np.linspace(0, 2 * math.pi, 14, endpoint=False)], hacia=V((-1, 0, 0)))
+cara('CP', NEGRO, [P(SX + 0.7 * ks * math.cos(a_), SZ + 1.32 * ks, 11.4 * ks + 0.7 * ks * math.sin(a_)) for a_ in np.linspace(0, 2 * math.pi, 14, endpoint=False)], hacia=V((0, -1, 0)))
+torno('T', VERDE_T, en(SX, SZ, 13.0 * ks), [(1.2 * ks, 0.0), (0.6 * ks, 2.6 * ks), (0.2 * ks, 7.0 * ks), (0.0, 8.4 * ks)], lados=8, tapas=(False, False))
+elipsoide('CP', ESTRELLA, en(SX, SZ, 21.8 * ks), (0.5 * ks, 0.14 * ks, 0.5 * ks))
 # Dentro del Kremlin: las catedrales de cúpulas doradas, el campanario de Iván el Grande y el Gran Palacio.
-for x, z, m, alto in ((70.0, -30.0, 4.0, 6.0), (86.0, -10.0, 3.6, 5.4), (74.0, 6.0, 3.2, 5.0)):
+for x, z, m, alto in ((70.0, -30.0, 6.4, 9.6), (86.0, -10.0, 5.8, 8.6), (74.0, 6.0, 5.1, 8.0)):     # 60 % más grandes (20/10)
     caja('T', BLANCO, x - m, x + m, z - m, z + m, 0.0, alto, techo=AZOTEA)
     for dx, dz in ((0, 0), (-0.5, -0.5), (0.5, -0.5), (-0.5, 0.5), (0.5, 0.5)):
-        r = 1.3 if dx == 0 else 0.8
+        r = 2.1 if dx == 0 else 1.3
         torno('T', BLANCO, en(x + dx * m, z + dz * m, alto), [(r * 0.7, 0.0), (r * 0.7, r * 1.6)], lados=8, tapas=(False, False))
         torno('T', ORO, en(x + dx * m, z + dz * m, alto + r * 1.6), [(r * 0.62, 0.0), (r * 0.95, r * 0.35), (r, r * 0.75), (r * 0.8, r * 1.2), (r * 0.42, r * 1.6), (0.0, r * 2.2)], lados=10, tapas=(False, False))
-torno('T', BLANCO, en(104.0, -36.0), [(1.7, 0.0), (1.5, 10.0), (1.2, 10.4), (1.1, 17.0), (0.9, 17.4), (0.8, 22.0)], lados=8, tapas=(False, False))
-torno('T', ORO, en(104.0, -36.0, 22.0), [(0.7, 0.0), (1.1, 0.4), (1.1, 0.9), (0.9, 1.4), (0.4, 1.9), (0.0, 2.5)], lados=10, tapas=(False, False))
+torno('T', BLANCO, en(104.0, -36.0), [(2.7, 0.0), (2.4, 16.0), (1.9, 16.6), (1.8, 27.0), (1.4, 27.8), (1.3, 35.0)], lados=8, tapas=(False, False))
+torno('T', ORO, en(104.0, -36.0, 35.0), [(1.1, 0.0), (1.8, 0.6), (1.8, 1.4), (1.4, 2.2), (0.6, 3.0), (0.0, 4.0)], lados=10, tapas=(False, False))
 caja('T', FACHADAS[0], 60.0, 140.0, 40.0, 58.0, 0.0, 10.0, techo=AZOTEA)
 for z0, z1 in ((60.0, 230.0), (-320.0, -116.0)):                                     # el resto de la muralla y sus torres
     z = z0
     while z < z1:
-        caja('T', MURO_K, MURALLA, MURALLA + 3.0, z + 0.2, min(z1, z + 34.0) - 0.2, -0.1, 7.0, techo=NIEVE, baldosa=4.0)
+        caja('T', MURO_K, MURALLA, MURALLA + 3.0, z + 0.2, min(z1, z + 34.0) - 0.2, -0.1, ALTO_MURO, techo=NIEVE, baldosa=4.0)
         z += 34.0
 for z in (130.0, 228.0, -180.0, -318.0):
-    caja('T', MURO_K, MURALLA - 0.6, MURALLA + 3.6, z - 2.1, z + 2.1, 0.0, 10.0, techo=NIEVE, baldosa=4.0)
-    torno('T', VERDE_T, en(MURALLA + 1.5, z, 10.0), [(2.4, 0.0), (0.7, 5.0), (0.0, 8.0)], lados=4, tapas=(False, False))
+    caja('T', MURO_K, MURALLA - 1.2, MURALLA + 4.2, z - 3.0, z + 3.0, 0.0, ALTO_MURO + 6.0, techo=NIEVE, baldosa=4.0)
+    torno('T', VERDE_T, en(MURALLA + 1.5, z, ALTO_MURO + 6.0), [(3.6, 0.0), (1.0, 7.0), (0.0, 13.0)], lados=4, tapas=(False, False))
 # El Museo de Historia, a la espalda: rojo, con sus torres de punta nevada.
-caja('C', LADRILLO, -26.0, 16.0, 232.0, 252.0, 0.0, 9.6, techo=AZOTEA, baldosa=6.4)
+caja('C', LADRILLO, -26.0, 16.0, 232.0, 252.0, 0.0, ALTO_GUM, techo=AZOTEA, baldosa=6.4)
 for x in (-26.0, 16.0, -12.0, 2.0):
-    torno('T', BLANCO, en(x, 232.0, 9.6), [(2.4, 0.0), (0.9, 5.0), (0.0, 10.0)], lados=4, tapas=(False, False))
+    torno('T', BLANCO, en(x, 232.0, ALTO_GUM), [(3.6, 0.0), (1.4, 8.0), (0.0, 16.0)], lados=4, tapas=(False, False))
 # El suelo de alrededor, el río helado y la ciudad nevada.
 suelo('G', NIEVE, MURALLA, 520.0, -320.0, 320.0, 0.0, 5.0)                           # el Kremlin por dentro
 suelo('G', NIEVE, -1500.0, PLX0, -1500.0, 1500.0, 0.0, 5.0)
