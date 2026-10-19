@@ -775,11 +775,15 @@ export const PAISES = [
       // 10/10: Isidro, al ver el portaaviones, «elimina el del Empire State». Nueva
       // York queda en dos: Times Square y el portaaviones. Ver progreso.js, v5.)
       {
-        name: 'Nueva York', lugar: 'Times Square · de noche', mapa: sitio(40.758, -73.985), bioma: 'costa',
-        fondo: { hora: 'noche', cielo: 0x0b1020, niebla: 0x161d31, ambiente: 0x1b2230 },
-        // De noche, que es cuando Times Square es Times Square: las pantallas
-        // dan casi toda la luz del nivel.
-        escenario: 'nuevaYorkTimes', suelo: 'carretera',
+        name: 'Nueva York', llegada: 'timessquare', lugar: 'Times Square · de noche', mapa: sitio(40.758, -73.985), bioma: 'costa',
+        // Hecho en Blender el 20/10 (herramientas/blender/lugar_timessquare.py).
+        // De noche, que es cuando Times Square es Times Square: las pantallas dan
+        // casi toda la luz (van horneadas). Los alienz suben del metro por la
+        // calle hundida del fondo, sin nave.
+        fondo: { hora: 'noche', cielo: 0x0b0a18, niebla: 0x1d1628, nieblaCerca: 120, nieblaLejos: 520, ambiente: 0x2a2232, cupula: [0x03040c, 0x3a2234], sol: 0xa8b4ff },
+        escenario: 'nuevaYorkTimes', suelo: 'losas', tonoSuelo: 0x2a2a2e, hitos: [],
+        entrada: { z: -81, fondo: 6 },
+        sinPajaros: true, sinNubes: true,
         resumen: 'De noche, con las pantallas encendidas.',
         parte: ['El emisor está en algún sitio de la isla. Entramos de noche por la plaza: las pantallas siguen dando las noticias de hace cuatro meses, a nadie.',
           'Con esa luz se les ve venir tarde: salen de la sombra ya encima.'],

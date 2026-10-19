@@ -267,14 +267,6 @@ export const CIUDADES = {
     coches: true, paletaCoches: [0xe8b528, 0xe8b528, 0x2c2f33, 0xd9d4cc],
     cierre: 'perfil', perfil: [60, 88, 120, 70], tonoPerfil: 0x8a92a0
   }],
-  // Times Square de noche: las pantallas son el sitio. Van siempre, no solo en
-  // ultra, y son las que dan toda la luz.
-  nuevaYorkTimes: ['avenida', {
-    semilla: 129, tono: 0x4a4d52, tonoAcera: 0x8e8a84, pantallas: true,
-    estilo: 'neon', paleta: [0x4a4f57, 0x3f444b, 0x565c64], alturas: [30, 54],
-    coches: true, paletaCoches: [0xe8b528, 0xe8b528, 0x2c2f33],
-    cierre: 'fachada'
-  }],
   // Isla de la Libertad: la explanada del pedestal, el agua de la bahía
   // alrededor y Manhattan lejos, al otro lado. La estatua ya no está plantada en
   // medio de la ciudad, que era lo que chirriaba.

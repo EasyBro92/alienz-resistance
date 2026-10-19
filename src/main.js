@@ -2277,6 +2277,15 @@ const VLADIVOSTOK_PLANOS = [
   { k: 0.76, pos: [4, 36, 78], mira: [0, 5, -64] },
   { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
 ]
+// Times Square (20/10): desde lo alto, mirando Broadway abajo como un cañón de
+// pantallas encendidas; la cámara baja entre las fachadas hasta la línea.
+const TIMESSQUARE_PLANOS = [
+  { k: 0, pos: [10, 110, 170], mira: [0, 30, -130] },
+  { k: 0.3, pos: [-6, 60, 110], mira: [0, 18, -110] },
+  { k: 0.56, pos: [4, 34, 74], mira: [0, 6, -72] },
+  { k: 0.76, pos: [4, 36, 78], mira: [0, 5, -64] },
+  { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
+]
 const NOVOSIBIRSK_PLANOS = [
   { k: 0, pos: [60, 30, 190], mira: [0, 50, -104] },
   { k: 0.3, pos: [40, 40, 140], mira: [0, 26, -104] },
@@ -2408,6 +2417,7 @@ const LLEGADAS = {
   chongqing: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-chongqing-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: CHONGQING_PLANOS },
   moscu: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-moscu-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: MOSCU_PLANOS },
   vladivostok: { sinFondo: true, dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-vladivostok-v1', niebla: { cerca: 700, lejos: 2800 }, lejos: 4400, planos: VLADIVOSTOK_PLANOS },
+  timessquare: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-timessquare-v1', niebla: { cerca: 600, lejos: 2600 }, lejos: 4400, planos: TIMESSQUARE_PLANOS },
   novosibirsk: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-novosibirsk-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: NOVOSIBIRSK_PLANOS },
   anchorage: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-anchorage-v1', niebla: { cerca: 900, lejos: 3600 }, lejos: 4600, planos: ANCHORAGE_PLANOS },
   seattle: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-seattle-v1', niebla: { cerca: 600, lejos: 2600 }, lejos: 4400, planos: SEATTLE_PLANOS },

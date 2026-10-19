@@ -780,6 +780,32 @@ function moscuPlaza () {
   return g
 }
 
+// Nueva York – Times Square, de noche (herramientas/blender/lugar_timessquare.py,
+// 20/10/2026; antes era una avenida de piezas en ciudades.js). Isidro eligió:
+// en medio de la plaza, de noche con las pantallas encendidas, los alienz SALEN
+// DEL METRO y llegada larga. Al fondo de la calle, la calzada hundida en la
+// estación: una rampa que baja 4,6 m a las vías (`hueco`, como en Moscú); por
+// ahí suben. Detrás, el One Times Square con la bola. La base alien, en la plaza
+// peatonal de la derecha.
+function nuevaYorkTimes () {
+  const g = new THREE.Group()
+  g.name = 'lugar:nuevaYorkTimes'
+  Object.assign(g.userData, {
+    modelo: 'lugar-timessquare',
+    modeloCiudad: 'lugar-timessquare-ciudad',
+    luz: 'lugar-timessquare',
+    carriles: 5,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    hueco: { x: 7.6, zFondo: -78.0, zBorde: -62.0, hondo: 4.6 },
+    baseX: 12.6,
+    baseZ: -44
+  })
+  return g
+}
+
 // Novosibirsk: encima del Obi helado, en la noche azul del invierno
 // (herramientas/blender/lugar_novosibirsk.py, 10/10; elegido por mí, siguiendo el
 // parte de la misión: «se curan en el hielo»). Al fondo, el boquete: una losa de
@@ -1068,4 +1094,4 @@ function nuevaYorkPortaaviones () {
   return g
 }
 
-export const ESCENARIOS = { nuevaYorkPortaaviones, vladivostokPuente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, seattlePike, monterreyMacroplaza, guadalajaraCatedral, cdmxReforma, puntaCanaBavaro, santoDomingoAlcazar, puertoPlataFortaleza, rioCorcovado, manaosTeatro, ...LUGARES }
+export const ESCENARIOS = { nuevaYorkPortaaviones, nuevaYorkTimes, vladivostokPuente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, seattlePike, monterreyMacroplaza, guadalajaraCatedral, cdmxReforma, puntaCanaBavaro, santoDomingoAlcazar, puertoPlataFortaleza, rioCorcovado, manaosTeatro, ...LUGARES }
