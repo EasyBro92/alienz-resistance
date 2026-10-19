@@ -9,6 +9,8 @@
 
 export default async ({ evaluar, foto, espera }) => {
   const n = Number(process.env.NIVEL ?? 0)
+  // La bienvenida (ofrecer la cuenta) tapaba las fotos: «Más tarde».
+  await evaluar(`document.getElementById('bienvenida-luego')?.click()`)
   await evaluar(`__zr.desbloquearTodo(); __zr.start(${n})`)
   await espera(1500)
   await evaluar(`__zr.start(${n})`)

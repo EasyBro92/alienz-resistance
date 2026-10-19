@@ -10,7 +10,8 @@
 // quedan abiertos. En el puente se pelea en la calzada y las dos aceras quedan
 // cerradas tras la barrera, así que el campo pasa de cinco carriles a tres.
 //
-// Todo va por código, como el resto del decorado del juego.
+// Casi todos están ya hechos en Blender: aquí queda su ficha (qué modelo, cuántos
+// carriles, dónde va la base) y lo poco que sigue hecho por código.
 
 import * as THREE from 'three'
 import { LUGARES } from './ciudades.js'
@@ -25,161 +26,35 @@ const pon = (g, geo, material, x = 0, y = 0, z = 0) => {
   return m
 }
 
-// Hasta dónde llega el tablero y dónde empieza el vacío. La calzada mide 13,6
-// (6,8 a cada lado); la acera va de la barrera al pretil.
-const MEDIO_TABLERO = 7.6
-const BARRERA_X = 4.05      // entre el carril 0 y el 1, y entre el 3 y el 4
-const LARGO = 300           // hasta bien dentro de la niebla por los dos lados
-const DESDE_Z = 30
-const HASTA_Z = -270
-const FONDO_MAR = -46
-
-// --- el puente de Zolotói ----------------------------------------------------
-function puente () {
+// --- el puente de Zolotói -------------------------------------------------
+//
+// Hecho en Blender el 19/10/2026 (herramientas/blender/lugar_vladivostok.py):
+// era uno de los tres tramos que seguían hechos de piezas aquí. Isidro eligió
+// seguir jugando ENCIMA del puente, con los alienz llegando a pie desde el otro
+// lado y saliendo de la niebla (`entrada` en la misión), en un día de invierno
+// con nieve y con llegada larga. Las medidas que comparte con el guion: la
+// calzada con las barreras en x = ±4,05 (tres carriles: los de fuera quedan
+// enterrados en nieve), el pretil en ±7,6, las patas del pilono cercano en
+// z = -26 pasando por fuera del tablero (x = ±9,7 a su altura), la bahía helada
+// 40 m más abajo y la base alien en un nido de resina colgado por fuera del
+// pretil izquierdo.
+function vladivostokPuente () {
   const g = new THREE.Group()
-  const hormigon = mat(0xe4e2dc, 0.8)
-  const hormigonSucio = mat(0xc6c3bb, 0.85)
-  const hormigonHondo = mat(0x9a978f, 0.9)
-  const acero = mat(0xb9bec4, 0.45, 0.55)
-  const cable = mat(0xf2f2ef, 0.35, 0.5)
-  const agua = new THREE.MeshStandardMaterial({ color: 0x33607a, roughness: 0.22, metalness: 0.35 })
-  const hielo = mat(0xdfe9ee, 0.7)
-
-  // --- el mar, muy abajo -----------------------------------------------------
-  // Es lo que convierte la carretera en un puente: si por el borde no se ve el
-  // vacío, esto es una calzada con vallas bonitas.
-  const mar = pon(g, new THREE.PlaneGeometry(900, 900), agua, 0, FONDO_MAR, -120)
-  mar.rotation.x = -Math.PI / 2
-  // Placas de hielo sueltas, que esto es Vladivostok en invierno.
-  for (let i = 0; i < 46; i++) {
-    const r = 3 + Math.random() * 11
-    const placa = pon(g, new THREE.CylinderGeometry(r, r * 0.92, 0.5, 6), hielo,
-      (Math.random() - 0.5) * 320, FONDO_MAR + 0.3, -140 + (Math.random() - 0.5) * 300)
-    placa.rotation.y = Math.random() * Math.PI
-  }
-
-  // --- el tablero ------------------------------------------------------------
-  // Por debajo tiene canto: desde la cámara, picada como está, se le ve el
-  // costado, y sin canto el puente era una lámina de papel.
-  pon(g, new THREE.BoxGeometry(MEDIO_TABLERO * 2, 1.5, LARGO), hormigonSucio, 0, -0.78, (DESDE_Z + HASTA_Z) / 2)
-  // Dos vigas cajón bajo el tablero, que es lo que aguanta de verdad.
-  for (const lado of [-1, 1]) {
-    pon(g, new THREE.BoxGeometry(1.8, 2.2, LARGO), hormigonHondo, lado * 4.6, -2.3, -120)
-  }
-  // Nervios transversales cada pocos metros: le dan escala al canto.
-  for (let z = DESDE_Z; z > HASTA_Z; z -= 7) {
-    pon(g, new THREE.BoxGeometry(MEDIO_TABLERO * 2 - 0.6, 1.1, 0.5), hormigonHondo, 0, -2, z)
-  }
-
-  // --- barreras de la calzada ------------------------------------------------
-  // Las que cierran el campo a tres carriles. Perfil de barrera de hormigón:
-  // ancha abajo y estrecha arriba, con su pasamanos de acero.
-  for (const lado of [-1, 1]) {
-    for (let z = DESDE_Z; z > HASTA_Z; z -= 4) {
-      const zoca = pon(g, new THREE.BoxGeometry(0.62, 0.42, 3.8), hormigon, lado * BARRERA_X, 0.21, z)
-      zoca.castShadow = true
-      const alta = pon(g, new THREE.BoxGeometry(0.34, 0.38, 3.8), hormigon, lado * BARRERA_X, 0.6, z)
-      // `muro`: esto CIERRA el carril, o sea que estar en el borde del pasillo
-      // es su trabajo. `herramientas/pasillo-libre.mjs` lo salta.
-      zoca.userData.muro = true
-      alta.userData.muro = true
-    }
-    // El pasamanos, de una pieza: es fino y así no se ven las juntas.
-    const pasamanos = pon(g, new THREE.BoxGeometry(0.42, 0.1, LARGO), acero, lado * BARRERA_X, 0.84, -120)
-    pasamanos.userData.muro = true
-  }
-
-  // --- acera y pretil exterior ----------------------------------------------
-  for (const lado of [-1, 1]) {
-    // La acera, un escalón por encima de la calzada.
-    pon(g, new THREE.BoxGeometry(MEDIO_TABLERO - 4.3, 0.16, LARGO), hormigonSucio,
-      lado * (4.3 + (MEDIO_TABLERO - 4.3) / 2), 0.08, -120)
-    // El pretil del borde: montantes y dos largueros. Por aquí se ve el vacío.
-    for (let z = DESDE_Z; z > HASTA_Z; z -= 2.6) {
-      pon(g, new THREE.BoxGeometry(0.1, 1.15, 0.1), acero, lado * (MEDIO_TABLERO - 0.25), 0.66, z)
-    }
-    for (const y of [0.72, 1.18]) {
-      pon(g, new THREE.BoxGeometry(0.12, 0.09, LARGO), acero, lado * (MEDIO_TABLERO - 0.25), y, -120)
-    }
-    // Farolas del puente, altas y cada mucho.
-    for (let z = DESDE_Z - 10; z > HASTA_Z; z -= 34) {
-      pon(g, new THREE.CylinderGeometry(0.11, 0.15, 7, 7), acero, lado * (MEDIO_TABLERO - 0.7), 3.5, z)
-      const brazo = pon(g, new THREE.BoxGeometry(1.5, 0.12, 0.12), acero, lado * (MEDIO_TABLERO - 1.4), 7, z)
-      brazo.rotation.z = lado * 0.12
-      pon(g, new THREE.BoxGeometry(0.7, 0.14, 0.32), mat(0xf6f1d8, 0.4), lado * (MEDIO_TABLERO - 2.1), 6.9, z)
-    }
-  }
-
-  // --- los pilonos en V y sus tirantes ---------------------------------------
-  // Los dos de verdad del Zolotói. En uve, que es su forma, y muy altos: son lo
-  // único que dice «puente colgante» desde la cámara del juego.
-  const pilonos = [-26, -128]
-  for (const zp of pilonos) {
-    for (const lado of [-1, 1]) {
-      // La pata sale del borde del tablero y se inclina hacia dentro.
-      //
-      // Isidro: «en Vladivostok los aliens atraviesan los pilares del puente». Y
-      // era verdad: la pata estaba en x = 5,2 con 2,2 de ancho, o sea que su
-      // cara de dentro caía en 4,1, y un huésped grande andando por el carril de
-      // fuera llega a 4,7 (medido en partida). Se lleva al BORDE del tablero,
-      // que además es donde va en el Zolotói de verdad: la pata en 6,5 con 1,8
-      // de ancho arranca en 5,6 y no la alcanza ni el más ancho.
-      // Y OJO CON LA INCLINACIÓN, que la primera vez se me pasó: mover el centro
-      // de la pata a 6,5 no bastaba, porque la pata va inclinada y el PIE se iba
-      // dos metros hacia dentro. Con la inclinación de antes el pie arrancaba en
-      // x = 3,6 y los bichos del carril de fuera (4,7 medido) seguían
-      // atravesándolo por abajo. Ahora se inclina al revés —abierta abajo y
-      // recogida arriba, que es como se ve la uve del Zolotói desde el coche— y
-      // la cuenta sale: pie en 7,0 menos 0,9 de medio ancho = 6,1, contra 4,7.
-      // Comprobado con `herramientas/pasillo-libre.mjs`.
-      const alto = 40
-      const pata = pon(g, new THREE.BoxGeometry(1.8, alto, 2.6), hormigon, lado * 6, alto / 2 - 2, zp)
-      pata.rotation.z = lado * 0.05
-      pata.castShadow = true
-    }
-    // Los travesaños donde se juntan. Su ancho sale de dónde están las patas a
-    // esa altura: a 36 las patas se han recogido a 5,1 y a 12 están en 6,3.
-    pon(g, new THREE.BoxGeometry(11.2, 2, 2.8), hormigon, 0, 36, zp)
-    pon(g, new THREE.BoxGeometry(13.4, 1.4, 2.2), hormigon, 0, 12, zp)
-
-    // Los abanicos de tirantes: del alto del pilono al tablero, hacia los dos
-    // lados. Cada uno es un cilindro estirado y girado a su sitio.
-    // Abanico a los cuatro lados: hacia delante y hacia atrás de cada pilono, y
-    // por los dos costados. Con un solo sentido el pilono parecía estar tirando
-    // del puente hacia un lado.
-    for (const lado of [-1, 1]) {
-      for (const sentido of [-1, 1]) {
-        for (let k = 1; k <= 8; k++) {
-          const arriba = new THREE.Vector3(lado * 3.6, 34 - k * 2.4, zp)
-          const abajo = new THREE.Vector3(lado * (MEDIO_TABLERO - 1.4), 1, zp + sentido * k * 8.5)
-          const medio = arriba.clone().add(abajo).multiplyScalar(0.5)
-          const t = pon(g, new THREE.CylinderGeometry(0.07, 0.07, arriba.distanceTo(abajo), 4),
-            cable, medio.x, medio.y, medio.z)
-          t.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), abajo.clone().sub(arriba).normalize())
-        }
-      }
-    }
-  }
-
-  // --- la orilla al fondo ----------------------------------------------------
-  // Colinas nevadas con bloques, para que el puente vaya a alguna parte.
-  const ladera = mat(0xd8dee2, 0.95)
-  const bloque = mat(0x9aa3ab, 0.85)
-  for (let i = 0; i < 9; i++) {
-    const r = 30 + Math.random() * 60
-    const c = pon(g, new THREE.SphereGeometry(r, 10, 7, 0, Math.PI * 2, 0, Math.PI / 2), ladera,
-      (Math.random() - 0.5) * 460, FONDO_MAR, -300 - Math.random() * 130)
-    c.scale.y = 0.34 + Math.random() * 0.3
-  }
-  for (let i = 0; i < 26; i++) {
-    const h = 8 + Math.random() * 26
-    pon(g, new THREE.BoxGeometry(5 + Math.random() * 7, h, 5 + Math.random() * 7), bloque,
-      (Math.random() - 0.5) * 380, FONDO_MAR + h / 2 + 6, -300 - Math.random() * 110)
-  }
-
-  g.userData.carriles = 3
-  // El puente se come el horizonte: ni cerros, ni vegetación, ni arenal.
-  g.userData.tapaElMundo = true
+  g.name = 'lugar:vladivostokPuente'
+  Object.assign(g.userData, {
+    modelo: 'lugar-vladivostok',
+    modeloCiudad: 'lugar-vladivostok-ciudad',
+    luz: 'lugar-vladivostok',
+    carriles: 3,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    // Nieva (`nevada` en world.js): solo aquí, que es invierno de verdad.
+    nieva: true,
+    baseX: -12.6,
+    baseZ: -44
+  })
   return g
 }
 
@@ -1193,4 +1068,4 @@ function nuevaYorkPortaaviones () {
   return g
 }
 
-export const ESCENARIOS = { nuevaYorkPortaaviones,  puente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, seattlePike, monterreyMacroplaza, guadalajaraCatedral, cdmxReforma, puntaCanaBavaro, santoDomingoAlcazar, puertoPlataFortaleza, rioCorcovado, manaosTeatro, ...LUGARES }
+export const ESCENARIOS = { nuevaYorkPortaaviones, vladivostokPuente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, seattlePike, monterreyMacroplaza, guadalajaraCatedral, cdmxReforma, puntaCanaBavaro, santoDomingoAlcazar, puertoPlataFortaleza, rioCorcovado, manaosTeatro, ...LUGARES }

@@ -684,14 +684,18 @@ export const PAISES = [
     cierre: 'En Moscú encontramos sus señales. No iban hacia arriba: iban hacia el otro lado del estrecho. Hacia América.',
     misiones: [
       {
-        name: 'Vladivostok', llegada: 'helicoptero', lugar: 'Puente de Zolotói · vano este', mapa: sitio(43.12, 131.89), suelo: 'nieve',
-        // Al amanecer: el cielo naranja contra la nieve es media postal de
-        // Vladivostok, y de paso el puente deja de ser gris sobre gris.
-        fondo: { hora: 'manana', cielo: 0xe8b08a, niebla: 0xd8c0b4 },
+        name: 'Vladivostok', llegada: 'vladivostok', lugar: 'Puente de Zolotói · vano este', mapa: sitio(43.12, 131.89), suelo: 'nieve', tonoSuelo: 0xdfe3ea, hitos: [],
+        // Hecho en Blender el 19/10 (herramientas/blender/lugar_vladivostok.py).
+        // Isidro eligió: encima del puente, día de invierno con nieve, los alienz
+        // a pie desde el otro lado saliendo de la niebla y llegada larga. La
+        // niebla cierra pronto (ventisca): a z = -120, donde nacen, ya no se ve.
+        fondo: { hora: 'dia', cielo: 0xc9cfd6, niebla: 0xd9dde2, nieblaCerca: 70, nieblaLejos: 175, cupula: [0x8f9aab, 0xe6e7e8], sol: 0xfff0e0 },
         // Aquí no se juega AL LADO del puente: se juega encima. El escenario se
-        // come el paisaje y cierra las dos aceras, así que el campo queda en
-        // tres carriles en vez de cinco.
-        escenario: 'puente',
+        // come el paisaje y cierra los carriles de fuera, así que el campo queda
+        // en tres carriles en vez de cinco.
+        escenario: 'vladivostokPuente',
+        entrada: { z: -120, fondo: 10 },
+        sinPajaros: true, sinNubes: true,
         resumen: 'Deprisa, y a cuarenta bajo cero.',
         parte: ['Llegan deprisa por el puente. Con la mitad de tu cuerpo dormido de frío.',
           'Lo que dispara lento no llega a tiempo.'],

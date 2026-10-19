@@ -1972,9 +1972,10 @@ const tmpVueloMira = new THREE.Vector3()
 const suave = k => k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2
 
 function empezarVuelo () {
-  // Dos tramos llegan de forma distinta, y solo dos: el helicóptero estaba
-  // puesto en trece y a Isidro le sobraba en todos menos en el puente de
-  // Vladivostok. El resto vuelven al sobrevuelo del monumento de siempre.
+  // El helicóptero estaba puesto en trece tramos y a Isidro le sobraba en todos
+  // menos en el puente de Vladivostok; el 19/10, al rehacer el puente en
+  // Blender, eligió para él la llegada larga como Madrid, así que hoy no lo usa
+  // nadie. Se queda por si vuelve (`llegada: 'helicoptero'` en la misión).
   const llegada = nivelActivo().llegada
   if (llegada === 'helicoptero') return empezarLlegadaHeli()
   if (LLEGADAS[llegada]) return empezarLlegadaEstadio(LLEGADAS[llegada])
@@ -2263,6 +2264,19 @@ const MOSCU_PLANOS = [
 ]
 // Novosibirsk (10/10): el arco rojo del puente entero sobre el río helado; la
 // cámara baja al hielo por el eje.
+// Vladivostok (19/10): desde abajo, sobre la bahía helada, con el puente
+// cruzando el cielo y el pilono en uve; la cámara sube por fuera del tablero,
+// pasa junto a la pata y entra por detrás de la línea.
+// Con `sinFondo` (abajo): al empezar la batalla la niebla se cierra, que Isidro
+// eligió que los alienz salgan de ella (ventisca). Sin eso se quedaba la del
+// vuelo, abierta, como en los demás mapas desde el 10/10.
+const VLADIVOSTOK_PLANOS = [
+  { k: 0, pos: [-150, -22, -110], mira: [0, 30, -40] },
+  { k: 0.3, pos: [-90, 6, 20], mira: [0, 40, -26] },
+  { k: 0.56, pos: [-34, 38, 96], mira: [0, 8, -60] },
+  { k: 0.76, pos: [4, 36, 78], mira: [0, 5, -64] },
+  { k: 0.9, pos: [-2, 23, 43], mira: [0, 3, -40] }
+]
 const NOVOSIBIRSK_PLANOS = [
   { k: 0, pos: [60, 30, 190], mira: [0, 50, -104] },
   { k: 0.3, pos: [40, 40, 140], mira: [0, 26, -104] },
@@ -2393,6 +2407,7 @@ const LLEGADAS = {
   shanghai: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-shanghai-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: SHANGHAI_PLANOS },
   chongqing: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-chongqing-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: CHONGQING_PLANOS },
   moscu: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-moscu-v1', niebla: { cerca: 700, lejos: 3000 }, lejos: 4400, planos: MOSCU_PLANOS },
+  vladivostok: { sinFondo: true, dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-vladivostok-v1', niebla: { cerca: 700, lejos: 2800 }, lejos: 4400, planos: VLADIVOSTOK_PLANOS },
   novosibirsk: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-novosibirsk-v1', niebla: { cerca: 900, lejos: 3400 }, lejos: 4400, planos: NOVOSIBIRSK_PLANOS },
   anchorage: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-anchorage-v1', niebla: { cerca: 900, lejos: 3600 }, lejos: 4600, planos: ANCHORAGE_PLANOS },
   seattle: { dura: 9, corto: { desde: 0.25, dura: 5.5 }, visto: 'alienz-vuelo-seattle-v1', niebla: { cerca: 600, lejos: 2600 }, lejos: 4400, planos: SEATTLE_PLANOS },

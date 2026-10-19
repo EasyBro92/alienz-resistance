@@ -1911,6 +1911,12 @@ float olaAgua (vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0
       g.traverse(o => { if (o.isMesh) { o.receiveShadow = true; o.castShadow = sombra } })
       scene.add(g)
       escenariosHechos.set(nombre, g)
+      // Copos que caen (`nieva`: Vladivostok, 19/10).
+      if (crudo.userData.nieva) {
+        const n = nevada()
+        g.add(n)
+        g.userData.nevada = n
+      }
       // Columnas de humo de lo que sigue ardiendo (Marsella, tras la guerra).
       if (crudo.userData.humos) {
         const h = humareda(crudo.userData.humos)
@@ -2268,8 +2274,57 @@ float olaAgua (vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0
     return humo
   }
 
+  // La nevada (19/10/2026, Vladivostok: Isidro eligió «invierno con nieve»).
+  // Mil copos en una caja alrededor del campo que caen despacio, se mecen con el
+  // viento y, al llegar al suelo, vuelven a salir por arriba. Un solo `Points`:
+  // una llamada de dibujado. En calidad baja (reloj quieto) se quedan quietos.
+  function nevada () {
+    const N = 1400
+    const CAJA = { x: 34, y0: 0, y1: 26, z0: -90, z1: 34 }
+    const pos = new Float32Array(N * 3)
+    const vel = new Float32Array(N)
+    const fase = new Float32Array(N)
+    for (let i = 0; i < N; i++) {
+      pos[i * 3] = (Math.random() * 2 - 1) * CAJA.x
+      pos[i * 3 + 1] = CAJA.y0 + Math.random() * (CAJA.y1 - CAJA.y0)
+      pos[i * 3 + 2] = CAJA.z0 + Math.random() * (CAJA.z1 - CAJA.z0)
+      vel[i] = 1.2 + Math.random() * 1.4
+      fase[i] = Math.random() * 6.28
+    }
+    const geo = new THREE.BufferGeometry()
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3))
+    // El copo: un punto blanco de bordes suaves pintado en un lienzo pequeño.
+    const lienzo = document.createElement('canvas')
+    lienzo.width = lienzo.height = 32
+    const c = lienzo.getContext('2d')
+    const grad = c.createRadialGradient(16, 16, 0, 16, 16, 16)
+    grad.addColorStop(0, 'rgba(255,255,255,1)')
+    grad.addColorStop(0.45, 'rgba(255,255,255,0.75)')
+    grad.addColorStop(1, 'rgba(255,255,255,0)')
+    c.fillStyle = grad
+    c.fillRect(0, 0, 32, 32)
+    const mat = new THREE.PointsMaterial({ size: 0.3, map: new THREE.CanvasTexture(lienzo), transparent: true, depthWrite: false, opacity: 0.9 })
+    const copos = new THREE.Points(geo, mat)
+    copos.frustumCulled = false
+    copos.renderOrder = 5
+    copos.userData.animar = dt => {
+      const t = reloj.value
+      for (let i = 0; i < N; i++) {
+        let y = pos[i * 3 + 1] - vel[i] * dt
+        if (y < CAJA.y0) y += CAJA.y1 - CAJA.y0
+        pos[i * 3 + 1] = y
+        // El viento, de lado: cada copo con su vaivén.
+        pos[i * 3] += (0.6 + Math.sin(t * 0.7 + fase[i]) * 0.5) * dt
+        if (pos[i * 3] > CAJA.x) pos[i * 3] -= 2 * CAJA.x
+      }
+      geo.attributes.position.needsUpdate = true
+    }
+    return copos
+  }
+
   function animarArena (dt) {
     escenarioVisto?.userData.humo?.userData.animar(Math.min(dt, 0.1))
+    if (!relojQuieto) escenarioVisto?.userData.nevada?.userData.animar(Math.min(dt, 0.1))
     if (!relojQuieto) reloj.value += Math.min(dt, 0.1)
     const sitio = escenarioVisto
     if (sitio && sitio.userData.listo !== false) {
