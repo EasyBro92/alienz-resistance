@@ -10,21 +10,11 @@
 // quedan abiertos. En el puente se pelea en la calzada y las dos aceras quedan
 // cerradas tras la barrera, así que el campo pasa de cinco carriles a tres.
 //
-// Casi todos están ya hechos en Blender: aquí queda su ficha (qué modelo, cuántos
-// carriles, dónde va la base) y lo poco que sigue hecho por código.
+// Desde el 20/10/2026 TODOS están hechos en Blender: aquí queda su ficha (qué
+// modelo, cuántos carriles, dónde va la base, su hueco…).
 
 import * as THREE from 'three'
 import { LUGARES } from './ciudades.js'
-
-const mat = (color, roughness = 0.8, metalness = 0) =>
-  new THREE.MeshStandardMaterial({ color, roughness, metalness })
-
-const pon = (g, geo, material, x = 0, y = 0, z = 0) => {
-  const m = new THREE.Mesh(geo, material)
-  m.position.set(x, y, z)
-  g.add(m)
-  return m
-}
 
 // --- el puente de Zolotói -------------------------------------------------
 //
@@ -91,108 +81,31 @@ function estadio () {
   return g
 }
 
-// --- el circuito -------------------------------------------------------------
-// Se corre por la pista de verdad, con pianos, escapatoria de grava, muros de
-// neumáticos y la valla de seguridad. El muro de boxes se mete por un lado, así
-// que aquí el campo baja a cuatro carriles y además de forma ASIMÉTRICA: el que
-// se cierra es solo el de un lado.
-function circuito () {
+// --- Interlagos -------------------------------------------------------------
+//
+// Hecho en Blender el 20/10/2026 (herramientas/blender/lugar_interlagos.py): era
+// el último tramo que seguía hecho de piezas aquí. Isidro eligió el circuito
+// como antes, pero de verdad: la recta de meta al atardecer, los alienz andando
+// por la pista desde el fondo y llegada larga. El muro de boxes (x = 4,65 a 5,15)
+// cierra el carril de la derecha, así que el campo es de CUATRO carriles y
+// asimétrico, como antes (`carriles: 4` cierra el último). El pórtico del
+// semáforo cruza a 14 m: por debajo pasa la línea de visión hasta la antena de
+// la base, que va en la escapatoria de la izquierda.
+function saoPauloInterlagos () {
   const g = new THREE.Group()
-  const piano = mat(0xd63a2f, 0.75)
-  const pianoBlanco = mat(0xf0efe9, 0.75)
-  const cesped = mat(0x4c7a3f, 0.95)
-  const grava = mat(0xb9b2a2, 1)
-  const goma = mat(0x22242a, 0.95)
-  const gomaColor = [mat(0xd63a2f, 0.9), mat(0xf0efe9, 0.9), mat(0x2b62b0, 0.9)]
-  const acero = mat(0xc3c7cb, 0.4, 0.55)
-  const hormigon = mat(0xb9b5ad, 0.9)
-
-  const BORDE = 6.9
-  const DESDE = 30
-  const HASTA = -260
-
-  for (const lado of [-1, 1]) {
-    // Piano: bloques rojos y blancos alternos pegados al asfalto.
-    for (let z = DESDE, i = 0; z > HASTA; z -= 2.4, i++) {
-      pon(g, new THREE.BoxGeometry(1.5, 0.12, 2.4), i % 2 ? piano : pianoBlanco, lado * (BORDE + 0.75), 0.06, z)
-    }
-    // Césped artificial y después la grava de la escapatoria.
-    pon(g, new THREE.PlaneGeometry(4, DESDE - HASTA), cesped, lado * (BORDE + 3.6), 0.005, (DESDE + HASTA) / 2)
-      .rotation.x = -Math.PI / 2
-    pon(g, new THREE.PlaneGeometry(16, DESDE - HASTA), grava, lado * (BORDE + 13.6), 0, (DESDE + HASTA) / 2)
-      .rotation.x = -Math.PI / 2
-    // Muro de neumáticos: tres alturas, con la fila de arriba de colores.
-    for (let z = DESDE; z > HASTA; z -= 1.5) {
-      for (let k = 0; k < 3; k++) {
-        const m = k === 2 ? gomaColor[(z | 0) % 3] : goma
-        const r = pon(g, new THREE.CylinderGeometry(0.55, 0.55, 0.42, 9), m, lado * (BORDE + 22), 0.22 + k * 0.42, z)
-        r.rotation.x = Math.PI / 2
-      }
-    }
-    // Y detrás, la valla de seguridad: postes altos con su malla.
-    for (let z = DESDE; z > HASTA; z -= 6) {
-      pon(g, new THREE.BoxGeometry(0.16, 5.5, 0.16), acero, lado * (BORDE + 23.4), 2.75, z)
-    }
-    for (const y of [1.4, 3, 4.6]) {
-      pon(g, new THREE.BoxGeometry(0.1, 0.12, DESDE - HASTA), acero, lado * (BORDE + 23.4), y, (DESDE + HASTA) / 2)
-    }
-  }
-
-  // --- el muro de boxes, que es lo que estrecha la pista ---------------------
-  // Va por el carril 4, el de la derecha: pared de hormigón con publicidad y el
-  // muro de tiempos por encima.
-  const X_MURO = 4.9
-  for (let z = DESDE; z > HASTA; z -= 4) {
-    const bajo = pon(g, new THREE.BoxGeometry(0.5, 1.05, 3.9), hormigon, X_MURO, 0.52, z)
-    const alto = pon(g, new THREE.BoxGeometry(0.56, 0.5, 3.9), (z | 0) % 8 === 0 ? piano : mat(0xe8e6e0, 0.7), X_MURO, 1.3, z)
-    // El muro de boxes es lo que cierra el carril de la derecha (ver `muro` en
-    // el puente).
-    bajo.userData.muro = true
-    alto.userData.muro = true
-  }
-  // Los garajes al otro lado del muro.
-  for (let z = DESDE - 6; z > -150; z -= 12) {
-    pon(g, new THREE.BoxGeometry(11, 6.5, 11), hormigon, X_MURO + 9, 3.25, z)
-    pon(g, new THREE.BoxGeometry(11.3, 0.6, 1.2), mat(0x2b3138, 0.8), X_MURO + 9, 5.6, z - 5.6)
-  }
-
-  // --- el pórtico de meta ----------------------------------------------------
-  // OJO CON LA ALTURA: el travesaño cruza la pista de lado a lado y la línea de
-  // visión desde la cámara hasta la antena de la base alien pasa por y = 11,1 a
-  // esta z. Con el travesaño en 11,4 cortaba justo la antena y de la base solo se
-  // veía la falda (medido: 7 % de antena a la vista). A 14 pasa por debajo.
-  for (const z of [-8, -120]) {
-    for (const lado of [-1, 1]) {
-      pon(g, new THREE.BoxGeometry(1.1, 14, 1.1), acero, lado * (BORDE + 2.6), 7, z)
-    }
-    pon(g, new THREE.BoxGeometry((BORDE + 3.2) * 2, 1.9, 1.6), mat(0x22262c, 0.7), 0, 14, z)
-    pon(g, new THREE.BoxGeometry((BORDE + 2) * 2, 1.1, 0.5), mat(0xe8e6e0, 0.6), 0, 14, z - 0.9)
-    // Los semáforos de salida.
-    for (let k = -2; k <= 2; k++) {
-      pon(g, new THREE.SphereGeometry(0.34, 8, 6), k < 0 ? mat(0x3a1010, 0.5) : mat(0x120c0c, 0.5), k * 2.2, 12.8, z - 0.9)
-    }
-  }
-
-  // --- tribuna al otro lado --------------------------------------------------
-  // OJO CON LA Z: la tribuna mide 150 de ancho y cruza la pista de lado a lado,
-  // así que tiene que quedar DETRÁS de donde aparecen los bichos (z = -44) o la
-  // atraviesan entera cada oleada. Estaba en -36,9 y lo hacían.
-  for (let k = 0; k < 11; k++) {
-    pon(g, new THREE.BoxGeometry(150, 0.9, 1.5), k % 4 === 3 ? mat(0x7d7a74, 0.92) : hormigon,
-      0, 1 + k * 0.9, -(BORDE + 56 + k * 1.5))
-  }
-  for (let i = 0; i < 90; i++) {
-    pon(g, new THREE.BoxGeometry(1, 0.5, 0.55), i % 6 === 1 ? mat(0xd63a2f, 0.85) : mat(0xdcdcd8, 0.85),
-      -72 + (i % 45) * 3.2, 1.6 + Math.floor(i / 45) * 2.7, -(BORDE + 57.5 + Math.floor(i / 45) * 4.5))
-  }
-
-  g.userData.carriles = 4
-  g.userData.tapaElMundo = true
-  // Interlagos tampoco tenía plano de llegada: no lleva monumento y sin `foco`
-  // el vuelo ni empieza. Con esto entra por la misma puerta que los lugares y
-  // se recorre la recta de meta desde arriba antes de la primera oleada.
-  g.userData.conHitos = true
-  g.userData.altoVuelo = 34
+  g.name = 'lugar:saoPauloInterlagos'
+  Object.assign(g.userData, {
+    modelo: 'lugar-interlagos',
+    modeloCiudad: 'lugar-interlagos-ciudad',
+    luz: 'lugar-interlagos',
+    carriles: 4,
+    tapaElMundo: true,
+    sinSombra: true,
+    sinCalzada: true,
+    lejos: 470,
+    baseX: -14,
+    baseZ: -44
+  })
   return g
 }
 
@@ -1094,4 +1007,4 @@ function nuevaYorkPortaaviones () {
   return g
 }
 
-export const ESCENARIOS = { nuevaYorkPortaaviones, nuevaYorkTimes, vladivostokPuente, estadio, circuito, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, seattlePike, monterreyMacroplaza, guadalajaraCatedral, cdmxReforma, puntaCanaBavaro, santoDomingoAlcazar, puertoPlataFortaleza, rioCorcovado, manaosTeatro, ...LUGARES }
+export const ESCENARIOS = { nuevaYorkPortaaviones, nuevaYorkTimes, vladivostokPuente, estadio, saoPauloInterlagos, milanDuomo, tarragonaMiracle, valenciaArtes, marsellaPuerto, lyonSaona, parisMarte, napolesLungomare, romaColiseo, atenasAcropolis, salonicaPaseo, heraclionCnosos, alejandriaQaitbay, luxorEsfinges, gizehEsfinge, lagosPuente, bombayPuerta, agraTaj, calcutaMemorial, pekinMuralla, shanghaiYuyuan, chongqingHongya, moscuPlaza, novosibirskObi, anchorageSeward, seattlePike, monterreyMacroplaza, guadalajaraCatedral, cdmxReforma, puntaCanaBavaro, santoDomingoAlcazar, puertoPlataFortaleza, rioCorcovado, manaosTeatro, ...LUGARES }

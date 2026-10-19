@@ -950,10 +950,16 @@ export const PAISES = [
         waves: OLEADAS.formas
       },
       {
-        // Interlagos: se corre por la pista, con pianos, grava y muro de
-        // neumaticos. El muro de boxes se mete por la derecha, asi que aqui el
-        // campo baja a cuatro carriles y ademas de forma asimetrica.
-        name: 'São Paulo', lugar: 'Interlagos · recta de meta', mapa: sitio(-23.70, -46.70), escenario: 'circuito', bioma: 'monzon',
+        // Interlagos, hecho en Blender el 20/10 (herramientas/blender/lugar_interlagos.py):
+        // la recta de meta al atardecer. El muro de boxes se mete por la derecha,
+        // así que aquí el campo baja a cuatro carriles, y de forma asimétrica.
+        // Los alienz vienen andando por la pista desde el fondo, saliendo de la
+        // calima de la ciudad (la niebla cierra al empezar: `sinFondo` en la llegada).
+        name: 'São Paulo', llegada: 'interlagos', lugar: 'Interlagos · recta de meta', mapa: sitio(-23.70, -46.70), escenario: 'saoPauloInterlagos', bioma: 'monzon',
+        fondo: { hora: 'ocaso', cielo: 0xe6a47c, niebla: 0xd9a888, nieblaCerca: 80, nieblaLejos: 185, cupula: [0x4a5c9a, 0xf2a876], sol: 0xffc28a },
+        suelo: 'losas', tonoSuelo: 0x3c3c3e, hitos: [],
+        entrada: { z: -120, fondo: 10 },
+        sinPajaros: true, sinNubes: true,
         resumen: 'Se curan, y son todos.',
         parte: ['La ciudad más grande del sur es su último hospital.',
           'Todo lo que les queda protege el camino hacia el Amazonas.'],
