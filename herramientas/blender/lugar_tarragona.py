@@ -395,23 +395,29 @@ for k in range(3):
 # ==================================================================================
 # 3. EL ANFITEATRO
 # ==================================================================================
-ESC = 0.55
+# 20/10/2026: Isidro, «en Tarragona y Valencia las esculturas o los edificios se
+# ven algo más pequeños de lo que deberían». De 0,55 a 0,85 de su tamaño; la
+# ladera y el Balcó se apartan lo que haga falta para que quepa, y las gradas,
+# el podio y la iglesia crecen en la misma proporción (`K_ANF`).
+ESC = 0.85
+K_ANF = ESC / 0.55
 A_ARENA, B_ARENA = 61.5 / 2 * ESC, 38.5 / 2 * ESC      # semiejes de la arena (z, x)
 A_FUERA, B_FUERA = 130 / 2 * ESC, 102 / 2 * ESC        # del conjunto
 CZ = -64.0
 CX = 17.2 + B_ARENA                                   # el borde de la arena, justo tras el talud
 CORTE = 16.4                                          # por aquí pasó la vía: no queda nada
-PODIO = 1.5
+PODIO = 1.5 * K_ANF
 FILAS = 16
-ALZA = 0.62
+ALZA = 0.62 * K_ANF
 N = 128
 
 def elipse (a, b, t):
     return CX + b * math.sin(t), CZ + a * math.cos(t)
 
+X_BALCO = CX + B_FUERA + 8.0           # el Balcó, por encima del anfiteatro (antes CORTE + 46)
 def terreno (x):
     # La ladera del parque, del talud al Balcó: de 2,6 a 21.
-    k = max(0.0, min(1.0, (x - CORTE) / 44))
+    k = max(0.0, min(1.0, (x - CORTE) / (X_BALCO - CORTE - 2.0)))
     return NIVEL + (k ** 1.15) * 18.4
 
 # La arena del anfiteatro.
@@ -435,7 +441,7 @@ alto_fila = []
 for i in range(FILAS + 1):
     # Dos pasillos (praecinctiones) separan los tres sectores: un escalón más alto.
     extra = 0.5 if i in (6, 11) else 0
-    alto_fila.append((alto_fila[-1] + ALZA + extra) if alto_fila else NIVEL + PODIO)
+    alto_fila.append((alto_fila[-1] + ALZA + extra * K_ANF) if alto_fila else NIVEL + PODIO)
 
 def vivo (x):
     return x >= CORTE
@@ -534,7 +540,7 @@ def muro_ruina (x0, x1, z0, z1, alto):
             muros.append((x0 + (x1 - x0) * a, x0 + (x1 - x0) * b, z0 - 0.4, z0 + 0.4, NIVEL, NIVEL + h))
         else:
             muros.append((x0 - 0.4, x0 + 0.4, z0 + (z1 - z0) * a, z0 + (z1 - z0) * b, NIVEL, NIVEL + h))
-IX = CX - 4        # la nave, de oeste (mar) a este (ábside)
+IX = CX - 2        # la nave, de oeste (mar) a este (ábside); a -2 y no a -4 desde el 20/10: más grande, los cimientos pisaban el corte de la vía
 NAVE_L, NAVE_A = 13, 5.4
 muro_ruina(IX - NAVE_L / 2, IX + NAVE_L / 2, CZ + NAVE_A / 2, 0, 3.8)
 muro_ruina(IX - NAVE_L / 2, IX + NAVE_L / 2, CZ - NAVE_A / 2, 0, 3.4)
@@ -552,21 +558,25 @@ AX0 = IX + NAVE_L / 2
 muro_ruina(AX0, AX0 + 3.4, CZ + 1.8, 0, 4.6)
 muro_ruina(AX0, AX0 + 3.4, CZ - 1.8, 0, 4.6)
 muro_ruina(AX0 + 3.4, AX0 + 3.4, CZ + 1.8, CZ - 1.8, 4.4)
-cajas('iglesia', muros, SILLAR_GASTADO, 1.2)
+# La iglesia y la basílica, a la escala del anfiteatro (20/10): cada pieza se
+# lleva desde el centro de la nave, y la altura sobre la arena, con `K_ANF`.
+def a_escala (piezas):
+    return [(IX + (x0 - IX) * K_ANF, IX + (x1 - IX) * K_ANF, CZ + (z0 - CZ) * K_ANF, CZ + (z1 - CZ) * K_ANF, NIVEL + (y0 - NIVEL) * K_ANF, NIVEL + (y1 - NIVEL) * K_ANF) for x0, x1, z0, z1, y0, y1 in piezas]
+cajas('iglesia', a_escala(muros), SILLAR_GASTADO, 1.2)
 # La basílica visigoda: solo los cimientos, un palmo sobre la arena.
 cimientos = []
 for (x0, x1, z0, z1) in ((IX - 9, IX + 9, CZ + 6.5, CZ + 5.9), (IX - 9, IX + 9, CZ - 5.9, CZ - 6.5),
                          (IX - 9, IX - 8.4, CZ + 6.5, CZ - 6.5), (IX + 8.4, IX + 9, CZ + 6.5, CZ - 6.5),
                          (IX - 9, IX + 9, CZ + 2.2, CZ + 1.8), (IX - 9, IX + 9, CZ - 1.8, CZ - 2.2)):
     cimientos.append((x0, x1, z0, z1, NIVEL, NIVEL + 0.35))
-cajas('basilica', cimientos, SILLAR_GASTADO, 1.2)
+cajas('basilica', a_escala(cimientos), SILLAR_GASTADO, 1.2)
 
 # ==================================================================================
 # 4. LA LADERA, EL PARQUE Y EL BALCÓ
 # ==================================================================================
 # La ladera de césped, con el hueco del anfiteatro.
 bm = bmesh.new()
-XS = [CORTE + k * 2 for k in range(0, 24)]
+XS = [CORTE + k * 2 for k in range(0, int((X_BALCO - CORTE) / 2) + 2)]
 ZS = list(range(Z_CERCA, Z_LEJOS - 1, -4))
 malla_v = [[bm.verts.new(P(x, z, terreno(x))) for x in XS] for z in ZS]
 for i in range(len(ZS) - 1):
@@ -585,7 +595,6 @@ for f in bm.faces:
 uv_mundo(bm, 4)
 objeto('suelo-ladera', bm, [CESPED])
 # Un camino de tierra que baja del Balcó al anfiteatro, en zigzag.
-X_BALCO = CORTE + 46
 Y_BALCO = terreno(X_BALCO)
 # La terraza del Balcó del Mediterrani con su barandilla de hierro.
 caja('balco-terraza', X_BALCO - 1, X_BALCO + 8, -10, -118, Y_BALCO - 0.5, Y_BALCO + 0.15, liso('balco-suelo', 0xd9ccb2, 0.8), 2)

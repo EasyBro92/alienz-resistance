@@ -166,7 +166,14 @@ suelo('GN', LOSA, -BORDE, BORDE, -420, Z_PUERTA, -0.27, 4.0)
 # --- el Museu de les Ciències: el esqueleto de costillas, a la derecha ---------------
 M0, M1 = 0.0, -100.0                    # de dónde a dónde, a lo largo
 DX = -5.0                               # pegado al paseo: jugando se ve el pie de las costillas
-PIE, HOMBRO, CUMBRE, ESPALDA, PIE_T = (21.0 + DX, 0.0), (16.5 + DX, 15.0), (31.0 + DX, 19.5), (47.0 + DX, 9.0), (50.0 + DX, 0.0)
+# 20/10/2026: Isidro, «en Valencia los edificios se ven algo más pequeños de lo
+# que deberían». El Museu crece un 45 % hacia fuera y hacia arriba desde su pie
+# (`mu`): el pie de las costillas, que es lo que se ve jugando, no se mueve.
+KM = 1.45
+def mu (x, y):
+    """Un punto del corte del Museu (x sin DX, y), crecido desde el pie."""
+    return (21.0 + DX + (x - 21.0) * KM, y * KM)
+PIE, HOMBRO, CUMBRE, ESPALDA, PIE_T = mu(21.0, 0.0), mu(16.5, 15.0), mu(31.0, 19.5), mu(47.0, 9.0), mu(50.0, 0.0)
 def lado_museo (a, b, mat, hacia, baldosa_u=12.0, v=1.0):
     franja('E', mat, [(a[0], M0), (a[0], M1)], a[1], [(b[0], M0), (b[0], M1)], b[1], hacia, u_baldosa=baldosa_u, v0=0, v1=v, cerrada=False)
 lado_museo(PIE, HOMBRO, VIDRIO_MUSEO, V((-1, 0, 0.2)), 12.0, 1.3)        # la fachada del paseo, inclinada hacia fuera
@@ -180,14 +187,14 @@ for k in range(int((M0 - M1) / MODULO) + 1):
     z = M0 - k * MODULO
     # la costilla inclinada de la fachada, con su jabalcón, y la del lado norte
     # (lo fino lleva la luz en los vértices: en el atlas cada barra sería un píxel)
-    barra('EV', BLANCO, P(23.0 + DX, z, -0.3), P(15.6 + DX, z, 16.0), 0.95)
-    barra('EV', BLANCO, P(19.4 + DX, z, 7.8), P(23.5 + DX, z, 17.3), 0.6)
-    barra('EV', BLANCO, P(52.0 + DX, z, -0.3), P(47.4 + DX, z, 9.8), 0.8)
+    barra('EV', BLANCO, P(mu(23.0, -0.3)[0], z, -0.3), P(mu(15.6, 16.0)[0], z, mu(15.6, 16.0)[1]), 0.95 * KM)
+    barra('EV', BLANCO, P(mu(19.4, 7.8)[0], z, mu(19.4, 7.8)[1]), P(mu(23.5, 17.3)[0], z, mu(23.5, 17.3)[1]), 0.6 * KM)
+    barra('EV', BLANCO, P(mu(52.0, -0.3)[0], z, -0.3), P(mu(47.4, 9.8)[0], z, mu(47.4, 9.8)[1]), 0.8 * KM)
     # la espina del tejado: una aleta blanca que sigue la cubierta
     for (a, b) in (((15.6, 16.0), (31.0, 21.6)), ((31.0, 21.6), (47.6, 10.0))):
-        barra('EV', BLANCO, P(a[0] + DX, z, a[1]), P(b[0] + DX, z, b[1]), 0.55)
+        barra('EV', BLANCO, P(mu(*a)[0], z, mu(*a)[1]), P(mu(*b)[0], z, mu(*b)[1]), 0.55 * KM)
 # las galerías: dos líneas blancas a lo largo de la fachada
-for (x, y) in ((19.2 + DX, 5.2), (17.8 + DX, 10.4)):
+for (x, y) in (mu(19.2, 5.2), mu(17.8, 10.4)):
     caja('E', BLANCO, x - 1.3, x + 0.4, M1, M0, y - 0.22, y + 0.22, baldosa=4)
 # Bancos de trencadís y farolas a lo largo de los cantos, fuera del paso.
 for z in np.arange(22.0, -118.0, -14.0):
@@ -199,7 +206,9 @@ for z in np.arange(22.0, -118.0, -14.0):
             barra('EV', BLANCO, P(lado * 9.05, z - 7, 5.2), P(lado * 8.2, z - 7, 5.5), 0.14)
 
 # --- l'Hemisfèric: el ojo, a la izquierda ------------------------------------------
-HC, HA, HB, HH = (-25.0, -70.0), 25.0, 13.0, 12.5
+# Un 30 % más grande (20/10): su canto de dentro sigue en x = -12, lejos del
+# paseo y de la base; crece hacia fuera y a lo largo (sin llegar al puente).
+HC, HA, HB, HH = (-12.0 - 13.0 * 1.3, -70.0), 25.0 * 1.3, 13.0 * 1.3, 12.5 * 1.3
 def casco (centro, a, b, alto, nt, nf, exp_w=0.75, exp_h=0.6, t0=-1.0, t1=1.0, punta=1.0):
     """Filas de puntos de un casco alargado según z: fila = sección, de un lado a otro."""
     filas = []
@@ -225,7 +234,7 @@ malla('E', COSTILLAS, trozo(ojo, 8, 12), hacia_fuera_de(HC), u_rep=1, v_rep=2.5,
 # el canto de la cáscara: dos arcos blancos gruesos de punta a punta
 for j in (4, 8):
     for a, b in zip([f[j] for f in ojo], [f[j] for f in ojo][1:]):
-        barra('EV', BLANCO, a, b, 0.7)
+        barra('EV', BLANCO, a, b, 0.9)
 
 # --- el puente de Monteolivete, cruzando el cauce delante del Palau -----------------
 PZ0, PZ1, PY = -114.0, -106.0, 6.4
@@ -236,11 +245,12 @@ for z in (PZ0, PZ1):
     caja('E', BLANCO, -92, 92, z - 0.15, z + 0.15, PY + 1.1, PY + 1.9, baldosa=4)
 
 # --- el Palau de les Arts, al fondo: de su puerta salen ------------------------------
-PL = 90.0                                # largo
+KP = 1.4                                 # un 40 % más grande (20/10); la puerta, igual
+PL = 90.0 * KP                           # largo
 def palau (s, f):
     """s: de la proa (0) a la popa (1); f: de un lado (0) al otro (π)."""
-    w = 24.0 * math.sin(math.pi * (0.12 + 0.88 * s)) ** 0.7 if s < 1 else 0.0
-    hh = 34.0 * math.sin(math.pi * (0.15 + 0.85 * s)) ** 0.8 if s < 1 else 0.0
+    w = 24.0 * KP * math.sin(math.pi * (0.12 + 0.88 * s)) ** 0.7 if s < 1 else 0.0
+    hh = 34.0 * KP * math.sin(math.pi * (0.15 + 0.85 * s)) ** 0.8 if s < 1 else 0.0
     return P(w * math.cos(f), Z_PUERTA - PL * s, hh * math.sin(f) ** 0.9)
 NS, NF = 16, 14
 hull = [[palau(i / NS, math.pi * j / NF) for j in range(NF + 1)] for i in range(NS + 1)]
@@ -271,8 +281,8 @@ izq, der, izq_b, der_b = [], [], [], []
 for i in range(21):
     s = -0.06 + 1.12 * i / 20
     z = Z_PUERTA - PL * s
-    y = 7 + 34.5 * math.sin(math.pi * min(1.0, max(0.0, (s + 0.06) / 1.2 + 0.1))) ** 0.75 if s < 1.0 else max(0.0, 12 * (1.06 - s) / 0.06)
-    ancho = 1.2 + 5.5 * min(1.0, max(0.0, s + 0.06))
+    y = 7 + 34.5 * KP * math.sin(math.pi * min(1.0, max(0.0, (s + 0.06) / 1.2 + 0.1))) ** 0.75 if s < 1.0 else max(0.0, 12 * (1.06 - s) / 0.06)
+    ancho = (1.2 + 5.5 * min(1.0, max(0.0, s + 0.06))) * KP
     izq.append(P(-ancho, z, y)); der.append(P(ancho, z, y))
     izq_b.append(P(-ancho * 0.8, z, y - 1.4)); der_b.append(P(ancho * 0.8, z, y - 1.4))
 malla('E', BLANCO, [izq, der], ARRIBA, u_rep=10, v_rep=1)
