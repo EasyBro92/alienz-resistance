@@ -9,8 +9,10 @@
 # flor, que es cuando la ciudad se pone morada.
 #
 # Cómo está puesto. Se mira avenida arriba:
-#   · EL ÁNGEL VA A 0,28 DE SU TAMAÑO (12,7 m: la columna entera con su Victoria
-#     dorada), en su glorieta, al fondo y en el eje;
+#   · EL ÁNGEL VA A 0,56 DE SU TAMAÑO (25,9 m: la columna entera con su Victoria
+#     dorada), en su glorieta, al fondo y en el eje. Iba a 0,28 y se veía pequeño
+#     (Isidro, 20/10): la columna, la escalinata y los bronces crecen desde el
+#     centro de la glorieta (`K_ANG`), que se queda igual; la Victoria, aparte;
 #   · la calzada de Reforma, con su camellón; a los lados, las jacarandas, las
 #     bancas de piedra, las farolas y las estatuas de los próceres;
 #   · la base alien, en un ruedo a la derecha;
@@ -173,6 +175,8 @@ GLORIETA = material('glorieta', imagen_de(ASFALTO), rug=0.95)                   
 cara('GN', GLORIETA, anillo(R_GLORIETA + 9.0, 0.03), hacia=ARRIBA, baldosa=4.0)        # la rotonda, que ensancha la calzada
 torno('P', CANTERA, en(0.0, ZA), [(R_GLORIETA, 0.0), (R_GLORIETA, 0.4), (R_GLORIETA - 0.5, 0.4)], lados=N_G, u_rep=16, v_m=1.5, tapas=(False, False))
 cara('P', JARDIN, anillo(R_GLORIETA - 0.5, 0.4), hacia=ARRIBA, baldosa=6.0)
+K_ANG = 2.0
+m_angel = marca()
 # La escalinata y el basamento, con sus cuatro grupos de bronce.
 for k, (r, y) in enumerate(((5.6, 0.7), (5.0, 1.0), (4.4, 1.3), (3.8, 1.6))):
     torno('P', MARMOL, en(0.0, ZA), [(r, y - 0.3), (r, y)], lados=24, u_rep=12, v_m=1.0, tapas=(False, True))
@@ -184,12 +188,13 @@ for dx, dz in ((1, 1), (1, -1), (-1, -1), (-1, 1)):
 elipsoide('EV', BRONCE, en(0.0, ZA + 2.6, 2.3), (0.9, 0.6, 0.6))                       # el león, al frente
 # La columna, su capitel y la Victoria alada, dorada.
 torno('P', MARMOL, en(0.0, ZA, 4.3), [(0.85, 0.0), (0.72, 0.3), (0.66, 5.4), (0.9, 5.6), (1.05, 6.0), (1.05, 6.2)], lados=14, u_rep=4, v_m=2.0, tapas=(False, True))
-YV = 10.5
+crecer(m_angel, (0.0, ZA), K_ANG)
+YV = 10.5 * K_ANG
 # La Victoria es de MESHY (10/10, 30 créditos; Isidro: «haz todas estas con Meshy»):
 # la de antes eran tres bolas doradas con dos alas planas (está en el historial).
-victoria = importar(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'modelos', 'victoria.glb'), 'VV', 2.45, 0.0, ZA)
+victoria = importar(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'modelos', 'victoria.glb'), 'VV', 2.45 * K_ANG, 0.0, ZA)
 victoria.data.transform(M.Translation((0, 0, YV)))
-print('ÁNGEL', YV + 2.45, 'm')
+print('ÁNGEL', YV + 2.45 * K_ANG, 'm')
 
 comprobar_paso(('E', 'EP', 'P', 'EV', 'GN'), z_lejos=-61.0)
 

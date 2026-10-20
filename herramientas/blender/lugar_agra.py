@@ -8,9 +8,12 @@
 # rosada y con llegada larga.
 #
 # Cómo está puesto. Se mira al mausoleo desde el jardín, por el eje del canal:
-#   · EL TAJ VA A 0,17 DE SU TAMAÑO (12,7 m hasta el remate; mide 73): jugando solo
-#     caben trece metros de alto al fondo, y el Taj es su silueta entera —la
-#     cúpula, los cuatro templetes, los cuatro alminares—, no un trozo de pared.
+#   · EL TAJ VA A 0,35 DE SU TAMAÑO (25 m hasta el remate; mide 73). Iba a 0,17
+#     para que cupiera entero jugando y se veía pequeño (Isidro, 20/10): ahora
+#     jugando se ve su parte baja con el gran arco, y entero en la llegada.
+#     `K_TAJ`: el zócalo crece a lo ancho y a lo largo desde su canto delantero,
+#     el cuerpo con la cúpula desde el pie de su fachada (la puerta no se mueve:
+#     por ahí salen) y los alminares hasta las esquinas del zócalo nuevo.
 #   · Está sobre su zócalo de mármol (1,2 m). Los alienz nacen dentro, a oscuras,
 #     salen por la puerta del gran arco y bajan la escalinata: `hueco` con el
 #     suelo LEVANTADO (como el Partenón) y `entrada` con `abanico` (la puerta mide
@@ -270,7 +273,10 @@ for s in (-1, 1):                                                               
 # 3. EL MAUSOLEO
 # ==================================================================================
 # El zócalo y su escalinata (en el juego es una rampa: `hueco` con el suelo levantado).
+K_TAJ = 2.0
+m_zocalo = marca()
 viga('P', ZOCALO, -MZ, MZ, ZB - MZ, Z_ZOC, 0.0, Y_ZOC, u_m=1.6, techo=MARMOL)
+crecer(m_zocalo, (0.0, Z_ZOC), K_TAJ, solo_planta=True)
 N_ESC = 6
 for k in range(N_ESC):
     y = Y_ZOC * (k + 1) / N_ESC
@@ -279,6 +285,7 @@ for k in range(N_ESC):
 for s in (-1, 1):                                                                   # las zancas
     viga('P', ZOCALO, min(s * 7.6, s * MZ), max(s * 7.6, s * MZ), Z_ZOC, Z_ESC, 0.0, Y_ZOC + 0.25, u_m=1.6, techo=MARMOL)
 
+m_cuerpo = marca()
 # El cuerpo: un cuadrado con las esquinas en chaflán. Cada cara lleva su dibujo.
 def cara_tex (mat, a_, b, y0, y1, u0, u1, v0, v1, hacia):
     cara('P', mat, [P(a_[0], a_[1], y0), P(b[0], b[1], y0), P(b[0], b[1], y1), P(a_[0], a_[1], y1)], uvs=[(u0, v0), (u1, v0), (u1, v1), (u0, v1)], hacia=hacia)
@@ -332,6 +339,8 @@ def templete (x, z, y, r, alto, n=6, grupo='EV'):
 for sx in (-1, 1):
     for sz in (-1, 1):
         templete(sx * 3.2, ZB + sz * 3.2, Y1, 0.78, 0.8, 8)
+crecer(m_cuerpo, (0.0, ZF), K_TAJ, y0=Y_ZOC)
+m_alminares = marca()
 # Los cuatro alminares, en las esquinas del zócalo.
 for sx in (-1, 1):
     for sz in (-1, 1):
@@ -339,7 +348,8 @@ for sx in (-1, 1):
         torno('P', MARMOL, en(x, z, Y_ZOC), [(0.62, 0.0), (0.62, 0.2), (0.5, 0.22), (0.45, 2.4), (0.62, 2.46), (0.62, 2.6), (0.44, 2.62), (0.4, 4.7), (0.57, 4.76), (0.57, 4.9), (0.4, 4.92), (0.36, 6.5), (0.56, 6.56), (0.56, 6.7)],
               lados=12, u_rep=3, v_m=2.4, tapas=(False, True))
         templete(x, z, Y_ZOC + 6.7, 0.46, 0.7, 6)
-print('TAJ', round(Y1 + 5.9, 2), 'm; alminares', round(Y_ZOC + 6.7 + 0.7 + 0.46 * 1.75, 2))
+crecer(m_alminares, (0.0, Z_ZOC), K_TAJ, y0=Y_ZOC)
+print('TAJ', round(Y_ZOC + (Y1 + 5.9 - Y_ZOC) * K_TAJ, 2), 'm; alminares', round(Y_ZOC + (6.7 + 0.7 + 0.46 * 1.75) * K_TAJ, 2))
 
 comprobar_paso(('E', 'EP', 'P', 'EV'), z_lejos=-67.5)
 

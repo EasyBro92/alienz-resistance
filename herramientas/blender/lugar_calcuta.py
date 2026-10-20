@@ -8,11 +8,11 @@
 # cielo de monzón y con llegada larga.
 #
 # Cómo está puesto. Se mira al palacio por el paseo del jardín:
-#   · EL PALACIO VA A 0,23 DE SU TAMAÑO (12,9 m hasta el Ángel; mide 56 y 103 de
-#     ancho): jugando caben trece metros de alto al fondo, y el Memorial es su
-#     silueta —la cúpula con el Ángel de la Victoria, los cuatro cupulines, las
-#     dos alas de columnas y las torres de las esquinas—. La nave se posa delante
-#     y la cúpula asoma por encima, en el hueco que deja el marcador.
+#   · EL PALACIO VA A 0,46 DE SU TAMAÑO (25,8 m hasta el Ángel; mide 56 y 103 de
+#     ancho). Iba a 0,23 para que cupiera entero jugando y se veía pequeño
+#     (Isidro, 20/10): ahora jugando se ven las alas y la base de la cúpula, y
+#     entero en la llegada. Crece desde el canto delantero del zócalo (`K_MEM`);
+#     el jardín deja libres 50 m a cada lado, así que cabe. La nave se posa delante.
 #   · El paseo es de gravilla rojiza con charcos (acaba de llover), entre bordillos
 #     de mármol; a los lados, césped, un estanque a la izquierda, palmeras y la
 #     estatua de bronce en su pedestal. La base alien, en un ruedo a la derecha.
@@ -245,6 +245,8 @@ for s in (-1, 1):
 MC, HCn = 4.5, 6.0                                                                  # medio pabellón central y su alto
 MA, HA = 12.0, 4.2                                                                  # hasta donde llegan las alas, y su alto
 Y0 = Y_Z
+K_MEM = 2.0
+m_memorial = marca()
 viga('P', MARMOL, -MA - 2.2, MA + 2.2, ZF - FONDO - 1.0, ZF + 1.6, 0.0, Y_Z, u_m=2.0, techo=MARMOL)       # el zócalo
 for k in range(3):                                                                  # la escalinata de la entrada
     viga('P', MARMOL, -MC + 0.4, MC - 0.4, ZF + 1.6, ZF + 2.2 + k * 0.5, 0.0, Y_Z * (3 - k) / 4, u_m=2.0, techo=MARMOL)
@@ -299,7 +301,8 @@ for sx in (-1, 1):                                                              
         x, z = sx * 3.5, ZC + sz * 3.6
         torno('P', TAMBOR, en(x, z, YT), [(0.72, 0.0), (0.72, 0.9)], lados=8, u_rep=8, v_m=0.9, tapas=(False, False))
         torno('EV', BLANCO, en(x, z, YT + 0.9), [(0.84, 0.0), (0.84, 0.1), (0.7, 0.14), (0.62, 0.5), (0.36, 0.8), (0.0, 0.94)], lados=10, tapas=(True, False))
-print('MEMORIAL', round(YA + 1.3, 2), 'm de alto;', 2 * (MA + 2.3), 'de ancho')
+crecer(m_memorial, (0.0, ZF + 1.6), K_MEM)
+print('MEMORIAL', round((YA + 1.3) * K_MEM, 2), 'm de alto;', 2 * (MA + 2.3) * K_MEM, 'de ancho')
 
 comprobar_paso(('E', 'EP', 'P', 'EV'))
 

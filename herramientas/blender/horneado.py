@@ -365,6 +365,32 @@ def lote (grupo, mat):
         lotes[k] = (bm, bm.loops.layers.uv.new('UVMap'), mat)
     return lotes[k]
 
+# --- agrandar un monumento ya hecho (20/10/2026) -----------------------------------
+# Isidro: «las esculturas o los edificios se ven algo más pequeños de lo que
+# deberían». Casi todos se hicieron encogidos (el Taj a 0,17) para que cupieran
+# enteros jugando, y cada uno está construido con decenas de medidas sueltas.
+# En vez de tocarlas una a una: `m = marca()` antes de construirlo y, al acabar,
+# `crecer(m, (x, z), k, y0)` lleva todo lo hecho desde la marca al k de su
+# tamaño desde ese punto (normalmente el pie del centro de su fachada: la cara
+# no se mueve y crece hacia atrás, hacia los lados y hacia arriba). `solo_planta`
+# crece a lo ancho y a lo largo sin subir (un zócalo con su escalinata delante).
+# La textura va pegada a la UV, así que crece con la pieza.
+def marca ():
+    return {k: len(v[0].verts) for k, v in lotes.items()}
+
+def crecer (desde, ancla, k, y0=0.0, solo_planta=False):
+    c = P(ancla[0], ancla[1], y0)
+    ky = 1.0 if solo_planta else k
+    n = 0
+    for clave, (bm, _, _) in lotes.items():
+        bm.verts.ensure_lookup_table()
+        for v in bm.verts[desde.get(clave, 0):]:
+            v.co.x = c.x + (v.co.x - c.x) * k
+            v.co.y = c.y + (v.co.y - c.y) * k
+            v.co.z = c.z + (v.co.z - c.z) * ky
+            n += 1
+    print('CRECER', n, 'vértices al', k)
+
 def cara (grupo, mat, pts, uvs=None, hacia=None, baldosa=None):
     """hacia: un vector, 'fuera' o 'dentro' (respecto al eje del sitio), o nada."""
     bm, uv, _ = lote(grupo, mat)

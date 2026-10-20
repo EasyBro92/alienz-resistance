@@ -10,9 +10,11 @@
 # a MEDIA TARDE, con luz dorada.
 #
 # Cómo está puesto:
-#   · LA CATEDRAL VA A 0,2 DE SU TAMAÑO (13 m hasta la punta de las agujas; mide
-#     65): es su silueta —la portada entre las dos torres y las dos agujas— o no
-#     se reconoce.
+#   · LA CATEDRAL VA A 0,44 DE SU TAMAÑO (28 m hasta la punta de las agujas; mide
+#     65). Iba a 0,2 para que cupiera entera jugando y se veía pequeña (Isidro,
+#     20/10): ahora jugando se ve la portada y el arranque de las torres, y entera
+#     en la llegada. Crece desde el pie de la portada (`K_CAT`): la puerta, por
+#     donde salen, no se mueve.
 #   · Los alienz nacen dentro y salen por la puerta (2,4 m) en abanico (`abanico`).
 #   · La plaza de cantera con naranjos, bancos y farolas; a la izquierda el
 #     quiosco de hierro de la Plaza de Armas; la base alien en un ruedo a la derecha.
@@ -224,6 +226,8 @@ for i in range(28):
 def cara_tex (mat, a_, b, y0, y1, u0, u1, v0, v1, hacia):
     cara('P', mat, [P(a_[0], a_[1], y0), P(b[0], b[1], y0), P(b[0], b[1], y1), P(a_[0], a_[1], y1)], uvs=[(u0, v0), (u1, v0), (u1, v1), (u0, v1)], hacia=hacia)
 u_de = lambda x: (x + MF) / (2 * MF)
+K_CAT = 2.2
+m_catedral = marca()
 # La portada, en tres trozos: la puerta queda abierta de verdad.
 cara_tex(PORTADA, (-MF, ZF), (-PUERTA, ZF), 0.0, H_CUERPO, 0.0, u_de(-PUERTA), 0.0, 1.0, V((0, -1, 0)))
 cara_tex(PORTADA, (PUERTA, ZF), (MF, ZF), 0.0, H_CUERPO, u_de(PUERTA), 1.0, 0.0, 1.0, V((0, -1, 0)))
@@ -260,12 +264,14 @@ for x, y, r in ((-0.6, 1.0, 0.34), (0.5, 2.0, 0.26), (0.1, 0.5, 0.2)):
 for k in range(5):
     x = -1.0 + k * 0.5
     barra('EV', RESINA, P(x, ZF - 0.6, 0.05), P(x * 2.2 + random.uniform(-0.3, 0.3), ZF + random.uniform(3.0, 7.0), 0.04), 0.2)
-# La reja del atrio, a los lados de la entrada.
+crecer(m_catedral, (0.0, ZF), K_CAT)
+# La reja del atrio, a los lados de la entrada (desde las torres ya crecidas).
+REJA_X0 = (XT + MT) * K_CAT + 0.6
 for s in (-1, 1):
-    for x in np.arange(XT + MT + 0.6, 12.0, 1.0):
+    for x in np.arange(REJA_X0, REJA_X0 + 7.0, 1.0):
         barra('EV', HIERRO, P(s * float(x), ZF + 2.4, 0.0), P(s * float(x), ZF + 2.4, 1.3), 0.06)
-    barra('EV', HIERRO, P(s * (XT + MT + 0.6), ZF + 2.4, 1.2), P(s * 12.0, ZF + 2.4, 1.2), 0.07)
-print('CATEDRAL', H_TORRE + 5.6, 'm; puerta de', 2 * PUERTA)
+    barra('EV', HIERRO, P(s * REJA_X0, ZF + 2.4, 1.2), P(s * (REJA_X0 + 7.0), ZF + 2.4, 1.2), 0.07)
+print('CATEDRAL', round((H_TORRE + 5.6) * K_CAT, 1), 'm; puerta de', round(2 * PUERTA * K_CAT, 1))
 
 comprobar_paso(('E', 'EP', 'P', 'EV', 'GN'), z_lejos=-66.0)
 
@@ -273,8 +279,10 @@ comprobar_paso(('E', 'EP', 'P', 'EV', 'GN'), z_lejos=-66.0)
 # 4. LO QUE SOLO SE VE EN EL VUELO (a la escala de la catedral, y la ciudad lejos)
 # ==================================================================================
 # El Sagrario, pegado a la catedral, con su cúpula; el Palacio de Gobierno y el Teatro Degollado.
+m_sagrario = marca()                                                                     # a la escala de la catedral (20/10)
 caja('T', CANTERA, MF + 2 * MT + 0.4, 12.0, ZF - 10.0, ZF - 1.0, 0.0, 4.4, techo=PIEDRA, baldosa=2.4)
 torno('T', AGUJA, en(8.4, ZF - 5.6, 4.4), [(2.0, 0.0), (2.0, 0.8), (1.5, 1.8), (0.5, 2.5), (0.0, 2.7)], lados=12, u_rep=12, v_m=1.0, tapas=(False, False))
+crecer(m_sagrario, (0.0, ZF), K_CAT)
 caja('T', CANTERA, 34.0, 56.0, -60.0, -20.0, 0.0, 5.0, techo=AZOTEA, baldosa=2.4)                        # el Palacio de Gobierno
 caja('T', CANTERA, -10.0, 10.0, ZF - 70.0, ZF - 50.0, 0.0, 5.4, techo=AZOTEA, baldosa=2.4)               # el Teatro Degollado, detrás
 for x in np.arange(-8.0, 8.1, 2.0):
