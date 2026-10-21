@@ -3217,3 +3217,9 @@ a.multi-boton { text-decoration: none; }
 }
 #contador-fps[data-nivel="justo"] { color: #ffd166; }
 #contador-fps[data-nivel="mal"] { color: #ff6b6b; }
+
+/* El botón de siguiente nivel en el mapa (21/10): a lo ancho, verde como JUGAR. */
+.boton-siguiente { grid-column: 1 / -1; flex-direction: column; gap: 2px; color: #08160c; border: none;
+  background: linear-gradient(180deg, #8ff0a5, #3fbf62); box-shadow: 0 4px 0 #2a7d41; }
+.boton-siguiente small { font-size: 12px; font-weight: 700; letter-spacing: 0; color: rgba(8, 22, 12, 0.75); }
+.mision.mision-marcada { outline: 3px solid #6fe39a; outline-offset: 2px; animation: pop .3s ease; }

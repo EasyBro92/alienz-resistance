@@ -3802,8 +3802,44 @@ function relatoDelMundo (limpios) {
   return 'Los trece países están limpios y los búnkeres, abiertos. Pero los túneles siguen bajando, y nadie sabe hasta dónde.'
 }
 
+// Siguiente nivel (21/10/2026). Isidro: «falta un botón que diga siguiente nivel
+// una vez estás en el mapa; debería apuntar siempre al siguiente nivel por hacer
+// y, si ya están todos, al último». Si al siguiente le faltan estrellas, apunta a
+// la misión ya hecha con menos estrellas, para mejorarla. Al tocarlo se abre su
+// país con la misión marcada y, 1,5 s después, empieza.
+function nivelSiguiente (pr = cargarProgreso()) {
+  if (pr.superados >= NIVELES.length) return { i: NIVELES.length - 1, texto: 'ÚLTIMO NIVEL' }
+  if (nivelJugable(pr.superados, pr.superados, pr)) return { i: pr.superados, texto: 'SIGUIENTE NIVEL' }
+  let peor = 0
+  for (let i = 0; i < pr.superados; i++) if ((pr.rangos[i] ?? 0) < (pr.rangos[peor] ?? 0)) peor = i
+  return { i: peor, texto: `FALTAN ${estrellasQueFaltan(pr.superados, pr)} ★ · MEJORA ESTA` }
+}
+function pintarSiguiente (pr) {
+  const sig = nivelSiguiente(pr)
+  const b = document.getElementById('mapa-siguiente')
+  b.firstChild.textContent = sig.texto + ' '
+  document.getElementById('mapa-siguiente-sitio').textContent = `${NIVELES[sig.i].name} · ${NIVELES[sig.i].pais}`
+}
+let esperaSiguiente = null
+document.getElementById('mapa-siguiente').addEventListener('click', () => {
+  const sig = nivelSiguiente()
+  abrirPais(NIVELES[sig.i].paisIndice)
+  const b = document.querySelector(`#pais-misiones .mision[data-i="${sig.i}"]`)
+  b?.classList.add('mision-marcada')
+  b?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  clearTimeout(esperaSiguiente)
+  esperaSiguiente = setTimeout(() => {
+    if (elPaisCapa.classList.contains('hidden')) return      // se volvió atrás: no empieza
+    elPaisCapa.classList.add('hidden')
+    elMapaCapa.classList.add('hidden')
+    nivelActual = sig.i
+    start(nivelActual)
+  }, 1500)
+})
+
 function abrirMapa () {
   const pr = cargarProgreso()
+  pintarSiguiente(pr)
   paisActual = paisQueToca(pr)
   const limpios = PAISES.filter((_, i) => estadoPais(i, pr) === 'hecho').length
   document.getElementById('mapa-relato').textContent = relatoDelMundo(limpios)
