@@ -77,6 +77,16 @@ const ESTILO_HUMANO = [
   'standing in A-pose, arms away from the body, isolated, no ground plane, no background'
 ].join(', ')
 
+// Personaje de dibujos tipo Pixar (24/10/2026, para MAGA Taco Dash: Isidro
+// eligió «animación tipo Pixar», proporciones de Pixar y ni Playmobil ni foto).
+// `--pixar` cambia la estética común por esta.
+const ESTILO_PIXAR = [
+  'high quality 3D animated feature film character in the style of Pixar and DreamWorks',
+  'stylized appealing caricature proportions, slightly large head, expressive face, smooth sculpted forms',
+  'soft stylized skin and cloth materials, clean and colorful but natural colors',
+  'standing in A-pose, arms away from the body, legs apart, isolated, no ground plane, no background'
+].join(', ')
+
 const RAIZ = path.resolve(import.meta.dirname, '..')
 const DESTINO = path.join(RAIZ, 'public', 'models')
 const API = 'https://api.meshy.ai'
@@ -206,7 +216,7 @@ const previo = await pedir(clave, '/openapi/v2/text-to-3d', {
     mode: 'preview',
     // El prompt del encargo y, detrás, la estética común. En este orden: lo
     // primero pesa más, así que el QUÉ manda sobre el CÓMO.
-    prompt: `${o.prompt}. ${o.humano ? ESTILO_HUMANO : o.criatura ? ESTILO_CRIATURA : o.realista ? ESTILO_REAL : ESTILO}`,
+    prompt: `${o.prompt}. ${o.pixar ? ESTILO_PIXAR : o.humano ? ESTILO_HUMANO : o.criatura ? ESTILO_CRIATURA : o.realista ? ESTILO_REAL : ESTILO}`,
     art_style: 'realistic',
     // Los modelos baratos no admiten `lowpoly`: ahí el recorte lo hace el remallado.
     model_type: o.modelo ? 'standard' : 'lowpoly',
@@ -258,7 +268,7 @@ if (o.refinar) {
       // tocaba: las cinco naves salieron del mismo rojo y oro pese a que cada
       // prompt pedía su paleta. El color se decide al texturizar, así que es
       // aquí donde hay que repetirlo.
-      texture_prompt: `${o.prompt}. ${o.humano ? ESTILO_HUMANO : o.criatura ? ESTILO_CRIATURA : o.realista ? ESTILO_REAL : ESTILO}`,
+      texture_prompt: `${o.prompt}. ${o.pixar ? ESTILO_PIXAR : o.humano ? ESTILO_HUMANO : o.criatura ? ESTILO_CRIATURA : o.realista ? ESTILO_REAL : ESTILO}`,
       // 2k y no 4k: la pieza se ve de lejos y en un móvil, y cada salto de
       // resolución multiplica por cuatro lo que hay que descargar y subir a la
       // tarjeta gráfica.
