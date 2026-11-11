@@ -65,6 +65,23 @@ service cloud.firestore {
               == resource.data.ganadas + resource.data.perdidas + 1));
     }
 
+    // 10/11/2026: MAGA Taco Dash usa este mismo proyecto para las cuentas
+    // (usuario y contraseña). Cada jugador solo ve y cambia su partida.
+    match /tacodash/{uid} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.partida is string && request.resource.data.partida.size() < 300000;
+    }
+    // MAGA Taco Dash: el ranking del sin fin (lo ve todo el mundo; cada uno escribe el suyo).
+    match /tacodash_top/{uid} {
+      allow read: if true;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['nombre', 'metros', 'fecha'])
+        && request.resource.data.metros is int && request.resource.data.metros >= 0 && request.resource.data.metros < 10000000
+        && request.resource.data.nombre is string && request.resource.data.nombre.size() <= 20;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
