@@ -1,5 +1,5 @@
 import { SOLDIERS, DEFENSES, STRIKES, UPGRADES } from './config.js'
-import { upgradeCost } from './entities/soldier.js'
+import { upgradeCost, NIVEL_MAXIMO } from './entities/soldier.js'
 import { cartasAbiertas } from './systems/progreso.js'
 
 // Matrícula de cada ficha. Es decorado de ficción — parte de leerse como el
@@ -406,8 +406,9 @@ export function createUI ({ onSelect, onUpgrade, onRetirar, onDeselect, onArrast
       if (soldier.dead) return api.closeInspector()
       const cost = upgradeCost(soldier)
       el.inspectorTitle.textContent = `${soldier.spec.name} · nivel ${soldier.level}`
-      el.actUpgrade.textContent = `Mejorar ${cost}`
-      el.actUpgrade.disabled = coins < cost
+      const tope = soldier.level >= NIVEL_MAXIMO
+      el.actUpgrade.textContent = tope ? 'Nivel máximo' : `Mejorar ${cost}`
+      el.actUpgrade.disabled = tope || coins < cost
       if (confirmando !== soldier) {
         el.actMove.textContent = `Retirar +${devolucion(soldier)}`
         el.actMove.classList.remove('confirmar')

@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import './style.css'
 import { FIELD, BASE, NIVELES, SOLDIERS, DEFENSES, STRIKES, ZOMBIES, ECONOMY, carrilAbierto, carrilesAbiertos, estrecharCampo, entrarPorElFondo } from './config.js'
 import { createWorld, rowZ, laneX } from './world.js'
-import { createSoldier, upgradeCost, muzzleWorld, ejectorWorld, ponerVecinos, ponerEnemigos } from './entities/soldier.js'
+import { createSoldier, upgradeCost, NIVEL_MAXIMO, muzzleWorld, ejectorWorld, ponerVecinos, ponerEnemigos } from './entities/soldier.js'
 // El invitado del cooperativo crea copias de los huéspedes que le manda el
 // anfitrión; la campaña los crea dentro del director de oleadas.
 import { createZombie } from './entities/zombie.js'
@@ -162,7 +162,7 @@ const ui = createUI({
   },
   onUpgrade (soldier) {
     const cost = upgradeCost(soldier)
-    if (!economy.spend(cost)) return audio.denied()
+    if (soldier.level >= NIVEL_MAXIMO || !economy.spend(cost)) return audio.denied()
     soldier.upgrade()
     soldier.invertido = (soldier.invertido ?? soldier.spec.cost ?? 0) + cost   // lo que devuelve retirarlo
     audio.place()

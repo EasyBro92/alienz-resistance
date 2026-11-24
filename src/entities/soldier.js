@@ -415,12 +415,17 @@ export async function createSoldier (key, spec, lane, row) {
     },
 
     upgrade () {
+      if (this.level >= NIVEL_MAXIMO) return
       this.level++
+      // 24/11: ya no deja la vida llena. Mejorar unos sacos a punto de caer los
+      // dejaba nuevos, y salía más a cuenta que comprar otros. Ahora suma solo
+      // la vida que gana el nivel.
+      const antes = this.maxHp
       this.maxHp = Math.round(this.spec.hp * mejoraVida * (1 + 0.35 * (this.level - 1)))
-      this.hp = this.maxHp
+      this.hp = Math.min(this.maxHp, this.hp + (this.maxHp - antes))
       // La escala real la aplica update() cada fotograma junto con la respiración.
       this.sizeBoost = 1 + 0.06 * (this.level - 1)
-      this.bar.set(1)
+      this.bar.set(this.hp / this.maxHp)
     },
 
     hurt (amount) {
@@ -866,6 +871,9 @@ export async function createSoldier (key, spec, lane, row) {
   }
 }
 
+// Hasta el nivel 5: el precio crece ×1,8 por nivel, pero sin tope un soldado
+// acababa en el nivel 9 con cinco veces el daño y el tablero se resolvía solo.
+export const NIVEL_MAXIMO = 5
 export function upgradeCost (soldier) {
   return Math.round(soldier.spec.cost * 0.75 * Math.pow(1.8, soldier.level - 1))
 }

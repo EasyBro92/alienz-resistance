@@ -22,7 +22,7 @@ import { buildSoldierMesh } from '../assets.js'
 import { createEffects } from '../systems/effects.js'
 import { createAudio } from '../audio.js'
 import { renderPortraits } from '../portraits.js'
-import { cargarCartera, ponerSinMejoras } from '../systems/cartera.js'
+import { cargarCartera, ponerSinMejoras, sumarBilletes } from '../systems/cartera.js'
 import { crearCampo, CAMPO, carrilX, MITAD, COLOR } from './campo.js'
 import { crearRed } from './red.js'
 import { filtrar, FRASES, MAX_MENSAJE, ESPERA_MENSAJE } from '../systems/duelo.js'
@@ -1259,6 +1259,13 @@ function mostrarFinal (res) {
     // La sala ya no pinta nada; el chat se queda abierto un momento por si
     // queda algo que decirse, y luego se cierra.
     setTimeout(() => { if (!jugando) red.salir() }, 8000)
+  }
+  // Premio en billetes (24/11; se acordó el 27/09 y faltaba): 10 por ganar a la
+  // máquina y 20 a una persona. Poco a propósito: la campaña es lo que paga.
+  if (gano) {
+    const premio = rol === 'solo' ? 10 : 20
+    sumarBilletes(premio)
+    texto += ` +${premio} billetes.`
   }
   $('gc-final-titulo').textContent = gano ? `${compania.icono} VICTORIA` : titulo
   $('gc-final-texto').textContent = texto
