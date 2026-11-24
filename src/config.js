@@ -129,7 +129,7 @@ export const SOLDIERS = {
     magazine: 60, reloadTime: 2.2,
     // Rasgo: el suelo se queda ardiendo detrás de la llamarada.
     brasas: { daño: 11, dura: 3.2, radio: 1.5 },
-    blurb: 'Achicharra el carril entero y deja el asfalto ardiendo. Al blindaje no le sirve de nada.'
+    blurb: 'Achicharra el carril entero y deja el asfalto ardiendo. El fuego se cuela por la costra del Encostrado.'
   },
   gunner: {
     name: 'Ametrallador', cost: 260, hp: 120, color: 0x7a6ad4, accent: 0x38307a,

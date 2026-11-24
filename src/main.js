@@ -451,7 +451,7 @@ elVelocidad.addEventListener('click', () => {
   velocidad = velocidad > 1 ? 1 : 2
   pintarVelocidad()
   audio.unlock()
-  try { navigator.vibrate?.(6) } catch {}
+  vibrar(6)
 })
 
 // La recarga de cada apoyo: segundos que le faltan y los que dura entera. La
@@ -1097,8 +1097,11 @@ function soldierFire (soldier, target) {
 
   // Escopetero: culatazo. Lo que gana no es daño, es distancia, y contra un
   // Corredor que ya te tiene encima eso vale más que el daño.
-  if (spec.empuja) {
-    target.mesh.position.z -= spec.empuja
+  // Cuanto más grande, menos se mueve (entre el cuadrado de su escala): el Coloso
+  // retrocede una cuarta parte y a LA MADRE no se la mueve. Sin esto dos
+  // escopeteros la tenían parada en mitad del carril toda la oleada.
+  if (spec.empuja && !target.spec.boss) {
+    target.mesh.position.z -= spec.empuja / Math.max(1, (target.spec.scale ?? 1) ** 2)
     effects.burst(target.mesh.position, 0xe58227, 4, 0.9)
   }
 
@@ -1149,7 +1152,7 @@ function temblar (fuerza = 1) {
     elDestello.style.transition = 'opacity 0.3s ease-out'
     elDestello.style.opacity = '0'
   }
-  if (navigator.vibrate && fuerza >= 0.6) try { navigator.vibrate(30 + 40 * fuerza) } catch {}
+  if (fuerza >= 0.6) vibrar(30 + 40 * fuerza)
 }
 // Envuelve el dibujado de un fotograma: desplaza la cámara, dibuja y la repone.
 const camaraQuieta = new THREE.Vector3()
@@ -2866,6 +2869,22 @@ function actualizarAsalto (dt) {
   }
 }
 
+// Premio por tramo (24/11/2026). Desde el 29/09 las partidas no dan billetes y
+// solo los daba el cofre: unos 4 por victoria, cuando la tienda entera cuesta
+// 5.565. Ahora la PRIMERA victoria de cada tramo paga 40 + 8 por cada tramo
+// anterior (40 en Tarragona, 336 en el último) y la primera vez con tres
+// estrellas, la mitad otra vez. Toda la campaña da unos 11.000: la tienda se
+// abre al ritmo de la historia y aún queda para las mejoras de arma.
+function premioDeTramo (i, primeraVez, primeraTercera) {
+  const base = 40 + 8 * i
+  const n = (primeraVez ? base : 0) + (primeraTercera ? Math.round(base / 2) : 0)
+  if (!n) return ''
+  sumarBilletes(n)
+  const por = primeraVez && primeraTercera ? 'primera victoria y tres estrellas'
+    : primeraVez ? 'primera victoria en este tramo' : 'primeras tres estrellas'
+  return `<p class="premio-tramo"><b>+${n.toLocaleString('es-ES')} billetes</b> · ${por}</p>`
+}
+
 function win () {
   running = false
   audio.stopMusic()
@@ -2882,6 +2901,7 @@ function win () {
   const rango = ESTRELLAS[estrellas - 1]
   const primeraVez = nivelActual >= antes.superados
   const progreso = superarNivel(nivelActual, porcentaje)
+  const premioTramo = premioDeTramo(nivelActual, primeraVez, estrellas === 3 && (antes.rangos[nivelActual] ?? 0) < 3)
   // A la tabla del tramo, si hay sesión. Va sin esperar y sin molestar: que el
   // marcador falle no puede estropear la pantalla de victoria.
   if (cuenta.usuario) {
@@ -2924,13 +2944,14 @@ function win () {
     ui.showOverlay(`
       <p class="eyebrow">Estado Mayor del búnker · informe de cierre</p>
       <h1>PLANETA LIMPIO</h1>
-      <p class="tagline">Trece países. Treinta y nueve campamentos. No queda ninguno en pie.</p>
+      <p class="tagline">Trece países. Treinta y ocho campamentos. No queda ninguno en pie.</p>
       ${sello}
       <p class="cierre">${nivel.cierre ?? ''} Los búnkeres abren y la gente
       empieza a salir. Pero los túneles siguen bajando en los trece sitios, y
       nadie de los que firmamos aquello sabe hasta dónde.</p>
       <ol class="marcas">${lineasPais}</ol>
       ${cierraPais ? htmlHallazgo(paisIdx) : ''}
+      ${premioTramo}
       ${htmlBotin()}
       <button class="big-btn" onclick="volverA('mapa')">AL MAPA</button>`)
     abrirCofre(true, estrellas)
@@ -2944,6 +2965,7 @@ function win () {
     ${nivel.cierre ? `<p class="cierre">${nivel.cierre}</p>` : ''}
     ${cierraPais ? `<div class="pais-desenlace"><span>${pais.nombre} limpio</span><p>${pais.cierre}</p></div>` : ''}
     ${cierraPais ? htmlHallazgo(paisIdx) : ''}
+    ${premioTramo}
     ${htmlBotin()}
     ${cierraPais
       ? `<button class="big-btn" onclick="volverA('mapa')">AL MAPA</button>`
@@ -2966,7 +2988,8 @@ function lose () {
     <h1 class="lost">PERÍMETRO ROTO</h1>
     <p class="tagline">La siembra pasó de la línea en la oleada ${director.wave} de ${director.total} de ${NIVELES[nivelActual].name}.</p>
     ${htmlBotin()}
-    <button class="big-btn" onclick="volverA('pais:${PAISES.indexOf(paisDe(nivelActual))}')">REINTENTAR</button>`)
+    <button class="big-btn" onclick="volverA('jugar:${nivelActual}')">REINTENTAR</button>
+    <button class="chip chip-ghost" onclick="volverA('pais:${PAISES.indexOf(paisDe(nivelActual))}')">Volver al país</button>`)
     // También al perder: la partida jugada cuenta, y lo que empuja a volver a
     // intentarlo es salir con algo en la mano.
     abrirCofre(false, 0)
@@ -3132,6 +3155,8 @@ function pausar (v) {
   // sigue corriendo.
   pausado = v && !dueloEnCurso
   elPausaCapa.classList.toggle('hidden', !v)
+  // Reiniciar solo en la campaña: un duelo o un reto no se pueden repetir así.
+  document.getElementById('pausa-reiniciar').hidden = !!dueloEnCurso || !!retoEnCurso
   elPausa.setAttribute('aria-pressed', v ? 'true' : 'false')
   // Al reanudar hay que refrescar el reloj: si no, el primer fotograma tras la
   // pausa traería todo el rato transcurrido de golpe y la horda daría un salto.
@@ -3209,6 +3234,10 @@ import('./jefeAlien.js')
   .then(m => m.crearJefeAlien(document.getElementById('portada-escena')))
   .catch(err => console.warn('Sin jefe alien:', err))
 document.getElementById('pausa-seguir').addEventListener('click', () => pausar(false))
+document.getElementById('pausa-reiniciar').addEventListener('click', () => {
+  pausar(false)
+  volverA('jugar:' + nivelActual)
+})
 document.getElementById('pausa-salir').addEventListener('click', () => {
   pausar(false)
   // Salir de un duelo es rendirse: cuenta como derrota.
@@ -3738,6 +3767,10 @@ const ofrecerCuenta = setInterval(() => {
   let aparcada = 0
   try { aparcada = Number(localStorage.getItem(CLAVE_MAS_TARDE)) || 0 } catch { /* modo privado */ }
   if (haySesionGuardada() || cuenta.usuario || Date.now() - aparcada < SIETE_DIAS) return
+  // 24/11: no a quien abre el juego por primera vez. Pedir la cuenta antes de
+  // haber jugado echa para atrás; se ofrece cuando ya hay algo que guardar (un
+  // tramo superado).
+  if (cargarProgreso().superados < 1) return
   // Solo sobre la portada: no en mitad de una partida que se reanuda.
   if (!elEngranaje.classList.contains('hidden')) elBienvenida.classList.remove('hidden')
 }, 700)
@@ -4111,6 +4144,14 @@ try {
   // El duelo se monta más abajo: se abre en cuanto termina de cargar el módulo.
   else if (destino === 'duelo') { abrirMapa(); elMapaCapa.classList.add('hidden'); setTimeout(() => duelo.abrir()) }
   else if (destino?.startsWith('pais:')) { abrirMapa(); abrirPais(Number(destino.slice(5)) || 0) }
+  // Reintentar y Reiniciar: el mismo tramo otra vez, sin pasar por país ni parte
+  // (antes «REINTENTAR» llevaba al país y eran cuatro toques hasta volver a jugar).
+  else if (destino?.startsWith('jugar:')) {
+    abrirMapa()
+    elMapaCapa.classList.add('hidden')
+    nivelActual = Number(destino.slice(6)) || 0
+    start(nivelActual)
+  }
 } catch { /* sin almacén de sesión: se queda en la portada */ }
 
 // Consola de pruebas: solo existe en desarrollo, no viaja a la versión publicada.

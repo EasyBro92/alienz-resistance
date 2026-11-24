@@ -3223,3 +3223,16 @@ a.multi-boton { text-decoration: none; }
   background: linear-gradient(180deg, #8ff0a5, #3fbf62); box-shadow: 0 4px 0 #2a7d41; }
 .boton-siguiente small { font-size: 12px; font-weight: 700; letter-spacing: 0; color: rgba(8, 22, 12, 0.75); }
 .mision.mision-marcada { outline: 3px solid #6fe39a; outline-offset: 2px; animation: pop .3s ease; }
+
+/* Premio de la primera victoria de cada tramo (24/11): va justo encima del cofre. */
+.premio-tramo {
+  margin: 10px auto 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255, 200, 60, 0.14);
+  color: var(--gold, #f2c14e);
+  font-size: 14px;
+  width: fit-content;
+}
+.premio-tramo b { font-weight: 900; }
+.panel-pausa #pausa-reiniciar { margin-top: 10px; }

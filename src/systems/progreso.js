@@ -113,17 +113,19 @@ export function leerProgresoLocal () {
 // Las estrellas además ya no son solo un adorno: son la llave que abre el
 // siguiente país, así que rejugar un tramo antiguo para sacarle la tercera es
 // una forma legítima de avanzar.
+// 24/11/2026: la tercera ya no pide el 100 %. Un solo Portador que llegara
+// (18 de daño) la quitaba, y con el peaje de estrellas un descuido así podía
+// cerrar el país siguiente. Ahora es «casi intacto»: 85 % o más.
 export const ESTRELLAS = [
-  { min: 0,   nombre: 'Aguantó',  detalle: 'Menos de la mitad del perímetro en pie' },
-  { min: 55,  nombre: 'Contenido', detalle: 'Entraron, pero el perímetro aguantó' },
-  { min: 100, nombre: 'Intacto',  detalle: 'No pasó ninguno' }
+  { min: 0,  nombre: 'Aguantó',  detalle: 'Menos de la mitad del perímetro en pie' },
+  { min: 50, nombre: 'Contenido', detalle: 'Entraron, pero quedó más de la mitad en pie' },
+  { min: 85, nombre: 'Intacto',  detalle: 'Apenas hicieron mella' }
 ]
 
-// 3 si no entró nadie, 2 si entraron pero quedó más del 55% del perímetro,
-// 1 si se ganó por debajo de eso.
+// 3 con el 85 % o más del perímetro, 2 con la mitad o más, 1 por debajo.
 export function estrellasDe (porcentaje) {
-  if (porcentaje >= 100) return 3
-  if (porcentaje >= 55) return 2
+  if (porcentaje >= 85) return 3
+  if (porcentaje >= 50) return 2
   return 1
 }
 
