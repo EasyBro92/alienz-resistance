@@ -211,7 +211,7 @@ export const PAISES = [
       'El primer campamento que se localizó desde el búnker de Madrid estaba a doce kilómetros de Tarragona. Nadie lo había visto montar.',
       'La orden es simple: limpiar la costa, subir hacia el centro y dejar el país en condiciones de que la gente vuelva a salir.'
     ],
-    cierre: 'España queda limpia. La primera trampilla de búnker se abre en Madrid, y sale gente que llevaba dos años sin ver el cielo.',
+    cierre: 'España queda limpia. La primera trampilla de búnker se abre en Madrid, y sale gente que llevaba dos años sin ver el cielo. Con ella sale el Estado Mayor: desde hoy, las órdenes llegan de ellos.',
     misiones: [
       {
         // Isidro, 14/10: «reduce la cantidad de alienz en los tres primeros niveles:
@@ -263,7 +263,7 @@ export const PAISES = [
         resumen: 'Llegan deprisa. Hay que aguantar hasta que abran el búnker.',
         parte: ['El búnker del gobierno está debajo. Para abrir la trampilla hay que dejar la superficie limpia durante una hora entera.',
           'Todo lo que tienen en la zona viene hacia aquí, y viene deprisa.'],
-        cierre: 'La trampilla se abre. El primer ministro sube el primero y no dice nada durante un rato largo.',
+        cierre: 'La trampilla se abre. El presidente del Gobierno sube el primero y no dice nada durante un rato largo. El Estado Mayor no sube: prefiere mandar desde abajo.',
         waves: OLEADAS.contraflujo
       }
     ]
@@ -277,7 +277,7 @@ export const PAISES = [
       'Francia no tuvo tiempo de esconder a nadie. Las naves bajaron sobre Marsella de noche y por la mañana la costa entera era suya.',
       'El búnker de París sigue emitiendo. Cada seis horas, la misma frase: seguimos aquí.'
     ],
-    cierre: 'París responde por fin con otra frase. Es la primera vez en dieciocho meses que dice algo distinto.',
+    cierre: 'El búnker de París cambia la frase por primera vez. El Mando nos pide que no lo comentemos por radio.',
     misiones: [
       {
         name: 'Marsella', llegada: 'marsella', lugar: 'Vieux Port · muelle de los pescadores', mapa: sitio(43.30, 5.37),
@@ -310,7 +310,7 @@ export const PAISES = [
         resumen: 'Vienen acorazados, y en fila.',
         parte: ['Encontramos la primera sala de experimentos entera. Camillas, correas, y un olor que no se va de la ropa.',
           'Los que salen de aquí vienen con la coraza puesta. Hace falta con qué atravesarla.'],
-        cierre: 'En la sala había una lista de nombres. Algunos los conocía alguien de la compañía.',
+        cierre: 'En la sala había una lista de nombres. Halcón, nuestro piloto, encontró en ella el de su hermano.',
         waves: OLEADAS.colmena
       },
       {
@@ -326,7 +326,7 @@ export const PAISES = [
         sinPajaros: true, sinNubes: true,
         resumen: 'El primer jefe. Le llaman LA MADRE.',
         parte: ['Todo lo que hemos visto en Francia salió de algo que vive debajo de la ciudad.',
-          'Detrás de la horda viene algo que nadie ha visto entero. Le llaman LA MADRE porque no supieron llamarla de otra forma.'],
+          'Detrás de la horda viene algo que nadie ha visto entero. La llaman LA MADRE porque nadie supo llamarla de otra forma.'],
         cierre: 'La MADRE cayó. Debajo había un túnel que baja. Esto no era el nido: era una puerta.',
         waves: OLEADAS.madre
       }
@@ -371,9 +371,9 @@ export const PAISES = [
         fondo: { hora: 'dia', cielo: 0x8fc0ee, niebla: 0xd3e2ee, nieblaCerca: 140, nieblaLejos: 460 },
         sinPajaros: true, sinNubes: true,
         resumen: 'Escupen desde lejos y el caparazón devuelve las balas.',
-        parte: ['Han instalado algo dentro del estadio olímpico. Desde el aire se ve la luz verde por las gradas.',
-          'Los que protegen la zona vienen blindados. Hace falta con qué atravesarlos.'],
-        cierre: 'Dentro del estadio no había nadie. Solo filas de capullos vacíos, abiertos desde dentro.',
+        parte: ['Han instalado algo dentro del Coliseo. Desde el aire, Halcón ve la luz verde saliendo por los arcos.',
+          'Los guardias de la arena vienen acorazados y en fila.'],
+        cierre: 'En la arena no había nadie. Solo filas de capullos vacíos, abiertos desde dentro.',
         waves: OLEADAS.colmena
       },
       {
@@ -399,8 +399,8 @@ export const PAISES = [
         fondo: { hora: 'ocaso', cielo: 0x6e6a7c, niebla: 0xb8927c, cupula: [0x34384c, 0xc8865c], sol: 0xffb07a },
         resumen: 'Formas nuevas. Aquí prueban cosas.',
         parte: ['Milán era su laboratorio de diseño. Lo que funcionaba aquí lo copiaban en el resto de Europa.',
-          'Espera formas que no has visto nunca.'],
-        cierre: 'Quemamos los planos. Tardarán en rehacerlos, pero los rehacerán.',
+          'Aquí probaban lo nuevo: espera formas que todavía no has visto.'],
+        cierre: 'Quemamos los planos. El Mando pregunta por radio por qué no se los guardamos.',
         // Isidro, después de jugarla: «el nivel es muy fácil, haz las hordas más
         // largas, pero solo en este mapa». La misma tabla con cada horda de 1,75
         // veces más bichos y saliendo algo más seguidos.
@@ -435,7 +435,7 @@ export const PAISES = [
         sinPajaros: true, sinNubes: true,
         resumen: 'Saltan por encima de las barreras, y el caparazón devuelve las balas.',
         parte: ['El templo está lleno. No de cuerpos: de estructura.',
-          'Han dejado de fabricar soldados y han empezado a fabricar oficio.'],
+          'Ya no fabrican en serie: cada forma sale con su oficio aprendido.'],
         cierre: 'Encontramos la primera cámara de cría intacta. Tibia, y con sitio para muchas más de las que hemos matado.',
         waves: OLEADAS.colmena
       },
@@ -467,7 +467,7 @@ export const PAISES = [
         resumen: 'La base de la isla, y lo que la guarda.',
         parte: ['El nido de Creta está debajo del palacio. Si cae, cortamos el puente con África.',
           'Lo guarda algo grande. Lo hemos oído moverse ahí abajo.'],
-        cierre: 'La base cae. El último barco que salió de aquí sigue en el radar, parado frente a Egipto.',
+        cierre: 'La base cae. El último barco que salió del Pireo sigue en el radar, parado frente a Egipto.',
         waves: OLEADAS.madre
       }
     ]
@@ -477,11 +477,9 @@ export const PAISES = [
     etq: [6, 2, 'start'],
     bioma: 'desierto',
     mapa: sitio(26.8, 30.8),
-    intro: [
-      'De Egipto salió todo lo que llegó al Mediterráneo. Los satélites llevan meses contando naves que se posan en la meseta de Gizeh.',
-      'El barco de Creta sigue parado frente a Alejandría. Nadie ha subido a mirar qué lleva.'
-    ],
-    cierre: 'Bajo la meseta hay una sala más grande que las pirámides. Y en las paredes hay un mapa del mundo con puntos encendidos.',
+    intro: ['De Egipto salió todo lo que llegó al Mediterráneo. Los satélites llevan meses contando naves que se posan en la meseta de Gizeh.',
+          'El barco del Pireo sigue parado frente a Alejandría. Nadie ha subido a mirar qué lleva.'],
+    cierre: 'Bajo la meseta hay una sala más grande que las pirámides. En las paredes, un mapa del mundo con puntos encendidos. Y siete firmas que alguien intentó raspar.',
     misiones: [
       {
         name: 'Alejandría', llegada: 'alejandria', lugar: 'Fortaleza de Qaitbay · el espigón', mapa: sitio(31.20, 29.92), bioma: 'costa',
@@ -494,9 +492,9 @@ export const PAISES = [
         fondo: { hora: 'dia', cielo: 0x8fc0ee, niebla: 0xd3e2ee, nieblaCerca: 140, nieblaLejos: 460 },
         sinPajaros: true, sinNubes: true,
         resumen: 'Subimos al barco. De frente y en masa.',
-        parte: ['El barco de Creta lleva a bordo lo mismo que los contenedores de Valencia: gente dormida en literas.',
+        parte: ['El barco del Pireo lleva a bordo lo mismo que los contenedores de Valencia: gente dormida en literas.',
           'Los de la fortaleza salen todos a la vez para que no lleguemos.'],
-        cierre: 'Había cuatrocientas personas en el barco. Ciento doce seguían vivas.',
+        cierre: 'Había mil cuatrocientas personas en la bodega. Trescientas seguían vivas. Halcón las miró una por una: su hermano no estaba.',
         waves: OLEADAS.avanzadilla
       },
       {
@@ -527,9 +525,9 @@ export const PAISES = [
         entrada: { z: -81, fondo: 6 },
         sinPajaros: true, sinNubes: true,
         resumen: 'El campamento de la meseta, y lo que lo dirige.',
-        parte: ['De aquí salió todo. Las naves se posan en la meseta a la vista de las pirámides.',
-          'Lo que dirige el campamento es una MADRE, y esta ha tenido tiempo de aprender de la de París.'],
-        cierre: 'La MADRE cayó. En la sala de abajo, el mapa del mundo tiene un punto que brilla más que los otros. Está en el Amazonas.',
+        parte: ['De aquí salió todo lo que pisó Europa. Las naves se posan en la meseta a la vista de las pirámides.',
+          'Lo dirige una MADRE más grande que la de París. El Mando insiste en una cosa: la sala de abajo, intacta.'],
+        cierre: 'La MADRE cayó. En el mapa de la sala hay un punto que brilla más que los otros: el Amazonas. El Mando pide fotos de las firmas antes que el parte de heridos.',
         waves: OLEADAS.madre
       }
     ]
@@ -539,13 +537,11 @@ export const PAISES = [
     etq: [0, 10, 'middle'],
     bioma: 'sabana',
     mapa: sitio(9.5, 8.0),
-    intro: [
-      'El mapa de Gizeh tiene un punto encendido en Lagos. Es uno de los grandes: de ahí sale lo que baja por toda África.',
-      'El paso elevado de Apapa es lo único que une lo que queda de la ciudad con el continente.'
-    ],
+    intro: ['El mapa de Gizeh tiene un punto encendido en Lagos. Es uno de los grandes: de ahí sale lo que baja por toda África.',
+          'El puente de Lekki-Ikoyi es lo único que une lo que queda de la ciudad con el continente.'],
     // Nigeria se queda en un solo tramo (Isidro, 09/10: «solo deja el mapa de la ciudad más famosa y más poblada»).
     // Abuja y Kano salieron de la campaña; el cierre conserva el hilo que llevaba a la India.
-    cierre: 'Por el paso elevado salieron cuatro mil personas mientras la compañía contaba oleadas. El punto de Lagos se apaga en el mapa, y los que quedaban se fueron hacia el este.',
+    cierre: 'Por el puente salieron cuatro mil personas mientras la compañía contaba oleadas. El punto de Lagos se apaga en el mapa, y los que quedaban se fueron hacia el este.',
     misiones: [
       {
         name: 'Lagos', llegada: 'lagos', lugar: 'Puente de Lekki-Ikoyi · sobre la laguna', mapa: sitio(6.45, 3.39),
@@ -556,8 +552,8 @@ export const PAISES = [
         escenario: 'lagosPuente', suelo: 'losas', tonoSuelo: 0x5c5c60, hitos: [],
         sinPajaros: true, sinNubes: true,
         resumen: 'Llegan deprisa. Hay que aguantar el puente.',
-        parte: ['Si cae el paso elevado, aquí no vuelve a entrar nadie.',
-          'El búnker dice que aguantemos hasta que evacúen. No dice cuánto. Y algunos ya no vienen por arriba: cavan.'],
+        parte: ['Si cae el puente, aquí no vuelve a entrar nadie.',
+          'El Mando dice que aguantemos hasta que evacúen. No dice cuánto. Y algunos ya no vienen por arriba: cavan.'],
         cierre: 'El puente sigue en pie. La primera columna de evacuados ya ha cruzado.',
         waves: OLEADAS.contraflujo
       }
@@ -572,7 +568,7 @@ export const PAISES = [
       'Hacia el este: en el mapa de Gizeh, la India tiene tres puntos encendidos. Nunca habíamos visto tantos en un solo país.',
       'Aquí no hubo evacuación. Hubo millones de personas y los campamentos en medio.'
     ],
-    cierre: 'Los tres puntos de la India se apagan. Queda uno en China más brillante que todos los que hemos visto.',
+    cierre: 'Los tres puntos de la India se apagan. Queda uno en China, más grande que todos los que hemos visto.',
     misiones: [
       {
         name: 'Bombay', llegada: 'bombay', lugar: 'Puerta de la India · el muelle', mapa: sitio(19.08, 72.88),
@@ -615,7 +611,7 @@ export const PAISES = [
         resumen: 'La MADRE del delta.',
         parte: ['El delta del Ganges es donde bajaron las primeras naves de Asia.',
           'Lo que dirige esto lleva aquí más tiempo que nadie.'],
-        cierre: 'La MADRE del delta era más vieja que las otras. Tenía cicatrices de algo que ya la había herido antes.',
+        cierre: 'La MADRE del delta era más vieja que las otras. Tenía cicatrices de bala de un calibre que no usa nadie de la compañía.',
         waves: OLEADAS.madre
       }
     ]
@@ -625,10 +621,8 @@ export const PAISES = [
     etq: [6, 2, 'start'],
     bioma: 'karstico',
     mapa: sitio(33.0, 106.0),
-    intro: [
-      'El punto más brillante del mapa está en Chongqing. Es el campamento más grande que se ha localizado nunca.',
-      'No fabrican soldados para tomar la ciudad: la ciudad ya es suya. Fabrican para exportar.'
-    ],
+    intro: ['El campamento más grande del mapa está en Chongqing. No es el que más brilla, pero es el que más produce.',
+          'No fabrican soldados para tomar la ciudad: la ciudad ya es suya. Fabrican para exportar.'],
     cierre: 'Chongqing se apaga. Las naves siguen llegando igual. No las estábamos frenando: las estábamos entreteniendo.',
     misiones: [
       {
@@ -655,7 +649,7 @@ export const PAISES = [
         resumen: 'Llegan deprisa por la muralla.',
         parte: ['El búnker de Pekín es el más grande del mundo. Su entrada de emergencia está en la montaña, al pie de la Gran Muralla.',
           'Todo lo que hay en la zona viene por el camino de ronda, de torre en torre, y viene deprisa.'],
-        cierre: 'La trampilla se abre. Salen once mil personas. Tardan un día entero.',
+        cierre: 'La trampilla se abre y salen once mil personas. Los soldados de la puerta llevan balas del mismo calibre que las cicatrices de Calcuta. Nadie nos explica por qué.',
         waves: OLEADAS.contraflujo
       },
       {
@@ -667,8 +661,8 @@ export const PAISES = [
         sinPajaros: true, sinNubes: true,
         resumen: 'El campamento más grande del mundo.',
         parte: ['Todas las formas a la vez, desde las torres del río.',
-          'Si cae este, cae la mitad de lo que tienen en Asia.'],
-        cierre: 'Reventamos la cría. La luz de las nubes se apaga, y por primera vez se ven las estrellas sobre la ciudad.',
+          'El Mando ordena marcar la cría y retirarse. Si cae, cae la mitad de lo que tienen en Asia.'],
+        cierre: 'Reventamos la cría, contra la orden. La luz de las nubes se apaga, y por primera vez se ven las estrellas sobre la ciudad.',
         waves: OLEADAS.todas
       }
     ]
@@ -677,10 +671,8 @@ export const PAISES = [
     nombre: 'Rusia',
     bioma: 'taiga',
     mapa: sitio(58.0, 95.0),
-    intro: [
-      'Lo que escapó de Chongqing se fue al norte, al frío, donde nadie iba a seguirles.',
-      'El frío no les hace nada. A nosotros sí: el arma se agarrota y el que cae no se levanta.'
-    ],
+    intro: ['Lo que escapó de Chongqing se fue al norte, al frío, donde nadie iba a seguirles.',
+          'El frío no les hace nada. A nosotros sí. Y desde Chongqing, el Mando ya no nos manda munición de sobra.'],
     cierre: 'En Moscú encontramos sus señales. No iban hacia arriba: iban hacia el otro lado del estrecho. Hacia América.',
     misiones: [
       {
@@ -698,7 +690,7 @@ export const PAISES = [
         sinPajaros: true, sinNubes: true,
         resumen: 'Deprisa, y a cuarenta bajo cero.',
         parte: ['Llegan deprisa por el puente. Con la mitad de tu cuerpo dormido de frío.',
-          'Lo que dispara lento no llega a tiempo.'],
+          'En el puente no hay dónde esconderse: o los paras en el vano, o no los paras.'],
         cierre: 'Aguantamos el vano. Tres de los nuestros no bajaron del puente.',
         waves: OLEADAS.contraflujo
       },
@@ -712,7 +704,7 @@ export const PAISES = [
         sinPajaros: true, sinNubes: true,
         resumen: 'Se curan en el hielo.',
         parte: ['El centro de Siberia. Aquí se refugiaron los que huyeron de China.',
-          'Se cosen entre ellos y el caparazón aguanta el frío mejor que la carne.'],
+          'Las que remiendan a las demás van detrás, donde no llegan las balas.'],
         cierre: 'El río está helado. Debajo del hielo se ven formas quietas, esperando la primavera.',
         waves: OLEADAS.colmena
       },
@@ -728,7 +720,7 @@ export const PAISES = [
         resumen: 'La MADRE del norte.',
         parte: ['La señal que emiten sale de debajo del Kremlin.',
           'Lo que la emite es una MADRE, y es la primera que no sale a pelear: espera.'],
-        cierre: 'Cayó sin levantarse. La señal que emitía era una respuesta. Alguien le hablaba desde América.',
+        cierre: 'Cayó sin levantarse. La señal que emitía era una respuesta, y quien le hablaba desde América usaba un código del Estado Mayor.',
         waves: OLEADAS.madre
       }
     ]
@@ -741,7 +733,7 @@ export const PAISES = [
       'La señal de Moscú respondía a algo en Alaska. El búnker del Ártico lleva cuatro meses sin contestar.',
       'Venimos a ver por qué, con la munición contada y sin extracción hasta que esto acabe.'
     ],
-    cierre: 'Nueva York queda limpia. En la antena del edificio más alto encontramos el emisor que hablaba con Moscú. Apuntaba al sur.',
+    cierre: 'Nueva York queda limpia. En la antena del portaaviones estaba el emisor que hablaba con Moscú. Apuntaba al sur. Desde hoy, la compañía deja de contestar al Mando.',
     misiones: [
       {
         name: 'Anchorage', llegada: 'anchorage', lugar: 'Seward Highway · ensenada de Turnagain', mapa: sitio(61.22, -149.90),
@@ -752,8 +744,8 @@ export const PAISES = [
         sinPajaros: true, sinNubes: true,
         resumen: 'Se curan, se blindan, y no viene nadie a relevarte.',
         parte: ['El búnker del Ártico está debajo de la ensenada.',
-          'Se cosen entre ellos y el caparazón devuelve las balas.'],
-        cierre: 'El búnker estaba lleno. No de gente: de camas ordenadas, con un nombre en cada una.',
+          'Llevan caparazón, y detrás, quien se lo remienda.'],
+        cierre: 'El búnker estaba vacío. Solo camas ordenadas con un nombre en cada una: el Estado Mayor sabía a quién iban a llevarse. En una pone el del hermano de Halcón.',
         waves: OLEADAS.colmena
       },
       {
@@ -767,8 +759,8 @@ export const PAISES = [
         sinPajaros: true, sinNubes: true,
         resumen: 'Formas nuevas bajo la lluvia.',
         parte: ['Llueve desde que llegamos. Las formas de aquí salen del agua del puerto.',
-          'No se parecen a nada que hayamos visto en Europa ni en Asia.'],
-        cierre: 'Las formas del puerto respiraban bajo el agua. Se siguen adaptando.',
+          'El agua los esconde hasta que pisan la calle: se les ve tarde.'],
+        cierre: 'Salían del agua del puerto. Ya no les hace falta una nave para llegar.',
         waves: OLEADAS.formas
       },
       // (El tramo de la Quinta Avenida, frente al Empire State, salió de la campaña el
@@ -806,7 +798,7 @@ export const PAISES = [
         resumen: 'Todas las formas y dos MADRES.',
         parte: ['El portaaviones lleva semanas fondeado frente a la Estatua, sin una luz. Lo que guarda en el hangar ya no son aviones.',
           'Suben por el ascensor de la cubierta: todas las formas a la vez, y al final vienen dos.'],
-        cierre: 'Las dos cayeron sobre la cubierta. Por la antena del barco seguía entrando una voz desde el sur.',
+        cierre: 'Las dos cayeron sobre la cubierta. Por la radio del barco entra la voz del Mando: «Retiraos y no toquéis la antena». La tocamos.',
         waves: OLEADAS.todas
       }
     ]
@@ -820,7 +812,7 @@ export const PAISES = [
       'La voz de Nueva York venía de México. El altiplano es su última gran base antes del Amazonas.',
       'El Paseo de la Reforma baja recto hasta el centro de la capital, y la han convertido en su avenida.'
     ],
-    cierre: 'México queda limpio. Pero antes de caer, la última MADRE mandó algo hacia el sur, y lo que mandó no era una nave.',
+    cierre: 'México queda limpio. El mensaje de la última MADRE no iba para nosotros: iba para los siete que firmaron en Gizeh.',
     misiones: [
       {
         name: 'Monterrey', llegada: 'monterrey', lugar: 'Macroplaza · el Faro del Comercio', mapa: sitio(25.69, -100.32),
@@ -844,9 +836,9 @@ export const PAISES = [
         entrada: { z: -79, fondo: 2.5, abanico: { ancho: 0.36, hasta: -66 } },
         sinPajaros: true, sinNubes: true,
         resumen: 'Se curan y se blindan.',
-        parte: ['La ciudad es su segundo hospital: aquí reparan lo que les rompemos.',
-          'Los que la guardan se cosen entre ellos.'],
-        cierre: 'Quemamos las salas de reparación. Lo que se rompa a partir de ahora, se queda roto.',
+        parte: ['La ciudad es su taller: aquí reparan lo que les rompemos.',
+          'Aquí todos llevan los puntos recién dados.'],
+        cierre: 'Quemamos las salas de reparación. El Mando había ordenado lo contrario. Desde hoy, las órdenes las da Halcón.',
         waves: OLEADAS.colmena
       },
       {
@@ -858,8 +850,8 @@ export const PAISES = [
         sinPajaros: true, sinNubes: true,
         resumen: 'La MADRE del altiplano.',
         parte: ['Veinte kilómetros de campamento a lo largo de la calzada.',
-          'Al fondo hay otra MADRE, y ha tenido tiempo de aprender de todas las anteriores.'],
-        cierre: 'Cayó. Pero antes mandó algo hacia el sur, hacia el punto más brillante del mapa de Gizeh.',
+          'Al fondo espera otra MADRE, y esta no se esconde: viene a por nosotros.'],
+        cierre: 'Cayó. Antes mandó un mensaje hacia el sur. Lo hemos traducido a medias: «Vamos a cobrar lo que falta».',
         waves: OLEADAS.madre
       }
     ]
@@ -873,7 +865,7 @@ export const PAISES = [
       'Lo que mandó la MADRE de México no fue directo al Amazonas: hizo escala en el Caribe.',
       'Las playas de la isla se vaciaron en una semana. Desde el búnker de Santo Domingo llegan fotos de hamacas vacías y de un muelle nuevo que nadie construyó.'
     ],
-    cierre: 'La isla queda limpia. Lo que salió del muelle antes de que llegáramos iba hacia el sur, hacia el Amazonas.',
+    cierre: 'La isla queda limpia. Desde el búnker de Santo Domingo nos llega por fin la verdad, sin código: el Estado Mayor lo sabía todo desde el primer día.',
     misiones: [
       {
         name: 'Punta Cana', llegada: 'puntacana', lugar: 'Playa Bávaro · el muelle nuevo', mapa: sitio(18.58, -68.40),
@@ -897,7 +889,7 @@ export const PAISES = [
         escenario: 'santoDomingoAlcazar', suelo: 'losas', tonoSuelo: 0x3a3630, hitos: [],
         sinPajaros: true, sinNubes: true,
         resumen: 'Se curan entre ellos.',
-        parte: ['La ciudad vieja es su hospital en el Caribe. Por la plaza del Alcázar bajan los que ya han cosido.',
+        parte: ['La ciudad vieja es su enfermería del Caribe. Por la plaza del Alcázar bajan los que ya han cosido.',
           'Al fondo, el Faro a Colón proyecta su cruz de luz: la usan para guiar las naves que cruzan desde México.'],
         cierre: 'Apagamos el Faro. El cielo de la isla vuelve a estar a oscuras, y lo que venía del norte ya no sabe dónde posarse.',
         waves: OLEADAS.colmena
@@ -913,7 +905,7 @@ export const PAISES = [
         resumen: 'La MADRE del Caribe.',
         parte: ['El muelle nuevo está aquí, al pie de la vieja fortaleza. De aquí sale todo lo que cruza hacia el sur.',
           'Sobre la arena espera otra MADRE.'],
-        cierre: 'El muelle arde. Lo último que zarpó ya iba camino del Amazonas.',
+        cierre: 'El muelle arde. Lo último que zarpó iba camino del Amazonas, y nosotros vamos detrás.',
         waves: OLEADAS.madre
       }
     ]
@@ -927,7 +919,7 @@ export const PAISES = [
       'El punto más brillante del mapa de Gizeh está en el Amazonas. Aquí es donde bajaron primero, hace años, cuando todavía nadie miraba.',
       'De aquí salieron los camiones que se llevaban gente sin que constara en ninguna parte. Aquí empezó todo, y aquí se acaba.'
     ],
-    cierre: 'Se acabó.',
+    cierre: 'La última sala se apaga. Halcón entrega a la prensa todo lo que hemos encontrado, y los búnkeres abren uno a uno. El del Estado Mayor, no.',
     misiones: [
       {
         name: 'Río de Janeiro', llegada: 'rio', lugar: 'Corcovado · a los pies del Cristo', mapa: sitio(-22.95, -43.21), bioma: 'costa',
@@ -944,8 +936,8 @@ export const PAISES = [
         // Con la cámara más baja de este mapa se ve más cielo: la nave entra desde más arriba.
         alturaNave: 24,
         resumen: 'La puerta del continente, y formas que no hemos visto.',
-        parte: ['Entramos por la costa. Lo que guarda la entrada al continente se ha subido al mirador, a los pies del Cristo, y no se parece a nada anterior.',
-          'Es lo último que han diseñado.'],
+        parte: ['Entramos por la costa. Lo que guarda la entrada al continente se ha subido al mirador, a los pies del Cristo.',
+          'Aquí tienen lo mejor que han hecho: cada forma, en su versión más dura.'],
         cierre: 'Las formas de aquí eran perfectas. Esto era el final del experimento, no el principio.',
         waves: OLEADAS.formas
       },
@@ -975,8 +967,8 @@ export const PAISES = [
         sinPajaros: true, sinNubes: true,
         resumen: 'Todo a la vez, y al final no viene una MADRE: vienen dos.',
         parte: ['No queda nadie detrás de nosotros y no hay otro sitio al que ir.',
-          'Bajarán todas las formas a la vez, y al final no viene una MADRE: vienen dos.'],
-        cierre: 'Se acabó.',
+          'Bajarán todas las formas a la vez. Y al final, las dos últimas MADRES.'],
+        cierre: 'Las dos MADRES caen. En las cámaras del Amazonas hay miles de dormidos, y entre ellos Halcón encuentra a su hermano. Respira.',
         waves: OLEADAS.todas
       }
     ]

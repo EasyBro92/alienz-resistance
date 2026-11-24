@@ -2946,9 +2946,9 @@ function win () {
       <h1>PLANETA LIMPIO</h1>
       <p class="tagline">Trece países. Treinta y ocho campamentos. No queda ninguno en pie.</p>
       ${sello}
-      <p class="cierre">${nivel.cierre ?? ''} Los búnkeres abren y la gente
-      empieza a salir. Pero los túneles siguen bajando en los trece sitios, y
-      nadie de los que firmamos aquello sabe hasta dónde.</p>
+      <p class="cierre">${nivel.cierre ?? ''}</p>
+      <p class="cierre">${pais.cierre} Pero los túneles siguen bajando en los
+      trece sitios, y nadie sabe hasta dónde.</p>
       <ol class="marcas">${lineasPais}</ol>
       ${cierraPais ? htmlHallazgo(paisIdx) : ''}
       ${premioTramo}
