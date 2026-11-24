@@ -454,6 +454,7 @@
         <p>La contención está detenida. Nadie avanza.</p>
         <button id="pausa-seguir" class="big-btn">SEGUIR AGUANTANDO</button>
         <button id="pausa-reiniciar" class="chip">Reiniciar el tramo</button>
+        <button id="pausa-ajustes" class="chip">Sonido y ajustes</button>
         <button id="pausa-salir" class="chip chip-ghost">Abandonar y volver al informe</button>
       </div>
     </div>
@@ -852,6 +853,27 @@
           <div class="ajuste-ops" id="fps-ops"></div>
           <p class="ajuste-pie">Arriba en el centro, en pequeño: cuántas imágenes por segundo saca el móvil.</p>
         </div>
+        <div class="ajuste">
+          <span class="ajuste-tit">Temblor y destellos</span>
+          <div class="ajuste-ops" id="temblor-ops"></div>
+          <p class="ajuste-pie">La cámara tiembla y la pantalla se ilumina con las explosiones grandes. Apágalo si te marea.</p>
+        </div>
+        <div class="ajuste">
+          <span class="ajuste-tit">Guía de la primera partida</span>
+          <div class="ajuste-ops"><button id="guia-repetir" class="chip" type="button">Volver a enseñarla</button></div>
+          <p class="ajuste-pie" id="guia-pie">Los avisos que explican cómo colocar, cobrar y mover a la tropa.</p>
+        </div>
+        <div class="ajuste">
+          <span class="ajuste-tit">Progreso</span>
+          <div class="ajuste-ops"><button id="progreso-borrar" class="chip chip-peligro" type="button">Empezar de cero</button></div>
+          <p class="ajuste-pie" id="progreso-pie">Borra en este móvil las estrellas, los billetes y lo comprado. No se puede deshacer.</p>
+        </div>
+        <details class="ajuste creditos">
+          <summary class="ajuste-tit">Créditos</summary>
+          <p class="ajuste-pie">Idea y diseño: Isidro. Programación: Claude (Anthropic).</p>
+          <p class="ajuste-pie">Personajes y alienz: Meshy y Hunyuan3D. Texturas de los mapas: Poly Haven (CC0). Mapas hechos en Blender.</p>
+          <p class="ajuste-pie">Voces: Piper (síntesis de voz libre). Motor: three.js. Sonido y música hechos por código.</p>
+        </details>
         <div class="ajuste">
           <span class="ajuste-tit">Cuenta</span>
           <div class="ajuste-ops"><button id="cuenta-boton" class="chip" type="button">Entrar con Google</button><button id="cuenta-correo-boton" class="chip" type="button">Entrar con correo</button></div>

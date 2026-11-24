@@ -1143,6 +1143,11 @@ const elDestello = document.createElement('div')
 elDestello.className = 'destello-bomba'
 document.getElementById('app')?.appendChild(elDestello) ?? document.body.appendChild(elDestello)
 function temblar (fuerza = 1) {
+  // «Temblor y destellos» apagado en Ajustes (hay a quien le marea): solo vibra.
+  if (document.documentElement.dataset.temblor === 'no') {
+    if (fuerza >= 0.6) vibrar(30 + 40 * fuerza)
+    return
+  }
   temblorT = 0.2 + 0.3 * fuerza
   temblorFuerza = Math.max(temblorFuerza, fuerza)
   if (fuerza >= 0.6) {
@@ -3378,8 +3383,8 @@ const CLAVE_SONIDO = 'alienz-sonido-v1'
 function sonidoGuardado () {
   try {
     const v = JSON.parse(localStorage.getItem(CLAVE_SONIDO) || '{}')
-    return { efectos: v.efectos ?? 100, musica: v.musica ?? 100, voces: v.voces ?? 100, vibracion: v.vibracion ?? true }
-  } catch { return { efectos: 100, musica: 100, voces: 100, vibracion: true } }
+    return { efectos: v.efectos ?? 100, musica: v.musica ?? 100, voces: v.voces ?? 100, vibracion: v.vibracion ?? true, temblor: v.temblor ?? true }
+  } catch { return { efectos: 100, musica: 100, voces: 100, vibracion: true, temblor: true } }
 }
 function guardarSonido (s) {
   try { localStorage.setItem(CLAVE_SONIDO, JSON.stringify(s)) } catch { /* modo privado */ }
@@ -3389,6 +3394,7 @@ function aplicarSonido (s) {
   audio.setVolumen('musica', s.musica / 100)
   voces.setVolumen(s.voces / 100)
   document.documentElement.dataset.vibracion = s.vibracion ? 'si' : 'no'
+  document.documentElement.dataset.temblor = s.temblor ? 'si' : 'no'
 }
 function vibrar (patron) {
   if (document.documentElement.dataset.vibracion === 'no') return
@@ -3436,7 +3442,54 @@ function pintarSonido () {
     b.addEventListener('click', () => { ponerFps(valor); pintarSonido() })
     elFpsOps.appendChild(b)
   }
+  const elTemblorOps = document.getElementById('temblor-ops')
+  elTemblorOps.innerHTML = ''
+  for (const [valor, nombre] of [[true, 'Sí'], [false, 'No']]) {
+    const b = document.createElement('button')
+    b.type = 'button'
+    b.className = 'ajuste-op'
+    b.textContent = nombre
+    b.classList.toggle('elegida', s.temblor === valor)
+    b.addEventListener('click', () => {
+      const nuevo = { ...sonidoGuardado(), temblor: valor }
+      guardarSonido(nuevo)
+      aplicarSonido(nuevo)
+      pintarSonido()
+    })
+    elTemblorOps.appendChild(b)
+  }
 }
+
+// Volver a enseñar la guía: se olvida lo hecho y se recarga, porque la guía lee
+// su estado al crearse.
+document.getElementById('guia-repetir').addEventListener('click', () => {
+  try { localStorage.removeItem('alienz-guia-v1') } catch { /* modo privado */ }
+  document.getElementById('guia-pie').textContent = 'Hecho: saldrá en la próxima partida.'
+})
+
+// Empezar de cero, con dos toques: el primero arma el botón y el segundo borra.
+// Con cuenta no se deja: la nube volvería a traer el progreso al entrar, y
+// parecería que no ha funcionado.
+const elBorrar = document.getElementById('progreso-borrar')
+let borrarArmado = 0
+elBorrar.addEventListener('click', () => {
+  const pie = document.getElementById('progreso-pie')
+  if (cuenta.usuario) { pie.textContent = 'Sal antes de tu cuenta: si no, la nube te devuelve el progreso al entrar.'; return }
+  if (Date.now() - borrarArmado > 4000) {
+    borrarArmado = Date.now()
+    elBorrar.textContent = '¿Seguro? Toca otra vez'
+    setTimeout(() => { elBorrar.textContent = 'Empezar de cero' }, 4000)
+    return
+  }
+  try {
+    for (const k of Object.keys(localStorage)) {
+      // Se conservan las preferencias (sonido, tema, calidad, FPS): son del móvil, no de la partida.
+      if (/^alienz-(sonido|tema|calidad|detalle|fps)/.test(k)) continue
+      if (k.startsWith('alienz-')) localStorage.removeItem(k)
+    }
+  } catch { /* modo privado */ }
+  location.reload()
+})
 ponerFps(fpsGuardado())
 for (const [el, clave] of [[elVolEfectos, 'efectos'], [elVolMusica, 'musica'], [elVolVoces, 'voces']]) {
   el.addEventListener('input', () => {
@@ -3521,7 +3574,18 @@ document.getElementById('ir-ajustes').addEventListener('click', () => {
   pintarSonido()
   elAjustesCapa.classList.remove('hidden')
 })
-document.getElementById('ajustes-volver').addEventListener('click', () => elAjustesCapa.classList.add('hidden'))
+document.getElementById('ajustes-volver').addEventListener('click', () => {
+  elAjustesCapa.classList.add('hidden')
+  elAjustesCapa.classList.remove('desde-pausa')
+})
+// Desde la pausa: los mismos Ajustes por encima (sobre todo para bajar el
+// volumen sin abandonar la partida). Al volver, la pausa sigue debajo.
+document.getElementById('pausa-ajustes').addEventListener('click', () => {
+  pintarCalidad()
+  pintarSonido()
+  elAjustesCapa.classList.add('desde-pausa')
+  elAjustesCapa.classList.remove('hidden')
+})
 
 // --- actualizar el juego ------------------------------------------------------
 // Isidro: «necesito un botón en la portada arriba para actualizar la página y

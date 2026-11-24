@@ -3236,3 +3236,12 @@ a.multi-boton { text-decoration: none; }
 }
 .premio-tramo b { font-weight: 900; }
 .panel-pausa #pausa-reiniciar { margin-top: 10px; }
+
+/* Ajustes abiertos desde la pausa (24/11): por encima de la cortina de pausa. */
+.ajustes-capa.desde-pausa { z-index: 31; }
+.chip.chip-peligro { color: var(--red, #ff6b5b); border-color: currentColor; }
+.ajuste.creditos summary { cursor: pointer; list-style: none; }
+.ajuste.creditos summary::after { content: ' ▾'; opacity: .6; }
+.ajuste.creditos[open] summary::after { content: ' ▴'; }
+.ajuste.creditos .ajuste-pie { margin-top: 6px; }
+.panel-pausa .chip { display: block; margin: 10px auto 0; }
