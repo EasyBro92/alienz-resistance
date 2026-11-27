@@ -170,7 +170,7 @@ export const SOLDIERS = {
     magazine: 12, reloadTime: 1.2,
     // Rasgo: los soldados de su carril y de los de al lado disparan más rápido.
     anima: { factor: 1.25, carriles: 1 },
-    blurb: 'No se compra: solo sale de la caja alienígena. Su carril y los de al lado disparan un 25% más rápido.'
+    blurb: 'Su carril y los de al lado disparan un 25% más rápido.'
   },
 
   // --- Las cinco de la caja alienígena (06/10) ----------------------------------
@@ -198,7 +198,7 @@ export const SOLDIERS = {
     magazine: 15, reloadTime: 0.8,
     asienta: { porSegundo: 0.3, tope: 0.9 },
     suprime: { factor: 0.88, dura: 0.5 },
-    blurb: 'Solo en la caja alienígena. Pistola de las fuerzas especiales: dispara rapidísimo, cada vez más certera, y frena al que le da. Aguanta mucho.'
+    blurb: 'Pistola de las fuerzas especiales: dispara rapidísimo, cada vez más certera, y frena al que le da. Aguanta mucho.'
   },
   // Carla (antes Claire): el lanzagranadas incendiario. Como el Mortero, pero más rápida, de
   // menos pegada, y donde cae la granada el suelo se queda ardiendo.
@@ -208,7 +208,7 @@ export const SOLDIERS = {
     magazine: 6, reloadTime: 2.0,
     buscaCorro: true,
     brasas: { daño: 8, dura: 2.6, radio: 1.7 },
-    blurb: 'Solo en la caja alienígena. Lanzagranadas incendiario: seis granadas seguidas donde más apretados van, y el suelo se queda ardiendo.'
+    blurb: 'Lanzagranadas incendiario: seis granadas seguidas donde más apretados van, y el suelo se queda ardiendo.'
   },
   // Duke (antes Ada, que llevaba la ballesta: la repetía la Ballestera). Isidro
   // quiso «algún hombre típico de películas de zombis que esté fuerte»: un
@@ -221,7 +221,7 @@ export const SOLDIERS = {
     magazine: 6, reloadTime: 1.8,
     buscaDuro: true,
     empuja: 0.6,
-    blurb: 'Solo en la caja alienígena. Revólver Magnum: atraviesa blindajes, elige al más duro y lo echa para atrás. Seis tiros y a recargar el tambor.'
+    blurb: 'Revólver Magnum: atraviesa blindajes, elige al más duro y lo echa para atrás. Seis tiros y a recargar el tambor.'
   },
   // Rita (antes Rebecca): la médica. Dispara poco, pero cura a los suyos mientras aguanta en pie.
   rebecca: {
@@ -230,7 +230,7 @@ export const SOLDIERS = {
     magazine: 12, reloadTime: 1.1,
     // Rasgo: cura poco a poco a los soldados de su carril y de los de al lado.
     sana: { porSegundo: 7, carriles: 1 },
-    blurb: 'Solo en la caja alienígena. Médica: cura sin parar a los soldados de su carril y de los de al lado.'
+    blurb: 'Médica: cura sin parar a los soldados de su carril y de los de al lado.'
   },
   // Shani (antes Sheva): la tiradora rápida. Menos pegada que el Tirador, casi el doble de
   // cadencia, y dispara DE PIE: no se arrodilla, así que no pierde el medio
@@ -241,7 +241,7 @@ export const SOLDIERS = {
     magazine: 6, reloadTime: 1.4,
     buscaDuro: true,
     empuja: 0.8,
-    blurb: 'Solo en la caja alienígena. Fusil de tiradora semiautomático: dispara de pie, atraviesa blindajes, elige al más duro y lo echa para atrás.'
+    blurb: 'Fusil de tiradora semiautomático: dispara de pie, atraviesa blindajes, elige al más duro y lo echa para atrás.'
   },
   // Sherry: el modelo realista hecho fuera (Hunyuan3D), tal como la dejó Isidro
   // el 06/10. Es una `estatua`: viene posada y con su fusil fundido, así que se
@@ -254,7 +254,7 @@ export const SOLDIERS = {
     damage: 12, fireRate: 3.6, range: 18, armorPierce: 0.4,
     magazine: 20, reloadTime: 1.1,
     asienta: { porSegundo: 0.3, tope: 0.9 },
-    blurb: 'Solo en la caja alienígena. De prueba: un modelo realista hecho con otra herramienta. Todavía no anda ni apunta.'
+    blurb: 'Fusil de asalto: ráfagas largas que se asientan en el blanco. Planta los pies y no se mueve de su sitio.'
   },
   // La ballestera (15/10): la primera hecha fuera que anda y dispara. Isidro la
   // generó en Hunyuan3D («una chica sexy con poca ropa que tenga una ballesta»);
@@ -266,7 +266,7 @@ export const SOLDIERS = {
     magazine: 1, reloadTime: 0.55, projectile: 'arrow', silent: true,
     clava: { factor: 0.7, dura: 3 },
     buscaDuro: true,
-    blurb: 'Solo en la caja alienígena. Ballesta: atraviesa blindajes, elige al más duro y lo deja clavado casi en el sitio.'
+    blurb: 'Ballesta: atraviesa blindajes, elige al más duro y lo deja clavado casi en el sitio.'
   }
 }
 

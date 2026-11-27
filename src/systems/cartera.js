@@ -24,14 +24,6 @@ export const MONEDAS_POR_BILLETE = 30
 // lo mismo que las de partida, dejar monedas sin gastar rendiría tanto como jugar.
 export const MONEDAS_POR_DOLAR = 100
 
-// Precio en billetes para desbloquear cada cosa. El arquero no está: viene de
-// serie.
-//
-// Medidos contra el premio de la primera victoria de cada tramo (`premioDeTramo`
-// en main.js: 40 + 8 por tramo, y la mitad otra vez con tres estrellas): el
-// fusilero sale con la primera victoria y el mortero hacia la mitad de la
-// campaña. Lo que se quiere es que siempre haya algo a tiro de dos o tres
-// partidas más.
 // Unidades que no se compran con dinero: salen del cofre. No tienen precio a
 // propósito, para que no haya forma de pagarlas.
 export const PREMIOS_UNIDAD = ['capitan', 'jill', 'claire', 'ada', 'rebecca', 'sheva', 'sherry', 'ballestera']
@@ -47,6 +39,14 @@ export function desbloquearPremio (clave) {
   return true
 }
 
+// Precio en billetes para desbloquear cada cosa. El arquero no está: viene de
+// serie.
+//
+// Medidos contra el premio de la primera victoria de cada tramo (`premioDeTramo`
+// en main.js: 40 + 8 por tramo, y la mitad otra vez con tres estrellas): el
+// fusilero sale con la primera victoria y el mortero hacia la mitad de la
+// campaña. Lo que se quiere es que siempre haya algo a tiro de dos o tres
+// partidas más.
 export const PRECIOS = {
   rifle: 45,
   shotgun: 120,

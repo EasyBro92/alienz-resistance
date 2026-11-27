@@ -2974,7 +2974,14 @@ function win () {
     ${htmlBotin()}
     ${cierraPais
       ? `<button class="big-btn" onclick="volverA('mapa')">AL MAPA</button>`
-      : `<button class="big-btn" onclick="volverA('pais:${paisIdx}')">SIGUIENTE MISIÓN</button>`}`)
+      // «Siguiente misión» la empieza ya: antes llevaba a la ficha del país y
+      // había que volver a tocar la misión, que es lo que el botón prometía.
+      // Si la siguiente pide más estrellas de las que hay, a la ficha del país,
+      // que es donde se dice cuántas faltan.
+      : !nivelJugable(nivelActual + 1)
+        ? `<button class="big-btn" onclick="volverA('pais:${paisIdx}')">AL PAÍS</button>`
+        : `<button class="big-btn" onclick="volverA('jugar:${nivelActual + 1}')">SIGUIENTE MISIÓN</button>
+         <button class="chip chip-ghost" onclick="volverA('pais:${paisIdx}')">Volver al país</button>`}`)
   abrirCofre(true, estrellas)
 }
 
@@ -4095,7 +4102,7 @@ async function pintarMarcador (indice, donde = 'parte') {
     // En el parte se esconde sin más; en el ranking, que es a lo que se viene,
     // hay que decir por qué no sale nada.
     if (donde === 'parte') { caja.hidden = true; return }
-    lista.innerHTML = '<li class="marcador-vacio">Entra con tu cuenta en Ajustes para ver el ranking.</li>'
+    lista.innerHTML = '<li class="marcador-vacio">Entra con tu cuenta en Ajustes para ver la clasificación.</li>'
     pie.textContent = ''
     return
   }
@@ -4214,9 +4221,13 @@ try {
     abrirMapa()
     elMapaCapa.classList.add('hidden')
     nivelActual = Number(destino.slice(6)) || 0
-    start(nivelActual)
+    // En diferido, como el duelo: `start` toca variables que se declaran más
+    // abajo en este archivo (`coop`, por ejemplo) y, llamado aquí mismo, fallaba
+    // antes de que existieran. El fallo se lo tragaba el `catch` y «Reintentar»
+    // dejaba la pantalla vacía sin decir nada.
+    setTimeout(() => start(nivelActual))
   }
-} catch { /* sin almacén de sesión: se queda en la portada */ }
+} catch (e) { console.warn('No se pudo reabrir la pantalla anterior:', e) }
 
 // Consola de pruebas: solo existe en desarrollo, no viaja a la versión publicada.
 if (import.meta.env.DEV) {
@@ -4851,7 +4862,7 @@ document.getElementById('mapa-multi')?.addEventListener('click', () => {
   audio.unlock()
   document.getElementById('multi-intro').textContent = cuenta.usuario
     ? 'Juega contra otros o junto a ellos.'
-    : 'Juega contra otros o junto a ellos. Para los retos y el ranking hace falta entrar con tu cuenta en Ajustes.'
+    : 'Juega contra otros o junto a ellos. Para los retos y la clasificación hace falta entrar con tu cuenta en Ajustes.'
   abrirMulti()
 })
 
